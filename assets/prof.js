@@ -123,7 +123,7 @@
     const liste = elevesFiltres().filter((e) => e.actif !== false && e.niveau === "TSI");
     const lignes = liste.map((e) => {
       const E = D.parEleve[e.id].E;
-      const bac = E.filter((t) => t.type === "externe" && /^bac-/.test(t.module) && !/^bac-(parcours|revision)$/.test(t.module));
+      const bac = E.filter((t) => t.type === "externe" && /^bac-/.test(t.module) && !/^bac-(parcours|revision|blanc)$/.test(t.module));
       const best = (a) => (a.length ? Math.max(...a.map((t) => note20(t.score, t.score_max))) : null);
       const cells = cols.map((n) => {
         const ts = bac.filter((t) => notionDe(t.module) === n.id), lim = Date.parse(n.echeance);
@@ -134,7 +134,9 @@
       const rev = E.filter((t) => t.type === "revision_jour");
       const jours7 = new Set(rev.filter((t) => SIP.jourTahiti(t.fait_le) >= il7).map((t) => SIP.jourTahiti(t.fait_le))).size;
       const parcours = E.filter((t) => t.module === "bac-parcours" && SIP.jourTahiti(t.fait_le) >= il7).length;
-      return { e, cells, valides, echues: echues.length, note10: echues.length ? (10 * valides) / echues.length : null, jours7, parcours };
+      const blancs = E.filter((t) => t.module === "bac-blanc").sort((a, b) => quand(b) - quand(a));
+      const blanc = blancs.length ? { dernier: note20(blancs[0].score, blancs[0].score_max), le: blancs[0].fait_le, meilleur: Math.max(...blancs.map((t) => note20(t.score, t.score_max))), n: blancs.length } : null;
+      return { e, cells, valides, echues: echues.length, note10: echues.length ? (10 * valides) / echues.length : null, jours7, parcours, blanc };
     });
     return { cols, lignes };
   }
@@ -148,20 +150,21 @@
       : `<td class="num">${c.passe ? `<span class="etiquette ko">—</span>` : `<span class="discret">à faire</span>`}</td>`;
     const tete = cols.map((n) => `<th class="num" title="${esc(n.lab)} · ${esc(n.ds || "")} : échéance le ${SIP.fmtDate(n.ds_date)} à 6 h${n.enLigne ? "" : " · série pas encore en ligne"}">${esc(court(n.lab))}<div class="discret">${esc(n.ds || "")} · ${SIP.fmtDate(n.ds_date)}</div></th>`).join("");
     cadre(`<p class="discret">Une notion est <b>validée</b> quand l'élève atteint <b>${BAC.seuil}/20</b> à l'une de ses séries <b>avant l'échéance</b> : le jour de son DS, 6 h (heure de réception par le serveur). Sous la note : le nombre d'essais. « après » : meilleure note obtenue après l'échéance, qui ne compte pas.</p>
-      <div class="table-defil"><table><thead><tr><th>Élève</th>${tete}<th class="num">Validées à temps</th><th class="num">Note /10</th><th class="num">Révision du jour (7 j)</th><th class="num">Parcours (7 j)</th></tr></thead><tbody>
+      <div class="table-defil"><table class="grille-bac"><thead><tr><th>Élève</th>${tete}<th class="num">Validées à temps</th><th class="num">Note /10</th><th class="num">Révision du jour (7&nbsp;j)</th><th class="num">Parcours (7&nbsp;j)</th><th class="num">Sujet blanc</th></tr></thead><tbody>
       ${lignes.map((l) => `<tr class="cliquable" data-id="${l.e.id}"><td><b>${esc(l.e.nom)}</b></td>${l.cells.map(cell).join("")}
         <td class="num">${l.echues ? `${l.valides} / ${l.echues}` : "—"}</td>
         <td class="num">${l.note10 === null ? "—" : `<span class="etiquette ${l.note10 >= 8 ? "ok" : l.note10 >= 5 ? "alerte" : "ko"}">${SIP.nb(l.note10, 3)}</span>`}</td>
         <td class="num"><span class="etiquette ${l.jours7 >= 5 ? "ok" : l.jours7 >= 3 ? "alerte" : "ko"}">${l.jours7} / 7 j</span></td>
-        <td class="num">${l.parcours}</td></tr>`).join("")}
+        <td class="num">${l.parcours}</td>
+        <td class="num">${l.blanc ? `<span class="etiquette ${SIP.appreciation(l.blanc.dernier).cls}">${SIP.nb(l.blanc.dernier, 3)}</span><div class="discret">${SIP.fmtDate(l.blanc.le)}${l.blanc.n > 1 ? ` · meilleur ${SIP.nb(l.blanc.meilleur, 3)} · ${l.blanc.n} sujets` : ""}</div>` : `<span class="discret">—</span>`}</td></tr>`).join("")}
       </tbody></table></div>
       <div class="rang no-print" style="margin-top:12px"><button class="btn sec" id="csv-bac">Exporter cette grille (CSV, pour Pronote)</button></div>
       <p class="discret">Clique sur un élève pour voir chacune de ses séries, question par question (réponse donnée, réponse attendue, durée).</p>`);
     document.querySelectorAll("tr[data-id]").forEach((tr) => (tr.onclick = () => vueDetail(tr.dataset.id)));
     document.getElementById("csv-bac").onclick = () => {
       const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-      const out = [["eleve", ...cols.map((n) => `${court(n.lab)} (${n.ds || ""})`), "validees_a_temps", "echeances_passees", "note_sur_10", "revision_jour_7j"].map(q).join(";")];
-      lignes.forEach((l) => out.push([l.e.nom, ...l.cells.map((c) => (c.b === null ? "" : SIP.nb(c.b, 3))), l.valides, l.echues, l.note10 === null ? "" : SIP.nb(l.note10, 3), l.jours7].map(q).join(";")));
+      const out = [["eleve", ...cols.map((n) => `${court(n.lab)} (${n.ds || ""})`), "validees_a_temps", "echeances_passees", "note_sur_10", "revision_jour_7j", "sujet_blanc_dernier", "sujet_blanc_meilleur"].map(q).join(";")];
+      lignes.forEach((l) => out.push([l.e.nom, ...l.cells.map((c) => (c.b === null ? "" : SIP.nb(c.b, 3))), l.valides, l.echues, l.note10 === null ? "" : SIP.nb(l.note10, 3), l.jours7, l.blanc ? SIP.nb(l.blanc.dernier, 3) : "", l.blanc ? SIP.nb(l.blanc.meilleur, 3) : ""].map(q).join(";")));
       const blob = new Blob(["﻿" + out.join("\r\n")], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `bac-si_TSI_${SIP.aujourdhui()}.csv`; a.click();
     };

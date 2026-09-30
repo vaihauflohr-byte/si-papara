@@ -2,7 +2,7 @@
    SI Papara — pont entre l'entraînement bac SI (entrainements/bac-si.html)
    et le suivi du professeur.
    La page d'entraînement appelle window.BACSI_HOOK à la fin de chaque
-   série, parcours ou révision du jour ; le résultat part dans la même
+   série, parcours, sujet blanc ou révision du jour ; le résultat part dans la même
    base que les autres entraînements du site (file d'attente hors ligne).
    L'élève doit être connecté sur le site (même navigateur).
    ===================================================================== */
@@ -54,6 +54,9 @@
                score: ev.note, score_max: 20, duree_s: ev.duree_s, details: ev.details };
     if (ev.type === "parcours")
       return { module: "bac-parcours", titre: "Bac SI · " + ev.titre, type: "externe",
+               score: ev.note, score_max: 20, duree_s: ev.duree_s, details: ev.details };
+    if (ev.type === "blanc")
+      return { module: "bac-blanc", titre: "Bac SI · " + ev.titre, type: "externe",
                score: ev.note, score_max: 20, duree_s: ev.duree_s, details: ev.details };
     if (ev.type === "revision")
       return { module: "bac-revision", titre: "Bac SI · Révision du jour", type: "revision_jour",

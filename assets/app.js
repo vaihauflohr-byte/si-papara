@@ -104,10 +104,7 @@
     const hist = ETAT.historique || [];
     const modules = SIP.modulesDu(s.niveau);
 
-    $app.innerHTML = `<h1>Bonjour ${esc(s.nom)}</h1>
-      ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
-      ${s.niveau === "TSI" ? tuileBac(hist) : ""}
-      <div class="grille">
+    const grille = `<div class="grille">
         <a class="carte tuile ${aLire ? "a-faire" : actives ? "fait" : ""}" href="#/fiches">
           <div class="discret">Fiches du jour</div>
           <div class="grand">${actives ? (aLire ? pluriel(aLire, "à lire", "à lire") : "✓ Lues") : "—"}</div>
@@ -128,14 +125,31 @@
           <div class="grand">${moyenneGenerale(hist)}</div>
           <div class="discret">Ma moyenne sur 20 et mon niveau par compétence du programme.</div>
         </a>` : ""}
-      </div>
-
-      ${blocsModules(modules, hist)}
-
-      <h2>Mes derniers entraînements</h2>
+      </div>`;
+    const derniers = `<h2>Mes derniers entraînements</h2>
       ${tableHistorique(hist.slice(0, 5))}
-      ${hist.length > 5 ? `<p><a href="#/historique">Voir tout (${hist.length})</a></p>` : ""}
+      ${hist.length > 5 ? `<p><a href="#/historique">Voir tout (${hist.length})</a></p>` : ""}`;
+
+    if (s.niveau === "TSI" && SIP.BAC) {
+      // Terminale : tout le tableau de bord est tourné vers l'écrit du bac ; les questions de cours passent en bas
+      $app.innerHTML = `<h1>Bonjour ${esc(s.nom)}</h1>
+      ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
+      ${tuileBac(hist)}
+      ${outilsBac(hist)}
+      ${notionsBac(hist)}
+      ${derniers}
+      <h2>Questions de cours rapides <span class="discret">QCM des chapitres, mini-fiches et révision de la semaine</span></h2>
+      <details class="sequence rapides"><summary><span>Ouvrir les questions de cours</span><span class="discret">${pluriel(modules.length, "module")}</span></summary>
+        <div class="rapides-in">${grille}${blocsModules(modules, hist, true)}</div></details>
       <p class="pied"><button class="btn-lien" id="deco">Se déconnecter</button></p>`;
+    } else {
+      $app.innerHTML = `<h1>Bonjour ${esc(s.nom)}</h1>
+      ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
+      ${grille}
+      ${blocsModules(modules, hist)}
+      ${derniers}
+      <p class="pied"><button class="btn-lien" id="deco">Se déconnecter</button></p>`;
+    }
     document.getElementById("deco").onclick = () => { SIP.session.clear(); ETAT = null; location.hash = "#/"; };
   }
 
@@ -163,6 +177,73 @@
           <span class="btn">S'entraîner →</span></div>
       </a>`;
   }
+  const PAGE_BAC = "entrainements/bac-si.html";
+  const DOM_BAC = { ana: "Analyse", meca: "Mécanique", ener: "Énergie", info: "Information", auto: "Automatique", simu: "Modélisation", phy: "Physique" };
+  const jourCourt = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Pacific/Tahiti" });
+  const essaisBac = (hist, id) => hist.filter((h) => h.type === "externe" && (h.module === "bac-" + id || h.module.startsWith("bac-" + id + "-s")));
+  function etatNotion(n, hist) {
+    const B = SIP.BAC, E = essaisBac(hist, n.id), lim = n.echeance ? Date.parse(n.echeance) : Infinity;
+    const meilleure = (a) => (a.length ? Math.max(...a.map((h) => sur20(h.score, h.score_max))) : null);
+    const best = meilleure(E), bestT = meilleure(E.filter((h) => Date.parse(h.recu_le || h.fait_le) <= lim));
+    const valide = bestT !== null && bestT >= B.seuil, passe = Date.now() > lim;
+    if (!n.enLigne) return { cls: "off", txt: "bientôt en ligne", valide };
+    if (valide) return { cls: "ok", txt: `✓ validée · ${SIP.nb(bestT, 3)}/20`, valide };
+    if (passe) return { cls: "ko", txt: best !== null ? `hors délai · ${SIP.nb(best, 3)}/20` : "non validée", valide };
+    if (best !== null) return { cls: "alerte", txt: `meilleure ${SIP.nb(best, 3)}/20`, valide };
+    return { cls: "", txt: "à faire", valide };
+  }
+  function ligneNotion(n, hist) {
+    const e = etatNotion(n, hist);
+    const inner = `<span class="nb-rk">${n.rang}</span>
+      <span class="nb-nm"><b>${esc(n.lab)}</b><span class="discret">${DOM_BAC[n.dom] || ""}${n.ds ? ` · ${esc(n.ds)} le ${jourCourt(n.ds_date)}` : ""}</span></span>
+      <span class="nb-p" title="Probabilité d'apparition à l'écrit"><span class="nb-t"><i style="width:${n.p}%"></i></span><b>${n.p} %</b></span>
+      <span class="etiquette ${e.cls}">${e.txt}</span>`;
+    return n.enLigne ? `<a class="nb-row" href="${PAGE_BAC}#n=${n.id}" title="S'entraîner sur cette notion">${inner}<span class="nb-go" aria-hidden="true">→</span></a>`
+      : `<div class="nb-row off">${inner}<span class="nb-go"></span></div>`;
+  }
+  function notionsBac(hist) {
+    const B = SIP.BAC, auj = SIP.aujourdhui(), dans7 = SIP.ajouterJours(auj, 7);
+    const vues = B.notions.filter((n) => n.cours && n.cours <= dans7).sort((a, b) => a.rang - b.rang);
+    const avenir = B.notions.filter((n) => !(n.cours && n.cours <= dans7)).sort((a, b) => (a.cours || "9").localeCompare(b.cours || "9") || a.rang - b.rang);
+    const valides = B.notions.filter((n) => etatNotion(n, hist).valide).length, enLigne = B.notions.filter((n) => n.enLigne).length;
+    return `<h2>Mes notions du bac <span class="discret">${valides} validée${valides > 1 ? "s" : ""} · ${vues.length} vue${vues.length > 1 ? "s" : ""} ou en cours · ${enLigne} sur ${B.notions.length} en ligne</span></h2>
+      <p class="discret">Classées par fréquence à l'écrit. Clique sur une notion pour t'entraîner : 16/20 à une série avant le DS la valide.</p>
+      <div class="nb-liste">${vues.map((n) => ligneNotion(n, hist)).join("") || `<p class="discret">Les premières notions arrivent avec le premier cours.</p>`}</div>
+      ${avenir.length ? `<details class="sequence nb-avenir"><summary><span>À venir</span><span class="discret">${pluriel(avenir.length, "notion")}, dans l'ordre du planning</span></summary>
+        <div class="nb-liste">${avenir.map((n) => ligneNotion(n, hist)).join("")}</div></details>` : ""}`;
+  }
+  function outilsBac(hist) {
+    const il7 = SIP.ajouterJours(SIP.aujourdhui(), -6);
+    const jours = new Set(hist.filter((h) => h.type === "revision_jour" && SIP.jourTahiti(h.fait_le) >= il7).map((h) => SIP.jourTahiti(h.fait_le))).size;
+    const blancs = hist.filter((h) => h.module === "bac-blanc"), dernier = blancs[0];
+    const parc = hist.filter((h) => h.module === "bac-parcours" && SIP.jourTahiti(h.fait_le) >= il7).length;
+    const nbFiches = SIP.METHODE ? SIP.METHODE.fiches.length : 0;
+    return `<div class="grille outils">
+      <a class="carte tuile ${jours >= 5 ? "fait" : "a-faire"}" href="${PAGE_BAC}#revision">
+        <div class="discret">Révision du jour</div><div class="grand">${jours}<small> / 7 j</small></div>
+        <div class="discret">5 à 10 minutes par jour pour ancrer les formules.</div></a>
+      <a class="carte tuile" href="${PAGE_BAC}#parcours">
+        <div class="discret">Mon parcours</div><div class="grand">${parc ? `${parc}<small> cette sem.</small>` : "Faiblesses"}</div>
+        <div class="discret">10 questions sur les notions que tu maîtrises le moins.</div></a>
+      <a class="carte tuile" href="${PAGE_BAC}#blanc">
+        <div class="discret">Sujet blanc</div><div class="grand">${dernier ? `${SIP.nb(sur20(dernier.score, dernier.score_max), 3)}<small> / 20</small>` : "40 min"}</div>
+        <div class="discret">${dernier ? `Dernier le ${SIP.fmtDate(dernier.fait_le)} · ${pluriel(blancs.length, "sujet")}.` : "20 questions chronométrées, en conditions d'examen."}</div></a>
+      ${nbFiches ? `<a class="carte tuile" href="#/methode">
+        <div class="discret">Réussir l'écrit</div><div class="grand">${nbFiches}<small> fiches</small></div>
+        <div class="discret">Calculer, conclure, gérer ton temps.</div></a>` : ""}
+    </div>`;
+  }
+  function vueMethode() {
+    const M = SIP.METHODE; if (!M) { location.hash = "#/tableau"; return; }
+    $app.innerHTML = `<p class="no-print"><a href="#/tableau">← Retour</a></p>
+      <div class="print-tete"><img src="assets/logo-papara.svg" alt="" width="54" height="43"><div><div class="eyebrow">Lycée Tuianu Le Gayic · Papara · Terminale SI</div><b>${esc(M.titre)}</b></div></div>
+      <h1>${esc(M.titre)}</h1><p class="discret">${esc(M.intro)}</p>
+      <nav class="sommaire no-print" aria-label="Fiches">${M.fiches.map((f, i) => `<button class="btn sec" type="button" data-go="${f.id}">${i + 1}. ${esc(f.titre)}</button>`).join("")}</nav>
+      ${M.fiches.map((f, i) => `<section class="fiche methode" id="m-${f.id}"><div class="fiche-tete"><div class="fiche-titre">${i + 1}. ${esc(f.titre)}</div></div>${f.html}</section>`).join("")}
+      <p class="pied no-print"><a href="#/tableau">← Tableau de bord</a> · <button class="btn-lien" type="button" id="imp">Imprimer les fiches</button></p>`;
+    $app.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => document.getElementById("m-" + b.dataset.go).scrollIntoView({ behavior: "smooth", block: "start" })));
+    document.getElementById("imp").onclick = () => window.print();
+  }
   function moyenneGenerale(hist) {
     const t = hist.filter((h) => h.type === "entrainement");
     return t.length ? SIP.nb(t.reduce((a, h) => a + sur20(h.score, h.score_max), 0) / t.length, 3) + "/20" : "—";
@@ -175,14 +256,14 @@
       <div class="discret">${essais.length ? `${pluriel(essais.length, "essai")} · meilleure note ${etiquetteNote(best, SIP.NOTE_MAX)}` : "Pas encore fait"}</div></div>
       <a class="btn" href="#/module/${m.id}">S'entraîner</a></div>`;
   }
-  function blocsModules(modules, hist) {
-    if (!modules.length) return `<h2>Entraînements</h2><p class="discret">Aucun module pour l'instant.</p>`;
+  function blocsModules(modules, hist, sansTitre) {
+    if (!modules.length) return sansTitre ? "" : `<h2>Entraînements</h2><p class="discret">Aucun module pour l'instant.</p>`;
     const seqs = [];
     modules.forEach((m) => { const k = m.sequence || "Entraînements"; let g = seqs.find((x) => x.nom === k); if (!g) seqs.push((g = { nom: k, ms: [] })); g.ms.push(m); });
     const rang = (nom) => { if (/^projet/i.test(nom)) return -1; const m = /^S(\d+)/.exec(nom); return m ? +m[1] : 1000; };
     seqs.sort((a, b) => rang(a.nom) - rang(b.nom));
     let ouvert = false;
-    return `<h2>Entraînements <span class="discret" style="font-weight:400">· 10 questions, tu pars de 20 points, −${SIP.PENALITE} par erreur</span></h2>` + seqs.map((g) => {
+    return (sansTitre ? `<p class="discret">10 questions par module, tu pars de 20 points, −${SIP.PENALITE} par erreur.</p>` : `<h2>Entraînements <span class="discret" style="font-weight:400">· 10 questions, tu pars de 20 points, −${SIP.PENALITE} par erreur</span></h2>`) + seqs.map((g) => {
       const h = hist.filter((x) => g.ms.some((m) => m.id === x.module));
       const moy = h.length ? h.reduce((a, x) => a + sur20(x.score, x.score_max), 0) / h.length : null;
       const open = seqs.length <= 2 || (!ouvert && h.length ? (ouvert = true) : false);
@@ -421,6 +502,7 @@
         case "historique": return await vueHistorique();
         case "competences": return await vueCompetences();
         case "tableau": return await vueTableau();
+        case "methode": return vueMethode();
         default: location.hash = "#/tableau";
       }
     } catch (e) {

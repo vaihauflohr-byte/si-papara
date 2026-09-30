@@ -183,7 +183,7 @@ SIP.BAC = {
 "ds": "DS 06",
 "ds_date": "2026-11-26",
 "echeance": "2026-11-26T06:00:00-10:00",
-"enLigne": false
+"enLigne": true
 },
 {
 "id": "ener-rendement",
@@ -195,7 +195,7 @@ SIP.BAC = {
 "ds": "DS 05",
 "ds_date": "2026-11-12",
 "echeance": "2026-11-12T06:00:00-10:00",
-"enLigne": false
+"enLigne": true
 },
 {
 "id": "meca-statique",
@@ -219,7 +219,7 @@ SIP.BAC = {
 "ds": "DS 07",
 "ds_date": "2026-12-03",
 "echeance": "2026-12-03T06:00:00-10:00",
-"enLigne": false
+"enLigne": true
 },
 {
 "id": "meca-dynamique",
@@ -243,7 +243,7 @@ SIP.BAC = {
 "ds": "DS 05",
 "ds_date": "2026-11-12",
 "echeance": "2026-11-12T06:00:00-10:00",
-"enLigne": false
+"enLigne": true
 },
 {
 "id": "ener-moteur",
@@ -255,7 +255,7 @@ SIP.BAC = {
 "ds": "DS 06",
 "ds_date": "2026-11-26",
 "echeance": "2026-11-26T06:00:00-10:00",
-"enLigne": false
+"enLigne": true
 },
 {
 "id": "auto-performances",
@@ -327,7 +327,7 @@ SIP.BAC = {
 "ds": "DS 06",
 "ds_date": "2026-11-26",
 "echeance": "2026-11-26T06:00:00-10:00",
-"enLigne": false
+"enLigne": true
 },
 {
 "id": "auto-correcteur",

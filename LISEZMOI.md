@@ -64,10 +64,10 @@ Les banques 1re/Tle sont construites à partir des cours du professeur (dossiers
 ## Bac SI — séries notées (Terminale)
 
 `entrainements/bac-si.html` = l'entraînement « Bac SI par notions » relié au site : bandeau de connexion en haut, et chaque **série**, **parcours** et **révision du jour** part dans le suivi (module `bac-<notion>`, détail question par question).
-Sur le tableau de bord de l'élève de Terminale, une tuile « Bac SI · séries notées » montre les notions à valider avant le prochain DS.
+Le tableau de bord d'un élève de Terminale est tourné vers l'écrit : bandeau du prochain DS (notions à valider), accès direct à la révision du jour, au parcours « faiblesses », au **sujet blanc** (20 questions, 40 min, corrigé à la fin) et aux fiches **« Réussir l'écrit »** (`contenu/methode-bac.js`, page `#/methode`), puis la liste des 41 notions avec leur état ; chaque notion ouvre directement sa série (`entrainements/bac-si.html#n=<notion>`). Les anciens modules de cours restent disponibles, repliés en bas (« Questions de cours rapides »).
 
 **Règle de notation** : une notion est **validée** si l'élève obtient **16/20** à l'une de ses séries **avant l'échéance = le jour de son DS, 6 h (heure de Tahiti)**. C'est l'heure de **réception par le serveur** (`recu_le`) qui compte : un résultat resté hors ligne et envoyé après l'échéance est « hors délai ».
-`prof.html` → onglet **Bac SI** : grille élèves × notions (meilleure note, nombre d'essais, ✓), « Validées à temps x / y » sur les échéances passées, note /10, révision du jour et parcours sur 7 jours ; **Exporter cette grille** → CSV pour Pronote. Clic sur un élève → toutes ses séries, question par question.
+`prof.html` → onglet **Bac SI** : grille élèves × notions (meilleure note, nombre d'essais, ✓), « Validées à temps x / y » sur les échéances passées, note /10, révision du jour et parcours sur 7 jours, dernier et meilleur sujet blanc ; **Exporter cette grille** → CSV pour Pronote. Clic sur un élève → toutes ses séries, question par question.
 
 Mise à jour : quand le planning ou l'entraînement change, seuls `contenu/bac-si.js` et `entrainements/bac-si.html` sont régénérés (script `si_papara_bac.py`) : il suffit de redéposer ces deux fichiers sur GitHub.
 

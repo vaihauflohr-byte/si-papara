@@ -205,6 +205,10 @@ th { background: var(--paper-2); font-family: var(--f-disp); font-weight: 600; t
   color: var(--ink-3); white-space: nowrap; position: sticky; top: 0; border-bottom: 1px solid var(--rule); }
 tr:last-child td { border-bottom: 0; }
 td.num, th.num { text-align: right; } td.num { font-family: var(--f-mono); font-size: .86rem; }
+td.num .discret { font-family: var(--f-body); }
+table.grille-bac th { white-space: normal; min-width: 80px; max-width: 150px; vertical-align: bottom; }
+table.grille-bac th:first-child { min-width: 0; }
+table.grille-bac th .discret { white-space: nowrap; }
 tr.cliquable { cursor: pointer; } tr.cliquable:hover td { background: var(--accent-soft); }
 
 /* ---------- calendrier de lecture ---------- */
@@ -258,6 +262,59 @@ details.sequence[open] > summary { border-bottom: 1px solid var(--rule-2); }
 .comp-jauge span { display: block; height: 100%; background: var(--ink-2); }
 .comp-jauge span.ok { background: var(--good); } .comp-jauge span.accent { background: var(--accent); } .comp-jauge span.alerte { background: var(--warn); } .comp-jauge span.ko { background: var(--bad); }
 @media (max-width: 480px) { .comp-ligne { grid-template-columns: 1fr auto; } .comp-jauge { grid-column: 1 / -1; grid-row: 2; } }
+
+/* ---------- Terminale : outils et notions du bac ---------- */
+.grille.outils { margin-bottom: 8px; }
+.tuile .grand small { font-family: var(--f-body); font-weight: 500; text-transform: none; font-size: .9rem; color: var(--ink-3); margin-left: 3px; }
+.nb-liste { display: grid; gap: 6px; }
+.nb-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) minmax(110px, 170px) 168px 18px; gap: 6px 14px; align-items: center;
+  background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); padding: 9px 12px; color: inherit; text-decoration: none; }
+a.nb-row:hover { border-color: var(--accent); }
+a.nb-row:hover .nb-go { color: var(--accent); }
+.nb-row.off { background: transparent; border-style: dashed; color: var(--ink-2); }
+.nb-rk { font-family: var(--f-mono); font-weight: 600; font-size: 1.1rem; color: var(--ink-3); }
+.nb-nm { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.nb-nm b { font-weight: 600; }
+.nb-nm .discret { font-size: .78rem; color: var(--ink-3); }
+.nb-p { display: grid; grid-template-columns: minmax(0, 1fr) 2.8rem; gap: 8px; align-items: center; }
+.nb-t { height: 7px; border-radius: 2px; background: var(--rule-2); position: relative; overflow: hidden; }
+.nb-t i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 2px; }
+.nb-p b { font-family: var(--f-mono); font-weight: 600; font-size: .82rem; text-align: right; }
+.nb-go { color: var(--ink-3); font-weight: 600; text-align: right; }
+.etiquette.off { background: transparent; border-style: dashed; color: var(--ink-3); }
+.nb-row > .etiquette { justify-self: end; }
+@media (max-width: 640px) {
+  .grille.outils { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .grille.outils .carte { padding: 12px 13px; }
+  .grille.outils .grand { font-size: 1.65rem; }
+  .nb-row { grid-template-columns: 28px minmax(0, 1fr) 16px; }
+  .nb-p { grid-column: 2; grid-row: 2; }
+  .nb-row > .etiquette { grid-column: 2; grid-row: 3; justify-self: start; }
+  .nb-go { grid-column: 3; grid-row: 1; }
+}
+details.nb-avenir { margin-top: 10px; }
+details.nb-avenir .nb-liste { padding: 10px; }
+details.rapides .rapides-in { padding: 14px 16px 16px; border-top: 1px solid var(--rule-2); }
+details.rapides .rapides-in details.sequence { box-shadow: none; }
+
+/* ---------- Réussir l'écrit ---------- */
+.sommaire { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 18px; }
+.sommaire .btn { min-height: 36px; font-size: .88rem; padding: .35rem .75rem; }
+.fiche.methode { scroll-margin-top: 90px; }
+.fiche.methode h3 { margin-top: 14px; }
+.fiche.methode li { margin: .3em 0; }
+.print-tete { display: none; }
+.frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; line-height: 1.12; margin: 0 .12em; font-size: .94em; }
+.frac > .nu { padding: 0 .22em .06em; border-bottom: 1px solid currentColor; }
+.frac > .de { padding: .06em .22em 0; }
+.frac > .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media print {
+  @page { margin: 14mm; }
+  .print-tete { display: flex; align-items: center; gap: 12px; border-bottom: 1.5px solid #000; padding-bottom: 8px; margin-bottom: 12px; }
+  .print-tete b { font-family: var(--f-disp); text-transform: uppercase; font-size: 1.3rem; }
+  .fiche.methode { break-inside: avoid; border: 1px solid #999; }
+  main { max-width: none; padding: 0; }
+}
 
 @media print {
   .haut, .no-print, .demo-banniere { display: none !important; }
