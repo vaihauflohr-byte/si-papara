@@ -1,0 +1,227 @@
+/* =====================================================================
+   SI Papara — couche données.
+   Deux implémentations avec la même API :
+     - Supabase (production) si config.js est rempli
+     - Démo (localStorage de ce navigateur) sinon
+   ===================================================================== */
+window.SIP = window.SIP || {};
+
+(function (SIP) {
+  const CFG = window.SIP_CONFIG || {};
+  SIP.CFG = CFG;
+  SIP.CYCLE = CFG.dureeCycleJours || 60;
+
+  SIP.NIVEAUX = [
+    { id: "2SI", nom: "Seconde SI", court: "2de SI", groupe: "Lycée" },
+    { id: "1SI", nom: "Première SI", court: "1re SI", groupe: "Lycée" },
+    { id: "TSI", nom: "Terminale SI", court: "Tle SI", groupe: "Lycée" },
+    { id: "BTS1-STI", nom: "BTS 1 STI", court: "BTS1 STI", groupe: "BTS Électrotechnique", desc: "Conception : étude préliminaire, détaillée, réalisation" },
+    { id: "BTS1-ADM", nom: "BTS 1 ADM", court: "BTS1 ADM", groupe: "BTS Électrotechnique", desc: "Analyse, diagnostic, maintenance" },
+    { id: "BTS2-STI", nom: "BTS 2 STI", court: "BTS2 STI", groupe: "BTS Électrotechnique", desc: "Conception : étude préliminaire, détaillée, réalisation" },
+    { id: "BTS2-ADM", nom: "BTS 2 ADM", court: "BTS2 ADM", groupe: "BTS Électrotechnique", desc: "Analyse, diagnostic, maintenance" }
+  ];
+  SIP.niveau = (id) => SIP.NIVEAUX.find((n) => n.id === id);
+
+  // ---------- Dates (Tahiti = UTC-10, sans heure d'été) ----------
+  SIP.aujourdhui = () => new Date(Date.now() - 10 * 3600e3).toISOString().slice(0, 10);
+  SIP.joursEntre = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400e3);
+  SIP.ajouterJours = (d, n) => new Date(Date.parse(d) + n * 86400e3).toISOString().slice(0, 10);
+  SIP.lundi = (d) => {
+    const t = new Date(Date.parse(d || SIP.aujourdhui()));
+    const wd = (t.getUTCDay() + 6) % 7; // 0 = lundi
+    return SIP.ajouterJours(t.toISOString().slice(0, 10), -wd);
+  };
+  SIP.jourTahiti = (iso) => new Date(Date.parse(iso) - 10 * 3600e3).toISOString().slice(0, 10);
+  SIP.fmtDate = (iso, avecHeure) => {
+    if (!iso) return "—";
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    if (m) return `${m[3]}/${m[2]}/${m[1].slice(2)}`; // date seule (déjà en heure de Tahiti)
+    const d = new Date(iso);
+    const o = { timeZone: "Pacific/Tahiti", day: "2-digit", month: "2-digit", year: "2-digit" };
+    if (avecHeure) Object.assign(o, { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleString("fr-FR", o);
+  };
+  SIP.esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // ---------- Session élève ----------
+  const CLE_SESSION = "sip_session";
+  SIP.session = {
+    get() { try { return JSON.parse(localStorage.getItem(CLE_SESSION)); } catch (e) { return null; } },
+    set(s) { try { localStorage.setItem(CLE_SESSION, JSON.stringify(s)); } catch (e) {} },
+    clear() { try { localStorage.removeItem(CLE_SESSION); } catch (e) {} }
+  };
+
+  // ---------- File d'attente hors-ligne ----------
+  const CLE_FILE = "sip_file_attente";
+  const lireFile = () => { try { return JSON.parse(localStorage.getItem(CLE_FILE)) || []; } catch (e) { return []; } };
+  const ecrireFile = (f) => { try { localStorage.setItem(CLE_FILE, JSON.stringify(f)); } catch (e) {} };
+  SIP.enAttente = () => lireFile().length;
+
+  // =====================================================================
+  //  Backend DÉMO
+  // =====================================================================
+  function BackendDemo() {
+    const CLE = "sip_demo_db";
+    const load = () => {
+      let db;
+      try { db = JSON.parse(localStorage.getItem(CLE)); } catch (e) {}
+      if (!db) {
+        db = { eleves: [], entrainements: [], fiches_suivi: [], lectures: [], seq: 1 };
+        SIP.NIVEAUX.forEach((n) => db.eleves.push({ id: "demo-" + n.id, niveau: n.id, nom: "demo", pin: "1234", actif: true, cree_le: new Date().toISOString() }));
+        try { localStorage.setItem(CLE, JSON.stringify(db)); } catch (e) {}
+      }
+      return db;
+    };
+    const save = (db) => { try { localStorage.setItem(CLE, JSON.stringify(db)); } catch (e) {} };
+    const moi = () => { const s = SIP.session.get(); if (!s) throw new Error("SESSION_EXPIREE"); return s.eleve_id; };
+    const uid = () => "e-" + Math.random().toString(36).slice(2, 10);
+
+    return {
+      mode: "demo",
+      async connexion(niveau, nom, pin) {
+        const db = load();
+        const e = db.eleves.find((x) => x.niveau === niveau && x.nom.toLowerCase() === nom.trim().toLowerCase() && x.actif);
+        if (!e || e.pin !== pin) return { ok: false, erreur: "IDENTIFIANTS" };
+        return { ok: true, jeton: e.id, eleve_id: e.id, nom: e.nom, niveau: e.niveau };
+      },
+      async etat() {
+        const db = load(); const v = moi(); const auj = SIP.aujourdhui();
+        const e = db.eleves.find((x) => x.id === v);
+        if (!e) throw new Error("SESSION_EXPIREE");
+        const lec = db.lectures.filter((l) => l.eleve_id === v);
+        return {
+          eleve: { nom: e.nom, niveau: e.niveau },
+          aujourdhui: auj,
+          fiches: db.fiches_suivi.filter((f) => f.eleve_id === v).map((f) => {
+            const lf = lec.filter((l) => l.fiche_id === f.fiche_id).sort((a, b) => b.jour.localeCompare(a.jour));
+            return { fiche_id: f.fiche_id, adoptee_le: f.adoptee_le, nb_lectures: lf.length, dernier_su: lf[0] ? lf[0].su : null, lu_aujourdhui: lf.some((l) => l.jour === auj) };
+          }),
+          jours_lecture: [...new Set(lec.map((l) => l.jour))],
+          hebdo_fait: db.entrainements.some((t) => t.eleve_id === v && t.type === "revision_hebdo" && SIP.jourTahiti(t.fait_le) >= SIP.lundi(auj)),
+          historique: db.entrainements.filter((t) => t.eleve_id === v).sort((a, b) => b.fait_le.localeCompare(a.fait_le)).slice(0, 200)
+        };
+      },
+      async enregistrer(t) {
+        const db = load(); const v = moi(); const e = db.eleves.find((x) => x.id === v);
+        db.entrainements.push(Object.assign({ id: db.seq++, eleve_id: v, niveau: e.niveau, fait_le: new Date().toISOString(), recu_le: new Date().toISOString() }, t));
+        save(db);
+      },
+      async adopter(ids) {
+        const db = load(); const v = moi();
+        ids.forEach((id) => { if (!db.fiches_suivi.some((f) => f.eleve_id === v && f.fiche_id === id)) db.fiches_suivi.push({ eleve_id: v, fiche_id: id, adoptee_le: SIP.aujourdhui() }); });
+        save(db);
+      },
+      async lire(fiche_id, su) {
+        const db = load(); const v = moi(); const jour = SIP.aujourdhui();
+        db.lectures = db.lectures.filter((l) => !(l.eleve_id === v && l.fiche_id === fiche_id && l.jour === jour));
+        db.lectures.push({ eleve_id: v, fiche_id, jour, su, lu_le: new Date().toISOString() });
+        save(db);
+      },
+      // ----- prof -----
+      async profConnexion(email, mdp) { if (mdp !== "demo") throw new Error("En mode démo, le mot de passe prof est : demo"); sessionStorage.setItem("sip_prof", "1"); },
+      async profSession() { try { return sessionStorage.getItem("sip_prof") === "1"; } catch (e) { return false; } },
+      async profDeconnexion() { sessionStorage.removeItem("sip_prof"); },
+      async profDonnees() {
+        const db = load(); const depuis = SIP.ajouterJours(SIP.aujourdhui(), -70);
+        return { eleves: db.eleves.map(({ pin, ...r }) => r), entrainements: db.entrainements, fiches_suivi: db.fiches_suivi, lectures: db.lectures.filter((l) => l.jour >= depuis) };
+      },
+      async creerEleve(niveau, nom, pin) {
+        const db = load();
+        if (db.eleves.some((x) => x.niveau === niveau && x.nom.toLowerCase() === nom.trim().toLowerCase())) throw new Error("Existe déjà : " + nom);
+        db.eleves.push({ id: uid(), niveau, nom: nom.trim(), pin, actif: true, cree_le: new Date().toISOString() }); save(db);
+      },
+      async changerPin(id, pin) { const db = load(); const e = db.eleves.find((x) => x.id === id); if (e) e.pin = pin; save(db); },
+      async basculerActif(id, actif) { const db = load(); const e = db.eleves.find((x) => x.id === id); if (e) e.actif = actif; save(db); },
+      async supprimerEleve(id) {
+        const db = load();
+        ["entrainements", "fiches_suivi", "lectures"].forEach((t) => (db[t] = db[t].filter((r) => r.eleve_id !== id)));
+        db.eleves = db.eleves.filter((e) => e.id !== id); save(db);
+      }
+    };
+  }
+
+  // =====================================================================
+  //  Backend SUPABASE
+  // =====================================================================
+  function BackendSupabase() {
+    const sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, storageKey: "sip_prof_auth" } });
+    const jeton = () => { const s = SIP.session.get(); if (!s) throw new Error("SESSION_EXPIREE"); return s.jeton; };
+    const rpc = async (f, args) => {
+      const { data, error } = await sb.rpc(f, args);
+      if (error) {
+        if (/SESSION_EXPIREE/.test(error.message)) throw new Error("SESSION_EXPIREE");
+        const e = new Error(error.message); e.reseau = !error.code; throw e;
+      }
+      return data;
+    };
+    const tout = async (table, filtre) => { // pagination (limite Supabase de 1000 lignes)
+      let res = [], de = 0;
+      for (;;) {
+        let q = sb.from(table).select("*").range(de, de + 999);
+        if (filtre) q = filtre(q);
+        const { data, error } = await q;
+        if (error) throw new Error(error.message);
+        res = res.concat(data); if (data.length < 1000) return res; de += 1000;
+      }
+    };
+    return {
+      mode: "supabase",
+      connexion: (niveau, nom, pin) => rpc("connexion", { p_niveau: niveau, p_nom: nom, p_pin: pin }),
+      etat: () => rpc("mon_etat", { p_jeton: jeton() }),
+      enregistrer: (t) => rpc("enregistrer_entrainement", {
+        p_jeton: jeton(), p_module: t.module, p_titre: t.titre || null, p_type: t.type || "entrainement",
+        p_score: t.score, p_score_max: t.score_max, p_duree_s: t.duree_s || null, p_details: t.details || null, p_fait_le: t.fait_le || null
+      }),
+      adopter: (ids) => rpc("adopter_fiches", { p_jeton: jeton(), p_fiches: ids }),
+      lire: (fiche_id, su) => rpc("lire_fiche", { p_jeton: jeton(), p_fiche: fiche_id, p_su: su }),
+      // ----- prof -----
+      async profConnexion(email, mdp) {
+        const { error } = await sb.auth.signInWithPassword({ email, password: mdp });
+        if (error) throw new Error("Connexion refusée : " + error.message);
+        const { data } = await sb.rpc("is_prof");
+        if (!data) { await sb.auth.signOut(); throw new Error("Ce compte n'est pas inscrit comme prof (table « profs »)."); }
+      },
+      async profSession() { const { data } = await sb.auth.getSession(); if (!data.session) return false; const r = await sb.rpc("is_prof"); return !!r.data; },
+      async profDeconnexion() { await sb.auth.signOut(); },
+      async profDonnees() {
+        const depuis = SIP.ajouterJours(SIP.aujourdhui(), -70);
+        const [eleves, entrainements, fiches_suivi, lectures] = await Promise.all([
+          tout("eleves", (q) => q.order("nom")), tout("entrainements", (q) => q.order("fait_le", { ascending: false })),
+          tout("fiches_suivi"), tout("lectures", (q) => q.gte("jour", depuis))
+        ]);
+        eleves.forEach((e) => delete e.pin_hash);
+        return { eleves, entrainements, fiches_suivi, lectures };
+      },
+      creerEleve: (niveau, nom, pin) => rpc("creer_eleve", { p_niveau: niveau, p_nom: nom, p_pin: pin }),
+      changerPin: (id, pin) => rpc("changer_pin", { p_eleve: id, p_pin: pin }),
+      async basculerActif(id, actif) { const { error } = await sb.from("eleves").update({ actif }).eq("id", id); if (error) throw new Error(error.message); },
+      async supprimerEleve(id) { const { error } = await sb.from("eleves").delete().eq("id", id); if (error) throw new Error(error.message); }
+    };
+  }
+
+  const configure = CFG.supabaseUrl && CFG.supabaseAnonKey;
+  SIP.api = configure && window.supabase ? BackendSupabase() : BackendDemo();
+  if (configure && !window.supabase) console.warn("Supabase configuré mais la bibliothèque n'a pas chargé : mode démo.");
+
+  // ---------- Écritures élève avec file d'attente hors-ligne ----------
+  async function envoyer(op) {
+    if (op.f === "enregistrer") return SIP.api.enregistrer(op.a);
+    if (op.f === "lire") return SIP.api.lire(op.a.fiche_id, op.a.su);
+    if (op.f === "adopter") return SIP.api.adopter(op.a);
+  }
+  SIP.ecrire = async (f, a) => {
+    const op = { f, a };
+    if (f === "enregistrer" && !a.fait_le) a.fait_le = new Date().toISOString();
+    try { await envoyer(op); return true; }
+    catch (e) {
+      if (e.message === "SESSION_EXPIREE") throw e;
+      const q = lireFile(); q.push(op); ecrireFile(q); return false;
+    }
+  };
+  SIP.viderFile = async () => {
+    const q = lireFile(); if (!q.length) return 0;
+    const reste = [];
+    for (const op of q) { try { await envoyer(op); } catch (e) { reste.push(op); } }
+    ecrireFile(reste); return q.length - reste.length;
+  };
+})(window.SIP);

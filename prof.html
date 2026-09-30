@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SI Papara — Espace prof</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b6e8a'/%3E%3Cpath d='M9 22l5-12 4 8 3-5 3 9' stroke='white' stroke-width='2.5' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="haut"><div class="haut-in" style="max-width:1200px">
+  <a class="logo" href="prof.html"><img src="assets/logo-papara.png" alt="Lycée Tuianu Le Gayic, Papara" width="38" height="30">SI <span>Papara</span> · prof</a>
+  <div class="qui"><a href="index.html">Site élèves</a> · <button class="btn-lien cache" id="deco">Déconnexion</button></div>
+</div></header>
+<div id="banniere"></div>
+<main class="large" id="app"></main>
+
+<script src="config.js"></script>
+<script>
+  if (window.SIP_CONFIG && SIP_CONFIG.supabaseUrl && SIP_CONFIG.supabaseAnonKey)
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
+</script>
+<script src="assets/backend.js"></script>
+<script src="assets/moteur.js"></script>
+<script src="contenu/competences.js"></script>
+<script src="contenu/bac-si.js"></script>
+<script src="contenu/seconde-si.js"></script>
+<script src="contenu/1si-s1a.js"></script>
+<script src="contenu/1si-s1b.js"></script>
+<script src="contenu/1si-s2-s6.js"></script>
+<script src="contenu/1si-s3.js"></script>
+<script src="contenu/1si-s4-s5.js"></script>
+<script src="contenu/tsi-s7-s11.js"></script>
+<script src="contenu/tsi-s8.js"></script>
+<script src="contenu/tsi-s9-s10.js"></script>
+<script src="contenu/tsi-s12-s13.js"></script>
+<script src="contenu/tsi-robot.js"></script>
+<script src="contenu/bts1.js"></script>
+<script src="contenu/bts2.js"></script>
+<script src="contenu/bts-sti.js"></script>
+<script src="contenu/bts-adm.js"></script>
+<script src="assets/prof.js"></script>
+</body>
+</html>
