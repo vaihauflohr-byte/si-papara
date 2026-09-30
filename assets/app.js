@@ -106,6 +106,7 @@
 
     $app.innerHTML = `<h1>Bonjour ${esc(s.nom)}</h1>
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
+      ${s.niveau === "TSI" ? tuileBac(hist) : ""}
       <div class="grille">
         <a class="carte tuile ${aLire ? "a-faire" : actives ? "fait" : ""}" href="#/fiches">
           <div class="discret">Fiches du jour</div>
@@ -122,7 +123,6 @@
           <div class="grand">${actives + ancrees}</div>
           <div class="discret">${actives} en cours · ${ancrees} ancrées</div>
         </a>
-        ${s.niveau === "TSI" ? tuileBac(hist) : ""}
         ${modules.some((m) => m.competences.length) ? `<a class="carte tuile" href="#/competences">
           <div class="discret">Mes compétences</div>
           <div class="grand">${moyenneGenerale(hist)}</div>
@@ -147,11 +147,21 @@
     const valide = (n) => hist.some((h) => h.type === "externe" && (h.module === "bac-" + n.id || h.module.startsWith("bac-" + n.id + "-s"))
       && Date.parse(h.recu_le || h.fait_le) <= Date.parse(n.echeance) && sur20(h.score, h.score_max) >= B.seuil);
     const faites = lot.filter(valide).length;
-    return `<a class="carte tuile ${lot.length ? (faites === lot.length ? "fait" : "a-faire") : ""}" href="entrainements/bac-si.html">
-          <div class="discret">Bac SI · séries notées</div>
-          <div class="grand">${lot.length ? `${faites} / ${lot.length}` : "—"}</div>
-          <div class="discret">${lot.length ? `À valider (${B.seuil}/20) avant le ${esc(lot[0].ds || "DS")} du ${SIP.fmtDate(lot[0].ds_date)} : ${lot.map((n) => `${valide(n) ? "✓ " : ""}${esc(n.lab)}`).join(" · ")}` : "Entraînement bac : séries, parcours, révision du jour."}</div>
-        </a>`;
+    const jour = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Pacific/Tahiti" });
+    if (!lot.length) return `<a class="carte bac-hero" href="entrainements/bac-si.html">
+        <div><div class="eyebrow">Terminale SI · épreuve de spécialité</div><div class="bac-titre">Bac SI <span>par notions</span></div>
+        <p class="discret" style="margin:0">Séries, parcours et révision du jour.</p></div>
+        <div class="bac-d"><span class="btn">S'entraîner →</span></div></a>`;
+    return `<a class="carte bac-hero ${faites === lot.length ? "fait" : "a-faire"}" href="entrainements/bac-si.html">
+        <div>
+          <div class="eyebrow">Bac SI · séries notées</div>
+          <div class="bac-titre">${esc(lot[0].ds || "DS")} <span>· ${esc(jour(lot[0].ds_date))}</span></div>
+          <ul class="bac-lot">${lot.map((n) => `<li class="${valide(n) ? "ok" : ""}">${esc(n.lab)}</li>`).join("")}</ul>
+          <p class="bac-regle">Chaque notion est validée à ${B.seuil}/20 sur une de ses séries, avant 6 h le jour du DS. Essais illimités.</p>
+        </div>
+        <div class="bac-d"><div><div class="grand">${faites}<small> / ${lot.length}</small></div><div class="discret">validée${faites > 1 ? "s" : ""}</div></div>
+          <span class="btn">S'entraîner →</span></div>
+      </a>`;
   }
   function moyenneGenerale(hist) {
     const t = hist.filter((h) => h.type === "entrainement");

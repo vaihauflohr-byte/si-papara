@@ -12,12 +12,12 @@
   const css = document.createElement("style");
   css.textContent = `
     .sip-bandeau{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:center;
-      padding:7px 14px;font:14px/1.4 Calibri,"Segoe UI",system-ui,sans-serif;border-bottom:1px solid rgba(0,0,0,.08)}
+      padding:7px 14px;font:14px/1.4 var(--f-body,system-ui,sans-serif);border-bottom:1px solid rgba(0,0,0,.08)}
     .sip-bandeau.ok{background:#E7F4EC;color:#0D5A2C}
     .sip-bandeau.ko{background:#FDECEA;color:#8A1C1C}
     .sip-bandeau a{color:inherit;font-weight:700}
     .sip-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:92vw;z-index:70;
-      background:#16181B;color:#fff;padding:10px 16px;border-radius:8px;font:14px/1.4 Calibri,"Segoe UI",system-ui,sans-serif;
+      background:#16181B;color:#fff;padding:10px 16px;border-radius:6px;font:14px/1.4 var(--f-body,system-ui,sans-serif);
       box-shadow:0 6px 18px rgba(0,0,0,.25)}
     @media print{.sip-bandeau,.sip-toast{display:none}}`;
   document.head.appendChild(css);
