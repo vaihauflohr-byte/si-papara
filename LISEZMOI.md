@@ -69,6 +69,8 @@ Le tableau de bord d'un élève de Terminale est tourné vers l'écrit : bandeau
 **Règle de notation** : une notion est **validée** si l'élève obtient **16/20** à l'une de ses séries **avant l'échéance = le jour de son DS, 6 h (heure de Tahiti)**. C'est l'heure de **réception par le serveur** (`recu_le`) qui compte : un résultat resté hors ligne et envoyé après l'échéance est « hors délai ».
 `prof.html` → onglet **Bac SI** : grille élèves × notions (meilleure note, nombre d'essais, ✓), « Validées à temps x / y » sur les échéances passées, note /10, révision du jour et parcours sur 7 jours, dernier et meilleur sujet blanc ; **Exporter cette grille** → CSV pour Pronote. Clic sur un élève → toutes ses séries, question par question.
 
+**Fiches de révision par notion** (`contenu/fiches-bac.js`, page `#/fiche/<notion>`, index `#/fiches-bac`) : une fiche par notion, tirée du cours (l'essentiel, formules, méthode, exemple corrigé, pièges), lisible sans connexion et imprimable sur une page A4 avec le logo du lycée. Bouton « Fiche » à droite de la notion dans le tableau de bord, et lien « Fiche de révision complète » dans l'entraînement (page de la notion et fin de série). Ajouter une fiche = une entrée de plus dans `SIP.FICHES_BAC`, avec l'id de la notion de `contenu/bac-si.js`.
+
 Mise à jour : quand le planning ou l'entraînement change, seuls `contenu/bac-si.js` et `entrainements/bac-si.html` sont régénérés (script `si_papara_bac.py`) : il suffit de redéposer ces deux fichiers sur GitHub.
 
 Limite : la clé publique permet en théorie d'appeler la fonction d'enregistrement « à la main ». Le serveur refuse les notes hors barème, et chaque série garde ses questions et réponses : une note suspecte se vérifie en un clic.

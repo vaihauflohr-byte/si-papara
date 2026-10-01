@@ -198,16 +198,20 @@
       <span class="nb-nm"><b>${esc(n.lab)}</b><span class="discret">${DOM_BAC[n.dom] || ""}${n.ds ? ` · ${esc(n.ds)} le ${jourCourt(n.ds_date)}` : ""}</span></span>
       <span class="nb-p" title="Probabilité d'apparition à l'écrit"><span class="nb-t"><i style="width:${n.p}%"></i></span><b>${n.p} %</b></span>
       <span class="etiquette ${e.cls}">${e.txt}</span>`;
-    return n.enLigne ? `<a class="nb-row" href="${PAGE_BAC}#n=${n.id}" title="S'entraîner sur cette notion">${inner}<span class="nb-go" aria-hidden="true">→</span></a>`
+    const ligne = n.enLigne ? `<a class="nb-row" href="${PAGE_BAC}#n=${n.id}" title="S'entraîner sur cette notion">${inner}<span class="nb-go" aria-hidden="true">→</span></a>`
       : `<div class="nb-row off">${inner}<span class="nb-go"></span></div>`;
+    if (!nbFichesBac()) return ligne;
+    return `<div class="nb-ligne">${ligne}${ficheBac(n.id) ? `<a class="nb-fiche" href="#/fiche/${n.id}" title="Fiche de révision : ${esc(n.lab)}">Fiche</a>` : `<span class="nb-fiche vide" aria-hidden="true"></span>`}</div>`;
   }
+  const ficheBac = (id) => (SIP.FICHES_BAC && SIP.FICHES_BAC[id]) || null;
+  const nbFichesBac = () => (SIP.FICHES_BAC ? Object.keys(SIP.FICHES_BAC).length : 0);
   function notionsBac(hist) {
     const B = SIP.BAC, auj = SIP.aujourdhui(), dans7 = SIP.ajouterJours(auj, 7);
     const vues = B.notions.filter((n) => n.cours && n.cours <= dans7).sort((a, b) => a.rang - b.rang);
     const avenir = B.notions.filter((n) => !(n.cours && n.cours <= dans7)).sort((a, b) => (a.cours || "9").localeCompare(b.cours || "9") || a.rang - b.rang);
     const valides = B.notions.filter((n) => etatNotion(n, hist).valide).length, enLigne = B.notions.filter((n) => n.enLigne).length;
     return `<h2>Mes notions du bac <span class="discret">${valides} validée${valides > 1 ? "s" : ""} · ${vues.length} vue${vues.length > 1 ? "s" : ""} ou en cours · ${enLigne} sur ${B.notions.length} en ligne</span></h2>
-      <p class="discret">Classées par fréquence à l'écrit. Clique sur une notion pour t'entraîner : 16/20 à une série avant le DS la valide.</p>
+      <p class="discret">Classées par fréquence à l'écrit. Clique sur une notion pour t'entraîner : 16/20 à une série avant le DS la valide.${nbFichesBac() ? ` Le bouton « Fiche » ouvre la fiche de révision de la notion (<a href="#/fiches-bac">toutes les fiches</a>).` : ""}</p>
       <div class="nb-liste">${vues.map((n) => ligneNotion(n, hist)).join("") || `<p class="discret">Les premières notions arrivent avec le premier cours.</p>`}</div>
       ${avenir.length ? `<details class="sequence nb-avenir"><summary><span>À venir</span><span class="discret">${pluriel(avenir.length, "notion")}, dans l'ordre du planning</span></summary>
         <div class="nb-liste">${avenir.map((n) => ligneNotion(n, hist)).join("")}</div></details>` : ""}`;
@@ -243,6 +247,39 @@
       <p class="pied no-print"><a href="#/tableau">← Tableau de bord</a> · <button class="btn-lien" type="button" id="imp">Imprimer les fiches</button></p>`;
     $app.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => document.getElementById("m-" + b.dataset.go).scrollIntoView({ behavior: "smooth", block: "start" })));
     document.getElementById("imp").onclick = () => window.print();
+  }
+  // Fiches de révision par notion (contenu/fiches-bac.js) : lisibles sans connexion, imprimables sur une page A4
+  const jourLong = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Pacific/Tahiti" });
+  function vueFicheBac(id) {
+    const F = ficheBac(id), connecte = !!SIP.session.get();
+    if (!F) { location.hash = connecte ? "#/fiches-bac" : "#/"; return; }
+    const n = SIP.BAC ? SIP.BAC.notions.find((x) => x.id === id) : null;
+    const ds = n && n.ds ? ` · ${esc(n.ds)} le ${jourLong(n.ds_date)}` : "";
+    const liens = (F.liens || []).filter((l) => ficheBac(l));
+    $app.innerHTML = `<p class="no-print"><a href="${connecte ? "#/fiches-bac" : "#/"}">← ${connecte ? "Toutes les fiches" : "Accueil"}</a></p>
+      <div class="print-tete"><img src="assets/logo-papara.svg" alt="" width="54" height="43"><div><div class="eyebrow">Lycée Tuianu Le Gayic · Papara · Terminale SI · fiche de révision${ds}</div><b>${esc(F.titre)}</b></div></div>
+      <div class="fiche-bac-tete no-print">
+        <div><div class="eyebrow">Fiche de révision${n ? ` · ${DOM_BAC[n.dom] || ""}` : ""}${ds}</div><h1>${esc(F.titre)}</h1>${F.sous ? `<p class="discret">${esc(F.sous)}</p>` : ""}</div>
+        <div class="fiche-bac-actions">${n && n.enLigne ? `<a class="btn" href="${PAGE_BAC}#n=${id}">S'entraîner sur cette notion →</a>` : ""}<button class="btn sec" type="button" id="imp">Imprimer</button></div>
+      </div>
+      <article class="fiche fiche-bac">${F.html}</article>
+      ${liens.length ? `<p class="no-print fiche-liens">Fiches liées : ${liens.map((l) => `<a href="#/fiche/${l}">${esc(ficheBac(l).titre)}</a>`).join(" · ")}</p>` : ""}
+      <p class="pied no-print">${connecte ? `<a href="#/tableau">← Tableau de bord</a> · ` : ""}<a href="#/fiches-bac">Toutes les fiches</a></p>`;
+    document.getElementById("imp").onclick = () => window.print();
+  }
+  function vueFichesBac() {
+    const B = SIP.BAC, ids = SIP.FICHES_BAC ? Object.keys(SIP.FICHES_BAC) : [];
+    const notions = B ? B.notions.filter((n) => ids.includes(n.id)).sort((a, b) => (a.ds_date || "9").localeCompare(b.ds_date || "9") || a.rang - b.rang) : [];
+    const groupes = [];
+    notions.forEach((n) => { const g = groupes.find((x) => x.ds === n.ds); g ? g.l.push(n) : groupes.push({ ds: n.ds, date: n.ds_date, l: [n] }); });
+    const reste = B ? B.notions.length - notions.length : 0;
+    $app.innerHTML = `<p class="no-print"><a href="#/tableau">← Tableau de bord</a></p>
+      <h1>Fiches de révision</h1>
+      <p class="discret">Une fiche par notion, tirée du cours : l'essentiel, les formules, la méthode, un exemple corrigé et les pièges. Lis-la avant de t'entraîner, puis relis-la la veille du DS. Chaque fiche s'imprime sur une page.</p>
+      ${groupes.map((g) => `<h2>${esc(g.ds || "Hors DS")} <span class="discret">${g.date ? jourLong(g.date) : ""}</span></h2>
+        <div class="nb-liste">${g.l.map((n) => `<a class="nb-row fiche-ligne" href="#/fiche/${n.id}"><span class="nb-rk">${n.rang}</span>
+          <span class="nb-nm"><b>${esc(ficheBac(n.id).titre)}</b><span class="discret">${esc(n.lab)} · ${DOM_BAC[n.dom] || ""}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("")}</div>`).join("")}
+      ${reste > 0 ? `<p class="discret" style="margin-top:18px">${pluriel(reste, "autre notion")} : fiche à venir, au fil du planning.</p>` : ""}`;
   }
   function moyenneGenerale(hist) {
     const t = hist.filter((h) => h.type === "entrainement");
@@ -493,7 +530,7 @@
     const s = SIP.session.get();
     window.scrollTo(0, 0);
     try {
-      if (!s) { if (h[0] === "connexion") return vueConnexion(h[1]); return vueAccueil(); }
+      if (!s) { if (h[0] === "connexion") return vueConnexion(h[1]); if (h[0] === "fiche") return vueFicheBac(h[1]); return vueAccueil(); }
       switch (h[0]) {
         case "module": return vueModule(h[1]);
         case "fiches": return await vueFichesDuJour();
@@ -503,6 +540,8 @@
         case "competences": return await vueCompetences();
         case "tableau": return await vueTableau();
         case "methode": return vueMethode();
+        case "fiche": return vueFicheBac(h[1]);
+        case "fiches-bac": return vueFichesBac();
         default: location.hash = "#/tableau";
       }
     } catch (e) {

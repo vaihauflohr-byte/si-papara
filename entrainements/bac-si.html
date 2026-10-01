@@ -417,6 +417,7 @@ details.corr .qtext{font-size:.98rem;margin:.4rem 0}
 @media print{ .card.blanc{display:none!important} }
 @media print{ .card.rev{display:none!important} .days28 i.on{background:#000!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact} }
 </style>
+<script src="../contenu/fiches-bac.js"></script>
 </head>
 <body>
 <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
@@ -653,7 +654,8 @@ function sLevier(o){
   const x2=xF, y2=O[1]; const x1=x2-L0*Math.cos(a)*(o.ang==null?0:1), y1=y2-up*L0*Math.sin(a);
   s+=L(x1,y1,x2-(o.ang==null?0:8/Math.tan(a)),y2-up*8,"v-t","c")+T(x1+(o.ang==null?10:-6),y1+(up>0?4:-4),"F","v-lab c",o.ang==null?"start":"end");
   if(o.ang!=null){ s+=`<path d="M${(x2-34).toFixed(1)} ${y2} A34 34 0 0 ${up>0?1:0} ${(x2-34*Math.cos(a)).toFixed(1)} ${(y2-up*34*Math.sin(a)).toFixed(1)}" class="v-cote"/>`+T(x2-48,y2-up*14,"θ","v-lab","middle"); }
-  s+=cote(O[0],x2,O[1]+ (up>0?46:-40),`d = ${nf(o.d*1000,0)} mm`);
+  if(o.ang!=null) s+=T(x2+5,y2+(up>0?22:-14),"A","v-lab","start");
+  s+=cote(O[0],x2,O[1]+ (up>0?46:-40),`${o.ang!=null?"OA":"d"} = ${nf(o.d*1000,0)} mm`);
   if(o.lab) s+=T(200,24,o.lab,"v-cap","middle");
   return svg(230,s,"Levier articulé en O soumis à un effort F");
 }
@@ -911,7 +913,7 @@ function mActions(){
       expl:`F est perpendiculaire au levier : le bras de levier vaut d. M = F·d = ${Fv} × ${nf(d,2)} = ${F(`${nf(M,1)} N·m`)}.`}); }
   { const Fv=rnd([50,80,100,150]), d=rnd([0.2,0.3,0.4]), th=rnd([30,45,60]), M=Fv*d*Math.sin(rad(th));
     qs.push({lv:2,fig:sLevier({d,ang:th,up:false}),ctx:`F = ${Fv} N fait un angle θ = ${th}° avec le levier.`,q:"Calcule le moment de F par rapport à O.",type:"num",ans:M,tolR:0.02,unit:"N·m",
-      expl:`Seule la composante de F perpendiculaire au levier fait tourner : M = F·d·sin θ = ${Fv} × ${nf(d,2)} × sin ${th}° = ${F(`${nf(M,1)} N·m`)}. (Le bras de levier est d·sin θ.)`}); }
+      expl:`Seule la composante de F perpendiculaire au levier fait tourner : M = F·OA·sin θ = ${Fv} × ${nf(d,2)} × sin ${th}° = ${F(`${nf(M,1)} N·m`)}. (Le bras de levier est d = OA·sin θ.)`}); }
   { const side=rnd([1,-1]), up=Math.random()<0.5, pos=side*(up?1:-1)>0;
     qs.push({lv:2,fig:sRotation({side,up}),q:"Le sens trigonométrique est positif. Quel est le signe du moment de F par rapport à O ?",type:"ch",ch:["Positif","Négatif"],ok:pos?0:1,
       expl:`Seule, F ferait tourner la barre dans le sens ${pos?"trigonométrique (anti-horaire)":"horaire"} autour de O : moment ${pos?"positif":"négatif"}.`}); }
@@ -1251,7 +1253,7 @@ function adh4(){
 const MODULES={
   "ana-exigences":{series:[{t:"Lire, convertir, conclure",b:mExigences}],fiche:{t:"Diagramme des exigences",l:["Chaque exigence : un Id, un texte avec une valeur et une unité.","⊕ : l'exigence mère contient ses sous-exigences.","« satisfy » : un bloc (solution) répond à l'exigence ; « verify » : un essai la vérifie.","Pour conclure : même unité, puis bien lire le sens (au moins / au plus).",`${F("1 nd = 1,852 km/h")} · ${F(`v en m/s = ${FRAC("v en km/h","3,6")}`)} · pente p % : ${F(`tan α = ${FRAC("p","100")}`)}`]}},
   "info-programmation":{series:[{t:"Lire, boucler, compléter",b:mPython}],fiche:{t:"Python et algorigramme",l:["Affectation : la nouvelle valeur écrase l'ancienne.","if / elif / else : seul le premier test vrai s'exécute ; tester le seuil le plus bas en premier.",`${F("range(n)")} va de 0 à n − 1 ; les indices de liste commencent à 0.`,`${F("//")} quotient entier, ${F("%")} reste.`,"while : compter les passages en déroulant la boucle à la main."]}},
-  "meca-actions":{series:[{t:"Forces et moments",b:mActions}],fiche:{t:"Actions mécaniques",l:[`${F("P = m·g")} · ${F("F = p·S")} (1 bar = 10⁵ Pa, S = ${FRAC("πD²","4")})`,"Isoler, puis compter toutes les actions extérieures (appuis, efforts, poids si non négligé).",`Moment : ${F("M = F·d")} si F ⟂ au levier, ${F("M = F·d·sin θ")} sinon.`,"Signe : + si F fait tourner dans le sens trigonométrique.",`Roue : ${F("C = F·R")} avec R = ${FRAC("D","2")}.`]}},
+  "meca-actions":{series:[{t:"Forces et moments",b:mActions}],fiche:{t:"Actions mécaniques",l:[`${F("P = m·g")} · ${F("F = p·S")} (1 bar = 10⁵ Pa, S = ${FRAC("πD²","4")})`,"Isoler, puis compter toutes les actions extérieures (appuis, efforts, poids si non négligé).",`Moment : ${F("M = F·d")}, d bras de levier (distance du point au support de F) ; force inclinée de θ sur le levier OA : ${F("d = OA·sin θ")}.`,"Signe : + si F fait tourner dans le sens trigonométrique.",`Roue : ${F("C = F·R")} avec R = ${FRAC("D","2")}.`]}},
   "meca-cinematique":{series:[{t:"Mouvements, vitesses, trapèze",b:mCinematique}],fiche:{t:"Cinématique",l:["Rotation : un point fixe (axe). Translation : l'orientation ne change pas.","Translation circulaire : tous les points décrivent des cercles de même rayon (parallélogramme).","Mouvement plan général : ni point fixe, ni orientation constante (bielle, échelle).",`${F(`ω = ${FRAC("2π·N","60")}`)} · ${F("v = R·ω")}`,"Trapèze de vitesse : pente = accélération, aire = distance."]}},
   "simu-modele":{series:[{t:"Lire et exploiter un modèle",b:mModele}],fiche:{t:"Modèle multiphysique",l:["Suivre l'énergie : Alimenter → Moduler → Convertir → Transmettre → Agir.","Liens électriques : U, I · mécaniques : C, ω ou F, v · information : pointillés.","Régime permanent : valeur finale ; temps de réponse à 5 % : 95 % de la valeur finale.",`Écart relatif : ${F(`${FRAC("|simulé − mesuré|","référence")} × 100`)}, toujours positif.`,"Effets négligés dans le modèle → performances simulées meilleures que la réalité."]}},
   "phy-newton":{series:[{t:"2e loi de Newton",b:mNewton}],fiche:{t:"2e loi de Newton",l:[`${F("ΣF = m·a")} : même direction et même sens.`,"Vitesse constante en ligne droite : ΣF = 0.",`Plan incliné sans frottement : ${F("a = g·sin θ")}.`,`Départ arrêté, a constante : ${F("v = a·t")} et ${F("x = ½·a·t²")}.`,`Chute depuis h : ${F(`t = √(${FRAC("2h","g")})`)}.`]}},
@@ -1385,7 +1387,7 @@ function fx_act_treuil(o){
   let s=L(40,20,360,20,"v-ink"); for(let x=52;x<=360;x+=14) s+=L(x,20,x-10,10,"v-hatch");
   s+=`<path d="M${C[0]-14} 20 L${C[0]-6} ${C[1]} L${C[0]+6} ${C[1]} L${C[0]+14} 20 Z" class="v-box"/>`;
   s+=`<circle cx="${C[0]}" cy="${C[1]}" r="${r}" class="v-wheel"/>`+piv(C[0],C[1]);
-  s+=L(C[0]-r,C[1],C[0]-r,C[1]+r+18,"v-dash")+cote(C[0]-r,C[0]+r,C[1]+r+14,`D = ${o.D} mm`);
+  s+=L(C[0]-r,C[1],C[0]-r,C[1]+r+18,"v-dash")+`<line x1="${C[0]-r}" y1="${C[1]+r+14}" x2="${C[0]+r}" y2="${C[1]+r+14}" class="v-cote" marker-start="url(#m-d)" marker-end="url(#m-d)"/>`+T(C[0]-r-6,C[1]+r+18,`D = ${o.D} mm`,"v-cap","end");
   s+=L(C[0]+r,C[1],C[0]+r,168,"v-ink")+`<rect x="${C[0]+r-32}" y="168" width="64" height="46" rx="3" class="v-block"/>`+T(C[0]+r,196,`${o.m} kg`,"v-smb","middle");
   s+=arcP(C,r+16,140,200,"v-n","a")+T(C[0]-r-24,C[1]-34,"C","v-lab a","end");
   s+=T(C[0]+r+12,130,"câble","v-cap");
@@ -1470,6 +1472,318 @@ function fx_act_panneau(){
   s+=L(x+10,yc,338,yc,"v-dash")+vcote(334,yg,yc,"h","end")+pt(x,yg,"",0,0)+T(x+10,yg-6,"pied du mât","v-cap");
   s+=T(x-18,30,"panneau","v-cap","end");
   return svg(246,s,"Panneau sur un mât soumis au vent, force équivalente F à la hauteur h");
+}
+
+/* ===== figures : actions mécaniques (suite, préfixe fxa_) ===== */
+/* polygone aux coins arrondis : points [x, y, rayon] (rayon 0 = coin vif, par exemple un point de contact) */
+function fxa_rpoly(p){ const n=p.length; let d="";
+  for(let i=0;i<n;i++){ const a=p[(i-1+n)%n], b=p[i], c=p[(i+1)%n], r=b[2]||0;
+    const la=Math.hypot(a[0]-b[0],a[1]-b[1]), lc=Math.hypot(c[0]-b[0],c[1]-b[1]), ra=Math.min(r,la/2), rc=Math.min(r,lc/2);
+    const p1=[b[0]+(a[0]-b[0])*ra/la,b[1]+(a[1]-b[1])*ra/la], p2=[b[0]+(c[0]-b[0])*rc/lc,b[1]+(c[1]-b[1])*rc/lc];
+    d+=(i?" L":"M")+P2(p1)+(r?` Q${P2(b)} ${P2(p2)}`:""); }
+  return d+" Z"; }
+/* frontière d'isolement (pointillés) */
+const fxa_front=p=>`<path d="${fxa_rpoly(p)}" class="v-inf" style="stroke-width:2"/>`;
+/* bande d'épaisseur 2w le long d'une ligne brisée (branches de pince) */
+function fxa_ruban(p,w){ const n=p.length, nl=(a,b)=>{ const dx=b[0]-a[0], dy=b[1]-a[1], l=Math.hypot(dx,dy); return [-dy/l,dx/l]; }, A=[], B=[];
+  for(let i=0;i<n;i++){ let v;
+    if(i===0) v=nl(p[0],p[1]); else if(i===n-1) v=nl(p[n-2],p[n-1]);
+    else { const n1=nl(p[i-1],p[i]), n2=nl(p[i],p[i+1]), s=[n1[0]+n2[0],n1[1]+n2[1]], k=s[0]*n1[0]+s[1]*n1[1]; v=[s[0]/k,s[1]/k]; }
+    A.push([p[i][0]+w*v[0],p[i][1]+w*v[1]]); B.push([p[i][0]-w*v[0],p[i][1]-w*v[1]]); }
+  return `<polygon points="${A.concat(B.reverse()).map(P2).join(" ")}" class="v-body"/>`; }
+/* ressort horizontal entre x0 et x1 */
+function fxa_springH(x0,x1,y,n,w){ n=n||7; w=w||11; const lead=8, st=(x1-x0-2*lead)/(2*n), p=[[x0,y],[x0+lead,y]];
+  for(let i=0;i<2*n;i++) p.push([x0+lead+st*(i+0.5),y+(i%2?w:-w)]);
+  p.push([x1-lead,y],[x1,y]); return `<polyline points="${p.map(P2).join(" ")}" class="v-ink"/>`; }
+/* membre de personnage : ligne brisée épaisse (contour sombre, intérieur clair) */
+const fxa_limb=(p,w)=>{ const pts=p.map(P2).join(" "); return `<polyline points="${pts}" class="v-barO" style="stroke-width:${w};stroke-linejoin:round"/><polyline points="${pts}" class="v-barI" style="stroke-width:${w-3};stroke-linejoin:round"/>`; };
+/* silhouettes réutilisées */
+function fxa_dDrone(cx,cy,nolegs){   /* drone vu de face, corps centré en (cx, cy) */
+  let s=`<ellipse cx="${cx-80}" cy="${cy-20}" rx="40" ry="6" class="v-box"/><ellipse cx="${cx+80}" cy="${cy-20}" rx="40" ry="6" class="v-box"/>`;
+  s+=L(cx-80,cy-8,cx-80,cy-20)+L(cx+80,cy-8,cx+80,cy-20)+bar(cx-80,cy-6,cx+80,cy-6);
+  s+=`<rect x="${cx-32}" y="${cy-16}" width="64" height="30" rx="8" class="v-body"/>`;
+  if(!nolegs) s+=L(cx-22,cy+14,cx-34,cy+38)+L(cx+22,cy+14,cx+34,cy+38)+L(cx-44,cy+38,cx-24,cy+38)+L(cx+24,cy+38,cx+44,cy+38);
+  return s; }
+function fxa_dVoiture(dx,dy){  /* voiture vers la droite ; roues en (100+dx, 202+dy) et (274+dx, 202+dy), r = 24 */
+  const P=(x,y)=>`${x+dx} ${y+dy}`;
+  let s=`<path d="M${P(40,202)} L${P(40,164)} Q${P(48,140)} ${P(90,136)} L${P(132,108)} Q${P(142,100)} ${P(158,100)} L${P(234,100)} Q${P(250,100)} ${P(264,112)} L${P(294,136)} Q${P(328,140)} ${P(330,164)} L${P(330,202)} Z" class="v-body"/>`;
+  s+=`<circle cx="${100+dx}" cy="${202+dy}" r="24" class="v-wheel"/><circle cx="${274+dx}" cy="${202+dy}" r="24" class="v-wheel"/>`;
+  return s; }
+
+/* poids d'un objet : P appliqué en G, intensité cherchée */
+function fxa_poids(o){
+  let s="", G, h=236, yg=null, mx, my, ma="start", al=54;
+  if(o.k==="drone"){ s+=fxa_dDrone(200,102); s+=`<circle cx="218" cy="124" r="6" class="v-wheel"/>`; G=[200,101]; mx=300; my=148; ma="middle"; h=196; }
+  else if(o.k==="tondeuse"){ yg=200; s+=`<path d="M108 186 Q110 120 200 116 Q290 120 292 186 Z" class="v-body"/><circle cx="132" cy="186" r="14" class="v-wheel"/><circle cx="268" cy="186" r="14" class="v-wheel"/>`;
+    s+=`<rect x="232" y="136" width="30" height="8" rx="3" class="v-box"/>`; G=[200,146]; mx=300; my=104; al=36; h=226; }
+  else if(o.k==="scooter"){ yg=210; s+=`<path d="M78 170 L78 150 Q80 130 104 128 L196 128 Q206 128 206 138 L206 170 Z" class="v-body"/><rect x="200" y="162" width="62" height="8" rx="2" class="v-body"/>`;
+    s+=`<path d="M254 170 L270 104 L286 104 L272 170 Z" class="v-body"/>`+L(278,104,270,88)+L(256,88,284,88)+L(279,130,302,188);
+    s+=`<rect x="98" y="120" width="88" height="10" rx="5" class="v-block"/><circle cx="108" cy="188" r="22" class="v-wheel"/><circle cx="302" cy="188" r="22" class="v-wheel"/>`;
+    G=[164,148]; mx=316; my=64; ma="middle"; al=56; h=236; }
+  else if(o.k==="ascenseur"){ s+=L(132,8,132,226,"v-thin")+L(268,8,268,226,"v-thin")+L(200,8,200,54);
+    s+=`<rect x="146" y="54" width="108" height="152" rx="3" class="v-block"/><rect x="186" y="50" width="28" height="6" class="v-box"/>`;
+    G=[200,128]; mx=278; my=96; al=60; h=232; }
+  else if(o.k==="voiture"){ yg=226; s+=fxa_dVoiture(0,0)+`<path d="M144 114 L158 108 L230 108 L254 130 L132 130 Z" class="v-block"/>`; G=[192,166]; mx=192; my=80; ma="middle"; al=46; h=244; }
+  else { yg=204; s+=`<rect x="140" y="98" width="120" height="106" rx="2" class="v-block"/>`+L(140,116,260,116,"v-thin")+`<rect x="150" y="128" width="30" height="20" class="v-box"/>`;
+    G=[200,152]; mx=272; my=104; al=40; h=232; }
+  if(yg!=null) s+=ground(30,370,yg);
+  s+=gSym(G[0],G[1])+T(G[0]+(o.k==="drone"?10:12),G[1]+(o.k==="drone"?12:-8),"G","v-lab");
+  s+=L(G[0],G[1]+8,G[0],G[1]+8+al,"v-t","c")+T(G[0]+9,G[1]+(o.k==="tondeuse"?30:4+al),"P = ?","v-lab c");
+  s+=T(mx,my,`m = ${nf(o.m,1)} kg`,"v-lab s",ma);
+  return svg(h,s,"Objet de masse m ; son poids P, appliqué au centre de gravité G, est à calculer");
+}
+/* objet suspendu à un peson */
+function fxa_peson(o){
+  let s=L(110,16,290,16); for(let x=122;x<=290;x+=14) s+=L(x,16,x-10,6,"v-hatch");
+  s+=L(200,16,200,30)+`<circle cx="200" cy="34" r="4" class="v-wheel" style="stroke-width:1.4"/>`;
+  s+=`<rect x="186" y="38" width="28" height="86" rx="6" class="v-box"/><rect x="193" y="46" width="14" height="68" rx="2" class="v-body"/>`;
+  for(let y=50;y<=110;y+=8) s+=L(193,y,199,y,"v-thin");
+  s+=L(189,86,211,86,"v-ink");
+  s+=T(222,74,"peson","v-cap")+T(222,94,`${o.F} N`,"v-lab");
+  s+=L(200,124,200,o.k===2?162:148);
+  let G;
+  if(o.k===0){ s+=L(200,148,170,158,"v-thin")+L(200,148,230,158,"v-thin")+`<rect x="160" y="158" width="80" height="56" rx="2" class="v-block"/>`+L(160,174,240,174,"v-thin"); G=[200,190]; }
+  else if(o.k===1){ s+=`<path d="M190 156 Q160 168 162 200 Q164 220 200 220 Q236 220 238 200 Q240 168 210 156 Z" class="v-block"/>`+`<path d="M190 156 L200 148 L210 156" class="v-thin"/>`; G=[200,192]; }
+  else if(o.k===2){ s+=`<path d="M164 156 L236 156 L236 182 L218 182 L218 216 L182 216 L182 182 L164 182 Z" class="v-block"/><circle cx="200" cy="164" r="4.5" class="v-wheel" style="stroke-width:1.4"/>`; G=[200,186]; }
+  else { s+=`<path d="M186 160 L190 148 L210 148 L214 160" class="v-ink"/><rect x="166" y="158" width="68" height="60" rx="6" class="v-block"/>`+L(224,158,230,150,"v-ink")+L(176,176,224,176,"v-thin"); G=[200,192]; }
+  s+=gSym(G[0],G[1])+L(G[0],G[1]+8,G[0],G[1]+44,"v-f","f")+T(G[0]+8,G[1]+40,"P","v-lab");
+  s+=T(252,196,"m = ?","v-lab c");
+  return svg(246,s,"Objet suspendu à un peson qui indique la valeur du poids");
+}
+/* liaisons usuelles, schéma plan */
+function fxa_liaison(k){
+  const ax=36, ay=212;
+  let s=L(ax,ay,ax+44,ay,"v-thin","k")+T(ax+48,ay+4,"x","v-lab s")+L(ax,ay,ax,ay-44,"v-thin","k")+T(ax+6,ay-40,"y","v-lab s");
+  s+=`<circle cx="${ax}" cy="${ay}" r="5" class="v-wheel" style="stroke-width:1.3"/><circle cx="${ax}" cy="${ay}" r="1.6" class="v-pt"/>`+T(ax-8,ay+16,"z","v-lab s","end");
+  if(k===0){ const O=[200,128];
+    s+=fixe(O[0],O[1]+8)+bar(O[0],O[1],330,94)+piv(O[0],O[1]);
+    s+=T(O[0]-12,O[1]-10,"O","v-lab","end")+numLab(270,92,"1")+numLab(238,156,"2");
+    s+=T(200,28,"Liaison pivot d'axe (O, z)","v-smb","middle")+T(200,46,"l'axe z est perpendiculaire au plan de la figure","v-cap","middle"); }
+  else if(k===1){ const I=[220,176];
+    s+=ground(110,330,I[1])+L(I[0],I[1],I[0],70,"v-dash")+`<circle cx="${I[0]}" cy="${I[1]-36}" r="36" class="v-wheel"/>`+pt(I[0],I[1]-36,"");
+    s+=T(I[0]+17,I[1]-3,"I","v-lab s")+T(I[0]+8,78,"normale (I, y)","v-cap")+numLab(I[0]-50,I[1]-62,"1")+numLab(300,I[1]-16,"2");
+    s+=T(200,28,"Liaison ponctuelle (sphère-plan) de normale (I, y)","v-smb","middle"); }
+  else { const y=132;
+    s+=wall(90,y-20,y+20)+L(330,y-20,330,y+20); for(let yy=y-8;yy<=y+20;yy+=14) s+=L(330,yy,340,yy-10,"v-hatch");
+    s+=L(90,y,330,y)+`<rect x="176" y="${y-16}" width="72" height="32" class="v-body"/>`+L(170,y,254,y);
+    s+=numLab(212,y-36,"1")+numLab(130,y-22,"2")+T(200,28,"Liaison glissière de direction x","v-smb","middle"); }
+  return svg(236,s,["Schéma d'une liaison pivot d'axe (O, z)","Schéma d'une liaison ponctuelle de normale (I, y)","Schéma d'une liaison glissière de direction x"][k]);
+}
+/* ressort déformé : action du ressort sur la plaque */
+function fxa_ressort(o){
+  const x0=244, sc=2.2, xe=o.comp?x0-o.x*sc:x0+o.x*sc, y=118, x1=Math.min(x0,xe), x2=Math.max(x0,xe);
+  let s=wall(50,74,162)+fxa_springH(50,xe,y,8,12)+`<rect x="${xe.toFixed(1)}" y="${y-30}" width="8" height="60" rx="2" class="v-box"/>`;
+  s+=L(x0,66,x0,y-26,"v-dash")+L(x0,y+26,x0,182,"v-dash")+T(x0,58,"longueur à vide","v-cap","middle");
+  s+=L(xe,y+32,xe,182,"v-dash")+`<line x1="${x1.toFixed(1)}" y1="176" x2="${x2.toFixed(1)}" y2="176" class="v-cote" marker-start="url(#m-d)" marker-end="url(#m-d)"/>`+T((x1+x2)/2,196,`x = ${o.x} mm`,"v-cap","middle");
+  s+=T((50+xe)/2,88,`k = ${nf(o.k,1)} N/mm`,"v-lab s","middle");
+  const xa=xe+8; s+=(o.comp?L(xa,y,xa+64,y,"v-t","c"):L(xa+66,y,xa+2,y,"v-t","c"))+T(xa+34,y-12,"F = ?","v-lab c","middle");
+  s+=T(200,218,`ressort ${o.comp?"comprimé":"étiré"} ; F : action du ressort sur la plaque`,"v-cap","middle");
+  return svg(228,s,`Ressort ${o.comp?"comprimé":"étiré"} de x par rapport à sa longueur à vide`);
+}
+/* bras de levier : trois segments [OA], [OH], [AH] */
+function fxa_brasLevier(o){
+  const X=x=>o.mir?400-x:x, an=a=>o.mir?(a==="end"?"start":a==="start"?"end":a):a;
+  const O=[70,160], A=[300,160], c=Math.cos(rad(o.al)), sn=Math.sin(rad(o.al)), la=A[0]-O[0];
+  const H=[A[0]-la*c*c, A[1]-la*c*sn], tip=[A[0]+56*c,A[1]+56*sn];
+  const Xp=p=>[X(p[0]),p[1]];
+  let s=`<rect x="${(o.mir?400-(A[0]+18):O[0]-12)}" y="${O[1]-8}" width="${A[0]-O[0]+30}" height="16" rx="6" class="v-body"/>`;
+  s+=fixe(X(O[0]),O[1]+8)+piv(X(O[0]),O[1]);
+  [[O,A],[O,H],[A,H]].forEach(([p,q])=>{ const a=Xp(p), b=Xp(q); s+=L(a[0],a[1],b[0],b[1],"v-inf"); });
+  const hu=[(O[0]-H[0])/Math.hypot(O[0]-H[0],O[1]-H[1]),(O[1]-H[1])/Math.hypot(O[0]-H[0],O[1]-H[1])], hv=[(A[0]-H[0])/Math.hypot(A[0]-H[0],A[1]-H[1]),(A[1]-H[1])/Math.hypot(A[0]-H[0],A[1]-H[1])];
+  const k1=add(H,hu,11), k2=add(k1,hv,11), k3=add(H,hv,11);
+  s+=`<polyline points="${[k1,k2,k3].map(p=>P2(Xp(p))).join(" ")}" class="v-thin"/>`;
+  s+=L(X(A[0]),A[1],X(tip[0]),tip[1],"v-t","c")+T(X(tip[0]+8),tip[1]+4,"F","v-lab c",an("start"));
+  s+=pt(X(A[0]),A[1],"")+pt(X(H[0]),H[1],"")+pt(X(O[0]),O[1],"");
+  s+=T(X(O[0]-12),O[1]-12,"O","v-lab",an("end"))+T(X(A[0]-6),A[1]+24,"A","v-lab",an("end"))+T(X(H[0]),H[1]-10,"H","v-lab","middle");
+  return svg(232,s,"Solide articulé en O ; force F appliquée en A ; trois segments [OA], [OH] et [AH]");
+}
+/* moment nul : quatre forces sur une barre articulée en O */
+function fxa_momentNul(o){
+  const X=x=>o.mir?400-x:x, an=a=>o.mir?(a==="end"?"start":a==="start"?"end":a):a;
+  const O=[70,150], b=rad(o.beta), e=[Math.cos(b),-Math.sin(b)], n=[-Math.sin(b),-Math.cos(b)], P=s=>add(O,e,s);
+  const rot=(v,a)=>[v[0]*Math.cos(rad(a))+v[1]*Math.sin(rad(a)),-v[0]*Math.sin(rad(a))+v[1]*Math.cos(rad(a))];
+  const E0=P(-14), E1=P(240);
+  let s=bar(X(E0[0]),E0[1],X(E1[0]),E1[1])+fixe(X(O[0]),O[1]+8)+piv(X(O[0]),O[1]);
+  s+=T(X(O[0]-14),O[1]-8,"O","v-lab",an("end"));
+  const F=[];
+  /* 0 : droite d'action passant par O (portée par la barre) */
+  if(o.push){ const a=P(304), z=P(247); F.push([a,z,add(a,n,14)]); } else { const a=P(244), z=P(300); F.push([a,z,add(z,n,14)]); }
+  /* 1 : perpendiculaire à la barre */
+  { const a=add(P(110),n,62), z=add(P(110),n,9); F.push([a,z,add(a,n,9)]); }
+  /* 2 : appliquée loin de O, oblique */
+  { const d=rot(e,55), a=add(P(180),n,8), z=add(a,d,60); F.push([a,z,add(z,d,14)]); }
+  /* 3 : faible intensité */
+  { const a=add(P(46),n,-9), z=add(a,n,-28); F.push([a,z,add(z,n,-16)]); }
+  F.forEach((f,i)=>{ s+=L(X(f[0][0]),f[0][1],X(f[1][0]),f[1][1],"v-t","c")+T(X(f[2][0]),f[2][1]+5,`F${o.nums[i]}`,"v-lab c","middle"); });
+  return svg(232,s,"Barre articulée en O soumise à quatre forces F1 à F4");
+}
+/* pignon arrière et chaîne */
+function fxa_pignon(o){
+  const O=[180,124], rr=58, N=18, yt=O[1]-rr, yb=O[1]+rr, xr=388;
+  let s="", pts=[];
+  for(let i=0;i<2*N;i++){ const a=i*Math.PI/N, r=i%2?rr+4:rr-4; pts.push([O[0]+r*Math.cos(a),O[1]-r*Math.sin(a)]); }
+  s+=`<polygon points="${pts.map(P2).join(" ")}" class="v-wheel" style="stroke-width:1.5"/>`;
+  s+=`<circle cx="${O[0]}" cy="${O[1]}" r="16" class="v-box"/>`+piv(O[0],O[1]);
+  const ro=rr+5, ri=rr-3;
+  s+=`<path d="M${xr} ${yt-5} L${O[0]} ${yt-5} A${ro} ${ro} 0 0 0 ${O[0]} ${yb+5} L${xr} ${yb+17} L${xr} ${yb+9} L${O[0]} ${yb-3} A${ri} ${ri} 0 0 1 ${O[0]} ${yt+3} L${xr} ${yt+3} Z" class="v-box"/>`;
+  s+=L(O[0],yt-1,O[0]+100,yt-1,"v-f","f")+T(O[0]+52,yt-13,"F","v-lab","middle");
+  s+=`<line x1="${O[0]}" y1="${O[1]}" x2="${O[0]}" y2="${yt+3}" class="v-cote" marker-end="url(#m-d)"/>`+T(O[0]+8,(O[1]+yt)/2+10,"R","v-lab s");
+  s+=arcP(O,rr+26,215,145,"v-t","c")+T(O[0]-rr-34,O[1]+5,"C = ?","v-lab c","end");
+  s+=T(xr,yt+22,"chaîne : brin tendu","v-cap","end")+T(xr,yt+36,"(vers le plateau)","v-cap","end");
+  s+=T(O[0],yb+36,"pignon arrière, solidaire de la roue","v-cap","middle");
+  s+=T(14,20,`F = ${nf(o.F,0)} N · R = ${nf(o.R,3)} m`,"v-lab s");
+  return svg(232,s,"Pignon arrière de rayon R entraîné par la chaîne : effort tangentiel F");
+}
+/* action à distance : quatre actions numérotées (même style) */
+function fxa_distance(o){
+  const nb=o.nums; let s="", A=[];
+  if(o.v===0){ /* vélo */
+    const yg=212, B=[88,168], Af=[308,168], C=[188,172], S=[170,100], H=[278,96];
+    s+=ground(30,370,yg)+`<circle cx="${B[0]}" cy="${B[1]}" r="44" class="v-wheel"/><circle cx="${Af[0]}" cy="${Af[1]}" r="44" class="v-wheel"/>`;
+    s+=L(B[0],B[1],C[0],C[1])+L(C[0],C[1],S[0],S[1])+L(S[0],S[1],B[0],B[1])+L(S[0],S[1],H[0],H[1])+L(C[0],C[1],H[0],H[1])+L(H[0],H[1],Af[0],Af[1]);
+    s+=L(S[0]-14,S[1]-4,S[0]+12,S[1]-4)+L(H[0],H[1],H[0]+3,H[1]-14)+L(H[0]-8,H[1]-14,H[0]+14,H[1]-14);
+    s+=`<circle cx="${C[0]}" cy="${C[1]}" r="12" class="v-thin"/>`+L(C[0],C[1],C[0]-14,C[1]+18)+`<rect x="${C[0]-23}" y="${C[1]+16}" width="18" height="5" rx="2" class="v-box"/>`;
+    s+=gSym(226,124)+T(240,120,"G","v-lab s");
+    s+=L(292,24,364,24,"v-f","f")+T(328,40,"sens de marche","v-cap","middle");
+    A=[ [[226,132],[226,180],[240,170]], [[Af[0],yg],[Af[0],yg-40],[Af[0]+18,yg-22]], [[C[0]-14,C[1]-22],[C[0]-14,C[1]+12],[C[0]-34,C[1]-14]], [[360,104],[282,104],[372,86]] ];
+  } else if(o.v===1){ /* caisse tirée par un câble */
+    const yg=200; s+=ground(24,376,yg)+`<rect x="136" y="118" width="120" height="82" rx="2" class="v-block"/>`+L(256,150,380,96);
+    s+=gSym(206,156)+T(218,150,"G","v-lab s");
+    A=[ [[206,164],[206,198],[224,184]], [[256,150],[311,126],[318,148]], [[166,yg],[166,yg-40],[150,yg-24]], [[136,150],[76,150],[96,134]] ];
+    s+=T(380,86,"câble","v-cap","end");
+  } else { /* drone */
+    s+=fxa_dDrone(200,110,true)+L(214,124,214,150,"v-thin")+`<rect x="198" y="150" width="32" height="26" rx="2" class="v-block"/>`;
+    s+=gSym(186,109)+T(200,114,"G","v-lab s");
+    A=[ [[186,117],[186,174],[166,166]], [[120,84],[120,40],[100,52]], [[214,124],[214,146],[238,136]], [[40,120],[166,120],[56,104]] ];
+    s+=L(280,84,280,40,"v-n","a")+numLab(300,52,String(nb[1]));
+  }
+  A.forEach((a,i)=>{ s+=L(a[0][0],a[0][1],a[1][0],a[1][1],"v-n","a")+numLab(a[2][0],a[2][1],String(nb[i])); });
+  return svg(o.v===2?206:236,s,["Vélo qui roule : quatre actions numérotées","Caisse tirée par un câble : quatre actions numérotées","Drone en vol stationnaire : quatre actions numérotées"][o.v]);
+}
+/* ensemble isolé : frontière en pointillés et quatre actions numérotées (même style) */
+function fxa_isole(o){
+  const nb=o.nums; let s="", A=[];
+  if(o.v===0){ /* {vélo + cycliste} */
+    const yg=238, B=[88,192], Af=[300,192], C=[180,198], S=[156,118], H=[268,112];
+    s+=ground(20,380,yg)+`<circle cx="${B[0]}" cy="${B[1]}" r="46" class="v-wheel"/><circle cx="${Af[0]}" cy="${Af[1]}" r="46" class="v-wheel"/>`;
+    s+=L(B[0],B[1],C[0],C[1])+L(C[0],C[1],S[0],S[1])+L(S[0],S[1],B[0],B[1])+L(S[0],S[1],H[0],H[1])+L(C[0],C[1],H[0],H[1])+L(H[0],H[1],Af[0],Af[1]);
+    s+=L(S[0]-14,S[1]-5,S[0]+14,S[1]-5)+L(H[0],H[1],H[0]+4,H[1]-14)+L(H[0]-6,H[1]-14,H[0]+16,H[1]-14);
+    s+=`<circle cx="${B[0]}" cy="${B[1]}" r="8" class="v-thin"/><circle cx="${C[0]}" cy="${C[1]}" r="14" class="v-thin"/>`+L(B[0],B[1]-8,C[0],C[1]-14,"v-thin")+L(B[0],B[1]+8,C[0],C[1]+14,"v-thin");
+    s+=L(C[0],C[1],192,214)+`<rect x="183" y="212" width="18" height="5" rx="2" class="v-box"/>`;
+    /* cycliste */
+    s+=fxa_limb([[164,112],[214,150],[194,210]],9)+fxa_limb([[164,112],[206,68]],12)+`<circle cx="214" cy="52" r="12" class="v-body"/>`+fxa_limb([[206,70],[236,90],[264,98]],7);
+    s+=gSym(196,124)+T(206,130,"G","v-lab s");
+    s+=fxa_front([[B[0],yg,0],[30,226,14],[30,148,26],[118,98,26],[184,22,22],[248,22,22],[302,84,22],[356,140,22],[356,226,14],[Af[0],yg,0],[194,230,10]]);
+    s+=L(334,12,390,12,"v-f","f")+T(328,16,"sens de marche","v-cap","end")+T(200,258,"sol","v-cap","middle")+T(334,80,"air","v-cap");
+    s+=T(14,14,"frontière d'isolement","v-cap");
+    A=[ [[B[0],B[1]-8],[B[0]+46,B[1]-8],[68,180]], [[196,132],[196,176],[180,151]], [[B[0],yg],[B[0],yg-38],[110,224]], [[328,56],[228,56],[342,58]] ];
+  } else if(o.v===1){ /* {bras de robot + objet saisi} */
+    const yg=214;
+    s+=ground(24,210,yg)+`<rect x="64" y="186" width="60" height="28" rx="2" class="v-box"/>`;
+    s+=bar(94,180,186,92)+bar(186,92,286,114)+piv(94,180)+piv(186,92);
+    s+=`<rect x="262" y="116" width="48" height="8" rx="2" class="v-body"/><rect x="262" y="124" width="7" height="48" rx="2" class="v-body"/><rect x="303" y="124" width="7" height="48" rx="2" class="v-body"/>`+piv(286,114);
+    s+=`<rect x="269" y="136" width="34" height="34" rx="2" class="v-block"/>`;
+    s+=gSym(286,153);
+    s+=fxa_front([[60,yg,0],[34,196,16],[34,150,22],[160,52,26],[216,52,24],[330,100,22],[330,206,16],[142,206,10],[128,yg,0]]);
+    s+=T(116,240,"bâti","v-cap","middle")+T(232,22,"frontière d'isolement","v-cap","middle");
+    A=[ [[236,153],[267,153],[236,134]], [[286,161],[286,198],[304,190]], [[80,yg],[80,yg-38],[60,170]], [[34,128],[138,128],[40,108]] ];
+  } else { /* {voiture + passagers} */
+    const yg=226;
+    s+=ground(20,380,yg)+fxa_dVoiture(-6,0);
+    s+=`<path d="M138 114 L152 108 L224 108 L248 130 L126 130 Z" class="v-box"/>`;
+    s+=`<path d="M128 184 L118 128 L130 126 L142 172 L192 172 L192 184 Z" class="v-block"/>`;
+    s+=fxa_limb([[158,166],[196,164],[204,194]],8)+fxa_limb([[158,166],[148,126]],10)+`<circle cx="150" cy="115" r="9" class="v-body"/>`+L(222,130,206,152)+fxa_limb([[150,134],[180,146],[204,148]],6);
+    s+=gSym(218,176)+T(232,172,"G","v-lab s");
+    s+=fxa_front([[94,yg,0],[24,214,14],[24,140,24],[120,88,24],[258,88,24],[336,134,20],[336,214,14],[268,yg,0],[182,214,10]]);
+    s+=L(300,24,370,24,"v-f","f")+T(335,40,"sens de marche","v-cap","middle")+T(182,246,"route","v-cap","middle")+T(392,156,"air","v-cap","end");
+    s+=T(24,78,"frontière d'isolement","v-cap");
+    A=[ [[170,198],[170,172],[154,198]], [[268,yg],[268,yg-40],[288,206]], [[218,184],[218,222],[200,212]], [[392,176],[328,176],[362,192]] ];
+  }
+  A.forEach((a,i)=>{ s+=L(a[0][0],a[0][1],a[1][0],a[1][1],"v-n","a")+numLab(a[2][0],a[2][1],String(nb[i])); });
+  return svg(o.v===0?264:o.v===1?246:252,s,["Ensemble {vélo + cycliste} isolé : frontière en pointillés, quatre actions numérotées","Ensemble {bras de robot + objet saisi} isolé : frontière en pointillés, quatre actions numérotées","Ensemble {voiture + passagers} isolé : frontière en pointillés, quatre actions numérotées"][o.v]);
+}
+/* câble tendu entre un objet (A) et son point d'attache (B) */
+function fxa_cable(v){
+  let s="";
+  if(v===0){ s+=`<rect x="40" y="18" width="330" height="10" rx="2" class="v-body"/><rect x="214" y="28" width="32" height="10" rx="2" class="v-box"/>`+L(230,38,230,62);
+    s+=`<rect x="222" y="62" width="16" height="12" rx="2" class="v-box"/>`+L(230,74,230,150)+`<rect x="174" y="150" width="112" height="56" rx="2" class="v-block"/>`;
+    s+=pt(230,74,"")+pt(230,150,"")+T(222,90,"B","v-lab","end")+T(222,146,"A","v-lab","end")+T(240,144,"?","v-lab c")+T(240,114,"élingue (câble tendu)","v-cap")+T(48,44,"flèche de la grue","v-cap")+T(230,184,"charge","v-cap","middle");
+    return svg(220,s,"Charge suspendue à une grue par une élingue verticale, entre A (charge) et B (crochet)"); }
+  if(v===1){ s+=ground(30,370,214)+`<rect x="112" y="40" width="12" height="174" rx="2" class="v-body"/>`+`<rect x="322" y="204" width="24" height="10" class="v-box"/>`+L(124,54,334,204);
+    s+=pt(124,54,"")+pt(334,204,"")+T(132,48,"A","v-lab")+T(338,196,"B","v-lab")+T(132,80,"?","v-lab c")+T(238,122,"hauban (câble tendu)","v-cap")+T(106,150,"mât","v-cap","end");
+    return svg(236,s,"Mât retenu par un hauban incliné, entre A (haut du mât) et B (ancrage au sol)"); }
+  s+=hatchBox(300,120,90,118)+`<rect x="314" y="102" width="14" height="18" rx="2" class="v-box"/>`;
+  s+=`<path d="M40 150 L218 150 L198 188 L60 188 Z" class="v-body"/><rect x="88" y="126" width="62" height="24" rx="2" class="v-box"/>`;
+  s+=`<path d="M20 176 Q30 170 40 176 T54 176 M202 176 Q214 170 226 176 T250 176 T274 176 T298 176" class="v-thin"/>`;
+  s+=L(212,152,321,110)+pt(212,152,"")+pt(321,110,"")+T(206,168,"A","v-lab","end")+T(314,98,"B","v-lab","end")+T(220,140,"?","v-lab c","start");
+  s+=T(196,116,"aussière (câble tendu)","v-cap","middle")+T(345,96,"quai","v-cap","start")+T(120,206,"bateau","v-cap","middle");
+  return svg(240,s,"Bateau amarré au quai par une aussière inclinée, entre A (bateau) et B (bitte d'amarrage)");
+}
+/* vérin : valeurs données ou « ? » */
+function fxa_verin(o){
+  const q=o.q, c=k=>q===k;
+  let s=`<rect x="40" y="80" width="210" height="70" rx="4" class="v-body"/><rect x="196" y="88" width="16" height="54" class="v-box"/><rect x="212" y="108" width="148" height="14" rx="2" class="v-box"/>`;
+  s+=T(118,120,"chambre sous pression","v-cap","middle");
+  s+=L(80,192,80,152,"v-el","a")+T(90,186,o.p,c("p")?"v-lab c":"v-lab a s");
+  s+=`<line x1="230" y1="80" x2="230" y2="150" class="v-cote" marker-start="url(#m-d)" marker-end="url(#m-d)"/>`+T(236,72,o.D,c("D")?"v-lab c":"v-cap");
+  s+=(c("F")?L(362,115,396,115,"v-t","c"):L(362,115,396,115,"v-f","f"))+T(396,100,o.F,c("F")?"v-lab c":"v-lab s","end");
+  return svg(204,s,"Vérin : pression p dans la chambre, diamètre D du piston, effort F sur la tige");
+}
+/* treuil : tambour, couple disponible et charge */
+function fxa_treuil(o){
+  const C=[200,92], r=44;
+  let s=L(60,22,340,22); for(let x=72;x<=340;x+=14) s+=L(x,22,x-10,12,"v-hatch");
+  s+=`<path d="M${C[0]-14} 22 L${C[0]-6} ${C[1]} L${C[0]+6} ${C[1]} L${C[0]+14} 22 Z" class="v-box"/><circle cx="${C[0]}" cy="${C[1]}" r="${r}" class="v-wheel"/>`+piv(C[0],C[1]);
+  s+=L(C[0]+r,C[1],C[0]+r,184)+`<rect x="${C[0]+r-34}" y="184" width="68" height="44" rx="3" class="v-block"/>`+T(C[0]+r,211,`${o.m} kg`,"v-smb","middle");
+  s+=arcP(C,r+16,140,205,"v-n","a")+T(C[0]-r-24,C[1]-44,`C max = ${o.Cmax} N·m`,"v-lab a s","end")+T(C[0]-r-24,C[1]-28,"(motoréducteur)","v-cap","end");
+  s+=L(C[0]-r,C[1],C[0]-r,164,"v-dash")+`<line x1="${C[0]-r}" y1="160" x2="${C[0]+r}" y2="160" class="v-cote" marker-start="url(#m-d)" marker-end="url(#m-d)"/>`+T(C[0]-r-6,164,`D = ${o.D} mm`,"v-cap","end");
+  s+=T(C[0]+r+10,150,"câble","v-cap");
+  return svg(238,s,"Treuil : tambour de diamètre D entraîné par un motoréducteur, charge suspendue");
+}
+/* roue : diamètre D et effort tangentiel au contact */
+function fxa_roue(o){
+  const O=[180,128], R=82, yg=O[1]+R;
+  let s=ground(40,360,yg)+`<circle cx="${O[0]}" cy="${O[1]}" r="${R}" class="v-wheel"/>`+piv(O[0],O[1]);
+  s+=L(O[0],O[1]-R,306,O[1]-R,"v-dash")+`<line x1="300" y1="${O[1]-R}" x2="300" y2="${yg}" class="v-cote" marker-start="url(#m-d)" marker-end="url(#m-d)"/>`+T(306,O[1]+4,`D = ${o.D} mm`,"v-cap");
+  s+=L(O[0],yg,O[0]+80,yg,"v-f","f")+T(O[0]+40,yg+30,`F = ${o.F} N`,"v-lab s","middle");
+  s+=arcP(O,R+16,120,60,"v-t","c")+T(O[0],O[1]-R-24,"C = ?","v-lab c","middle");
+  s+=pt(O[0],yg,"")+T(O[0]-8,yg-8,"I","v-lab s","end");
+  return svg(244,s,"Roue de diamètre D soumise à un effort tangentiel F au contact avec le sol");
+}
+/* bras horizontal portant une pièce à son extrémité */
+function fxa_brasm(o){
+  const O=[96,104], xm=320;
+  let s=`<rect x="${O[0]-12}" y="${O[1]-7}" width="${xm-O[0]+14}" height="14" rx="5" class="v-body"/>`+fixe(O[0],O[1]+8)+piv(O[0],O[1]);
+  s+=`<rect x="${xm-18}" y="${O[1]-18}" width="36" height="36" rx="2" class="v-block"/>`+T(xm,O[1]-28,`m = ${o.mg} g`,"v-lab s","middle");
+  s+=L(xm,O[1]+20,xm,O[1]+78,"v-f","f")+T(xm+8,O[1]+72,"P","v-lab");
+  s+=L(xm,O[1]+80,xm,214,"v-dash")+L(O[0],O[1]+40,O[0],214,"v-dash")+cote(O[0],xm,208,`d = ${nf(o.d,1)} m`);
+  s+=arcP(O,30,150,60,"v-t","c")+T(O[0]-6,O[1]-40,"M = ?","v-lab c","middle");
+  s+=T(O[0]-16,O[1]+5,"O","v-lab","end");
+  return svg(222,s,"Bras horizontal articulé en O, pièce de masse m à son extrémité");
+}
+/* levier horizontal, force inclinée d'un angle θ sur le levier en A (bras de levier non dessiné) */
+function fxa_levier(o){
+  const O=[74,128], A=[O[0]+o.d*600,128], u=[Math.cos(rad(o.th)),Math.sin(rad(o.th))], t=add(A,u,-78);
+  let s=`<rect x="${O[0]-12}" y="${O[1]-7}" width="${(A[0]-O[0]+28).toFixed(1)}" height="14" rx="5" class="v-body"/>`+fixe(O[0],O[1]+8)+piv(O[0],O[1]);
+  s+=L(t[0],t[1],A[0]-u[0]*8,A[1]-u[1]*8-7,"v-t","c")+T(t[0]-6,t[1]-4,`F = ${o.F} N`,"v-lab c s","end");
+  s+=arcP(A,46,180-o.th,180,"v-cote")+T(pol(A,58,180-o.th/2)[0],pol(A,58,180-o.th/2)[1]+5,"θ","v-lab","middle");
+  s+=pt(A[0],A[1],"")+T(A[0]+8,A[1]+24,"A","v-lab")+T(O[0]-12,O[1]-12,"O","v-lab","end");
+  s+=L(A[0],A[1]+10,A[0],186,"v-dash")+L(O[0],172,O[0],186,"v-dash")+`<line x1="${O[0]}" y1="182" x2="${A[0].toFixed(1)}" y2="182" class="v-cote" marker-start="url(#m-d)" marker-end="url(#m-d)"/>`+T((O[0]+A[0])/2,200,`OA = ${nf(o.d,1)} m`,"v-cap","middle");
+  s+=T(A[0]+30,O[1]-46,`θ = ${o.th}°`,"v-lab s");
+  return svg(212,s,"Levier articulé en O ; force F appliquée en A, inclinée d'un angle θ sur le levier");
+}
+/* pince coupante : deux branches croisées articulées en O */
+function fxa_pince(o){
+  const O=[128,118], k=1.3, xw=O[0]-o.d2*k, xh=O[0]+o.d1*k, xt=xw-14, xe=390, sl=32/(xe-O[0]);
+  const yu=O[1]-sl*(xh-O[0]), yl=O[1]+sl*(xh-O[0]);
+  let s=fxa_ruban([[xt,O[1]-9],O],3.5)+fxa_ruban([O,[xe,O[1]+32]],5)+fxa_ruban([[xt,O[1]+9],O],3.5)+fxa_ruban([O,[xe,O[1]-32]],5)+piv(O[0],O[1]);
+  s+=`<circle cx="${xw.toFixed(1)}" cy="${O[1]}" r="3" class="v-pt"/>`;
+  s+=L(xw,O[1]-10,xw,O[1]-46,"v-f","f")+L(xw,O[1]+10,xw,O[1]+46,"v-f","f")+T(xw-8,O[1]-30,`${nf(o.Fc,0)} N`,"v-lab s","end");
+  s+=L(xh,yu-50,xh,yu-7,"v-t","c")+L(xh,yl+50,xh,yl+7,"v-t","c")+T(xh-8,yu-34,"F main = ?","v-lab c","end");
+  s+=T(O[0],O[1]-14,"O","v-lab s","middle")+T(xt-4,O[1]+4,"fil","v-cap","end");
+  s+=L(xw,O[1]+50,xw,192,"v-dash")+L(O[0],O[1]+12,O[0],220,"v-dash")+L(xh,yl+54,xh,220,"v-dash");
+  s+=`<line x1="${xw.toFixed(1)}" y1="186" x2="${O[0]}" y2="186" class="v-cote" marker-start="url(#m-d)" marker-end="url(#m-d)"/>`+T(xw-6,190,`d2 = ${o.d2} mm`,"v-cap","end")+cote(O[0],xh,214,`d1 = ${o.d1} mm`);
+  return svg(228,s,"Pince coupante : fil serré à la distance d2 de l'articulation O, main à la distance d1");
 }
 
 /* ===== figures : cinématique ===== */
@@ -1567,12 +1881,12 @@ POOLS["meca-actions"]={
   count:{1:4,2:4,3:3},
   1:[
     /* poids */
-    ()=>{ const [o,ms]=rnd([["d'un drone de prise de vue",[1.2,2.5,3.8]],["d'un robot tondeuse",[9,12,14.5]],["d'un scooter électrique",[68,75,92]],["d'une cabine d'ascenseur vide",[380,460,520]],["d'une voiture électrique",[1350,1468,1720]],["d'un colis",[0.8,3.2,6.5]]]), m=rnd(ms), P=m*g;
-      return {q:`Calcule le poids ${o} de masse ${nf(m,1)} kg (g = 9,81 m/s²).`,type:"num",ans:P,tolR:0.02,unit:"N",
+    ()=>{ const [o,ms,k]=rnd([["d'un drone de prise de vue",[1.2,2.5,3.8],"drone"],["d'un robot tondeuse",[9,12,14.5],"tondeuse"],["d'un scooter électrique",[68,75,92],"scooter"],["d'une cabine d'ascenseur vide",[380,460,520],"ascenseur"],["d'une voiture électrique",[1350,1468,1720],"voiture"],["d'un colis",[0.8,3.2,6.5],"colis"]]), m=rnd(ms), P=m*g;
+      return {fig:fxa_poids({k,m}),q:`Calcule le poids ${o} de masse ${nf(m,1)} kg (g = 9,81 m/s²).`,type:"num",ans:P,tolR:0.02,unit:"N",
         expl:`${F("P = m·g")} = ${nf(m,1)} × 9,81 = ${U(P,"N")}. Le poids est une force (en N) ; la masse (en kg) ne dépend pas du lieu.`}; },
     /* masse à partir d'un peson */
-    ()=>{ const Fm=rnd([15,24,35,50,68,85,120]), m=Fm/g, o=rnd(["un colis","un sac de sable","une pièce moulée","un bidon"]);
-      return {q:`On suspend ${o} à un peson (dynamomètre) : il indique ${Fm} N à l'équilibre. Quelle est la masse de l'objet (g = 9,81 m/s²) ?`,type:"num",ans:m,tolR:0.02,unit:"kg",
+    ()=>{ const Fm=rnd([15,24,35,50,68,85,120]), m=Fm/g, k=Math.floor(Math.random()*4), o=["un colis","un sac de sable","une pièce moulée","un bidon"][k];
+      return {fig:fxa_peson({F:Fm,k}),q:`On suspend ${o} à un peson (dynamomètre) : il indique ${Fm} N à l'équilibre. Quelle est la masse de l'objet (g = 9,81 m/s²) ?`,type:"num",ans:m,tolR:0.02,unit:"kg",
         expl:`À l'équilibre, le peson compense exactement le poids : P = ${Fm} N. ${F("m = P / g")} = ${Fm} / 9,81 = ${U(m,"kg")}.`}; },
     /* bilan : nombre d'actions extérieures (reprise) */
     ()=>{ const poids=Math.random()<0.5, xc=rnd([140,180,240,270]), n=poids?4:3;
@@ -1586,39 +1900,42 @@ POOLS["meca-actions"]={
     /* liaisons usuelles : action transmissible */
     ()=>{ const k=Math.floor(Math.random()*3), l=LIA[k];
       const m=mc(l.a,LIA.filter((_,i)=>i!==k).map(x=>x.a).concat(["Aucune action : une liaison parfaite ne transmet aucun effort"]));
-      return {ctx:"Problème plan (x, y). Liaison parfaite : sans frottement.",q:`Quelles actions mécaniques une liaison ${l.n} parfaite peut-elle transmettre ?`,type:"ch",...m,expl:l.e+" Une liaison parfaite supprime les frottements, pas les actions dans les directions bloquées."}; },
+      return {fig:fxa_liaison(k),ctx:"Problème plan (x, y). Liaison parfaite : sans frottement.",q:`Quelles actions mécaniques une liaison ${l.n} parfaite peut-elle transmettre ?`,type:"ch",...m,expl:l.e+" Une liaison parfaite supprime les frottements, pas les actions dans les directions bloquées."}; },
     /* vérin F = p·S (reprise) */
     ()=>{ const p=rnd([4,6,8,10]), D=rnd([25,32,40,50]), S=Math.PI*(D/1000)**2/4, Fv=p*1e5*S;
       return {fig:sVerin({p,D}),ctx:"1 bar = 10⁵ Pa. Surface du piston : S = π·D²/4.",q:`Quel effort F développe le vérin (pression ${p} bar, diamètre ${D} mm) ?`,type:"num",ans:Fv,tolR:0.02,unit:"N",
         expl:`S = π × ${nf(D/1000,3)}² / 4 = ${nf(S*1e4,2)} cm², soit ${nf(S,6)} m². ${F("F = p·S")} = ${nf(p*1e5,0)} × ${nf(S,6)} = ${U(Fv,"N")}.`}; },
     /* ressort F = k·x */
     ()=>{ const k=rnd([1.5,2,3.5,5,8,12]), x=rnd([8,12,15,20,25,30]), Fr=k*x, comp=Math.random()<0.5;
-      return {q:`Un ressort de raideur k = ${nf(k,1)} N/mm est ${comp?"comprimé":"étiré"} de ${x} mm par rapport à sa longueur à vide. Quel effort exerce-t-il à ses extrémités ?`,type:"num",ans:Fr,tolR:0.02,unit:"N",
+      return {fig:fxa_ressort({k,x,comp}),q:`Un ressort de raideur k = ${nf(k,1)} N/mm est ${comp?"comprimé":"étiré"} de ${x} mm par rapport à sa longueur à vide. Quel effort exerce-t-il à ses extrémités ?`,type:"num",ans:Fr,tolR:0.02,unit:"N",
         expl:`${F("F = k·x")} où x est la déformation par rapport à la longueur à vide : F = ${nf(k,1)} × ${x} = ${U(Fr,"N")}. Avec k en N/mm, x s'exprime en mm.`}; },
     /* signe du moment (reprise) */
     ()=>{ const side=rnd([1,-1]), up=Math.random()<0.5, pos=side*(up?1:-1)>0;
       return {fig:sRotation({side,up}),q:"Le sens trigonométrique est positif. Quel est le signe du moment de F par rapport à O ?",type:"ch",ch:["Positif","Négatif"],ok:pos?0:1,
         expl:`Seule, F ferait tourner la barre dans le sens ${pos?"trigonométrique (anti-horaire)":"horaire"} autour de O : moment ${pos?"positif":"négatif"}.`}; },
-    /* bras de levier : question de cours */
-    ()=>{ if(Math.random()<0.5){ const m=mc("La distance de O à la droite d'action de F, mesurée perpendiculairement à celle-ci",["La distance entre O et le point d'application de F, quelle que soit la direction de F","La longueur de la flèche qui représente F","La projection de la distance OA sur la direction de F"]);
-        return {q:"Pour calculer le moment d'une force F par rapport à un point O, que représente le bras de levier d ?",type:"ch",...m,expl:`${F("M = F·d")} avec d = distance de O à la droite d'action de F. Elle n'est égale à OA (A : point d'application) que si F est perpendiculaire à OA.`}; }
-      const m=mc("Quand la droite d'action de F passe par O",["Quand F est perpendiculaire au levier","Quand F est appliquée loin de O","Quand F est faible devant les autres forces"]);
-      return {q:"Dans quel cas le moment d'une force F par rapport à un point O est-il nul ?",type:"ch",...m,expl:"Si la droite d'action passe par O, le bras de levier est nul, donc M = F × 0 = 0 : la force ne peut pas faire tourner autour de O. Perpendiculaire au levier, au contraire, le moment est maximal."}; },
+    /* bras de levier, moment nul : questions sur figure */
+    ()=>{ if(Math.random()<0.5){ const fig=fxa_brasLevier({al:rnd([35,45,55]),mir:Math.random()<0.5});
+        const m=mc("[OH]",["[OA]","[AH]","La longueur de la flèche F"]);
+        return {fig,q:"La force F s'applique en A. Sur la figure, quel segment représente le bras de levier de F par rapport à O ?",type:"ch",...m,
+          expl:`Le bras de levier est la distance de O à la droite d'action de F, mesurée perpendiculairement à celle-ci : c'est ${F("[OH]")}, d'où M = F·OH. [OA] ne conviendrait que si F était perpendiculaire à (OA) ; [AH] est la projection de OA sur la direction de F ; la longueur de la flèche représente l'intensité de F, pas une distance.`}; }
+      const nums=shuffle([1,2,3,4]), fig=fxa_momentNul({beta:rnd([0,10,18]),mir:Math.random()<0.5,push:Math.random()<0.5,nums});
+      return {fig,q:"La barre est articulée en O. Sur la figure, laquelle des quatre forces a un moment nul par rapport à O ?",type:"ch",ch:["F1","F2","F3","F4"],ok:nums[0]-1,
+        expl:`F${nums[0]} est portée par la barre : sa droite d'action passe par O, son bras de levier est nul, donc ${F(`M = F${nums[0]} × 0 = 0`)}. F${nums[1]}, perpendiculaire à la barre, a au contraire le plus grand moment possible pour son point d'application ; F${nums[2]}, appliquée loin de O, et F${nums[3]}, de faible intensité, ont un bras de levier non nul : leur moment n'est pas nul.`}; },
     /* couple sur un pignon C = F·R */
     ()=>{ const Fv=rnd([400,600,800,1000]), R=rnd([0.035,0.04,0.05,0.06]), C=Fv*R;
-      return {q:`La chaîne d'un vélo exerce un effort tangentiel F = ${nf(Fv,0)} N sur le pignon arrière, de rayon R = ${nf(R,3)} m. Quel couple reçoit la roue arrière ?`,type:"num",ans:C,tolR:0.02,unit:"N·m",
+      return {fig:fxa_pignon({F:Fv,R}),q:`La chaîne d'un vélo exerce un effort tangentiel F = ${nf(Fv,0)} N sur le pignon arrière, de rayon R = ${nf(R,3)} m. Quel couple reçoit la roue arrière ?`,type:"num",ans:C,tolR:0.02,unit:"N·m",
         expl:`L'effort est tangent au pignon : le bras de levier est le rayon. ${F("C = F·R")} = ${nf(Fv,0)} × ${nf(R,3)} = ${U(C,"N·m")}.`}; },
     /* action à distance */
-    ()=>{ const [sys,w]=rnd([["un vélo qui roule sur une route",["L'action de la route sur la roue avant","L'action du cycliste sur les pédales","L'action de l'air sur le cadre"]],["une caisse tirée par un câble sur le sol",["L'action du câble sur la caisse","L'action du sol sur la caisse","L'action d'un opérateur qui retient la caisse"]],["un drone en vol stationnaire",["L'action de l'air sur les hélices","L'action d'un colis accroché sous le drone","L'action de l'air sur le châssis"]]]);
-      const m=mc("Le poids (action de la Terre)",w);
-      return {q:`Parmi ces actions exercées sur ${sys}, laquelle est une action à distance ?`,type:"ch",...m,expl:"Le poids est la seule action qui s'exerce sans contact. Toutes les autres sont des actions de contact (air, câble, sol, pièce en appui)."}; },
+    ()=>{ const v=Math.floor(Math.random()*3), [sys,w]=[["un vélo qui roule sur une route",["L'action de la route sur la roue avant","L'action du cycliste sur les pédales","L'action de l'air sur le cadre"]],["une caisse tirée par un câble sur le sol",["L'action du câble sur la caisse","L'action du sol sur la caisse","L'action d'un opérateur qui retient la caisse"]],["un drone en vol stationnaire",["L'action de l'air sur les hélices","L'action d'un colis accroché sous le drone","L'action de l'air sur le châssis"]]][v];
+      const ok="Le poids (action de la Terre)", m=mc(ok,w), nums=[ok,...w].map(x=>m.ch.indexOf(x)+1);
+      return {fig:fxa_distance({v,nums}),q:`Parmi ces actions exercées sur ${sys}, laquelle est une action à distance ? Sur la figure, chaque action porte le numéro de la réponse correspondante.`,type:"ch",...m,expl:"Le poids est la seule action qui s'exerce sans contact. Toutes les autres sont des actions de contact (air, câble, sol, pièce en appui)."}; },
     /* action intérieure / extérieure */
-    ()=>{ const [iso,inn,ext]=rnd([
+    ()=>{ const v=Math.floor(Math.random()*3), [iso,inn,ext]=[
         ["{vélo + cycliste}","L'action de la chaîne sur le pignon arrière",["Le poids de l'ensemble","L'action du sol sur la roue arrière","L'action de l'air sur le cycliste"]],
         ["{bras de robot + objet saisi}","L'action de la pince sur l'objet saisi",["Le poids de l'objet saisi","L'action du bâti sur la base du bras","L'action d'un opérateur qui pousse le bras"]],
-        ["{voiture + passagers}","L'action du siège sur un passager",["L'action de la route sur les pneus","Le poids de l'ensemble","L'action de l'air sur la carrosserie"]]]);
-      const m=mc(inn,ext);
-      return {q:`On isole l'ensemble ${iso}. Laquelle de ces actions est une action intérieure, à ne pas compter dans le bilan ?`,type:"ch",...m,expl:`« ${inn} » s'exerce entre deux éléments qui font tous les deux partie de l'ensemble isolé : c'est une action intérieure. Le bilan ne compte que les actions exercées par l'extérieur (sol, air, Terre, bâti, opérateur…).`}; },
+        ["{voiture + passagers}","L'action du siège sur un passager",["L'action de la route sur les pneus","Le poids de l'ensemble","L'action de l'air sur la carrosserie"]]][v];
+      const m=mc(inn,ext), nums=[inn,...ext].map(x=>m.ch.indexOf(x)+1);
+      return {fig:fxa_isole({v,nums}),q:`On isole l'ensemble ${iso} : la frontière d'isolement est en pointillés. Laquelle de ces actions est une action intérieure, à ne pas compter dans le bilan ? Sur la figure, chaque action porte le numéro de la réponse correspondante.`,type:"ch",...m,expl:`« ${inn} » s'exerce entre deux éléments qui font tous les deux partie de l'ensemble isolé : c'est une action intérieure. Le bilan ne compte que les actions exercées par l'extérieur (sol, air, Terre, bâti, opérateur…).`}; },
     /* charge répartie ramenée à une force */
     ()=>{ const q=rnd([150,200,250,300,400]), Lg=rnd([0.8,1,1.2,1.5,2]), Fq=q*Lg, fig=fx_act_repartie({type:"appuis",q,L:Lg});
       const m=mc("Au milieu de la longueur chargée",["Sur l'appui de gauche","Au tiers de la longueur","À l'extrémité droite"]);
@@ -1626,9 +1943,9 @@ POOLS["meca-actions"]={
           expl:`La charge totale est ${F("F = q·L")} = ${q} × ${nf(Lg,2)} = ${U(Fq,"N")}.`},
         {fig,q:"Où faut-il appliquer cette force équivalente ?",type:"ch",...m,expl:`Pour une charge uniformément répartie, la force équivalente s'applique au centre de la zone chargée : ici au milieu, à ${nf(Lg/2,2)} m de chaque extrémité.`}]; },
     /* action d'un câble */
-    ()=>{ const [ctx,cible,de]=rnd([["Une charge est suspendue à une grue par une élingue (câble) tendue.","la charge","de la charge"],["Un mât est retenu par un hauban : un câble tendu, incliné, fixé au sol.","le mât","du mât"],["Un bateau est amarré au quai par une aussière (cordage) tendue.","le bateau","du bateau"]]);
-      const m=mc(`Une force portée par le câble, dirigée ${de} vers l'autre extrémité du câble : le câble tire`,["Une force portée par le câble, dirigée vers "+cible+" : le câble pousse","Une force verticale vers le haut, quelle que soit l'inclinaison du câble","Une force perpendiculaire au câble"]);
-      return {ctx:ctx+" Sa masse est négligée.",q:`Quelle est l'action du câble sur ${cible} ?`,type:"ch",...m,expl:"Un câble tendu, de masse négligée, n'est soumis qu'à deux actions à ses extrémités : elles sont portées par le câble lui-même. Un câble ne peut que tirer, jamais pousser."}; }
+    ()=>{ const v=Math.floor(Math.random()*3), [ctx,cible,de,w3]=[["Une charge est suspendue à une grue par une élingue (câble) tendue.","la charge","de la charge","Une force verticale vers le bas, comme le poids de la charge"],["Un mât est retenu par un hauban : un câble tendu, incliné, fixé au sol.","le mât","du mât","Une force verticale vers le haut, quelle que soit l'inclinaison du câble"],["Un bateau est amarré au quai par une aussière (cordage) tendue.","le bateau","du bateau","Une force verticale vers le haut, quelle que soit l'inclinaison du câble"]][v];
+      const m=mc(`Une force portée par le câble, dirigée ${de} vers l'autre extrémité du câble : le câble tire`,["Une force portée par le câble, dirigée vers "+cible+" : le câble pousse",w3,"Une force perpendiculaire au câble"]);
+      return {fig:fxa_cable(v),ctx:ctx+" Sa masse est négligée.",q:`Quelle est l'action du câble sur ${cible}, au point A ?`,type:"ch",...m,expl:"Un câble tendu, de masse négligée, n'est soumis qu'à deux actions à ses extrémités : elles sont portées par le câble lui-même. Un câble ne peut que tirer, jamais pousser : en A, l'action est dirigée de A vers B."}; }
   ],
   2:[
     /* moment, force perpendiculaire (reprise) */
@@ -1638,7 +1955,7 @@ POOLS["meca-actions"]={
     /* moment, force oblique (reprise) */
     ()=>{ const Fv=rnd([50,80,100,150]), d=rnd([0.2,0.3,0.4]), th=rnd([30,45,60]), M=Fv*d*Math.sin(rad(th));
       return {fig:sLevier({d,ang:th,up:false}),ctx:`F = ${Fv} N fait un angle θ = ${th}° avec le levier.`,q:"Calcule le moment de F par rapport à O (force inclinée).",type:"num",ans:M,tolR:0.02,unit:"N·m",
-        expl:`Seule la composante de F perpendiculaire au levier fait tourner : ${F("M = F·d·sin θ")} = ${Fv} × ${nf(d,2)} × sin ${th}° = ${U(M,"N·m")}. (Le bras de levier est d·sin θ.)`}; },
+        expl:`Seule la composante de F perpendiculaire au levier fait tourner : ${F("M = F·OA·sin θ")} = ${Fv} × ${nf(d,2)} × sin ${th}° = ${U(M,"N·m")}. (Le bras de levier est d = OA·sin θ.)`}; },
     /* couple sur une roue (reprise) */
     ()=>{ const Fv=rnd([150,300,450,600]), D=rnd([500,600,700]), C=Fv*D/2000;
       return {fig:sRoueF({R:D/2000,dir:1}),ctx:`Roue de diamètre ${D} mm. Le sol exerce un effort tangentiel F = ${Fv} N au contact.`,q:"Quel couple C faut-il appliquer à la roue pour équilibrer cet effort ?",type:"num",ans:C,tolR:0.02,unit:"N·m",
@@ -1661,7 +1978,7 @@ POOLS["meca-actions"]={
         expl:`Déformation : x = L0 − L = ${L0} − ${Lr} = ${x} mm. ${F("k = F / x")} = ${Fv} / ${x} = ${U(k,"N/mm")}. On divise par la déformation, pas par la longueur du ressort.`}; },
     /* vérin : pression nécessaire */
     ()=>{ const D=rnd([32,40,50,63]), Fv=rnd([400,600,800,1200,1500]), S=Math.PI*(D/1000)**2/4, pb=Fv/S/1e5;
-      return {ctx:"1 bar = 10⁵ Pa. Surface du piston : S = π·D²/4.",q:`Un vérin de diamètre ${D} mm doit exercer un effort de ${nf(Fv,0)} N. Quelle pression faut-il dans la chambre ? Donne-la en bar.`,type:"num",ans:pb,tolR:0.02,unit:"bar",
+      return {fig:fxa_verin({D:`D = ${D} mm`,F:`F = ${nf(Fv,0)} N`,p:"p = ?",q:"p"}),ctx:"1 bar = 10⁵ Pa. Surface du piston : S = π·D²/4.",q:`Un vérin de diamètre ${D} mm doit exercer un effort de ${nf(Fv,0)} N. Quelle pression faut-il dans la chambre ? Donne-la en bar.`,type:"num",ans:pb,tolR:0.02,unit:"bar",
         expl:`S = π × ${nf(D/1000,3)}² / 4 = ${nf(S,6)} m². ${F("p = F / S")} = ${nf(Fv,0)} / ${nf(S,6)} = ${nf(Fv/S,0)} Pa, soit ${U(pb,"bar")}.`}; },
     /* vent sur un panneau : force équivalente puis moment */
     ()=>{ const a=rnd([1.2,1.5,2,2.5]), b=rnd([0.8,1,1.2]), p=rnd([300,400,500,650]), h=rnd([2,2.5,3,3.5]), Fv=p*a*b, M=Fv*h, fig=fx_act_panneau();
@@ -1710,7 +2027,7 @@ POOLS["meca-actions"]={
       const i=DN.findIndex(d=>d>=o.Dm), Dok=DN[i], Fok=o.p*1e5*Math.PI*(Dok/1000)**2/4, Flow=o.p*1e5*Math.PI*(DN[i-1]/1000)**2/4;
       const w=[DN[i-1],DN[i+1],i>=2?DN[i-2]:DN[i+2]].filter((x,k,arr)=>x!=null&&arr.indexOf(x)===k);
       const m=mc(`${Dok} mm`,w.map(x=>`${x} mm`));
-      return {data:"Diamètres normalisés (mm) : 20 · 25 · 32 · 40 · 50 · 63 · 80 · 100 · 125",ctx:"1 bar = 10⁵ Pa ; S = π·D²/4 ; frottements et contre-pression négligés.",
+      return {fig:fxa_verin({D:"D = ?",F:`F ≥ ${nf(o.Fv,0)} N`,p:`p = ${o.p} bar`,q:"D"}),data:"Diamètres normalisés (mm) : 20 · 25 · 32 · 40 · 50 · 63 · 80 · 100 · 125",ctx:"1 bar = 10⁵ Pa ; S = π·D²/4 ; frottements et contre-pression négligés.",
         q:`Un vérin alimenté sous ${o.p} bar doit exercer un effort d'au moins ${nf(o.Fv,0)} N. Quel est le plus petit diamètre normalisé qui convient ?`,type:"ch",...m,
         expl:`S min = F / p = ${nf(o.Fv,0)} / ${nf(o.p*1e5,0)} = ${nf(o.Fv/(o.p*1e5)*1e4,2)} cm², d'où D min = √(4·S/π) = ${nf(o.Dm,1)} mm. On prend le diamètre normalisé juste au-dessus : ${F(`${Dok} mm`)} (F = ${nf(Fok,0)} N ≥ ${nf(o.Fv,0)} N). Avec ${DN[i-1]} mm, on n'aurait que ${nf(Flow,0)} N.`}; },
     /* barrière : contrepoids, puis couple moteur */
@@ -1722,14 +2039,14 @@ POOLS["meca-actions"]={
     /* treuil : exigence de charge */
     ()=>{ const o=draw(()=>{ const m=rnd([150,200,250,300,400]), D=rnd([160,200,250]), Cn=m*g*D/2000, Cmax=Math.round(Cn*rnd([0.7,0.85,1.15,1.3,1.6,1.8])); return {m,D,Cn,Cmax}; }, o=>far(o.Cmax,o.Cn,0.05)&&far(o.Cmax,2*o.Cn,0.05));
       const ok=o.Cmax>=o.Cn;
-      return {q:`Exigence : « soulever une charge de ${o.m} kg ». Le motoréducteur fournit au plus ${o.Cmax} N·m sur le tambour de diamètre ${o.D} mm. L'exigence est-elle satisfaite ?`,type:"ch",ch:["Oui, le couple disponible suffit","Non, le couple disponible est insuffisant"],ok:ok?0:1,
+      return {fig:fxa_treuil({D:o.D,m:o.m,Cmax:o.Cmax}),q:`Exigence : « soulever une charge de ${o.m} kg ». Le motoréducteur fournit au plus ${o.Cmax} N·m sur le tambour de diamètre ${o.D} mm. L'exigence est-elle satisfaite ?`,type:"ch",ch:["Oui, le couple disponible suffit","Non, le couple disponible est insuffisant"],ok:ok?0:1,
         expl:`Couple nécessaire : C = m·g·R = ${o.m} × 9,81 × ${nf(o.D/2000,3)} = ${nf(o.Cn,1)} N·m (R = D/2 !). ${o.Cmax} N·m ${ok?"≥":"<"} ${nf(o.Cn,1)} N·m : ${ok?"l'exigence est satisfaite.":"l'exigence n'est pas satisfaite."}`}; },
     /* clé : force oblique et couple exigé */
     ()=>{ const o=draw(()=>{ const Fv=rnd([120,150,180,200,250]), d=rnd([0.25,0.3,0.35,0.4]), th=rnd([40,50,60,70]), C=Fv*d*Math.sin(rad(th)), Creq=rnd([25,30,40,50,60,70]); return {Fv,d,th,C,Creq}; },
         o=>far(o.C,o.Creq,0.05)&&o.Fv*o.d>o.Creq*1.05);
       const ok=o.C>=o.Creq;
       return {fig:sLevier({d:o.d,ang:o.th,up:false,lab:"Clé de serrage, écrou en O"}),q:`Couple de serrage exigé : ${o.Creq} N·m. L'opérateur exerce F = ${o.Fv} N à ${nf(o.d*1000,0)} mm de l'axe, avec un angle θ = ${o.th}° par rapport au manche. Le couple exigé est-il atteint ?`,type:"ch",ch:YN,ok:ok?0:1,
-        expl:`${F("C = F·d·sin θ")} = ${o.Fv} × ${nf(o.d,2)} × sin ${o.th}° = ${nf(o.C,1)} N·m ${ok?"≥":"<"} ${o.Creq} N·m : ${ok?"le couple est atteint.":"le couple n'est pas atteint."} Piège : F·d = ${nf(o.Fv*o.d,1)} N·m ne tient pas compte de l'inclinaison.`}; },
+        expl:`${F("C = F·OA·sin θ")} = ${o.Fv} × ${nf(o.d,2)} × sin ${o.th}° = ${nf(o.C,1)} N·m ${ok?"≥":"<"} ${o.Creq} N·m : ${ok?"le couple est atteint.":"le couple n'est pas atteint."} Piège : F·OA = ${nf(o.Fv*o.d,1)} N·m ne tient pas compte de l'inclinaison.`}; },
     /* levier retenu par un ressort */
     ()=>{ const o=draw(()=>({F1:rnd([40,60,80,100]),d1:rnd([0.3,0.4,0.5]),d2:rnd([0.1,0.15,0.2]),k:rnd([5,8,10,12,15])}),o=>{ const x=o.F1*o.d1/o.d2/o.k; return x>=5&&x<=40; });
       const Fr=o.F1*o.d1/o.d2, x=Fr/o.k, fig=fx_act_levressort({...o,sc:280/o.d1});
@@ -1746,19 +2063,19 @@ POOLS["meca-actions"]={
         {fig,data:dat,q:"En déduis l'action verticale de l'appui A.",type:"num",ans:RA,tolR:0.02,unit:"N",
           expl:`Équilibre des forces verticales : A + B = F${poids?" + P":""}, donc A = ${nf(Fv,0)}${poids?` + ${nf(P,1)}`:""} − ${nf(RB,1)} = ${U(RA,"N")}. ${r<0.5?"F est plus près de A : c'est A qui reprend le plus.":"F est plus près de B : c'est B qui reprend le plus."}`}]; },
     /* repérer l'erreur dans une résolution */
-    ()=>{ const v=rnd([0,1,2,3,4]); let ctx, st, bad, why;
-      if(v===0){ const D=rnd([32,40,50]), p=rnd([4,6,8]), Smm=Math.PI*D*D/4, Fw=p*1e3*Smm*1e-6;
+    ()=>{ const v=rnd([0,1,2,3,4]); let ctx, st, bad, why, fig;
+      if(v===0){ const D=rnd([32,40,50]), p=rnd([4,6,8]), Smm=Math.PI*D*D/4, Fw=p*1e3*Smm*1e-6; fig=fxa_verin({D:`D = ${D} mm`,F:"F = ?",p:`p = ${p} bar`,q:"F"});
         ctx=`Effort d'un vérin de diamètre ${D} mm sous ${p} bar.`; st=[`S = π·D²/4 = π × ${D}² / 4 = ${nf(Smm,0)} mm²`,`S = ${nf(Smm,0)} × 10⁻⁶ m² = ${nf(Smm*1e-6,6)} m²`,`p = ${p} bar = ${p} × 10³ Pa`,`F = p·S = ${nf(Fw,1)} N`]; bad=2; why=`1 bar = 10⁵ Pa : p = ${nf(p*1e5,0)} Pa, et F = ${nf(p*1e5*Smm*1e-6,0)} N.`; }
-      else if(v===1){ const D=rnd([500,600,700]), Fv=rnd([200,300,400]);
+      else if(v===1){ const D=rnd([500,600,700]), Fv=rnd([200,300,400]); fig=fxa_roue({D,F:Fv});
         ctx=`Couple à appliquer à une roue de diamètre ${D} mm, effort tangentiel au sol ${Fv} N.`; st=[`Le rayon de la roue vaut R = D = ${nf(D/1000,2)} m`,"Le bras de levier de l'effort tangentiel par rapport à l'axe est R",`C = F·R = ${Fv} × ${nf(D/1000,2)} = ${nf(Fv*D/1000,0)} N·m`]; bad=0; why=`R = D/2 = ${nf(D/2000,3)} m, d'où C = ${nf(Fv*D/2000,0)} N·m.`; }
-      else if(v===2){ const mg=rnd([250,400,600]), d=rnd([0.3,0.4,0.5]);
+      else if(v===2){ const mg=rnd([250,400,600]), d=rnd([0.3,0.4,0.5]); fig=fxa_brasm({mg,d});
         ctx=`Moment, par rapport à O, du poids d'une pièce de ${mg} g placée au bout d'un bras horizontal de ${nf(d,1)} m.`; st=[`m = ${mg} g`,`P = m·g = ${mg} × 9,81 = ${nf(mg*g,0)} N`,`M = P·d = ${nf(mg*g,0)} × ${nf(d,1)} = ${nf(mg*g*d,0)} N·m`]; bad=1; why=`La masse doit être en kg : P = ${nf(mg/1000,2)} × 9,81 = ${nf(mg/1000*g,2)} N, d'où M = ${nf(mg/1000*g*d,2)} N·m.`; }
-      else if(v===3){ const Fv=rnd([80,100,150]), d=rnd([0.3,0.4]), th=rnd([30,40]);
-        ctx=`Moment par rapport à O d'une force de ${Fv} N appliquée à ${nf(d,1)} m de O, inclinée de ${th}° par rapport au levier.`; st=[`F fait un angle θ = ${th}° avec le levier`,`Le bras de levier de F par rapport à O vaut d = ${nf(d,1)} m`,`M = F·d = ${Fv} × ${nf(d,1)} = ${nf(Fv*d,0)} N·m`]; bad=1; why=`Le bras de levier vaut d·sin θ = ${nf(d*Math.sin(rad(th)),3)} m, d'où M = ${nf(Fv*d*Math.sin(rad(th)),1)} N·m.`; }
-      else { const L0=rnd([80,100]), x=rnd([15,20,25]), Fv=rnd([45,60,90]);
+      else if(v===3){ const Fv=rnd([80,100,150]), d=rnd([0.3,0.4]), th=rnd([30,40]); fig=fxa_levier({d,th,F:Fv});
+        ctx=`Moment par rapport à O d'une force de ${Fv} N appliquée à ${nf(d,1)} m de O, inclinée de ${th}° par rapport au levier.`; st=[`F fait un angle θ = ${th}° avec le levier`,`Le bras de levier de F par rapport à O vaut d = OA = ${nf(d,1)} m`,`M = F·d = ${Fv} × ${nf(d,1)} = ${nf(Fv*d,0)} N·m`]; bad=1; why=`Le bras de levier vaut d = OA·sin θ = ${nf(d*Math.sin(rad(th)),3)} m, d'où M = ${nf(Fv*d*Math.sin(rad(th)),1)} N·m.`; }
+      else { const L0=rnd([80,100]), x=rnd([15,20,25]), Fv=rnd([45,60,90]); fig=fx_act_ressort({L0,L:L0-x,F:Fv});
         ctx=`Raideur d'un ressort de ${L0} mm à vide, qui mesure ${L0-x} mm sous ${Fv} N.`; st=[`Déformation : x = L = ${L0-x} mm`,`k = F / x = ${Fv} / ${L0-x} = ${nf(Fv/(L0-x),2)} N/mm`,`Le ressort est donc assez souple`]; bad=0; why=`La déformation est x = L0 − L = ${x} mm, d'où k = ${nf(Fv/x,2)} N/mm.`; }
       const ch=st.map((_,i)=>`Étape ${i+1}`);
-      return {ctx,data:`<ol style="margin:0;padding-left:1.4em">${st.map(x=>`<li>${x}</li>`).join("")}</ol>`,q:"Un élève a rédigé ce calcul. À quelle étape se trouve la première erreur ?",type:"ch",ch,ok:bad,expl:`L'erreur est à l'étape ${bad+1}. ${why}`}; },
+      return {fig,ctx,data:`<ol style="margin:0;padding-left:1.4em">${st.map(x=>`<li>${x}</li>`).join("")}</ol>`,q:"Un élève a rédigé ce calcul. À quelle étape se trouve la première erreur ?",type:"ch",ch,ok:bad,expl:`L'erreur est à l'étape ${bad+1}. ${why}`}; },
     /* étagère en console : moment d'encastrement, puis conclusion */
     ()=>{ const o=draw(()=>{ const Lg=rnd([0.6,0.8,1,1.2]), q=rnd([300,400,500,600,800]), M=q*Lg*Lg/2, Madm=rnd([100,150,200,250,300,400]); return {Lg,q,M,Madm}; }, o=>far(o.M,o.Madm,0.08));
       const fig=fx_act_repartie({type:"console",q:o.q,L:o.Lg}), ok=o.M<=o.Madm;
@@ -1775,7 +2092,7 @@ POOLS["meca-actions"]={
     /* pince coupante : exigence d'effort de la main */
     ()=>{ const o=draw(()=>({Fc:rnd([600,800,1000,1200,1500]),d2:rnd([15,20,25]),d1:rnd([120,150,180]),Fmax:rnd([100,120,150])}),o=>far(o.Fc*o.d2/o.d1,o.Fmax,0.06));
       const Fm=o.Fc*o.d2/o.d1, ok=Fm<=o.Fmax;
-      return {q:`Une pince coupante doit exercer ${nf(o.Fc,0)} N sur un fil placé à ${o.d2} mm de l'articulation. La main agit à ${o.d1} mm de l'articulation. Exigence : « effort de la main inférieur à ${o.Fmax} N ». Est-elle satisfaite ?`,type:"ch",ch:YN,ok:ok?0:1,
+      return {fig:fxa_pince(o),q:`Une pince coupante doit exercer ${nf(o.Fc,0)} N sur un fil placé à ${o.d2} mm de l'articulation. La main agit à ${o.d1} mm de l'articulation. Exigence : « effort de la main inférieur à ${o.Fmax} N ». Est-elle satisfaite ?`,type:"ch",ch:YN,ok:ok?0:1,
         expl:`On isole une branche et on écrit l'équilibre des moments à l'articulation : F_main·${o.d1} = ${nf(o.Fc,0)} × ${o.d2}, donc F_main = ${nf(Fm,1)} N ${ok?"≤":">"} ${o.Fmax} N : ${ok?"l'exigence est satisfaite.":"l'exigence n'est pas satisfaite."} Le fil près de l'articulation démultiplie l'effort.`}; }
   ]
 };
@@ -2181,6 +2498,222 @@ function fx_adh_disque(){
   return svg(258,s,"Frein à disque : plaquette pressée sur le disque");
 }
 
+/* ---------- figures ajoutées (préfixe fxf_) ---------- */
+const fxf_xy=p=>`${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
+/* polygone fermé à partir de points [x,y] */
+const fxf_poly=(pts,cls)=>`<path d="M${pts.map(fxf_xy).join(" L")} Z" class="${cls}"/>`;
+/* arc de centre (cx,cy), de rayon r, de l'angle a1 à l'angle a2 (degrés, sens trigonométrique, axe y vers le haut) */
+const fxf_arc=(cx,cy,r,a1,a2,cls="v-cote")=>{ const p=a=>[cx+r*Math.cos(rad(a)),cy-r*Math.sin(rad(a))];
+  return `<path d="M${fxf_xy(p(a1))} A${r} ${r} 0 0 ${a2>a1?0:1} ${fxf_xy(p(a2))}" class="${cls}"/>`; };
+/* repère lié à un support incliné de th degrés : origine I, u le long du support vers le haut (side = +1 : il monte vers la droite), n normale dirigée vers le solide */
+function fxf_rep(I,th,side){ const t=rad(th), c=Math.cos(t), sn=Math.sin(t), u=[side*c,-sn], n=[-side*sn,-c];
+  return {u,n,P:(a,b)=>[I[0]+a*u[0]+b*n[0],I[1]+a*u[1]+b*n[1]]}; }
+/* support de a à b, hachuré du côté opposé à n (normale unitaire dirigée vers le solide) */
+function fxf_sol(a,b,n){ const l=Math.hypot(b[0]-a[0],b[1]-a[1]), u=[(b[0]-a[0])/l,(b[1]-a[1])/l]; let s=L(a[0],a[1],b[0],b[1],"v-ink");
+  for(let d=12;d<=l;d+=14){ const x=a[0]+u[0]*d, y=a[1]+u[1]*d; s+=L(x,y,x-10*u[0]-10*n[0],y-10*u[1]-10*n[1],"v-hatch"); } return s; }
+/* flèche partant de p, de direction unitaire d, de longueur l */
+const fxf_vec=(p,d,l,cls,m)=>L(p[0],p[1],p[0]+d[0]*l,p[1]+d[1]*l,cls,m);
+/* étiquette « ‖T‖max = ? » avec indice */
+const fxf_tmaxLab=`‖T‖<tspan dy="4" font-size="11">max</tspan><tspan dy="-4"> = ?</tspan>`;
+
+/* contact sans frottement sur un support incliné : kind "piston" (cylindre lubrifié), "luge" (piste verglacée), "curseur" (tige graissée)
+   th : inclinaison en degrés ; side : +1 si le support monte vers la droite ; up : le solide monte (sinon il descend) ;
+   nums : numéros des flèches [normale, verticale, tangente opposée au mouvement, inclinée vers l'arrière] */
+function fxf_lisse(o){
+  const k=o.kind, D=104, I=[200,{piston:184,luge:172,curseur:160}[k]], R=fxf_rep(I,o.th,o.side), P=R.P, u=R.u, n=R.n, dv=o.up?1:-1;
+  const Q=(w,t)=>P(w*dv,t), neg=v=>[-v[0],-v[1]], Lf=k==="piston"?70:86;
+  let s="", vA, vB, vL;
+  if(k==="piston"){   /* fond du cylindre à l'arrière, tige qui sort du côté du mouvement */
+    s+=fxf_sol(Q(-122,0),Q(116,0),n)+fxf_sol(Q(116,D),Q(-122,D),neg(n))+fxf_sol(Q(-122,D),Q(-122,0),[u[0]*dv,u[1]*dv]);
+    s+=L(...Q(116,0),...Q(116,D/2-9))+L(...Q(116,D/2+9),...Q(116,D));
+    s+=fxf_poly([Q(-34,0),Q(34,0),Q(34,D-6),Q(-34,D-6)],"v-block")+fxf_poly([Q(34,D/2-7),Q(176,D/2-7),Q(176,D/2+7),Q(34,D/2+7)],"v-body");
+    vA=Q(-28,D+26); vB=Q(42,D+26); vL=Q(7,D+42);
+  } else if(k==="luge"){   /* patin relevé à l'avant, deux montants, siège */
+    s+=fxf_sol(P(-140,0),P(166,0),n);
+    s+=`<path d="M${fxf_xy(Q(-56,0))} L${fxf_xy(Q(38,0))} Q${fxf_xy(Q(64,0))} ${fxf_xy(Q(62,26))}" class="v-ink" style="stroke-width:2.4"/>`+L(...Q(-42,0),...Q(-42,18))+L(...Q(22,0),...Q(22,18));
+    s+=fxf_poly([Q(-58,18),Q(56,18),Q(56,27),Q(-58,27)],"v-body");
+    vA=Q(76,44); vB=Q(136,44); vL=Q(106,58);
+  } else {
+    s+=fxf_poly([P(-142,-24),P(-128,-24),P(-128,12),P(-142,12)],"v-box")+fxf_poly([P(128,-24),P(142,-24),P(142,12),P(128,12)],"v-box");
+    s+=bar(...P(-128,-7),...P(128,-7))+fxf_poly([Q(-30,0),Q(30,0),Q(30,34),Q(-30,34)],"v-block");
+    vA=Q(68,46); vB=Q(128,46); vL=Q(98,60);
+  }
+  const vh=[u[0]*dv,u[1]*dv], b=rad(dv>0?30:o.th+26);
+  const dirs=[n,[0,-1],neg(vh),[n[0]*Math.cos(b)-vh[0]*Math.sin(b),n[1]*Math.cos(b)-vh[1]*Math.sin(b)]];
+  dirs.forEach((d,i)=>{ const l=i===2?Lf-4:Lf, e=i===2?15:0; s+=fxf_vec(I,d,l,"v-vec","k")+numLab(I[0]+d[0]*(l+17)+n[0]*e,I[1]+d[1]*(l+17)+n[1]*e,String(o.nums[i])); });
+  const li=P(0,k==="curseur"?-27:-21);
+  s+=pt(I[0],I[1],"",0,0)+T(li[0],li[1]+5,"I","v-lab s","middle");
+  s+=L(...vA,...vB,"v-f","f")+T(vL[0],vL[1]+5,"v","v-lab","middle");
+  s+=T(o.side>0?286:114,240,{piston:"cylindre lubrifié (vue en coupe)",luge:"piste verglacée",curseur:"tige fixe graissée"}[k],"v-cap","middle");
+  return svg(256,s,{piston:"Piston dans un cylindre incliné",luge:"Luge sur une piste verglacée",curseur:"Curseur sur une tige inclinée"}[k]+" : quatre flèches partent du point de contact I");
+}
+/* effort tangentiel maximal en un contact : kind "robot" (roue motrice), "trott" (roue avant freinée), "patin" (patin d'un meuble poussé) ; N : texte de la composante normale */
+function fxf_tmax(o){
+  const yg=192; let s=ground(24,376,yg), I, d;
+  if(o.kind==="robot"){ I=[150,yg]; d=1; const r=50, cy=yg-r;
+    s+=`<rect x="104" y="88" width="196" height="44" rx="8" class="v-body"/>`+T(240,115,"robot","v-cap","middle");
+    s+=L(270,132,276,yg-12)+`<circle cx="276" cy="${yg-12}" r="12" class="v-wheel"/>`;
+    s+=`<circle cx="${I[0]}" cy="${cy}" r="${r}" class="v-wheel"/><circle cx="${I[0]}" cy="${cy}" r="${r-9}" class="v-wheel"/>`+piv(I[0],cy);
+    s+=T(94,150,"roue","v-cap","end")+T(94,164,"motrice","v-cap","end")+L(300,34,368,34,"v-f","f")+T(334,26,"v","v-lab","middle");
+  } else if(o.kind==="trott"){ I=[250,yg]; d=-1; const r=44, cy=yg-r;
+    s+=`<circle cx="60" cy="${yg-16}" r="16" class="v-wheel"/><circle cx="${I[0]}" cy="${cy}" r="${r}" class="v-wheel"/><circle cx="${I[0]}" cy="${cy}" r="${r-8}" class="v-wheel"/>`;
+    s+=`<rect x="36" y="156" width="170" height="9" rx="3" class="v-body"/>`+L(200,160,239,96)+L(I[0],cy,230,50)+L(210,46,252,46)+piv(I[0],cy)+piv(60,yg-16);
+    s+=T(304,136,"roue avant","v-cap")+T(304,150,"freinée","v-cap")+L(300,24,368,24,"v-f","f")+T(334,16,"v","v-lab","middle");
+  } else { I=[282,yg]; d=-1;
+    s+=`<rect x="70" y="96" width="244" height="54" rx="3" class="v-body"/>`+T(180,128,"meuble","v-cap","middle");
+    s+=`<rect x="88" y="150" width="14" height="32" class="v-body"/><rect x="275" y="150" width="14" height="32" class="v-body"/>`;
+    s+=`<rect x="80" y="182" width="30" height="10" rx="3" class="v-block"/><rect x="267" y="182" width="30" height="10" rx="3" class="v-block"/>`;
+    s+=L(18,123,64,123,"v-f","f")+T(20,113,"F","v-lab")+T(302,188,"patin","v-cap");
+  }
+  s+=L(I[0],yg,I[0],yg-120,"v-n","a")+T(I[0]-d*8,yg-110,o.N,"v-lab a",d>0?"end":"start");
+  s+=L(I[0],yg,I[0]+d*86,yg,"v-t","c")+T(I[0]+d*43,yg+28,fxf_tmaxLab,"v-lab c","middle");
+  s+=pt(I[0],yg,"",0,0)+T(I[0]-d*12,yg+20,"I","v-lab s","middle")+T(376,yg+50,`${o.sol} · f = ${nf(o.f)}`,"v-cap","end");
+  return svg(yg+58,s,{robot:"Roue motrice d'un robot",trott:"Roue avant freinée d'une trottinette",patin:"Patin d'un meuble poussé"}[o.kind]+" : N donnée, T maximale cherchée");
+}
+/* deux caisses A et B poussées sur un sol horizontal ; q : "A" (effort tangentiel maximal cherché sous A) ou "F" (efforts de poussée à comparer) */
+function fxf_caisses(o){
+  const yg=180, sub=x=>`F<tspan dy="4" font-size="11">${x}</tspan>`; let s=ground(16,384,yg);
+  [[64,"A",o.mA,o.fA],[244,"B",o.mB,o.fB]].forEach(([x,nm,m,f])=>{
+    s+=`<rect x="${x}" y="${yg-90}" width="108" height="90" class="v-block"/>`+T(x+54,yg-60,nm,"v-lab","middle")+T(x+54,yg-38,`m = ${nf(m)} kg`,"v-cap","middle")+T(x+54,yg-20,`f = ${nf(f)}`,"v-cap","middle");
+    s+=L(x-52,yg-45,x-4,yg-45,"v-f","f")+T(x-30,yg-53,sub(nm),"v-lab s","middle")+pt(x+54,yg,"",0,0);
+  });
+  if(o.q==="A") s+=L(118,yg,46,yg,"v-t","c")+T(84,yg+28,fxf_tmaxLab,"v-lab c","middle");
+  return svg(o.q==="A"?218:200,s,"Deux caisses A et B posées sur un sol horizontal et poussées");
+}
+/* véhicule à vitesse constante ; la roue étudiée n'est ni motrice ni freinée ; kind "velo", "voiture" ou "robot" (roue folle avant) */
+function fxf_rouefolle(o){
+  const yg=192; let s=ground(20,380,yg), xs, xm, labS, labM;
+  if(o.kind==="voiture"){ xs=112; xm=292; const r=26, cy=yg-r;
+    s+=`<path d="M58 ${cy+8} L58 ${cy-26} Q60 ${cy-38} 78 ${cy-40} L118 ${cy-46} L150 ${cy-76} Q156 ${cy-82} 168 ${cy-82} L246 ${cy-82} Q258 ${cy-82} 266 ${cy-74} L298 ${cy-46} L330 ${cy-42} Q342 ${cy-40} 342 ${cy-26} L342 ${cy+8} Z" class="v-body"/>`;
+    s+=`<path d="M160 ${cy-50} L170 ${cy-74} L244 ${cy-74} L270 ${cy-50} Z" class="v-block"/>`;
+    s+=`<circle cx="${xs}" cy="${cy}" r="${r}" class="v-wheel"/><circle cx="${xm}" cy="${cy}" r="${r}" class="v-wheel"/>`+piv(xs,cy)+piv(xm,cy);
+    labS="roue arrière"; labM="roue avant motrice";
+  } else if(o.kind==="velo"){ xm=96; xs=304; const r=48, cy=yg-r, C=[188,cy+4], S=[170,cy-62], H=[266,cy-66];
+    s+=`<circle cx="${xm}" cy="${cy}" r="${r}" class="v-wheel"/><circle cx="${xs}" cy="${cy}" r="${r}" class="v-wheel"/>`;
+    s+=L(xm,cy,...C)+L(...C,...S)+L(...S,xm,cy)+L(...S,...H)+L(...C,...H)+L(...H,xs,cy);
+    s+=L(S[0]-12,S[1]-4,S[0]+12,S[1]-4)+L(H[0],H[1],H[0]+3,H[1]-14)+L(H[0]-6,H[1]-14,H[0]+14,H[1]-14);
+    s+=`<circle cx="${C[0]}" cy="${C[1]}" r="9" class="v-wheel"/>`+piv(xm,cy)+piv(xs,cy);
+    labS="roue avant"; labM="roue arrière motrice";
+  } else { xm=120; xs=292; const r=40, cy=yg-r;
+    s+=`<rect x="70" y="${cy-50}" width="246" height="48" rx="8" class="v-body"/>`+T(200,cy-22,"robot","v-cap","middle");
+    s+=L(286,cy-2,xs,yg-14)+`<circle cx="${xs}" cy="${yg-14}" r="14" class="v-wheel"/>`+piv(xs,yg-14);
+    s+=`<circle cx="${xm}" cy="${cy}" r="${r}" class="v-wheel"/><circle cx="${xm}" cy="${cy}" r="${r-9}" class="v-wheel"/>`+piv(xm,cy);
+    labS="roue folle"; labM="roue motrice";
+  }
+  s+=L(296,28,366,28,"v-f","f")+T(331,20,"v constante","v-cap","middle");
+  s+=pt(xs,yg,"",0,0)+T(xs,yg+28,"T = ?","v-lab c","middle")+T(xs,yg+46,labS,"v-cap","middle")+T(xm,yg+28,labM,"v-cap","middle");
+  return svg(yg+56,s,{velo:"Vélo",voiture:"Voiture à traction avant",robot:"Robot à roues motrices arrière"}[o.kind]+" roulant à vitesse constante : roue étudiée ni motrice ni freinée");
+}
+/* solide qui glisse : N donnée, T cherchée ; kind "carton" (toboggan), "meuble" (traîné sur le parquet), "palet" (glace) */
+function fxf_glisse(o){
+  let s="", h;
+  if(o.kind==="carton"){ const I=[196,170], R=fxf_rep(I,26,1), P=R.P, Nt=P(0,104), Tt=P(84,0), tl=P(80,36), v1=P(-40,24), v2=P(-100,24), vl=P(-72,42);
+    s+=fxf_sol(P(-150,0),P(176,0),R.n)+fxf_poly([P(-36,0),P(36,0),P(36,50),P(-36,50)],"v-block");
+    s+=L(...I,...Nt,"v-n","a")+T(Nt[0]-8,Nt[1]+6,o.N,"v-lab a","end")+L(...I,...Tt,"v-t","c")+T(tl[0],tl[1],"‖T‖ = ?","v-lab c");
+    s+=L(...v1,...v2,"v-f","f")+T(vl[0],vl[1],"v","v-lab","middle")+pt(I[0],I[1],"",0,0)+T(I[0]+10,I[1]+20,"I","v-lab s")+T(306,214,"toboggan","v-cap","middle");
+    h=250;
+  } else if(o.kind==="meuble"){ const yg=188;
+    s+=ground(20,380,yg)+`<rect x="128" y="104" width="164" height="70" rx="3" class="v-body"/>`+T(166,140,"meuble","v-cap","middle");
+    s+=`<rect x="140" y="174" width="30" height="14" rx="3" class="v-block"/><rect x="250" y="174" width="30" height="14" rx="3" class="v-block"/>`;
+    s+=L(292,139,358,139,"v-f","f")+T(362,144,"F","v-lab")+L(300,50,368,50,"v-f","f")+T(334,42,"v","v-lab","middle");
+    s+=L(210,yg,210,78,"v-n","a")+T(218,88,o.N,"v-lab a")+L(210,yg,124,yg,"v-t","c")+T(167,yg+28,"‖T‖ = ?","v-lab c","middle");
+    s+=pt(210,yg,"",0,0)+T(224,yg+20,"I","v-lab s")+T(376,yg+28,"parquet","v-cap","end")+T(200,yg+50,"N et T : action totale du parquet sur les patins","v-cap","middle");
+    h=yg+58;
+  } else { const yg=184;
+    s+=ground(20,380,yg)+`<rect x="160" y="162" width="80" height="22" rx="8" class="v-block"/>`+T(152,158,"palet","v-cap","end");
+    s+=L(254,150,322,150,"v-f","f")+T(288,142,"v","v-lab","middle");
+    s+=L(200,yg,200,74,"v-n","a")+T(208,84,o.N,"v-lab a")+L(200,yg,114,yg,"v-t","c")+T(157,yg+28,"‖T‖ = ?","v-lab c","middle");
+    s+=pt(200,yg,"",0,0)+T(214,yg+20,"I","v-lab s")+T(376,yg+28,"glace","v-cap","end");
+    h=yg+40;
+  }
+  return svg(h,s,{carton:"Carton qui glisse sur un toboggan",meuble:"Meuble traîné sur un parquet",palet:"Palet qui glisse sur la glace"}[o.kind]+" : N donnée, T cherchée");
+}
+/* plus petit coefficient qui convient : kind "robot" (roue motrice qui pousse une charge), "table" (patin d'un pied de table poussé),
+   "chariot" (chariot garé sur une rampe : la pente est dessinée avec tan α = r) ; r : rapport ‖T‖/‖N‖ donné par le PFS */
+function fxf_choixf(o){
+  const rl=`‖T‖/‖N‖ = ${nf(o.r)}`; let s="";
+  if(o.kind==="robot"){ const yg=188;
+    s+=ground(20,380,yg)+`<rect x="56" y="96" width="162" height="50" rx="8" class="v-body"/>`+T(182,118,"robot","v-cap","middle");
+    s+=`<rect x="218" y="104" width="96" height="84" class="v-block"/>`+T(266,150,"charge","v-cap","middle");
+    s+=L(190,146,194,yg-12)+`<circle cx="194" cy="${yg-12}" r="12" class="v-wheel"/>`;
+    s+=`<circle cx="110" cy="${yg-40}" r="40" class="v-wheel"/><circle cx="110" cy="${yg-40}" r="31" class="v-wheel"/>`+piv(110,yg-40);
+    s+=T(64,160,"roue","v-cap","end")+T(64,174,"motrice","v-cap","end")+L(300,40,368,40,"v-f","f")+T(334,32,"v","v-lab","middle");
+    s+=L(110,yg,110,68,"v-n","a")+T(118,78,"N","v-lab a")+L(110,yg,166,yg,"v-t","c")+T(152,yg-8,"T","v-lab c","middle");
+    s+=pt(110,yg,"",0,0)+T(110,yg+28,rl,"v-lab s","middle");
+  } else if(o.kind==="table"){ const yg=188;
+    s+=ground(20,380,yg)+`<rect x="84" y="90" width="234" height="12" rx="2" class="v-body"/>`;
+    s+=`<rect x="100" y="102" width="12" height="76" class="v-body"/><rect x="282" y="102" width="12" height="76" class="v-body"/>`;
+    s+=`<rect x="94" y="178" width="24" height="10" rx="3" class="v-block"/><rect x="276" y="178" width="24" height="10" rx="3" class="v-block"/>`;
+    s+=L(20,96,78,96,"v-f","f")+T(22,86,"F","v-lab")+T(200,82,"table","v-cap","middle")+T(306,186,"patin","v-cap");
+    s+=L(288,yg,288,62,"v-n","a")+T(296,72,"N","v-lab a")+L(288,yg,224,yg,"v-t","c")+T(232,yg-8,"T","v-lab c");
+    s+=pt(288,yg,"",0,0)+T(288,yg+28,rl,"v-lab s","middle");
+  } else { const a=deg(Math.atan(o.r)), sn=Math.sin(rad(a)), I=[214,176], R=fxf_rep(I,a,1), P=R.P, lo=P(-Math.min(170,62/sn),0);
+    s+=fxf_sol(lo,P(Math.min(170,150/sn),0),R.n)+L(lo[0],lo[1],lo[0]+150,lo[1],"v-dash");
+    s+=fxf_poly([P(-48,22),P(48,22),P(48,58),P(-48,58)],"v-body")+L(...P(-48,58),...P(-62,92))+L(...P(-68,90),...P(-56,95));
+    [-30,30].forEach(x=>{ const c=P(x,11); s+=`<circle cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="11" class="v-wheel"/>`; });
+    const Nt=P(0,112), Tt=P(76,0), tl=P(70,22);
+    s+=L(...I,...Nt,"v-n","a")+T(Nt[0]-8,Nt[1]+4,"N","v-lab a","end")+L(...I,...Tt,"v-t","c")+T(tl[0],tl[1],"T","v-lab c");
+    s+=pt(I[0],I[1],"",0,0)+T(306,202,rl,"v-lab s","middle")+T(306,220,"chariot garé sur la rampe","v-cap","middle");
+  }
+  return svg(o.kind==="chariot"?254:228,s,{robot:"Roue motrice d'un robot qui pousse une charge",table:"Table poussée : patin d'un pied",chariot:"Chariot garé sur une rampe"}[o.kind]+" : composantes N et T au contact");
+}
+/* cône d'adhérence (demi-angle phi), action R du sol inclinée de alpha sur la normale, composantes N et T ; sd : côté où penche R ; glis : le solide glisse */
+function fxf_coneNT(o){
+  const cx=200, cy=204, sd=o.sd, a=rad(o.alpha), f=rad(o.phi), Lc=166, Rl=148;
+  let s=ground(30,370,cy)+L(cx,cy,cx,26,"v-dash")+T(cx+sd*6,24,"normale","v-cap",sd>0?"start":"end");
+  const xl=cx-Lc*Math.sin(f), xr=cx+Lc*Math.sin(f), yt=cy-Lc*Math.cos(f);
+  s+=`<path d="M${cx} ${cy} L${xl.toFixed(1)} ${yt.toFixed(1)} A${Lc} ${Lc} 0 0 1 ${xr.toFixed(1)} ${yt.toFixed(1)} Z" class="v-cone"/>`;
+  s+=multi(sd>0?xl-4:xr+4,yt-18,["cône","d'adhérence"],"v-cap",sd>0?"end":"start");
+  const Rx=cx+sd*Rl*Math.sin(a), Ry=cy-Rl*Math.cos(a);
+  s+=L(Rx,Ry,cx,Ry,"v-dash")+L(Rx,Ry,Rx,cy,"v-dash");
+  s+=L(cx,cy,cx,Ry,"v-n","a")+L(cx,cy,Rx,cy,"v-t","c")+L(cx,cy,Rx,Ry,"v-vec","k");
+  s+=T(cx-sd*8,(cy+Ry)/2+5,"N","v-lab a",sd>0?"end":"start")+T((cx+Rx)/2,cy+26,"T","v-lab c","middle")+T(Rx+sd*8,Ry+4,"R","v-lab",sd>0?"start":"end");
+  const ra=o.alpha<15?112:86;   /* étiquette de α dans l'angle, plus loin de I quand l'angle est petit */
+  s+=fxf_arc(cx,cy,64,90,90-sd*o.alpha)+T(cx+sd*ra*Math.sin(a/2),cy-ra*Math.cos(a/2)+5,"α","v-lab","middle");
+  s+=fxf_arc(cx,cy,120,90,90+sd*o.phi)+T(cx-sd*134*Math.sin(f/2),cy-134*Math.cos(f/2)+5,"φ","v-lab c","middle");
+  if(o.glis) s+=L(cx-sd*72,cy-14,cx-sd*142,cy-14,"v-f","f")+T(cx-sd*107,cy-22,"glissement","v-cap","middle");
+  s+=pt(cx,cy,"",0,0)+T(cx-sd*12,cy+24,"I","v-lab s","middle");
+  return svg(240,s,"Cône d'adhérence, action R du sol et ses composantes N et T");
+}
+/* trois contacts d'un robot de manutention : 1 roue motrice / sol, 2 mors / pièce, 3 carton / plateau incliné de th3 degrés */
+function fxf_3contacts(o){
+  let s=""; const W=126;
+  [8,137,266].forEach((x0,i)=>{ s+=`<rect x="${x0}" y="6" width="${W}" height="206" rx="6" class="v-box"/>`+numLab(x0+18,26,String(i+1)); });
+  { const x0=8, yg=166, c=x0+60;
+    s+=ground(x0+8,x0+W-8,yg)+`<circle cx="${c}" cy="${yg-28}" r="28" class="v-wheel"/>`+piv(c,yg-28);
+    s+=L(c,yg,c,yg-86,"v-n","a")+T(c+8,yg-74,"N","v-lab a")+L(c,yg,c+46,yg,"v-t","c")+T(c+46,yg-8,"T","v-lab c","middle")+pt(c,yg,"",0,0);
+    s+=multi(x0+W/2,194,["roue motrice","sur le sol"],"v-cap","middle"); }
+  { const x0=137, xc=x0+50, yi=118;
+    s+=`<rect x="${x0+20}" y="44" width="30" height="120" rx="3" class="v-body"/><rect x="${xc}" y="72" width="58" height="88" rx="3" class="v-block"/>`;
+    s+=L(xc,yi,xc+46,yi,"v-n","a")+T(xc+46,yi-8,"N","v-lab a","middle")+L(xc,yi,xc,yi-64,"v-t","c")+T(xc+8,yi-52,"T","v-lab c")+pt(xc,yi,"",0,0);
+    s+=multi(x0+W/2,194,["mors de pince","sur une pièce"],"v-cap","middle"); }
+  { const x0=266, I=[x0+66,128], R=fxf_rep(I,o.th3,1), P=R.P, Nt=P(0,52), Tt=P(44,0);
+    s+=fxf_poly([P(-52,0),P(52,0),P(52,-8),P(-52,-8)],"v-body")+fxf_poly([P(-22,0),P(22,0),P(22,32),P(-22,32)],"v-block");
+    s+=L(...I,...Nt,"v-n","a")+T(Nt[0]-6,Nt[1]+4,"N","v-lab a","end")+L(...I,...Tt,"v-t","c")+T(Tt[0]-2,Tt[1]-10,"T","v-lab c","middle")+pt(I[0],I[1],"",0,0);
+    s+=multi(x0+W/2,194,["carton sur un","plateau incliné"],"v-cap","middle"); }
+  return svg(218,s,"Trois contacts d'un robot de manutention, avec leurs composantes N et T");
+}
+/* triangle de pente : on monte de p pour 100 parcourus à l'horizontale ; alab : texte de l'angle ; chair : fauteuil posé sur la rampe */
+function fxf_triangle(o){
+  const p=o.p, t=p/100, a=deg(Math.atan(t)), B=Math.min(260,170/t), H=B*t, x0=196-B/2, yb=Math.max(H+50,120), ra=Math.max(50,16/t);
+  let s=fxf_poly([[x0,yb],[x0+B,yb],[x0+B,yb-H]],"v-body")+L(x0+B-12,yb,x0+B-12,yb-12,"v-thin")+L(x0+B-12,yb-12,x0+B,yb-12,"v-thin");
+  s+=T(x0+B/2,yb+22,"100","v-lab","middle")+T(x0+B+8,yb-H/2+5,nf(p,0),"v-lab")+T(x0,26,`rampe : pente de ${p} %`,"v-cap");
+  s+=fxf_arc(x0,yb,ra,0,a)+T(x0+ra+6,yb-6,o.alab,o.chair?"v-lab":"v-lab c");
+  if(o.chair){ const R=fxf_rep([x0+0.45*B,yb-0.45*H],a,1), P=R.P, c=P(-10,16), w=P(22,5);
+    s+=`<circle cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="16" class="v-wheel"/><circle cx="${w[0].toFixed(1)}" cy="${w[1].toFixed(1)}" r="5" class="v-wheel"/>`;
+    s+=L(...P(-18,30),...P(22,30))+L(...P(-18,30),...P(-24,62))+L(...P(20,30),...P(22,10))+L(...P(-24,62),...P(-32,60))+piv(c[0],c[1]); }
+  return svg(Math.max(150,yb+30),s,`Rampe de pente ${p} % : on monte de ${p} pour 100 à l'horizontale`);
+}
+/* roue : composantes N et T de l'action du sol, de longueurs proportionnelles à leurs normes ; d : sens de T */
+function fxf_rouefaute(o){
+  const yg=200, x=190, r=58, cy=yg-r, d=o.d, ln=136, lt=ln*o.Tv/o.Nv;
+  let s=ground(30,370,yg)+`<circle cx="${x}" cy="${cy}" r="${r}" class="v-wheel"/><circle cx="${x}" cy="${cy}" r="${r-10}" class="v-wheel"/>`+piv(x,cy);
+  s+=L(x,yg,x,yg-ln,"v-n","a")+T(x+8,yg-ln+12,`‖N‖ = ${nf(o.Nv,0)} N`,"v-lab a");
+  s+=L(x,yg,x+d*lt,yg,"v-t","c")+T(x+d*4,yg+28,`‖T‖ = ${nf(o.Tv,0)} N`,"v-lab c",d>0?"start":"end");
+  s+=pt(x,yg,"",0,0)+T(x-d*12,yg+20,"I","v-lab s","middle")+T(370,yg+28,`f = ${nf(o.f)}`,"v-cap","end");
+  return svg(240,s,"Roue : composantes N et T de l'action du sol au contact I");
+}
+
 /* ======================================================================
    SÉRIE 1 — Repérer N et T
    ====================================================================== */
@@ -2212,11 +2745,14 @@ const S1N1=[
     R:`Le colis est en équilibre sous deux actions, son poids P et R : ${F("R = −P")}, donc R est verticale, vers le haut. C'est bien la diagonale construite sur N et T.`}[k];
   return {fig:fx_adh_plan({th,arrows:nums,txt:"colis"}),ctx:"Le colis est immobile sur le plan incliné. Il n'est soumis qu'à son poids P et à l'action R du plan. Les trois flèches partent du point de contact I.",
     q:`Sur le plan incliné, quelle flèche représente ${lab} ?`,type:"ch",ch:["Flèche 1","Flèche 2","Flèche 3"],ok:good-1,expl}; },
-/* 6. contact parfait */
-()=>{ const c=rnd(["Un palet de hockey glisse sur la glace","Un piston coulisse dans un cylindre bien lubrifié","Un curseur glisse le long d'une tige graissée"]);
-  const m=mc("Perpendiculaire au plan de contact : T = 0",["Verticale, quelle que soit l'inclinaison du contact","Dans le plan de contact, opposée au mouvement","Inclinée vers l'arrière par rapport au mouvement"]);
-  return {ctx:`${c}. On modélise le contact comme parfait, c'est-à-dire sans frottement (f = 0).`,q:"Contact sans frottement : quelle est la direction de l'action R exercée sur le solide ?",type:"ch",...m,
-    expl:`Avec f = 0, ${F("‖T‖ ≤ f·‖N‖ = 0")} : T est nulle et R = N. R est donc perpendiculaire au plan de contact. Le cône d'adhérence se réduit à la normale (φ = arctan 0 = 0°).`}; },
+/* 6. contact parfait : sur la figure, quelle flèche représente R ? */
+()=>{ const c=rnd([{k:"piston",s:"Un piston coulisse dans un cylindre incliné bien lubrifié",act:"de la paroi du cylindre sur le piston",sup:"la paroi"},
+    {k:"luge",s:"Une luge descend une piste verglacée",act:"de la piste sur la luge",sup:"la piste"},
+    {k:"curseur",s:"Un curseur glisse le long d'une tige inclinée bien graissée",act:"de la tige sur le curseur",sup:"la tige"}]);
+  const nums=shuffle([1,2,3,4]), fig=fxf_lisse({kind:c.k,th:rnd([20,24,28]),side:rnd([1,-1]),up:c.k==="luge"?false:rnd([true,false]),nums});
+  return {fig,ctx:`${c.s}. On modélise le contact comme parfait, c'est-à-dire sans frottement (f = 0). Les quatre flèches partent du point de contact I ; v donne le sens du mouvement.`,
+    q:`Contact sans frottement : quelle flèche représente l'action R ${c.act} ?`,type:"ch",ch:["Flèche 1","Flèche 2","Flèche 3","Flèche 4"],ok:nums[0]-1,
+    expl:`Avec f = 0, ${F("‖T‖ ≤ f·‖N‖ = 0")} : T est nulle et R = N, perpendiculaire au plan de contact : c'est la flèche ${nums[0]}. La flèche ${nums[1]} est verticale : elle ne serait perpendiculaire au contact que si ${c.sup} était horizontale. La flèche ${nums[2]}, dans le plan de contact et opposée au mouvement, a la direction de T, nulle ici. La flèche ${nums[3]}, inclinée vers l'arrière, correspondrait à un contact avec frottement. Le cône d'adhérence se réduit à la normale (φ = arctan 0 = 0°).`}; },
 /* 7. caisse au repos : T = 0 (piège f·N) */
 ()=>{ const m=rnd([20,30,40,50,60]), f=rnd([0.3,0.4,0.5,0.6]), P=m*g;
   const mm=mc("0 N",[`${nf(f*P,0)} N`,`${nf(P,0)} N`,`${nf(f*P/2,0)} N`]);
@@ -2233,9 +2769,11 @@ const S1N1=[
   return {fig:sCone({alpha:phi-10,phi}),ctx:`Le cône d'adhérence d'un contact a un demi-angle au sommet φ = ${phi}°.`,q:"Calcule le coefficient d'adhérence f de ce contact.",type:"num",ans:f,tolA:0.006,unit:"",
     expl:`${F("f = tan φ")} = tan ${phi}° = ${F(r3(f))}.`}; },
 /* 10. T max = f·N */
-()=>{ const c=rnd([{s:"Une roue motrice de robot, en caoutchouc, appuie sur un carrelage sec",n:[30,40,45,60,75],f:[0.8]},{s:"Le patin d'un meuble appuie sur un parquet",n:[120,150,180,250],f:[0.3,0.4]},{s:"La roue avant d'une trottinette appuie sur la route",n:[350,420,480,520],f:[0.6,0.7]}]);
+()=>{ const c=rnd([{k:"robot",s:"Une roue motrice de robot, en caoutchouc, appuie sur un carrelage sec",sol:"carrelage sec",n:[30,40,45,60,75],f:[0.8]},
+    {k:"patin",s:"Le patin d'un meuble qu'on pousse appuie sur un parquet",sol:"parquet",n:[120,150,180,250],f:[0.3,0.4]},
+    {k:"trott",s:"La roue avant d'une trottinette, freinée, appuie sur la route",sol:"route",n:[350,420,480,520],f:[0.6,0.7]}]);
   const Nv=rnd(c.n), f=rnd(c.f), Tm=f*Nv;
-  return {ctx:`${c.s} : ‖N‖ = ${nf(Nv,0)} N ; f = ${nf(f)}.`,q:"Calcule l'effort tangentiel maximal ‖T‖max que ce contact peut transmettre sans glisser.",type:"num",ans:Tm,tolR:0.02,unit:"N",
+  return {fig:fxf_tmax({kind:c.k,N:`‖N‖ = ${nf(Nv,0)} N`,sol:c.sol,f}),ctx:`${c.s} : ‖N‖ = ${nf(Nv,0)} N ; f = ${nf(f)}.`,q:"Calcule l'effort tangentiel maximal ‖T‖max que ce contact peut transmettre sans glisser.",type:"num",ans:Tm,tolR:0.02,unit:"N",
     expl:`L'adhérence impose ‖T‖ ≤ f·‖N‖, donc ${F("‖T‖max = f·‖N‖")} = ${nf(f)} × ${nf(Nv,0)} = ${F(`${r3(Tm)} N`)}. Au-delà, le contact glisse.`}; },
 /* 11. tiroir qui glisse */
 ()=>{ const d=rnd([1,-1]), dir=d>0?"droite":"gauche", opp=d>0?"gauche":"droite";
@@ -2309,10 +2847,10 @@ const S1N2=[
   do{ mA=rnd([30,40,50,60,80]); mB=rnd([30,40,50,60,80]); fA=rnd([0.3,0.4,0.5,0.6,0.7]); fB=rnd([0.3,0.4,0.5,0.6,0.7]); TA=fA*mA*g; TB=fB*mB*g; }
   while(mA===mB||fA===fB||(mA-mB)*(fA-fB)>0||!loin(TA,TB,0.08));
   const data=table(["Caisse","Masse","f caisse/sol"],[["A",`${mA} kg`,nf(fA)],["B",`${mB} kg`,nf(fB)]]);
-  const ctx="Deux caisses posées sur un sol horizontal. On les pousse horizontalement. g = 9,81 m/s².";
-  return [{data,ctx,q:"Calcule l'effort tangentiel maximal que le sol peut exercer sur la caisse A avant qu'elle glisse.",type:"num",ans:TA,tolR:0.02,unit:"N",
+  const ctx="Deux caisses posées sur un sol horizontal. On les pousse horizontalement. g = 9,81 m/s².", fo={mA,fA,mB,fB};
+  return [{fig:fxf_caisses({...fo,q:"A"}),data,ctx,q:"Calcule l'effort tangentiel maximal que le sol peut exercer sur la caisse A avant qu'elle glisse.",type:"num",ans:TA,tolR:0.02,unit:"N",
       expl:`PFS vertical : ‖N‖ = m·g. Donc ${F("‖T‖max = f·‖N‖ = f·m·g")} = ${nf(fA)} × ${mA} × 9,81 = ${F(`${r3(TA)} N`)}.`},
-    {data,ctx:ctx+` ‖T‖max(A) = ${r3(TA)} N.`,q:"Laquelle des deux caisses faut-il pousser le plus fort pour la mettre en mouvement ?",type:"ch",ch:["La caisse A","La caisse B","Il faut le même effort"],ok:TA>TB?0:1,
+    {fig:fxf_caisses({...fo,q:"F"}),data,ctx:ctx+` ‖T‖max(A) = ${r3(TA)} N.`,q:"Laquelle des deux caisses faut-il pousser le plus fort pour la mettre en mouvement ?",type:"ch",ch:["La caisse A","La caisse B","Il faut le même effort"],ok:TA>TB?0:1,
       expl:`Il faut dépasser f·m·g. Caisse A : ${r3(TA)} N ; caisse B : ${nf(fB)} × ${mB} × 9,81 = ${r3(TB)} N. La caisse ${TA>TB?"A":"B"} demande le plus grand effort : ce n'est ni f seul ni la masse seule qui compte, mais le produit f·‖N‖.`}]; },
 /* 10. quelle direction de R est possible ? */
 ()=>{ const phi=rnd([25,30,35]), slip=rnd([1,-1]), nums=shuffle([1,2,3]);
@@ -2367,9 +2905,9 @@ const S1N3=[
     {fig,ctx:ctx+` ‖N‖ = ${r3(Nv)} N.`,q:"Calcule ‖T‖, composante tangentielle de l'action du sol.",type:"num",ans:Tv,tolR:0.02,unit:"N",
       expl:`PFS en projection horizontale : ${F("‖T‖ = ‖F‖·cos β")} = ${Fv} × cos ${b}° = ${F(`${r3(Tv)} N`)}. La caisse adhère : T vient de l'équilibre, pas de f·‖N‖ (qui vaudrait ${r3(f*Nv)} N).`}]; },
 /* 7. roue libre à vitesse constante : T = 0 */
-()=>{ const c=rnd([{s:"Un vélo roule à vitesse constante sur une route horizontale.",r:"la roue avant du vélo"},{s:"Une voiture à traction avant roule à vitesse constante sur une route horizontale.",r:"une roue arrière de la voiture"},{s:"Un robot à deux roues motrices arrière roule à vitesse constante sur un sol horizontal.",r:"une roue avant du robot"}]);
+()=>{ const c=rnd([{k:"velo",s:"Un vélo roule à vitesse constante sur une route horizontale.",r:"la roue avant du vélo"},{k:"voiture",s:"Une voiture à traction avant roule à vitesse constante sur une route horizontale.",r:"une roue arrière de la voiture"},{k:"robot",s:"Un robot à deux roues motrices arrière roule à vitesse constante sur un sol horizontal.",r:"la roue folle avant du robot"}]);
   const m=mc("T est nulle",["T est dirigée vers l'avant","T est dirigée vers l'arrière, avec ‖T‖ = f·‖N‖","T est dirigée vers l'arrière, avec ‖T‖ < f·‖N‖"]);
-  return {ctx:c.s,q:`On isole ${c.r}, ni motrice ni freinée. On néglige la résistance au roulement et le frottement dans son axe. Que peut-on dire de T, action du sol sur cette roue ?`,type:"ch",...m,
+  return {fig:fxf_rouefolle({kind:c.k}),ctx:c.s,q:`On isole ${c.r}, ni motrice ni freinée. On néglige la résistance au roulement et le frottement dans son axe. Que peut-on dire de T, action du sol sur cette roue ?`,type:"ch",...m,
     expl:"La roue tourne à vitesse constante : la somme des moments en son centre est nulle. L'action de l'axe passe par le centre, N aussi (elle est verticale, sous le centre) ; seule T a un moment, ‖T‖ × rayon. Il est nul, donc T = 0. Une roue libre ne transmet pas d'effort tangentiel : seules les roues motrices ou freinées en transmettent."}; },
 /* 8. roue bloquée sans ABS : glissement réel */
 ()=>{ const v=rnd(["d'une voiture","d'une trottinette","d'un vélo"]);
@@ -2416,13 +2954,16 @@ const S2N1=[
   const m=mc(nf(val),shuffle(others).slice(0,3).map(v=>nf(v)));
   return {data:table(["Contact","f sec","f mouillé"],rows.map(r=>[r.c,nf(r.s),nf(r.m)])),q:`${wet?tgt.dm:tgt.ds}. Quel coefficient d'adhérence lis-tu dans le tableau ?`,type:"ch",...m,
     expl:`Ligne « ${tgt.c} », colonne « ${wet?"f mouillé":"f sec"} » : ${F(`f = ${nf(val)}`)}. Choisis la ligne qui nomme les deux matériaux en contact, puis la colonne qui décrit l'état de la surface.`}; },
-/* 3. question de cours : quelle comparaison ? */
-()=>{ const V=[
-    {q:"Quelle condition traduit l'adhérence (pas de glissement) au contact ?",ok:"‖T‖ / ‖N‖ ≤ f",w:["‖N‖ / ‖T‖ ≤ f","‖T‖ / ‖N‖ ≥ f","‖T‖ · ‖N‖ ≤ f"],e:`Adhérence : ${F("‖T‖ ≤ f·‖N‖")}, soit ${F("‖T‖/‖N‖ ≤ f")}. On divise T par N, jamais l'inverse.`},
-    {q:"Comparer tan α à f revient à comparer :",ok:"l'angle α au demi-angle φ du cône",w:["l'angle α à 45°","‖N‖ à ‖T‖","‖R‖ à ‖N‖"],e:`f = tan φ et tan est croissante entre 0° et 90° : ${F("tan α ≤ f ⇔ α ≤ φ")}. Le contact adhère si R reste dans le cône.`},
-    {q:"Un solide glisse sur son support. Quelle relation peut-on écrire ?",ok:"‖T‖ / ‖N‖ = f",w:["‖T‖ / ‖N‖ < f","‖T‖ / ‖N‖ > f","‖T‖ = 0"],e:`En glissement, R est sur le bord du cône : ${F("‖T‖ = f·‖N‖")}, soit ‖T‖/‖N‖ = f, avec T opposée à la vitesse de glissement. ‖T‖/‖N‖ > f est impossible.`}];
+/* 3. question de cours sur figure : quelle comparaison ? */
+()=>{ const phi=rnd([25,30,35]), V=[
+    {alpha:phi-rnd([9,12,15]),q:"Sur la figure, R reste à l'intérieur du cône d'adhérence : le contact adhère. Quelle condition traduit cette adhérence ?",ok:"‖T‖ / ‖N‖ ≤ f",w:["‖N‖ / ‖T‖ ≤ f","‖T‖ / ‖N‖ ≥ f","‖T‖ · ‖N‖ ≤ f"],
+      e:`R est dans le cône : α ≤ φ, donc tan α ≤ tan φ. Or, dans le rectangle construit sur N et T, ${F("tan α = ‖T‖/‖N‖")}, et f = tan φ. Adhérence : ${F("‖T‖/‖N‖ ≤ f")}, soit ‖T‖ ≤ f·‖N‖. On divise T par N, jamais l'inverse.`},
+    {alpha:phi-rnd([8,11,14]),q:"Sur la figure, R est inclinée de α sur la normale et f = tan φ. Comparer tan α à f revient à comparer :",ok:"l'angle α au demi-angle φ du cône",w:["l'angle α à 45°","‖N‖ à ‖T‖","‖R‖ à ‖N‖"],
+      e:`f = tan φ et tan est croissante entre 0° et 90° : ${F("tan α ≤ f ⇔ α ≤ φ")}. Le contact adhère si R reste dans le cône. Sur la figure, tan α = ‖T‖/‖N‖.`},
+    {alpha:phi,glis:true,q:"Sur la figure, le solide glisse : R est sur le bord du cône. Quelle relation peut-on écrire ?",ok:"‖T‖ / ‖N‖ = f",w:["‖T‖ / ‖N‖ < f","‖T‖ / ‖N‖ > f","‖T‖ = 0"],
+      e:`En glissement, R est sur le bord du cône : α = φ, donc ${F("‖T‖ = f·‖N‖")}, soit ‖T‖/‖N‖ = tan φ = f, avec T opposée à la vitesse de glissement. ‖T‖/‖N‖ > f est impossible : R ne sort jamais du cône.`}];
   const v=rnd(V), m=mc(v.ok,v.w);
-  return {q:v.q,type:"ch",...m,expl:v.e}; },
+  return {fig:fxf_coneNT({alpha:v.alpha,phi,sd:rnd([1,-1]),glis:v.glis}),ctx:"R est l'action du sol sur le solide, N et T ses composantes normale et tangentielle. Le cône d'adhérence a pour demi-angle φ, avec f = tan φ.",q:v.q,type:"ch",...m,expl:v.e}; },
 /* 4. pente en % : tan α puis α */
 ()=>{ const p=rnd([5,6,8,10,12,15,18,20,25]), t=p/100, a=atanD(t), fig=sPente({p}), ctx=`Une rampe d'accès a une pente de ${p} %.`;
   return [{fig,ctx,q:"Que vaut tan α, où α est l'angle de la rampe avec l'horizontale ?",type:"num",ans:t,tolA:0.006,unit:"",
@@ -2434,9 +2975,9 @@ const S2N1=[
   return {fig:sPente({th:Math.min(Math.atan(2*tanD(a)),0.42),lab:`α = ${a}°`}),ctx:`${v} est inclinée de α = ${a}° sur l'horizontale.`,q:"Exprime sa pente en %.",type:"num",ans:p,tolR:0.02,unit:"%",
     expl:`${F("pente = 100 × tan α")} = 100 × tan ${a}° = ${F(`${r3(p)} %`)}.`}; },
 /* 6. glissement : T = f·N */
-()=>{ const c=rnd([{s:"Un carton glisse sur le toboggan d'un centre de tri",n:[40,60,80,120],f:[0.3,0.35,0.4]},{s:"Un meuble est traîné sur le parquet : ses patins glissent",n:[200,300,400,500],f:[0.3,0.4,0.5]},{s:"Un palet glisse sur la glace",n:[1.5,2,3,4],f:[0.03,0.05,0.08]}]);
+()=>{ const c=rnd([{k:"carton",s:"Un carton glisse sur le toboggan d'un centre de tri",n:[40,60,80,120],f:[0.3,0.35,0.4]},{k:"meuble",s:"Un meuble est traîné sur le parquet : ses patins glissent",n:[200,300,400,500],f:[0.3,0.4,0.5]},{k:"palet",s:"Un palet glisse sur la glace",n:[1.5,2,3,4],f:[0.03,0.05,0.08]}]);
   const Nv=rnd(c.n), f=rnd(c.f), Tv=f*Nv;
-  return {ctx:`${c.s}. ‖N‖ = ${nf(Nv)} N et f = ${nf(f)}.`,q:"Le contact glisse : calcule ‖T‖, composante tangentielle de l'action du support.",type:"num",ans:Tv,tolR:0.02,unit:"N",
+  return {fig:fxf_glisse({kind:c.k,N:`‖N‖ = ${nf(Nv)} N`}),ctx:`${c.s}. ‖N‖ = ${nf(Nv)} N et f = ${nf(f)}.`,q:"Le contact glisse : calcule ‖T‖, composante tangentielle de l'action du support.",type:"num",ans:Tv,tolR:0.02,unit:"N",
     expl:`Le contact glisse : R est sur le bord du cône et ${F("‖T‖ = f·‖N‖")} = ${nf(f)} × ${nf(Nv)} = ${F(`${r3(Tv)} N`)}. T est opposée à la vitesse de glissement.`}; },
 /* 7. comparer α et φ */
 ()=>{ let a,phi; do{ phi=rnd([17,22,27,31,35]); a=rnd([8,12,15,19,24,26,29,33,38,42]); }while(Math.abs(a-phi)<3);
@@ -2453,13 +2994,13 @@ const S2N1=[
   do{ r=rnd([0.12,0.18,0.23,0.27,0.34,0.37,0.44,0.46,0.53,0.57,0.64,0.66,0.75]); const above=FS.filter(v=>v>r), below=FS.filter(v=>v<r); okv=above[0];
     cands=[...shuffle(below).slice(0,rnd([0,1,2,3])),okv,...shuffle(above.slice(1)).slice(0,rnd([0,1,2,3]))]; }while(okv==null||FS.some(v=>Math.abs(v-r)<0.03*r)||cands.length<3||cands.length>5);
   cands.sort((x,y)=>x-y);
-  const sys=rnd(["Pour la roue motrice d'un robot qui pousse une charge à vitesse constante","Pour le patin d'un pied de table qu'on pousse","Pour les roues d'un chariot garé sur une rampe"]);
-  return {ctx:`${sys}, le PFS donne ‖T‖/‖N‖ = ${nf(r)}.`,q:"Quel est le plus petit coefficient d'adhérence, parmi ceux proposés, qui évite le glissement ?",type:"ch",ch:cands.map(v=>nf(v)),ok:cands.indexOf(okv),
+  const sys=rnd([{k:"robot",s:"Pour la roue motrice d'un robot qui pousse une charge à vitesse constante"},{k:"table",s:"Pour le patin d'un pied de table qu'on pousse"},{k:"chariot",s:"Pour les roues d'un chariot garé sur une rampe"}]);
+  return {fig:fxf_choixf({kind:sys.k,r}),ctx:`${sys.s}, le PFS donne ‖T‖/‖N‖ = ${nf(r)}.`,q:"Quel est le plus petit coefficient d'adhérence, parmi ceux proposés, qui évite le glissement ?",type:"ch",ch:cands.map(v=>nf(v)),ok:cands.indexOf(okv),
     expl:`Il faut ${F(`f ≥ ‖T‖/‖N‖ = ${nf(r)}`)}. Parmi les valeurs proposées, la plus petite qui convient est f = ${nf(okv)}. Les valeurs inférieures à ${nf(r)} ne permettent pas l'adhérence.`}; },
 /* 10. hypothèse d'immobilité : adhère, limite ou glisse */
 ()=>{ const st=rnd([0,1,2]), Nv=rnd([200,300,400,500,600,800]), f=rnd([0.2,0.3,0.4,0.5,0.6]), lim=Math.round(f*Nv);
   const Tv=st===1?lim:st===0?Math.round(lim*rnd([0.5,0.6,0.7,0.8])/5)*5:Math.round(lim*rnd([1.2,1.3,1.5])/5)*5;
-  return {ctx:`On suppose le solide immobile. Le PFS donne alors ‖T‖ = ${Tv} N et ‖N‖ = ${Nv} N. Le coefficient d'adhérence vaut f = ${nf(f)}.`,q:"Que conclus-tu de cette hypothèse d'immobilité ?",type:"ch",
+  return {fig:sBloc({push:rnd([1,-1]),named:true,Nv:`${nf(Nv,0)} N`,Tv:`${nf(Tv,0)} N`}),ctx:`Le bloc est poussé par l'effort F. On le suppose immobile : le PFS donne alors ‖T‖ = ${Tv} N et ‖N‖ = ${Nv} N. Le coefficient d'adhérence vaut f = ${nf(f)}.`,q:"Que conclus-tu de cette hypothèse d'immobilité ?",type:"ch",
     ch:["Elle est vérifiée : le solide adhère (‖T‖ < f·‖N‖)","Le solide est juste à la limite du glissement (‖T‖ = f·‖N‖)","Elle est fausse : le solide glisse (‖T‖ > f·‖N‖ est impossible)"],ok:st,
     expl:`f·‖N‖ = ${nf(f)} × ${Nv} = ${lim} N : c'est la plus grande valeur possible de ‖T‖. `+[`‖T‖ = ${Tv} N < ${lim} N : l'hypothèse est vérifiée, le solide adhère.`,`‖T‖ = ${Tv} N = f·‖N‖ : le solide est à la limite du glissement.`,`‖T‖ = ${Tv} N > ${lim} N : le support ne peut pas fournir cet effort. L'hypothèse est fausse, le solide glisse et alors ‖T‖ = f·‖N‖ = ${lim} N.`][st]}; }
 ];
@@ -2489,8 +3030,8 @@ const S2N2=[
 ()=>{ let rows,idx;
   do{ idx=rnd([0,1,2]); rows=[0,1,2].map(i=>{ const Nv=rnd([200,300,400,500,600,800,1000]), f=rnd([0.2,0.3,0.4,0.5,0.6,0.8]); const r=i===idx?f*rnd([1.15,1.25,1.4]):f*rnd([0.55,0.7,0.85]); return {Nv,f,Tv:Math.round(r*Nv/5)*5}; }); }
   while(rows.some((x,i)=>i===idx?x.Tv/x.Nv<=1.08*x.f:x.Tv/x.Nv>=0.92*x.f));
-  return {data:table(["Contact","‖T‖ nécessaire","‖N‖","f"],rows.map((x,i)=>[`Contact ${i+1}`,`${nf(x.Tv,0)} N`,`${nf(x.Nv,0)} N`,nf(x.f)])),
-    ctx:"Pour trois contacts d'un robot de manutention, le PFS donne l'effort tangentiel nécessaire à l'équilibre.",q:"Lequel de ces trois contacts ne peut pas adhérer ?",type:"ch",ch:["Contact 1","Contact 2","Contact 3","Aucun"],ok:idx,
+  return {fig:fxf_3contacts({th3:atanD(rows[2].Tv/rows[2].Nv)}),data:table(["Contact","‖T‖ nécessaire","‖N‖","f"],rows.map((x,i)=>[`Contact ${i+1}`,`${nf(x.Tv,0)} N`,`${nf(x.Nv,0)} N`,nf(x.f)])),
+    ctx:"Pour trois contacts d'un robot de manutention (figure), le PFS donne l'effort tangentiel nécessaire à l'équilibre.",q:"Lequel de ces trois contacts ne peut pas adhérer ?",type:"ch",ch:["Contact 1","Contact 2","Contact 3","Aucun"],ok:idx,
     expl:"On compare ‖T‖/‖N‖ à f : "+rows.map((x,i)=>`contact ${i+1} : ${r3(x.Tv/x.Nv)} ${x.Tv/x.Nv>x.f?">":"<"} ${nf(x.f)}`).join(" ; ")+`. Seul le contact ${idx+1} a ‖T‖/‖N‖ > f : il glisse. Le plus grand ‖T‖ n'est pas forcément celui qui glisse.`}; },
 /* 5. pousser un objet : f·N puis conclusion */
 ()=>{ const c=rnd([{s:"Un robot de manutention pousse un carton",o:"le carton",m:[8,10,12,15,20]},{s:"Un déménageur pousse un meuble",o:"le meuble",m:[40,50,60,80]}]); let m,f,Fv,lim;
@@ -2529,9 +3070,9 @@ const S2N2=[
   const a=atanD(p/100), shown=`${nf(a,1)}°`;
   const wrong=[...new Set([`${nf(0.9*p,1)}°`,`${p}°`,p===100?"60°":`${nf(2*a,1)}°`])].filter(x=>x!==shown);
   const m=mc(shown,wrong), ok2=p/100<f;
-  return [{q:`Une rampe a une pente de ${p} %. Quel angle α fait-elle avec l'horizontale ?`,type:"ch",...m,
+  return [{fig:fxf_triangle({p,alab:"α = ?"}),q:`Une rampe a une pente de ${p} %. Quel angle α fait-elle avec l'horizontale ?`,type:"ch",...m,
       expl:`${F(`tan α = ${p}/100`)}, donc α = arctan ${nf(p/100)} = ${shown}. Une pente de 100 % monte de 100 m pour 100 m à l'horizontale : c'est 45°, pas 90°.`},
-    {ctx:`Rampe de ${p} % (α = ${shown}).`,q:`Un fauteuil, roues bloquées, a un coefficient d'adhérence f = ${nf(f)} sur cette rampe. Tient-il à l'arrêt ?`,type:"ch",ch:["Oui : tan α < f","Non : tan α > f, il glisse"],ok:ok2?0:1,
+    {fig:fxf_triangle({p,alab:`α = ${shown}`,chair:true}),ctx:`Rampe de ${p} % (α = ${shown}).`,q:`Un fauteuil, roues bloquées, a un coefficient d'adhérence f = ${nf(f)} sur cette rampe. Tient-il à l'arrêt ?`,type:"ch",ch:["Oui : tan α < f","Non : tan α > f, il glisse"],ok:ok2?0:1,
       expl:`tan α = ${nf(p/100)} ${ok2?"<":">"} f = ${nf(f)} : ${ok2?"le fauteuil tient.":"le fauteuil glisse."}`}]; },
 /* 10. pente maximale à partir de φ, puis exigence */
 ()=>{ let phi,preq; do{ phi=rnd([12,15,17,20,22,25]); preq=rnd([15,20,25,30,35,40]); }while(!loin(100*tanD(phi),preq,0.05));
@@ -2587,7 +3128,7 @@ const S2N3=[
 /* 6. repérer l'erreur : rapport inversé */
 ()=>{ let Nv,Tv,f; do{ Nv=rnd([300,400,500,600,800,1000]); Tv=Math.round(Nv*rnd([0.2,0.25,0.3,0.35,0.4])/10)*10; f=rnd([0.4,0.5,0.6,0.7]); }while(Tv/Nv>0.9*f);
   const m=mc(`Il a inversé le rapport : ‖T‖/‖N‖ = ${r3(Tv/Nv)} < f, la roue adhère`,[`Il a raison : ${r3(Nv/Tv)} > ${nf(f)}, la roue glisse`,`Il aurait dû comparer ‖T‖ à f : ${nf(Tv,0)} > ${nf(f)}, la roue glisse`]);
-  return {ctx:`Au contact d'une roue : ‖N‖ = ${nf(Nv,0)} N, ‖T‖ = ${nf(Tv,0)} N, f = ${nf(f)}. Un élève écrit : « ‖N‖/‖T‖ = ${r3(Nv/Tv)} > f, donc la roue glisse ».`,q:"Que penses-tu de la conclusion de l'élève ?",type:"ch",...m,
+  return {fig:fxf_rouefaute({Nv,Tv,f,d:rnd([1,-1])}),ctx:`Au contact d'une roue : ‖N‖ = ${nf(Nv,0)} N, ‖T‖ = ${nf(Tv,0)} N, f = ${nf(f)}. Un élève écrit : « ‖N‖/‖T‖ = ${r3(Nv/Tv)} > f, donc la roue glisse ».`,q:"Que penses-tu de la conclusion de l'élève ?",type:"ch",...m,
     expl:`La condition d'adhérence est ${F("‖T‖/‖N‖ ≤ f")}. Ici ‖T‖/‖N‖ = ${nf(Tv,0)} / ${nf(Nv,0)} = ${r3(Tv/Nv)} < ${nf(f)} : la roue adhère. ‖N‖/‖T‖ est toujours supérieur à 1 dans ce cas : le comparer à f n'a aucun sens.`}; },
 /* 7. piège : angle mesuré depuis le sol et non depuis la normale */
 ()=>{ let b,f; do{ b=rnd([62,65,68,70,72,75,78]); f=rnd([0.3,0.4,0.5,0.6]); }while(tanD(90-b)>0.94*f);
@@ -8186,7 +8727,7 @@ function fx_stat_potence(o){
   s+=piv(A[0],A[1])+piv(B[0],B[1])+piv(D[0],D[1]);
   let h;
   if(cab){ s+=L(E[0],yA+7,E[0],yA+26)+`<rect x="${(E[0]-20).toFixed(1)}" y="${yA+26}" width="40" height="24" rx="3" class="v-block"/>`;
-    s+=L(E[0],yA+38,E[0],yA+86,"v-f","f")+T(E[0]+8,yA+82,"P","v-lab"); h=yA+96; }
+    s+=L(E[0],yA+38,E[0],yA+86,"v-f","f")+T(E[0]+8,yA+82,"P","v-lab"); h=yA+94; }
   else { s+=L(E[0],yA-68,E[0],yA-9,"v-f","f")+T(E[0]-8,yA-54,"P","v-lab","end"); h=Math.max(252,B[1]+28); }
   /* angle en D, hors de la flèche T */
   if(cab){ const q=pol(D,76,180-o.al/2); s+=arcP(D,60,180-o.al,180)+T(q[0],q[1]+1,"α","v-lab s","middle"); }
@@ -8210,7 +8751,7 @@ function fx_stat_suspendu(o){
   s+=`<circle cx="${K[0].toFixed(1)}" cy="${K[1].toFixed(1)}" r="4.5" class="v-wheel"/>`+L(K[0],K[1]+4.5,K[0],K[1]+22)+`<rect x="${(K[0]-26).toFixed(1)}" y="${(K[1]+22).toFixed(1)}" width="52" height="30" rx="4" class="v-block"/>`;
   s+=gSym(K[0],K[1]+37)+L(K[0],K[1]+46,K[0],K[1]+94,"v-f","f")+T(K[0]+8,K[1]+90,"P","v-lab");
   s+=arcP(A1,44,-o.al,0)+T(pol(A1,58,-o.al/2)[0]+2,pol(A1,58,-o.al/2)[1]+6,"α","v-lab s","middle");
-  s+=arcP(A2,44,180,180+o.be)+T(pol(A2,58,180+o.be/2)[0]-2,pol(A2,58,180+o.be/2)[1]+6,"β","v-lab s","middle");
+  s+=arcP(A2,44,180,180+o.be)+T(pol(A2,58,180+o.be/2)[0]-2,pol(A2,58,180+o.be/2)[1]+6,o.lb||"β","v-lab s","middle");
   s+=T(K[0]-9,K[1]+17,"K","v-lab","end")+T(A1[0]-4,yc+18,"C1","v-lab s","end")+T(A2[0]+4,yc+18,"C2","v-lab s");
   if(o.T){ const u1=unit(K,A1), u2=unit(K,A2), t1=add(K,u1,62), t2=add(K,u2,62), n1=[u1[1],-u1[0]], n2=[-u2[1],u2[0]];
     const l1=add(add(K,u1,40),n1,16), l2=add(add(K,u2,40),n2,16);
@@ -8271,14 +8812,15 @@ function fx_stat_verin(o){
   s+=`<rect x="${O[0]}" y="${O[1]-7}" width="${(C[0]-O[0]+16).toFixed(1)}" height="14" rx="4" class="v-body"/>`;
   const Lv=Math.hypot(A[0]-E[0],A[1]-E[1]), u=unit(E,A), M=add(E,u,Lv*0.58), nr=[-u[1],u[0]];
   s+=fixe(E[0],E[1]+6)+slab(add(E,u,-6),M,10,"v-body")+slab(M,add(A,u,-4),3.5,"v-box")+piv(E[0],E[1])+piv(A[0],A[1])+piv(O[0],O[1]);
-  s+=L(C[0],O[1]+7,C[0],O[1]+30)+`<rect x="${(C[0]-20).toFixed(1)}" y="${O[1]+30}" width="40" height="26" rx="3" class="v-block"/>`;
-  s+=L(C[0],O[1]+43,C[0],O[1]+92,"v-f","f")+T(C[0]+8,O[1]+88,"P","v-lab");
+  /* o.pose : charge posée sur le plateau (hayon) ; sinon charge suspendue en C */
+  if(o.pose) s+=`<rect x="${(C[0]-22).toFixed(1)}" y="${O[1]-39}" width="44" height="32" rx="3" class="v-block"/>`+gSym(C[0],O[1]-23)+L(C[0],O[1]-14,C[0],O[1]+44,"v-f","f")+T(C[0]+8,O[1]+40,"P","v-lab");
+  else s+=L(C[0],O[1]+7,C[0],O[1]+30)+`<rect x="${(C[0]-20).toFixed(1)}" y="${O[1]+30}" width="40" height="26" rx="3" class="v-block"/>`+L(C[0],O[1]+43,C[0],O[1]+92,"v-f","f")+T(C[0]+8,O[1]+88,"P","v-lab");
   s+=arcP(A,34,180,180+o.be)+T(pol(A,48,180+o.be/2)[0]-2,pol(A,48,180+o.be/2)[1]+6,"β","v-lab s","middle");
-  s+=T(O[0]-2,O[1]-14,"O","v-lab","end")+T(A[0]+8,O[1]-12,"A","v-lab")+T(C[0]+10,O[1]+24,"C","v-lab")+T(E[0]+14,E[1]+4,"E","v-lab");
+  s+=T(O[0]-2,O[1]-14,"O","v-lab","end")+T(A[0]+8,O[1]-12,"A","v-lab")+(o.pose?T(C[0]-8,O[1]+24,"C","v-lab","end"):T(C[0]+10,O[1]+24,"C","v-lab"))+T(E[0]+16,E[1]+20,"E","v-lab");
   s+=cote(O[0],A[0],50,`OA = ${nf(o.a,2)} m`)+cote(O[0],C[0],28,`OC = ${nf(o.b,2)} m`);
-  s+=ext(O[0],O[1]-24,24)+ext(A[0],O[1]-10,54)+ext(C[0],O[1]-10,32);
+  s+=ext(O[0],O[1]-24,24)+ext(A[0],O[1]-10,54)+ext(C[0],o.pose?O[1]-43:O[1]-10,32);
   const lv=add(add(E,u,Lv*0.32),nr,20); s+=T(lv[0],lv[1]+4,"vérin","v-cap","start");
-  return svg(234,s,"Bras de levage articulé en O, soulevé par un vérin EA, charge suspendue en C");
+  return svg(234,s,o.pose?"Plateau articulé en O, soulevé par un vérin EA, charge posée sur le plateau en C":"Bras de levage articulé en O, soulevé par un vérin EA, charge suspendue en C");
 }
 /* pince à deux branches articulées en O : efforts F aux poignées (bras de levier a), serrage aux mors (bras de levier b) */
 function fx_stat_pince(o){
@@ -8316,22 +8858,25 @@ function fx_stat_chaise(o){
   s+=slab([xB,138],[xB,yg],3,"v-box")+slab([xA,138],[xA,yg],3,"v-box");
   s+=gSym(xG,74)+T(xG+10,68,"G","v-lab s")+L(xG,83,xG,122,"v-f","f")+T(xG+8,116,"P","v-lab");
   s+=pt(xB,yg,"",0,0)+T(xB-10,yg-6,"B","v-lab","end")+pt(xA,yg,"",0,0)+T(xA+10,yg-6,"A","v-lab");
-  s+=cote2(xB,xG,242,`BG = ${nf(o.g,2)} m`)+cote(xB,xA,264,`BA = ${nf(o.e,2)} m`);
-  s+=ext(xB,yg+4,268)+ext(xG,126,246)+ext(xA,yg+4,268);
+  s+=cote2(xB,xG,242,`BG = ${nf(o.g,2)} m`)+cote(xB,xA,272,`BA = ${nf(o.e,2)} m`);
+  s+=ext(xB,yg+4,276)+ext(xG,126,246)+ext(xA,yg+4,276);
   s+=T(xB-30,40,"dossier","v-cap","end");
-  return svg(274,s,"Chaise : pieds arrière en B, pieds avant en A, centre de gravité G de l'ensemble chaise et personne");
+  return svg(280,s,"Chaise : pieds arrière en B, pieds avant en A, centre de gravité G de l'ensemble chaise et personne");
 }
 /* chariot sur une rampe inclinée de α, retenu par un câble parallèle à la rampe */
 function fx_stat_rampe(o){
   const al=o.al, O=[30,222], u=[Math.cos(rad(al)),-Math.sin(rad(al))], n=[-Math.sin(rad(al)),-Math.cos(rad(al))];
   const Lp=Math.min(346/Math.cos(rad(al)),172/Math.sin(rad(al))), Tp=add(O,u,Lp);
   let s=`<path d="M${P2(O)} L${P2(Tp)} L${Tp[0].toFixed(1)} ${O[1]} Z" class="v-body"/>`+ground(16,Tp[0]+10,O[1]);
-  const I=add(O,u,Lp*(al<20?0.66:0.5)), G=add(I,n,26), w=34, hh=22, c=[add(add(G,u,-w),n,-hh),add(add(G,u,w),n,-hh),add(add(G,u,w),n,hh),add(add(G,u,-w),n,hh)];
+  /* chariot : caisse haute sur deux roues (G à 50 px de la rampe) ; P s'arrête au bas de la caisse, N arrive au contact par dessous : les deux flèches ne se chevauchent plus quand α est petit */
+  const I=add(O,u,Lp*(al<20?0.62:0.5)), hG=50, base=12, w=34, G=add(I,n,hG), b0=add(I,n,base), b1=add(I,n,2*hG-base);
+  const c=[add(b0,u,-w),add(b0,u,w),add(b1,u,w),add(b1,u,-w)];
+  s+=[-28,28].map(k=>{ const wc=add(add(I,u,k),n,base/2); return `<circle cx="${wc[0].toFixed(1)}" cy="${wc[1].toFixed(1)}" r="${base/2-0.5}" class="v-wheel" style="stroke-width:1.5"/>`; }).join("");
   s+=`<polygon points="${c.map(P2).join(" ")}" class="v-block"/>`;
-  const Q=add(O,u,Lp*0.93), post=add(Q,n,26);
+  const Q=add(O,u,Lp*0.93), post=add(Q,n,hG);
   s+=L(Q[0],Q[1],post[0],post[1],"v-ink")+`<circle cx="${post[0].toFixed(1)}" cy="${post[1].toFixed(1)}" r="5" class="v-wheel"/>`;
   s+=L(add(G,u,w)[0],add(G,u,w)[1],post[0],post[1],"v-ink");
-  const yP=Math.min(G[1]+62,O[1]-10); s+=gSym(G[0],G[1])+L(G[0],G[1]+9,G[0],yP,"v-f","f")+T(G[0]-8,yP-4,"P","v-lab","end");
+  const yP=G[1]+(hG-base)/Math.cos(rad(al))-1; s+=gSym(G[0],G[1])+L(G[0],G[1]+9,G[0],yP,"v-f","f")+T(G[0]-8,yP-6,"P","v-lab","end");
   const tT=add(add(G,u,w),u,48); s+=vec(add(G,u,w),tT)+T(tT[0]-4,tT[1]-10,"T","v-lab c","end");
   const lN=Math.min(48,(O[1]-I[1])/Math.cos(rad(al))-6), nI=add(I,n,-lN); s+=vec(nI,add(I,n,-3),"v-n","a")+T(nI[0]+8,nI[1]-2,"N","v-lab a")+pt(I[0],I[1],"",0,0);
   s+=arcP(O,64,0,al)+T(pol(O,78,al/2)[0],pol(O,78,al/2)[1]+5,"α","v-lab s","middle");
@@ -8363,9 +8908,12 @@ function fx_stat_grue(o){
   s+=`<rect x="${(xl-10).toFixed(1)}" y="${yj+6}" width="20" height="8" class="v-box"/>`+L(xl,yj+14,xl,yj+90)+`<rect x="${(xl-20).toFixed(1)}" y="${yj+90}" width="40" height="28" rx="2" class="v-block"/>`;
   s+=gSym(xl,yj+104)+L(xl,yj+113,xl,yj+150,"v-f","f")+T(xl+8,yj+146,"P","v-lab s");
   if(o.P0) s+=gSym(xm,168)+L(xm,177,xm,206,"v-f","f")+T(xm+12,196,"P0","v-lab s");
+  /* poids de la flèche, à xf de l'axe du mât, côté charge */
+  if(o.xf!=null){ const xf=xm+o.xf*sc; s+=gSym(xf,yj)+L(xf,yj+9,xf,yj+50,"v-f","f")+T(xf+7,yj+46,"Pf","v-lab s"); }
   s+=cote(xc,xm,24,o.dclab||`${nf(o.dc,1)} m`)+cote(xm,xl,24,o.dlab||`${nf(o.d,1)} m`)+ext(xc,yj-8,28)+ext(xm,yj-36,28)+ext(xl,yj-8,28);
   s+=T(xm-ep-6,yg+18,"A","v-lab","end")+T(xm+ep+6,yg+18,"B","v-lab");
-  if(o.cotE) s+=cote2(xm-ep,xm+ep,yg+34,`AB = ${nf(2*o.e,1)} m`)+ext(xm-ep,yg+4,yg+38)+ext(xm+ep,yg+4,yg+38);
+  /* cote AB : texte à droite de la cote (il touchait les traits de rappel) */
+  if(o.cotE) s+=`<line x1="${(xm-ep).toFixed(1)}" y1="${yg+34}" x2="${(xm+ep).toFixed(1)}" y2="${yg+34}" class="v-cote" marker-start="url(#m-d)" marker-end="url(#m-d)"/>`+T(xm+ep+8,yg+38,`AB = ${nf(2*o.e,1)} m`,"v-cap")+ext(xm-ep,yg+4,yg+38)+ext(xm+ep,yg+4,yg+38);
   s+=T(xc,yj+96,"contrepoids","v-cap","middle")+T(xl-26,yj+108,"charge","v-cap","end");
   return svg(o.cotE?yg+44:yg+26,s,"Grue à tour : contrepoids d'un côté du mât, charge de l'autre, appuis au sol A et B");
 }
@@ -8395,6 +8943,141 @@ function fx_stat_camion(o){
   s+=cote2(xG,xA,238,`${nf(o.g,2)} m`)+cote(xB,xA,260,`AB = ${nf(o.e,2)} m`)+ext(xB,yg+4,264)+ext(xA,yg+4,264)+ext(xG,164,242);
   s+=T(xA+42,58,"avant →","v-cap","end");
   return svg(270,s,"Camion à deux essieux : essieu avant en A, essieu arrière en B, centre de gravité G");
+}
+
+/* ===== figures ajoutées : statique (préfixe fxs_) ===== */
+/* mur hachuré à droite de la ligne x */
+function fxs_wallR(x,y1,y2){ let s=L(x,y1,x,y2,"v-ink"); for(let y=y1+12;y<=y2;y+=14) s+=L(x,y,x+10,y-10,"v-hatch"); return s; }
+/* repère du plan : axes x, y et axe z sortant de la feuille */
+const fxs_axes=(x,y)=>L(x,y,x+34,y,"v-thin","k")+L(x,y,x,y-34,"v-thin","k")+`<circle cx="${x}" cy="${y}" r="5" class="v-box"/><circle cx="${x}" cy="${y}" r="1.7" class="v-pt"/>`
+  +T(x+40,y+4,"x","v-lab s")+T(x,y-40,"y","v-lab s","middle")+T(x-8,y+17,"z","v-lab s","end");
+/* trait de rappel le long de la direction n, de a à b pixels du point p */
+const fxs_ext=(p,n,a,b)=>{ const p1=add(p,n,a), p2=add(p,n,b); return L(p1[0],p1[1],p2[0],p2[1],"v-dash"); };
+/* cote inclinée de p à q (direction u, n vers l'extérieur) : texte parallèle à la cote, reporté après q si la cote est trop courte */
+function fxs_cotA(p,q,u,n,t){
+  const len=Math.hypot(q[0]-p[0],q[1]-p[1]), a=deg(Math.atan2(u[1],u[0])), court=len<t.length*6.6+10;
+  const m=court?add(add(q,u,6),n,4):add([(p[0]+q[0])/2,(p[1]+q[1])/2],n,4);
+  return `<line x1="${p[0].toFixed(1)}" y1="${p[1].toFixed(1)}" x2="${q[0].toFixed(1)}" y2="${q[1].toFixed(1)}" class="v-cote" marker-start="url(#m-d)" marker-end="url(#m-d)"/>`
+    +`<text x="${m[0].toFixed(1)}" y="${m[1].toFixed(1)}" class="v-cap" text-anchor="${court?"start":"middle"}" transform="rotate(${a.toFixed(1)} ${m[0].toFixed(1)} ${m[1].toFixed(1)})">${t}</text>`;
+}
+/* une liaison du plan entre un solide 1 et le bâti 0 : k = "eq" (solide isolé), "pivot", "appui", "cable", "encast" */
+function fxs_liaison(k){
+  let s="", alt;
+  if(k==="eq"){ const C=[236,124];
+    s+=`<polygon points="${[[-58,-34],[6,-58],[62,-30],[52,34],[-4,52],[-62,22]].map(p=>P2([C[0]+p[0],C[1]+p[1]])).join(" ")}" class="v-body"/>`;
+    [[90,"F1"],[210,"F2"],[330,"F3"]].forEach(([a,lab])=>{ const p=pol(C,40,a), q=pol(C,86,a), t=pol(C,100,a); s+=L(p[0],p[1],q[0],q[1],"v-f","f")+pt(p[0],p[1],"",0,0)+T(t[0],t[1]+5,lab,"v-lab","middle"); });
+    s+=numLab(C[0]-22,C[1]+6,"1"); alt="Solide 1 isolé, soumis à trois forces contenues dans le plan (x, y)"; }
+  else if(k==="pivot"){ const A=[150,104];
+    s+=ground(106,194,196)+`<rect x="${A[0]-13}" y="${A[1]-15}" width="26" height="${196-A[1]+15}" class="v-box"/>`;
+    s+=`<rect x="${A[0]-30}" y="${A[1]-7}" width="252" height="14" rx="6" class="v-body"/>`+piv(A[0],A[1]);
+    s+=T(A[0]-10,A[1]-19,"A","v-lab","end")+numLab(304,A[1]-26,"1")+numLab(A[0]+34,164,"0");
+    alt="Barrière 1 articulée en A sur le poteau 0"; }
+  else if(k==="appui"){ const I=[222,184], r=48;
+    s+=ground(112,336,I[1])+`<circle cx="${I[0]}" cy="${I[1]-r}" r="${r}" class="v-wheel"/>`;
+    s+=pt(I[0],I[1],"",0,0)+T(I[0]+7,I[1]+19,"I","v-lab")+numLab(I[0],I[1]-r,"1")+numLab(306,I[1]-18,"0");
+    alt="Rouleau 1 posé sur le plan 0, contact au point I"; }
+  else if(k==="cable"){ const Bc=[222,26], Bl=[222,110];
+    s+=plafond(150,294,Bc[1])+L(Bc[0],Bc[1],Bl[0],Bl[1],"v-ink")+pt(Bc[0],Bc[1],"",0,0);
+    s+=`<path d="M${Bl[0]} ${Bl[1]} L${Bl[0]-26} ${Bl[1]+16} L${Bl[0]+26} ${Bl[1]+16} Z" class="v-box"/><rect x="${Bl[0]-20}" y="${Bl[1]+16}" width="40" height="46" rx="4" class="v-block"/>`+pt(Bl[0],Bl[1],"",0,0);
+    s+=T(Bl[0]+10,Bl[1]-2,"B","v-lab")+numLab(Bl[0]+30,66,"2")+numLab(Bl[0],Bl[1]+40,"1")+numLab(Bc[0]+58,Bc[1]+18,"0");
+    alt="Lanterne 1 suspendue au plafond 0 par le câble 2 attaché en B"; }
+  else { const A=[300,104];
+    s+=fxs_wallR(A[0],24,196)+`<rect x="82" y="${A[1]-8}" width="${A[0]-82}" height="16" rx="2" class="v-body"/>`;
+    s+=L(104,A[1]+8,104,A[1]+30)+`<rect x="88" y="${A[1]+30}" width="32" height="40" rx="4" class="v-block"/>`;
+    s+=pt(A[0],A[1],"",0,0)+T(A[0]-8,A[1]-14,"A","v-lab","end")+numLab(200,A[1]-28,"1")+numLab(A[0]+34,166,"0");
+    alt="Potence 1 encastrée dans le mur 0 en A"; }
+  s+=fxs_axes(36,74);
+  return svg(206,s,alt);
+}
+/* potence (câble BD au-dessus de la barre) ou console (biellette BD au-dessous) ; o.dirs : directions (degrés, sens trigo) des flèches candidates en D, numérotées o.nums */
+function fxs_deuxF(o){
+  const cab=o.type==="cable", ta=Math.tan(rad(o.al)), xw=34, xA=50, ap=Math.min(250,140/ta), yA=cab?164:96, sg=cab?-1:1;
+  const A=[xA,yA], D=[xA+ap,yA], E=[xA+o.b*ap,yA], B=[xA,yA+sg*ap*ta];
+  const chape=p=>`<rect x="${xw}" y="${(p[1]-8).toFixed(1)}" width="${xA-xw}" height="16" class="v-box"/>`;
+  let s=wall(xw,cab?12:30,cab?236:252)+chape(A)+chape(B);
+  s+=`<rect x="${xA}" y="${yA-7}" width="${(ap+14).toFixed(1)}" height="14" rx="4" class="v-body"/>`;
+  s+=cab?L(B[0],B[1],D[0],D[1],"v-ink"):bar(B[0],B[1],D[0],D[1]);
+  s+=piv(A[0],A[1])+piv(B[0],B[1])+piv(D[0],D[1]);
+  if(cab) s+=L(E[0],yA+7,E[0],yA+24)+`<rect x="${(E[0]-18).toFixed(1)}" y="${yA+24}" width="36" height="22" rx="3" class="v-block"/>`+L(E[0],yA+35,E[0],yA+80,"v-f","f")+T(E[0]+8,yA+76,"P","v-lab")+T(E[0]-6,yA+21,"E","v-lab","end");
+  else s+=L(E[0],yA-64,E[0],yA-9,"v-f","f")+T(E[0]-8,yA-50,"P","v-lab","end")+T(E[0]-8,yA-13,"E","v-lab","end");
+  s+=(cab?T(xA-3,yA+24,"A","v-lab","end"):T(xA+8,yA-14,"A","v-lab"))+T(xA+12,cab?B[1]-4:B[1]+20,"B","v-lab");
+  const lD=pol(D,21,cab?100:135); s+=T(lD[0],lD[1]+2,"D","v-lab","middle");
+  o.dirs.forEach((a,k)=>{ const d=[Math.cos(rad(a)),-Math.sin(rad(a))], lp=add(D,d,76); s+=vec(D,add(D,d,58),"v-vec","k")+numLab(lp[0],lp[1],String(o.nums[k])); });
+  return svg(cab?262:Math.round(B[1]+28),s,cab?"Potence : barre AD articulée en A, retenue par le câble BD, quatre flèches numérotées en D":"Console : barre AD articulée en A, soutenue par la biellette BD, quatre flèches numérotées en D");
+}
+/* planche posée sur le sol en A, appuyée sur l'arête C d'un muret ; o.th (degrés), o.c = AC / longueur ; I : concours du poids et de l'action en C ; flèches candidates en A */
+function fxs_troisF(o){
+  const th=o.th, cs=Math.cos(rad(th)), sn=Math.sin(rad(th)), u=[cs,-sn], n=[-sn,-cs], A=[70,224], w=5;
+  const Lp=Math.min(272,192/(o.c*sn+(o.c-0.5)*cs*cs/sn)), Bt=add(A,u,Lp), G=add(A,u,Lp/2), K=add(add(A,u,o.c*Lp),n,-w);
+  const I=add(K,n,(G[0]-K[0])/n[0]), Nt=add(K,n,44);
+  let s=ground(18,384,A[1])+`<rect x="${K[0].toFixed(1)}" y="${K[1].toFixed(1)}" width="50" height="${(A[1]-K[1]).toFixed(1)}" class="v-box"/>`;
+  s+=`<polygon points="${P2([A[0]-w/sn,A[1]])} ${P2([A[0]+w/sn,A[1]])} ${P2(add(Bt,n,-w))} ${P2(add(Bt,n,w))}" class="v-body"/>`;
+  s+=L(G[0],G[1]-9,I[0],I[1],"v-dash")+L(Nt[0],Nt[1],I[0],I[1],"v-dash")+pt(I[0],I[1],"",0,0)+T(I[0]+8,I[1]-5,"I","v-lab");
+  s+=gSym(G[0],G[1])+L(G[0],G[1]+9,G[0],G[1]+52,"v-f","f")+T(G[0]+8,G[1]+48,"P","v-lab")+T(G[0]-10,G[1]-8,"G","v-lab s","end");
+  const lN=add(add(K,n,32),u,12); s+=L(K[0],K[1],Nt[0],Nt[1],"v-f","f")+T(lN[0],lN[1]+4,"N","v-lab");
+  s+=pt(K[0],K[1],"",0,0)+T(K[0]+8,K[1]+18,"C","v-lab")+T(K[0]+25,A[1]-10,"muret","v-cap","middle")+T(24,A[1]-8,"sol","v-cap");
+  const dI=deg(Math.atan2(A[1]-I[1],I[0]-A[0]));
+  [dI,90,th,90+th].forEach((a,k)=>{ const d=[Math.cos(rad(a)),-Math.sin(rad(a))], lp=add(A,d,76); s+=vec(A,add(A,d,58),"v-vec","k")+numLab(lp[0],lp[1],String(o.nums[k])); });
+  s+=pt(A[0],A[1],"",0,0)+T(A[0]+14,A[1]+20,"A","v-lab");
+  return svg(252,s,"Planche posée sur le sol en A et appuyée sans frottement sur l'arête C d'un muret ; quatre flèches numérotées en A");
+}
+/* plateau guidé verticalement, portant une charge, tenu par un vérin vertical dessous (o.dessous) ou au-dessus (étrier) */
+function fxs_verinV(o){
+  const xl=104, xr=296, yp=o.dessous?118:206, ytop=o.dessous?yp-86:yp-90, yG=ytop+34;
+  const roll=y=>`<circle cx="${xl+6}" cy="${y}" r="6" class="v-wheel" style="stroke-width:1.5"/><circle cx="${xr-6}" cy="${y}" r="6" class="v-wheel" style="stroke-width:1.5"/>`;
+  let s=wall(xl,14,236)+fxs_wallR(xr,14,236);
+  s+=`<rect x="${xl+12}" y="${yp}" width="${xr-xl-24}" height="12" rx="2" class="v-body"/>`+roll(yp+6);
+  s+=`<rect x="150" y="${ytop}" width="100" height="${yp-ytop}" rx="3" class="v-block"/>`+T(200,ytop+18,"charge","v-cap","middle");
+  s+=gSym(200,yG)+L(200,yG+9,200,yp-2,"v-f","f")+T(208,yp-12,"P","v-lab");
+  if(o.dessous){ s+=`<rect x="195" y="${yp+12}" width="10" height="32" class="v-box"/><rect x="182" y="${yp+44}" width="36" height="${236-yp-44}" rx="3" class="v-body"/>`+ground(xl,xr,236);
+    s+=T(212,yp+32,"F = ?","v-lab c")+T(226,yp+86,"vérin","v-cap")+T(150,yp+30,"plateau","v-cap","middle"); }
+  else { s+=plafond(xl,xr,14)+`<rect x="182" y="14" width="36" height="56" rx="3" class="v-body"/><rect x="195" y="70" width="10" height="26" class="v-box"/>`;
+    s+=`<rect x="${xl+12}" y="96" width="${xr-xl-24}" height="10" rx="2" class="v-body"/><rect x="${xl+12}" y="106" width="7" height="${yp-106}" class="v-body"/><rect x="${xr-19}" y="106" width="7" height="${yp-106}" class="v-body"/>`+roll(101);
+    s+=T(212,90,"F = ?","v-lab c")+T(226,46,"vérin","v-cap")+T(200,yp+30,"plateau","v-cap","middle"); }
+  s+=T(200,260,`plateau : ${o.m1} kg · charge : ${o.m2} kg`,"v-cap","middle");
+  return svg(266,s,o.dessous?"Plateau guidé verticalement, portant une charge, poussé par un vérin vertical placé dessous":"Plateau guidé verticalement, portant une charge, suspendu à un vérin vertical placé au-dessus");
+}
+/* bras de robot rectiligne articulé en O, incliné de o.th ; poids P1, P2 en G1, G2 et charge Pc au bout ; distances le long du bras */
+function fxs_brasI(o){
+  const th=o.th, cs=Math.cos(rad(th)), sn=Math.sin(rad(th)), O=[62,222], u=[cs,-sn], n=[-sn,-cs];
+  const sc=Math.min(270/(o.d3*cs),162/(o.d3*sn)), Pt=d=>add(O,u,d*sc), E=Pt(o.d3);
+  let s=ground(16,124,262)+`<rect x="${O[0]-12}" y="${O[1]+12}" width="24" height="${262-O[1]-12}" class="v-box"/>`;
+  s+=bar(O[0],O[1],E[0],E[1])+piv(O[0],O[1]);
+  s+=L(E[0],E[1]+6,E[0]-10,E[1]+16,"v-ink")+L(E[0],E[1]+6,E[0]+10,E[1]+16,"v-ink")+`<rect x="${(E[0]-15).toFixed(1)}" y="${(E[1]+16).toFixed(1)}" width="30" height="24" rx="3" class="v-block"/>`;
+  [[o.d1,"P1"],[o.d2,"P2"]].forEach(([d,lab])=>{ const p=Pt(d); s+=gSym(p[0],p[1])+L(p[0],p[1]+9,p[0],p[1]+50,"v-f","f")+T(p[0]+7,p[1]+46,lab,"v-lab s"); });
+  s+=L(E[0],E[1]+40,E[0],E[1]+82,"v-f","f")+T(E[0]+7,E[1]+78,"Pc","v-lab s");
+  s+=fxs_ext(O,n,9,50);
+  [[o.d1,14],[o.d2,30],[o.d3,46]].forEach(([d,off])=>{ const p=Pt(d); s+=fxs_ext(p,n,9,off+4)+fxs_cotA(add(O,n,off),add(p,n,off),u,n,`${nf(d,2)} m`); });
+  const x1=add(E,u,9), x2=add(E,u,58), lt=pol(E,54,th/2);
+  s+=L(E[0]+8,E[1],E[0]+60,E[1],"v-dash")+L(x1[0],x1[1],x2[0],x2[1],"v-dash")+arcP(E,40,0,th)+T(lt[0],lt[1]+5,"θ","v-lab s","middle");
+  const lC=pol(O,46,174); s+=arcP(O,30,Math.max(160,th+105),220,"v-n","a")+T(lC[0],lC[1]+5,"C","v-lab a","end")+T(O[0]-11,O[1]+5,"O","v-lab","end");
+  return svg(272,s,"Bras de robot rectiligne articulé en O, incliné d'un angle thêta sur l'horizontale, portant une charge au bout");
+}
+/* poutre isolée : F vers le bas, actions verticales Y_A (cherchée) et Y_B (connue) vers le haut */
+function fxs_poutreR(o){
+  const x0=64, x1=336, yb=100, xa=x0+(x1-x0)*o.YB/o.F;
+  let s=`<rect x="${x0-14}" y="${yb}" width="${x1-x0+28}" height="14" rx="2" class="v-body"/>`;
+  s+=pt(x0,yb+7,"",0,0)+pt(x1,yb+7,"",0,0)+T(x0-20,yb+12,"A","v-lab","end")+T(x1+20,yb+12,"B","v-lab");
+  s+=L(xa,yb-62,xa,yb-3,"v-f","f")+T(xa+8,yb-46,`F = ${nf(o.F,0)} N`,"v-lab s");
+  s+=vec([x0,yb+80],[x0,yb+17])+T(x0+8,yb+70,"Y_A","v-lab c")+L(x1,yb+80,x1,yb+17,"v-f","f")+T(x1-8,yb+70,`Y_B = ${nf(o.YB,0)} N`,"v-lab s","end");
+  s+=T(200,yb+108,"poutre isolée (poids négligé)","v-cap","middle");
+  return svg(yb+118,s,"Poutre isolée soumise à l'effort F et aux actions verticales des appuis en A et B");
+}
+/* bus articulé : caisse arrière (essieu C), caisse avant (essieux B et A), articulation R ; actions du sol inconnues */
+function fxs_bus(o){
+  const yg=192, R=15, top=86, bot=yg-24, xs={C:62,B:236,A:344}, xG2=114, xG1=290;
+  let s=ground(12,390,yg);
+  s+=`<rect x="16" y="${top}" width="144" height="${bot-top}" rx="6" class="v-body"/>`;
+  s+=`<path d="M178 ${bot} L178 ${top} L360 ${top} Q378 ${top} 382 ${top+24} L386 ${bot} Z" class="v-body"/>`;
+  for(let x=26;x<150;x+=32) s+=`<rect x="${x}" y="${top+10}" width="24" height="22" rx="2" class="v-block"/>`;
+  for(let x=190;x<340;x+=32) s+=`<rect x="${x}" y="${top+10}" width="24" height="22" rx="2" class="v-block"/>`;
+  s+=`<path d="M352 ${top+10} L368 ${top+10} Q375 ${top+14} 377 ${top+32} L352 ${top+32} Z" class="v-block"/>`;
+  let z=""; for(let y=top+4,k=0;y<=bot-2;y+=8,k++) z+=`${k%2?174:164},${y} `; s+=`<polyline points="${z.trim()}" class="v-thin"/>`;
+  s+=bar(146,bot-10,192,bot-10)+piv(169,bot-10)+T(169,bot+16,"R","v-lab","middle");
+  Object.entries(xs).forEach(([k,x])=>{ s+=`<circle cx="${x}" cy="${yg-R}" r="${R}" class="v-wheel"/>`+piv(x,yg-R)+vec([x,yg+44],[x,yg+4])+T(x+9,yg+30,k,"v-lab"); });
+  s+=gSym(xG2,132)+L(xG2,141,xG2,182,"v-f","f")+T(xG2+8,178,"P2","v-lab s")+gSym(xG1,132)+L(xG1,141,xG1,182,"v-f","f")+T(xG1+8,178,"P1","v-lab s");
+  s+=T(88,top-10,`caisse arrière : ${o.m2} t`,"v-cap","middle")+T(282,top-10,`caisse avant : ${o.m1} t`,"v-cap","middle")+T(388,24,"avant →","v-cap","end");
+  return svg(yg+50,s,"Bus articulé : caisse avant sur les essieux A et B, caisse arrière sur l'essieu C, reliées par l'articulation R");
 }
 
 /* ===== figures : transmission ===== */
@@ -8501,20 +9184,26 @@ POOLS["meca-statique"]={
     /* cours : équations et inconnues en statique plane */
     ()=>{ const v=rnd([0,1,2,3,4]), ctx="Problème plan (x, y) : toutes les forces sont dans le plan de la figure. Liaisons parfaites (sans frottement).";
       if(v===0){ const m=mc("3 : deux projections de la résultante (sur x et sur y) et une équation de moment",["2 : une équation pour les forces et une pour les moments","6 : trois équations de résultante et trois de moment","Autant d'équations que d'actions mécaniques extérieures"]);
-        return {ctx,q:"Combien d'équations scalaires indépendantes le principe fondamental de la statique fournit-il pour un solide isolé ?",type:"ch",...m,
-          expl:`En problème plan : ${F("ΣFx = 0")}, ${F("ΣFy = 0")} et ${F("ΣM_A = 0")} (moment autour de z), soit 3 équations. En isolant un seul solide, on ne peut donc pas trouver plus de 3 inconnues scalaires.`}; }
-      const c=[["une articulation (liaison pivot d'axe z)",2,"La rotation autour de z est libre : aucun moment n'est transmis. La force passe par le centre de l'articulation, mais sa direction est inconnue : 2 inconnues, X et Y."],
-        ["un appui ponctuel sans frottement",1,"Sans frottement, la force est portée par la normale au contact : sa direction est connue, seule son intensité est inconnue."],
-        ["un câble tendu, de masse négligée",1,"Un câble tendu transmet une force portée par le câble : seule la tension est inconnue."],
-        ["un encastrement (liaison qui bloque tout mouvement)",3,"L'encastrement bloque les deux translations et la rotation : il transmet une force (X et Y) et un moment, soit 3 inconnues."]][v-1];
-      return {ctx,q:`Combien d'inconnues scalaires l'action mécanique d'${c[0]} introduit-elle ?`,type:"ch",ch:INC,ok:c[1],expl:`${c[2]} Chaque direction de mouvement bloquée correspond à une inconnue.`}; },
-    /* cours : solide soumis à deux ou trois forces */
-    ()=>{ if(Math.random()<0.5){ const m=mc("Elles ont la même droite d'action, la même intensité et des sens opposés",["Elles sont perpendiculaires entre elles","Elles ont la même intensité, quelles que soient leurs droites d'action","Elles ont la même direction et le même sens"]);
-        return {q:"Un solide soumis à deux forces seulement est en équilibre. Que peut-on affirmer sur ces deux forces ?",type:"ch",...m,
-          expl:`Résultante nulle : les forces sont opposées. Moment nul : elles doivent avoir la même droite d'action (sinon elles formeraient un couple qui ferait tourner le solide). C'est le cas d'une biellette ou d'un câble : l'effort est porté par la droite qui joint les deux points d'attache.`}; }
-      const m=mc("Elles sont concourantes : elles passent par un même point",["Elles sont parallèles entre elles","Deux d'entre elles sont forcément perpendiculaires","Elles passent toutes par le centre de gravité du solide"]);
-      return {q:"Un solide soumis à trois forces non parallèles est en équilibre. Que peut-on affirmer sur leurs droites d'action ?",type:"ch",...m,
-        expl:"En écrivant les moments au point d'intersection de deux des droites d'action, le moment de la troisième force doit être nul : elle passe aussi par ce point. Les trois droites d'action sont concourantes, ce qui permet de trouver graphiquement une direction inconnue."}; },
+        return {fig:fxs_liaison("eq"),ctx,q:"On isole le solide 1 de la figure. Combien d'équations scalaires indépendantes le principe fondamental de la statique fournit-il pour ce solide ?",type:"ch",...m,
+          expl:`En problème plan : ${F("ΣFx = 0")}, ${F("ΣFy = 0")} et ${F("ΣM_A = 0")} (moment autour de z), soit 3 équations, quel que soit le nombre de forces. En isolant un seul solide, on ne peut donc pas trouver plus de 3 inconnues scalaires.`}; }
+      const c=[["pivot","la barrière 1 est articulée en A sur le poteau 0 (liaison pivot d'axe z)","l'action A<sub>0/1</sub> du poteau sur la barrière",2,"La rotation autour de z est libre : aucun moment n'est transmis. La force passe par le centre A de l'articulation, mais sa direction est inconnue : 2 inconnues, X et Y."],
+        ["appui","le rouleau 1 est posé sur le plan 0 : appui ponctuel sans frottement en I","l'action I<sub>0/1</sub> du plan sur le rouleau",1,"Sans frottement, la force est portée par la normale au contact en I : sa direction est connue, seule son intensité est inconnue."],
+        ["cable","la lanterne 1 est suspendue au plafond 0 par le câble 2, tendu et de masse négligée","l'action B<sub>2/1</sub> du câble sur la lanterne",1,"Un câble tendu transmet une force portée par le câble : seule la tension est inconnue."],
+        ["encast","la potence 1 est encastrée dans le mur 0 en A : la liaison bloque tout mouvement","l'action A<sub>0/1</sub> du mur sur la potence",3,"L'encastrement bloque les deux translations et la rotation : il transmet une force (X et Y) et un moment, soit 3 inconnues."]][v-1];
+      return {fig:fxs_liaison(c[0]),ctx,q:`Sur la figure, ${c[1]}. Combien d'inconnues scalaires ${c[2]} introduit-elle ?`,type:"ch",ch:INC,ok:c[3],expl:`${c[4]} Chaque direction de mouvement bloquée correspond à une inconnue.`}; },
+    /* solide soumis à deux ou trois forces : choisir la flèche sur la figure */
+    ()=>{ const nums=shuffle([1,2,3,4]), ch=["Flèche 1","Flèche 2","Flèche 3","Flèche 4"], ok=nums[0]-1;
+      if(Math.random()<0.5){ const al=rnd([35,40,45,50]), b=rnd([0.5,0.6,0.7]);
+        if(Math.random()<0.5) return {fig:fxs_deuxF({type:"cable",al,b,nums,dirs:[-al,-90,0,90-al]}),ctx:"Potence murale : la barre AD, articulée au mur en A, est retenue par le câble BD (tendu, de masse négligée) ; une charge est suspendue en E.",
+          q:"On isole le câble BD : il n'est soumis qu'à deux actions, en B et en D. Quelle flèche peut représenter l'action de la barre sur le câble en D ?",type:"ch",ch,ok,
+          expl:`Deux forces seulement en équilibre : même droite d'action, même intensité, sens opposés. Les actions sur le câble en B et en D sont donc portées par (BD). Le câble est tendu : la barre le tire en D, dans le sens de B vers D (flèche ${nums[0]}), et le mur le tire en B dans l'autre sens. La flèche ${nums[1]} (verticale) a la direction du poids de la charge, la flèche ${nums[2]} celle de la barre, la flèche ${nums[3]} est perpendiculaire au câble.`};
+        return {fig:fxs_deuxF({type:"biellette",al,b,nums,dirs:[al,90,0,al-90]}),ctx:"Console murale : la barre AD, articulée au mur en A, est soutenue par la biellette BD (articulée en B et en D, poids négligé) ; une charge P s'exerce en E.",
+          q:"La biellette BD n'est soumise qu'à deux actions, en B et en D. Quelle flèche peut représenter l'action de la biellette sur la barre en D ?",type:"ch",ch,ok,
+          expl:`Deux forces seulement en équilibre : même droite d'action, même intensité, sens opposés. Les actions sur la biellette en B et en D sont donc portées par (BD), et l'action réciproque de la biellette sur la barre en D aussi : flèche ${nums[0]}. Ici la biellette est comprimée et pousse la barre, de B vers D. La flèche ${nums[1]} (verticale) correspondrait à un appui sous la barre, la flèche ${nums[2]} suit la barre, la flèche ${nums[3]} est perpendiculaire à la biellette.`}; }
+      const th=rnd([25,30,35]);
+      return {fig:fxs_troisF({th,c:0.7,nums}),ctx:"Une planche en équilibre est posée sur le sol en A (contact avec frottement) et appuyée sur l'arête d'un muret en C. Le contact en C est sans frottement : l'action N du muret est perpendiculaire à la planche. I est l'intersection des droites d'action du poids P et de N.",
+        q:"La planche est soumise à trois forces non parallèles. Quelle flèche peut représenter l'action du sol sur la planche en A ?",type:"ch",ch,ok,
+        expl:`Trois forces non parallèles en équilibre sont concourantes (moment nul en I pour P et N, donc aussi pour la troisième) : la droite d'action de l'action en A passe par I. C'est la flèche ${nums[0]}, dirigée de A vers I. La flèche ${nums[1]} (verticale) ne passe pas par I, la flèche ${nums[2]} suit la planche (cas d'un solide soumis à deux forces seulement) et la flèche ${nums[3]} est perpendiculaire à la planche.`}; },
     /* choix du point pour éliminer des inconnues */
     ()=>{ const Lg=rnd([3,4,5,6]), a=Lg*rnd([0.3,0.4,0.6,0.7]), askB=Math.random()<0.5;
       const fig=fx_stat_poutre({L:Lg,loads:[{x:a,lab:"F",pt:"C"}],cotes:[{x:a,t:`AC = ${nf(a,2)} m`}]});
@@ -8573,7 +9262,7 @@ POOLS["meca-statique"]={
           :`Sur y : N est portée par y (+N), T est perpendiculaire à y (0) et le poids a pour composante −P·cos α. D'où ${F("N − P·cos α = 0")}.`}; },
     /* vérin vertical qui maintient une charge */
     ()=>{ const m1=rnd([40,60,80]), m2=rnd([150,200,250,300,400]), Fv=(m1+m2)*g, dessous=Math.random()<0.5, sys=rnd(["d'une table élévatrice","d'un monte-charge","d'un élévateur de palettes"]);
-      return [{ctx:`Le plateau ${sys} (${m1} kg) porte une charge de ${m2} kg. Il est maintenu immobile par un vérin vertical ${dessous?"placé dessous":"fixé au-dessus, qui le suspend"}, dans l'axe du centre de gravité. Guidage vertical sans frottement, g = 9,81 m/s².`,
+      return [{fig:fxs_verinV({m1,m2,dessous}),ctx:`Le plateau ${sys} (${m1} kg) porte une charge de ${m2} kg. Il est maintenu immobile par un vérin vertical ${dessous?"placé dessous":"fixé au-dessus, qui le suspend"}, dans l'axe du centre de gravité. Guidage vertical sans frottement, g = 9,81 m/s².`,
           q:"On isole {plateau + charge}. Quel effort le vérin exerce-t-il ?",type:"num",ans:Fv,tolR:0.02,unit:"N",
           expl:`Bilan : poids de l'ensemble et action du vérin (le guidage sans frottement n'agit qu'horizontalement). Résultante verticale : ${F("F − (m1 + m2)·g = 0")}, F = ${m1+m2} × 9,81 = ${U(Fv,"N")}.`},
         {q:"Comment la tige du vérin est-elle sollicitée ?",type:"ch",ch:["En compression : le vérin pousse le plateau","En traction : le vérin tire le plateau"],ok:dessous?0:1,
@@ -8656,9 +9345,9 @@ POOLS["meca-statique"]={
         {fig,q:"Comment la vis du haut est-elle sollicitée ?",type:"ch",ch:["En traction : la console tend à s'écarter du mur en haut","En compression : la console s'écrase contre le mur en S","Elle ne subit aucun effort"],ok:0,
           expl:"La charge fait pivoter la console autour de C : le haut de la console tend à s'éloigner du mur et la vis la retient en tirant. La vis travaille en traction (risque d'arrachement de la cheville), tandis que le point C est comprimé contre le mur."}]; },
     /* grue : position de la charge qui équilibre les moments */
-    ()=>{ const o=draw(()=>({mcp:rnd([4000,5000,6000,8000]),dc:rnd([6,8,10]),mf:rnd([1500,2000,2500]),xf:rnd([8,10,12]),m:rnd([800,1000,1200,1500])}),o=>{ const d=(o.mcp*o.dc-o.mf*o.xf)/o.m; return d>=12&&d<=34; });
+    ()=>{ const o=draw(()=>({mcp:rnd([4000,5000,6000,8000]),dc:rnd([6,8,10]),mf:rnd([1500,2000,2500]),xf:rnd([8,10,12]),m:rnd([800,1000,1200,1500])}),o=>{ const d=(o.mcp*o.dc-o.mf*o.xf)/o.m; return d>=12&&d<=34&&d>=o.xf+5; });
       const d=(o.mcp*o.dc-o.mf*o.xf)/o.m;
-      return {fig:fx_stat_grue({dc:o.dc,d,e:2,dlab:"d = ?"}),data:table(["Élément","Masse","Distance à l'axe du mât"],[["Contrepoids",`${nf(o.mcp,0)} kg`,`${o.dc} m (côté arrière)`],["Flèche (centre de gravité)",`${nf(o.mf,0)} kg`,`${o.xf} m (côté charge)`],["Charge",`${nf(o.m,0)} kg`,"d = ?"]]),
+      return {fig:fx_stat_grue({dc:o.dc,d,e:2,dlab:"d = ?",xf:o.xf}),data:table(["Élément","Masse","Distance à l'axe du mât"],[["Contrepoids",`${nf(o.mcp,0)} kg`,`${o.dc} m (côté arrière)`],["Flèche (centre de gravité)",`${nf(o.mf,0)} kg`,`${o.xf} m (côté charge)`],["Charge",`${nf(o.m,0)} kg`,"d = ?"]]),
         ctx:"Grue à tour. On cherche la position du chariot pour laquelle le mât n'est soumis à aucun moment.",
         q:"À quelle distance d de l'axe du mât faut-il placer la charge pour que le moment résultant des trois poids par rapport à l'axe du mât soit nul ?",type:"num",ans:d,tolR:0.02,unit:"m",
         expl:`Moments par rapport à l'axe du mât (g se simplifie) : ${F("m_c·d_c = m_f·x_f + m·d")}. d = (${nf(o.mcp,0)} × ${o.dc} − ${nf(o.mf,0)} × ${o.xf}) / ${nf(o.m,0)} = ${U(d,"m")}. Le poids de la flèche s'ajoute à celui de la charge.`}; },
@@ -8710,10 +9399,11 @@ POOLS["meca-statique"]={
           expl:ok?`N_B = ${nf(o.NB,2)} kN > 0 : le sol pousse bien les roues arrière, le chariot est stable.`:`N_B = ${nf(o.NB,2)} kN < 0 : un sol ne peut que pousser, il ne peut pas retenir les roues arrière. Le calcul montre que l'équilibre est impossible : les roues arrière décollent et le chariot bascule autour de A.`}]; },
     /* bras incliné : couple, puis position la plus défavorable */
     ()=>{ const o=draw(()=>{ const m1=rnd([1.5,2,2.5]), m2=rnd([0.8,1,1.2]), m3=rnd([0.5,1,1.5,2]), d1=rnd([0.2,0.25]), d2=rnd([0.55,0.6,0.65]), d3=rnd([0.8,0.85,0.9]), th=rnd([30,40,45,50,60]), Cmax=rnd([15,18,20,22,25,28,30,35]); const S=m1*d1+m2*d2+m3*d3, Ct=g*S*Math.cos(rad(th)), C0=g*S; return {m1,m2,m3,d1,d2,d3,th,Cmax,Ct,C0}; },
-        o=>far(o.C0,o.Cmax,0.06)&&o.Ct<o.Cmax*0.97);
+        o=>far(o.C0,o.Cmax,0.06)&&o.Ct<o.Cmax*0.97&&(1-o.d2/o.d3)*Math.min(270,162/Math.tan(rad(o.th)))>=30);   /* figure : P2 et Pc assez écartés */
       const ok=o.C0<=o.Cmax;
       const data=table(["Élément","Masse","Distance à O le long du bras"],[["Bras 1 (G1)",`${nf(o.m1,1)} kg`,`${nf(o.d1,2)} m`],["Bras 2 (G2)",`${nf(o.m2,1)} kg`,`${nf(o.d2,2)} m`],["Charge",`${nf(o.m3,1)} kg`,`${nf(o.d3,2)} m`]]);
-      return [{data,ctx:`Bras de robot rectiligne, articulé en O, incliné de θ = ${o.th}° au-dessus de l'horizontale. Poids verticaux, g = 9,81 m/s².`,
+      const fig=fxs_brasI({th:o.th,d1:o.d1,d2:o.d2,d3:o.d3});
+      return [{fig,data,ctx:`Bras de robot rectiligne, articulé en O, incliné de θ = ${o.th}° au-dessus de l'horizontale. Poids verticaux, g = 9,81 m/s².`,
           q:"Calcule le couple que l'actionneur en O doit fournir pour maintenir le bras dans cette position.",type:"num",ans:o.Ct,tolR:0.02,unit:"N·m",
           expl:`Pour un poids vertical, le bras de levier est la distance horizontale : d·cos θ. ${F("C = g·cos θ·(m1·d1 + m2·d2 + mc·d3)")} = 9,81 × cos ${o.th}° × ${nf(o.m1*o.d1+o.m2*o.d2+o.m3*o.d3,3)} = ${U(o.Ct,"N·m")}.`},
         {data,q:`Exigence : tenir la charge dans toutes les positions. L'actionneur fournit au plus ${o.Cmax} N·m. L'exigence est-elle satisfaite ?`,type:"ch",ch:YN,ok:ok?0:1,
@@ -8744,36 +9434,42 @@ POOLS["meca-statique"]={
         {fig,q:"Pour augmenter la charge admissible sans changer de cheville, quelle modification est efficace ?",type:"ch",...mc("Éloigner la vis du point d'appui C (augmenter h)",["Rapprocher la vis du point d'appui C (diminuer h)","Allonger la console pour poser la charge plus loin du mur","Remplacer la console par une console plus lourde"]),
           expl:`${F("m·g·d = F·h")} : à effort F fixé, la charge admissible est proportionnelle à h / d. Augmenter h (console plus haute, vis loin de C) ou diminuer d augmente la charge admissible.`}]; },
     /* repérer l'erreur dans une résolution */
-    ()=>{ const v=rnd([0,1,2,3,4,5]); let ctx, st, bad, why;
+    ()=>{ const v=rnd([0,1,2,3,4,5]); let ctx, st, bad, why, fig;
       if(v===0){ const P=rnd([300,400,500]), a=rnd([1.2,1.5]), b=rnd([0.6,0.8]), al=rnd([30,40]), Tw=P*b/a, Tr=P*b/(a*Math.sin(rad(al)));
+        fig=fx_stat_potence({a,b,al,type:"cable",T:true});
         ctx=`Potence : charge P = ${P} N en E, AE = ${nf(b,1)} m, câble fixé en D (AD = ${nf(a,1)} m) incliné de α = ${al}° sur la barre.`;
         st=["On isole la barre AD : actions en A (mur), en D (câble) et en E (charge).",`Moment en A : T × AD − P × AE = 0`,`T = P × AE / AD = ${nf(Tw,0)} N`]; bad=1;
         why=`Le bras de levier de T par rapport à A n'est pas AD mais AD·sin α (T n'est pas perpendiculaire à la barre) : T = ${nf(Tr,0)} N.`; }
       else if(v===1){ const Lg=rnd([4,5,6]), m=rnd([40,50,60]), Fv=rnd([600,800,1000]), a=rnd([1,1.5]), YB=Fv*a/Lg, YBr=(Fv*a+m*g*Lg/2)/Lg;
+        fig=fx_stat_poutre({L:Lg,loads:[{x:a,lab:"F"}],poids:true,cotes:[{x:a,t:`${nf(a,1)} m`}]});
         ctx=`Poutre AB = ${Lg} m de masse ${m} kg (G au milieu), sur deux appuis A et B, chargée par F = ${nf(Fv,0)} N à ${nf(a,1)} m de A.`;
         st=["Bilan des actions extérieures : actions des appuis en A et B, effort F.",`Moment en A : Y_B × ${Lg} − F × ${nf(a,1)} = 0`,`Y_B = ${nf(YB,0)} N`]; bad=0;
         why=`Le poids de la poutre (${nf(m*g,0)} N en son milieu) manque au bilan : Y_B = (F × ${nf(a,1)} + P × ${nf(Lg/2,1)}) / ${Lg} = ${nf(YBr,0)} N.`; }
       else if(v===2){ const Fv=rnd([800,1000,1200]), YB=rnd([300,350,400]);
+        fig=fxs_poutreR({F:Fv,YB});
         ctx=`Poutre de poids négligé, chargée par F = ${nf(Fv,0)} N ; le moment en A a donné Y_B = ${YB} N (appuis A et B, actions verticales vers le haut).`;
         st=[`Résultante verticale : Y_A + Y_B − F = 0`,`Y_A = F + Y_B = ${nf(Fv+YB,0)} N`,"L'appui A porte plus que la charge F"]; bad=1;
         why=`De Y_A + Y_B − F = 0, on tire Y_A = F − Y_B = ${nf(Fv-YB,0)} N. Deux appuis ne peuvent pas porter plus que la charge totale.`; }
       else if(v===3){ const m=rnd([2,3,4]), d=rnd([0.4,0.5,0.6]);
+        fig=fx_stat_bras({n:1,l1:d,pts:[{d,lab:"P",c:1}],cotes:[{d,t:`d = ${nf(d,1)} m`}]});
         ctx=`Couple de maintien d'un bras horizontal de masse négligée, portant une pièce de ${m} kg à ${nf(d,1)} m de l'articulation O.`;
         st=["On isole {bras + pièce} : action de l'articulation en O, couple moteur C, poids de la pièce.",`Moment en O : C − ${m} × ${nf(d,1)} = 0`,`C = ${nf(m*d,1)} N·m`]; bad=1;
         why=`Le moment est celui du poids P = m·g = ${nf(m*g,1)} N, pas de la masse : C = ${nf(m*g*d,2)} N·m.`; }
       else if(v===4){ const P=rnd([150,200,300]), al=rnd([30,40]);
+        fig=fx_stat_suspendu({al,be:al,lb:"α",T:true});
         ctx=`Objet de poids P = ${P} N suspendu par deux câbles symétriques inclinés de α = ${al}° sur l'horizontale.`;
         st=["Par symétrie, T1 = T2 = T.",`Projection verticale : 2·T·cos α − P = 0`,`T = P / (2·cos α) = ${nf(P/(2*Math.cos(rad(al))),0)} N`]; bad=1;
         why=`α est mesuré depuis l'horizontale : la composante verticale de T est T·sin α. T = P / (2·sin α) = ${nf(P/(2*Math.sin(rad(al))),0)} N.`; }
       else { const m1=3000, e=1.4, g1=0.6, c=0.6, m2=rnd([3500,4000]), NB=g*(m1*g1-m2*c)/e;
+        fig=fx_stat_chariot({e,g1,c});
         ctx=`Chariot élévateur (m1 = 3 000 kg, G1 à 0,6 m des roues avant A, empattement 1,4 m) portant une charge m2 = ${nf(m2,0)} kg à 0,6 m devant A.`;
         st=["Moment en A : m1·g × 0,6 − m2·g × 0,6 − N_B × 1,4 = 0",`N_B = ${nf(NB,0)} N`,"N_B est négative : le sol retient les roues arrière vers le bas et le chariot reste en équilibre."]; bad=2;
         why="Un appui ne peut que pousser : une action négative est impossible. Les roues arrière décollent et le chariot bascule vers l'avant."; }
-      return {ctx,data:`<ol style="margin:0;padding-left:1.4em">${st.map(x=>`<li>${x}</li>`).join("")}</ol>`,q:"Un élève a rédigé cette résolution. À quelle étape se trouve la première erreur ?",type:"ch",ch:["Étape 1","Étape 2","Étape 3"],ok:bad,expl:`L'erreur est à l'étape ${bad+1}. ${why}`}; },
+      return {fig,ctx,data:`<ol style="margin:0;padding-left:1.4em">${st.map(x=>`<li>${x}</li>`).join("")}</ol>`,q:"Un élève a rédigé cette résolution. À quelle étape se trouve la première erreur ?",type:"ch",ch:["Étape 1","Étape 2","Étape 3"],ok:bad,expl:`L'erreur est à l'étape ${bad+1}. ${why}`}; },
     /* système hyperstatique : bus articulé */
-    ()=>{ const m1=rnd([15,16,17]), m2=rnd([12,13,14]);
+    ()=>{ const m1=rnd([15,16,17]), m2=rnd([12,13,14]), fig=fxs_bus({m1,m2});
       const ctx=`Bus articulé à l'arrêt : caisse avant (${m1} t, essieux A et B) et caisse arrière (${m2} t, essieu C), reliées par une articulation R. Modèle plan, actions du sol verticales en A, B et C.`;
-      return [{ctx,q:"En isolant le bus complet, peut-on calculer les trois actions du sol en A, B et C ?",type:"ch",...mc("Non : il y a trois inconnues, mais seulement deux équations utiles (forces verticales et moments)",["Oui : le principe fondamental donne toujours autant d'équations que d'inconnues","Oui : trois inconnues et trois équations","Non : il faudrait connaître la masse des roues"]),
+      return [{fig,ctx,q:"En isolant le bus complet, peut-on calculer les trois actions du sol en A, B et C ?",type:"ch",...mc("Non : il y a trois inconnues, mais seulement deux équations utiles (forces verticales et moments)",["Oui : le principe fondamental donne toujours autant d'équations que d'inconnues","Oui : trois inconnues et trois équations","Non : il faudrait connaître la masse des roues"]),
           expl:"Toutes les forces sont verticales : la projection horizontale donne 0 = 0. Il reste deux équations (résultante verticale et moments) pour trois inconnues : le problème est indéterminé si on isole le bus entier. Écrire les moments en un autre point ne donne pas d'équation nouvelle."},
         {ctx,q:"Quelle démarche permet de résoudre le problème ?",type:"ch",...mc("Isoler d'abord la caisse arrière (inconnues : C et l'action en R), puis la caisse avant (inconnues : A et B)",["Isoler chaque essieu séparément","Écrire une troisième équation de moments en un autre point","Supposer que les trois essieux sont également chargés"]),
           expl:"La caisse arrière ne porte que deux inconnues verticales (C et R) : ses deux équations suffisent. Connaissant R, la caisse avant n'a plus que deux inconnues (A et B). On découpe le système en sous-ensembles qui ont au plus autant d'inconnues que d'équations."}]; },
@@ -8790,7 +9486,7 @@ POOLS["meca-statique"]={
     ()=>{ const o=draw(()=>({m:rnd([300,400,500,600,800]),a:rnd([0.3,0.35,0.4]),b:rnd([0.7,0.8,0.9]),be:rnd([50,60,70,80]),D:rnd([32,40,50]),pm:rnd([100,120,150,160,200])}),
         o=>{ if(o.a/o.b<0.4||56+300*o.a/o.b-100/Math.tan(rad(o.be))<92) return false; const Fv=o.m*g*o.b/(2*o.a*Math.sin(rad(o.be))), p=Fv/(Math.PI*(o.D/1000)**2/4)/1e5; return far(p,o.pm,0.06); });
       const Fv=o.m*g*o.b/(2*o.a*Math.sin(rad(o.be))), S=Math.PI*(o.D/1000)**2/4, p=Fv/S/1e5, ok=p<=o.pm;
-      const fig=fx_stat_verin({a:o.a,b:o.b,be:o.be}), data=`Charge : ${o.m} kg en C · OA = ${nf(o.a,2)} m · OC = ${nf(o.b,2)} m · β = ${o.be}° · 2 vérins identiques de diamètre ${o.D} mm`;
+      const fig=fx_stat_verin({a:o.a,b:o.b,be:o.be,pose:true}), data=`Charge : ${o.m} kg en C · OA = ${nf(o.a,2)} m · OC = ${nf(o.b,2)} m · β = ${o.be}° · 2 vérins identiques de diamètre ${o.D} mm`;
       return [{fig,data,ctx:"Hayon élévateur : le plateau, articulé en O, est tenu par deux vérins hydrauliques identiques, un de chaque côté (ils se superposent sur la figure). Poids du plateau négligé, g = 9,81 m/s².",
           q:"Calcule l'effort exercé par chaque vérin.",type:"num",ans:Fv,tolR:0.02,unit:"N",
           expl:`Moment en O : ${F("2·F·OA·sin β = P·OC")}, F = ${nf(o.m*g,0)} × ${nf(o.b,2)} / (2 × ${nf(o.a,2)} × sin ${o.be}°) = ${U(Fv,"N")}. Piège : les deux vérins se partagent l'effort.`},
@@ -10334,6 +11030,8 @@ document.addEventListener("keydown",e=>{
 
 /* ---------- séries d'une notion ---------- */
 const ficheHTML=f=>`<div class="fiche"><h3>${f.t}</h3><ul>${f.l.map(x=>`<li>${x}</li>`).join("")}</ul></div>`;
+// lien vers la fiche de révision complète du site SI Papara (si la page est servie par le site et que la fiche existe)
+const ficheLien=id=>(window.SIP&&SIP.FICHES_BAC&&SIP.FICHES_BAC[id])?`<p class="fine"><a class="btn" href="../index.html#/fiche/${id}">Fiche de révision complète →</a></p>`:"";
 function openNotion(id){
   const M=MODULES[id]; if(M.series.length===1) return start(id,0);
   const r=byId[id]; document.body.classList.remove("playing"); st=null;
@@ -10341,7 +11039,7 @@ function openNotion(id){
   app.innerHTML=`<div class="crumb"><button class="btn" id="back" type="button">← Toutes les notions</button><span class="rk">n° ${r.rank}</span><b>${esc(r.lab)}</b><span class="soon">probabilité ${r.p} %</span>${v!=null?`<span class="mb" data-s="${s}">${MLAB[s]} · ${pct(v)}</span>`:""}</div>
     <div class="levels">${M.series.map((se,k)=>{ const b=best(id,k), n=se.key?poolCount(se.key):se.b().length;
       return `<article class="lvl-card"><div class="top-row"><span class="lvl-n">Série ${k+1}</span><span class="best">${b==null?"pas encore faite":`meilleure note <b>${b}/20</b>`}</span></div><h2>${se.t}</h2><div class="meta">${n} questions tirées parmi ${se.key?poolSize(se.key):n} · valeurs au hasard</div><div><button class="btn primary" type="button" data-k="${k}">${b==null?"Commencer":"Recommencer"}</button></div></article>`; }).join("")}</div>
-    <div class="sec-h"><h2>Fiche à relire</h2></div><div class="fiches">${ficheHTML(M.fiche)}</div>`;
+    <div class="sec-h"><h2>Fiche à relire</h2></div><div class="fiches">${ficheHTML(M.fiche)}</div>${ficheLien(id)}`;
   $("#back").onclick=home;
   app.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>start(id,+b.dataset.k));
   window.scrollTo({top:0});
@@ -10491,7 +11189,7 @@ function end(){
       ${nextNotion?`<button class="btn" id="nxn" type="button">Notion suivante : ${esc(nextNotion.lab)} →</button>`:""}
       <button class="btn" id="home" type="button">Accueil</button></div></div>
     <div class="panel">${errList(errs)}${errs.length?"":`<p>Passe à la suite, ou refais la série : les valeurs changent à chaque partie.</p>`}
-      <h3>Fiche à relire</h3><div class="fiches">${ficheHTML(st.M.fiche)}</div></div>
+      <h3>Fiche à relire</h3><div class="fiches">${ficheHTML(st.M.fiche)}</div>${ficheLien(st.id)}</div>
   </div>`;
   const id=st.id, k=st.k;
   $("#again").onclick=()=>start(id,k); $("#home").onclick=home;
