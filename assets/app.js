@@ -5,6 +5,9 @@
   const $app = document.getElementById("app");
   const esc = SIP.esc;
   let ETAT = null;          // état renvoyé par le serveur
+  let ANIM_EN_COURS = null; // animation de la fiche affichée (arrêtée en quittant la page)
+  let MISSIONS_EN_COURS = null; // missions à étoiles de cette animation (assets/missions.js)
+  let VERIF_EN_COURS = null; // questions « Vérifie que tu as compris » de la fiche (assets/verif.js)
   let serieEnCours = false;
 
   // ---------------- Outils ----------------
@@ -132,15 +135,19 @@
 
     if (s.niveau === "TSI" && SIP.BAC) {
       // Terminale : tout le tableau de bord est tourné vers l'écrit du bac ; les questions de cours passent en bas
+      // Terminale : une seule chose à voir, le prochain DS et ses notions (Fiche, puis Série) ; tout le reste est replié
       $app.innerHTML = `<h1>Bonjour ${esc(s.nom)}</h1>
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
-      ${tuileBac(hist)}
-      ${outilsBac(hist)}
-      ${notionsBac(hist)}
-      ${derniers}
-      <h2>Questions de cours rapides <span class="discret">QCM des chapitres, mini-fiches et révision de la semaine</span></h2>
-      <details class="sequence rapides"><summary><span>Ouvrir les questions de cours</span><span class="discret">${pluriel(modules.length, "module")}</span></summary>
-        <div class="rapides-in">${grille}${blocsModules(modules, hist, true)}</div></details>
+      ${prochainDS(hist)}
+      <details class="sequence plus"><summary><span>Aller plus loin</span><span class="discret">révision du jour, parcours, sujet blanc, toutes les notions, mes résultats</span></summary>
+        <div class="plus-in">
+          ${outilsBac(hist)}
+          ${notionsBac(hist)}
+          ${derniers}
+          <h2>Questions de cours rapides <span class="discret">QCM des chapitres, mini-fiches et révision de la semaine</span></h2>
+          <details class="sequence rapides"><summary><span>Ouvrir les questions de cours</span><span class="discret">${pluriel(modules.length, "module")}</span></summary>
+            <div class="rapides-in">${grille}${blocsModules(modules, hist, true)}</div></details>
+        </div></details>
       <p class="pied"><button class="btn-lien" id="deco">Se déconnecter</button></p>`;
     } else {
       $app.innerHTML = `<h1>Bonjour ${esc(s.nom)}</h1>
@@ -177,6 +184,27 @@
           <span class="btn">S'entraîner →</span></div>
       </a>`;
   }
+  // Le prochain DS : pour chaque notion, « Fiche » puis « Série ». C'est la seule consigne : fiche, puis série jusqu'à 16.
+  function prochainDS(hist) {
+    const B = SIP.BAC; if (!B) return "";
+    const now = Date.now(), prochaines = B.notions.filter((n) => n.echeance && Date.parse(n.echeance) > now).sort((a, b) => a.echeance.localeCompare(b.echeance));
+    const lot = prochaines.length ? prochaines.filter((n) => n.ds_date === prochaines[0].ds_date).sort((a, b) => a.rang - b.rang) : [];
+    if (!lot.length) return tuileBac(hist);
+    const jour = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Pacific/Tahiti" });
+    const faites = lot.filter((n) => etatNotion(n, hist).valide).length;
+    const lignes = lot.map((n) => {
+      const e = etatNotion(n, hist), fn = noteFiche(hist, n.id), comprise = fn !== null && fn >= 16;
+      const fiche = ficheBac(n.id) ? `<a class="btn ${comprise ? "sec fait" : (e.valide ? "sec" : "")}" href="#/fiche/${n.id}">${comprise ? "✓ Fiche" : "1. Fiche"}${fn !== null && !comprise ? ` <small>${SIP.nb(fn, 3)}/20</small>` : ""}</a>` : "";
+      const serie = n.enLigne ? `<a class="btn ${e.valide ? "sec fait" : (comprise || !ficheBac(n.id) ? "" : "sec")}" href="${PAGE_BAC}#n=${n.id}">${e.valide ? "✓ Série" : "2. Série"}${!e.valide && e.txt.includes("/20") ? ` <small>${e.txt.replace(/^.*?(\d[\d,]*)\/20.*$/, "$1")}/20</small>` : ""}</a>` : `<span class="btn sec off">bientôt</span>`;
+      return `<li class="${e.valide ? "ok" : ""}"><span class="ds-nom"><b>${esc(n.lab)}</b><span class="discret">${DOM_BAC[n.dom] || ""}</span></span><span class="ds-btns">${fiche}${serie}</span></li>`;
+    }).join("");
+    return `<section class="carte ds-hero ${faites === lot.length ? "fait" : "a-faire"}">
+        <div class="ds-tete"><div><div class="eyebrow">Prochain DS</div><div class="bac-titre">${esc(lot[0].ds || "DS")} <span>· ${esc(jour(lot[0].ds_date))}</span></div></div>
+          <div class="ds-compte"><div class="grand">${faites}<small> / ${lot.length}</small></div><div class="discret">validée${faites > 1 ? "s" : ""}</div></div></div>
+        <ul class="ds-lot">${lignes}</ul>
+        <p class="bac-regle">Pour chaque notion : lis la fiche, puis fais la série jusqu'à ${B.seuil}/20. Avant 6 h le jour du DS, essais illimités.</p>
+      </section>`;
+  }
   const PAGE_BAC = "entrainements/bac-si.html";
   const DOM_BAC = { ana: "Analyse", meca: "Mécanique", ener: "Énergie", info: "Information", auto: "Automatique", simu: "Modélisation", phy: "Physique" };
   const jourCourt = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Pacific/Tahiti" });
@@ -201,9 +229,12 @@
     const ligne = n.enLigne ? `<a class="nb-row" href="${PAGE_BAC}#n=${n.id}" title="S'entraîner sur cette notion">${inner}<span class="nb-go" aria-hidden="true">→</span></a>`
       : `<div class="nb-row off">${inner}<span class="nb-go"></span></div>`;
     if (!nbFichesBac()) return ligne;
-    return `<div class="nb-ligne">${ligne}${ficheBac(n.id) ? `<a class="nb-fiche" href="#/fiche/${n.id}" title="Fiche de révision : ${esc(n.lab)}">Fiche</a>` : `<span class="nb-fiche vide" aria-hidden="true"></span>`}</div>`;
+    const fn = noteFiche(hist, n.id), comprise = fn !== null && fn >= 16;
+    return `<div class="nb-ligne">${ligne}${ficheBac(n.id) ? `<a class="nb-fiche${comprise ? " comprise" : ""}" href="#/fiche/${n.id}" title="Fiche de révision : ${esc(n.lab)}${fn !== null ? ` · vérification : ${SIP.nb(fn, 3)}/20` : ""}">Fiche${comprise ? " ✓" : ""}</a>` : `<span class="nb-fiche vide" aria-hidden="true"></span>`}</div>`;
   }
   const ficheBac = (id) => (SIP.FICHES_BAC && SIP.FICHES_BAC[id]) || null;
+  // meilleure note /20 à la vérification de la fiche (« Vérifie que tu as compris »)
+  const noteFiche = (hist, id) => { const t = (hist || []).filter((h) => h.type === "externe" && h.module === "fiche-" + id); return t.length ? Math.max(...t.map((h) => sur20(h.score, h.score_max))) : null; };
   const nbFichesBac = () => (SIP.FICHES_BAC ? Object.keys(SIP.FICHES_BAC).length : 0);
   function notionsBac(hist) {
     const B = SIP.BAC, auj = SIP.aujourdhui(), dans7 = SIP.ajouterJours(auj, 7);
@@ -232,6 +263,9 @@
       <a class="carte tuile" href="${PAGE_BAC}#blanc">
         <div class="discret">Sujet blanc</div><div class="grand">${dernier ? `${SIP.nb(sur20(dernier.score, dernier.score_max), 3)}<small> / 20</small>` : "40 min"}</div>
         <div class="discret">${dernier ? `Dernier le ${SIP.fmtDate(dernier.fait_le)} · ${pluriel(blancs.length, "sujet")}.` : "20 questions chronométrées, en conditions d'examen."}</div></a>
+      ${SIP.MISSIONS && SIP.MISSIONS.total().possibles ? (() => { const t = SIP.MISSIONS.total(); return `<a class="carte tuile" href="#/fiches-bac">
+        <div class="discret">Missions des fiches</div><div class="grand">${t.gagnees}<small> / ${t.possibles} ★</small></div>
+        <div class="discret">Manipule les animations et gagne tes étoiles.</div></a>`; })() : ""}
       ${nbFiches ? `<a class="carte tuile" href="#/methode">
         <div class="discret">Réussir l'écrit</div><div class="grand">${nbFiches}<small> fiches</small></div>
         <div class="discret">Calculer, conclure, gérer ton temps.</div></a>` : ""}
@@ -256,6 +290,7 @@
     const n = SIP.BAC ? SIP.BAC.notions.find((x) => x.id === id) : null;
     const ds = n && n.ds ? ` · ${esc(n.ds)} le ${jourLong(n.ds_date)}` : "";
     const liens = (F.liens || []).filter((l) => ficheBac(l));
+    const anim = SIP.ANIMS_BAC && SIP.ANIMS_BAC[id];
     $app.innerHTML = `<p class="no-print"><a href="${connecte ? "#/fiches-bac" : "#/"}">← ${connecte ? "Toutes les fiches" : "Accueil"}</a></p>
       <div class="print-tete"><img src="assets/logo-papara.svg" alt="" width="54" height="43"><div><div class="eyebrow">Lycée Tuianu Le Gayic · Papara · Terminale SI · fiche de révision${ds}</div><b>${esc(F.titre)}</b></div></div>
       <div class="fiche-bac-tete no-print">
@@ -263,9 +298,28 @@
         <div class="fiche-bac-actions">${n && n.enLigne ? `<a class="btn" href="${PAGE_BAC}#n=${id}">S'entraîner sur cette notion →</a>` : ""}<button class="btn sec" type="button" id="imp">Imprimer</button></div>
       </div>
       <article class="fiche fiche-bac">${F.html}</article>
+      ${anim ? `<details class="sequence anim-pli no-print" id="anim-pli"><summary><span>Comprendre en manipulant</span><span class="discret">${esc(anim.titre)}${SIP.MISSIONS ? " · animation et missions à étoiles" : " · animation"}</span></summary>
+        <section class="anim" id="anim" aria-labelledby="anim-t"><div class="anim-tete"><h2 id="anim-t">${esc(anim.titre)}</h2>${anim.consigne ? `<p>${anim.consigne}</p>` : ""}</div><div class="anim-zone"></div></section></details>` : ""}
       ${liens.length ? `<p class="no-print fiche-liens">Fiches liées : ${liens.map((l) => `<a href="#/fiche/${l}">${esc(ficheBac(l).titre)}</a>`).join(" · ")}</p>` : ""}
       <p class="pied no-print">${connecte ? `<a href="#/tableau">← Tableau de bord</a> · ` : ""}<a href="#/fiches-bac">Toutes les fiches</a></p>`;
     document.getElementById("imp").onclick = () => window.print();
+    if (SIP.VERIF) {
+      try { VERIF_EN_COURS = SIP.VERIF.monter($app.querySelector(".fiche-bac"), id, { titre: F.titre, connecte, lienEntrainement: n && n.enLigne ? `${PAGE_BAC}#n=${id}` : null }); }
+      catch (e) { console.error(e); }
+    }
+    if (anim) {
+      // l'animation ne se monte qu'à l'ouverture du volet (et une seule fois) : la fiche reste légère à lire
+      const pli = $app.querySelector("#anim-pli"); let montee = false;
+      const monter = () => {
+        if (montee || !pli.open) return; montee = true;
+        try { ANIM_EN_COURS = anim.monter($app.querySelector(".anim-zone"), SIP.ANIM) || null; }
+        catch (e) { console.error(e); $app.querySelector("#anim").remove(); return; }
+        if (SIP.MISSIONS) { try { MISSIONS_EN_COURS = SIP.MISSIONS.monter($app.querySelector(".anim-zone"), id); } catch (e) { console.error(e); } }
+      };
+      pli.addEventListener("toggle", monter);
+      if (location.hash.endsWith("#anim") || sessionStorage.getItem("sip-anim-ouverte") === "1") { pli.open = true; monter(); }
+      pli.addEventListener("toggle", () => { try { sessionStorage.setItem("sip-anim-ouverte", pli.open ? "1" : "0"); } catch (e) {} });
+    }
   }
   function vueFichesBac() {
     const B = SIP.BAC, ids = SIP.FICHES_BAC ? Object.keys(SIP.FICHES_BAC) : [];
@@ -276,10 +330,19 @@
     $app.innerHTML = `<p class="no-print"><a href="#/tableau">← Tableau de bord</a></p>
       <h1>Fiches de révision</h1>
       <p class="discret">Une fiche par notion, tirée du cours : l'essentiel, les formules, la méthode, un exemple corrigé et les pièges. Lis-la avant de t'entraîner, puis relis-la la veille du DS. Chaque fiche s'imprime sur une page.</p>
+      ${bilanEtoiles()}
       ${groupes.map((g) => `<h2>${esc(g.ds || "Hors DS")} <span class="discret">${g.date ? jourLong(g.date) : ""}</span></h2>
         <div class="nb-liste">${g.l.map((n) => `<a class="nb-row fiche-ligne" href="#/fiche/${n.id}"><span class="nb-rk">${n.rang}</span>
-          <span class="nb-nm"><b>${esc(ficheBac(n.id).titre)}</b><span class="discret">${esc(n.lab)} · ${DOM_BAC[n.dom] || ""}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("")}</div>`).join("")}
+          <span class="nb-nm"><b>${esc(ficheBac(n.id).titre)}${SIP.ANIMS_BAC && SIP.ANIMS_BAC[n.id] ? `<span class="anim-badge">animation</span>` : ""}${SIP.MISSIONS ? SIP.MISSIONS.etoilesHTML(n.id) : ""}</b><span class="discret">${esc(n.lab)} · ${DOM_BAC[n.dom] || ""}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("")}</div>`).join("")}
       ${reste > 0 ? `<p class="discret" style="margin-top:18px">${pluriel(reste, "autre notion")} : fiche à venir, au fil du planning.</p>` : ""}`;
+  }
+  // étoiles des missions (gardées dans ce navigateur)
+  function bilanEtoiles() {
+    if (!SIP.MISSIONS) return "";
+    const t = SIP.MISSIONS.total(); if (!t.possibles) return "";
+    const pc = Math.round((100 * t.gagnees) / t.possibles);
+    return `<div class="etoiles-bilan"><svg class="mq-etoile plein" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.03 6.62.78-4.9 4.53 1.3 6.54L12 17.2l-5.87 3.28 1.3-6.54-4.9-4.53 6.62-.78z"/></svg>
+      <b>${t.gagnees}<small> / ${t.possibles}</small></b><span class="discret">étoiles gagnées dans les missions des animations</span><span class="nb-t" aria-hidden="true"><i style="width:${pc}%"></i></span></div>`;
   }
   function moyenneGenerale(hist) {
     const t = hist.filter((h) => h.type === "entrainement");
@@ -314,7 +377,7 @@
     if (!h.length) return `<p class="discret">Aucun entraînement pour l'instant.</p>`;
     const lib = { entrainement: "Entraînement", revision_hebdo: "Révision hebdo", externe: "Exercice", revision_jour: "Révision du jour" };
     return `<div class="table-defil"><table><thead><tr><th>Date</th><th>Activité</th><th class="num">Note</th></tr></thead><tbody>${h.map((x) =>
-      `<tr><td>${SIP.fmtDate(x.fait_le, true)}</td><td>${esc(x.titre || (SIP.module(x.module) || {}).titre || x.module)}<br><span class="discret">${lib[x.type] || x.type}</span></td>
+      `<tr><td>${SIP.fmtDate(x.fait_le, true)}</td><td>${esc(x.titre || (SIP.module(x.module) || {}).titre || x.module)}<br><span class="discret">${/^fiche-/.test(x.module) ? "Vérification de fiche" : lib[x.type] || x.type}</span></td>
       <td class="num">${etiquetteNote(x.score, x.score_max)}</td></tr>`).join("")}</tbody></table></div>`;
   }
 
@@ -525,6 +588,12 @@
 
   // ---------------- Routeur ----------------
   async function router() {
+    if (MISSIONS_EN_COURS) { try { MISSIONS_EN_COURS.arreter(); } catch (e) { /* rien */ } }
+    MISSIONS_EN_COURS = null;
+    if (VERIF_EN_COURS) { try { VERIF_EN_COURS.arreter(); } catch (e) { /* rien */ } }
+    VERIF_EN_COURS = null;
+    if (ANIM_EN_COURS && ANIM_EN_COURS.arreter) { try { ANIM_EN_COURS.arreter(); } catch (e) { /* rien */ } }
+    ANIM_EN_COURS = null;
     entete(); banniere();
     const h = location.hash.replace(/^#\/?/, "").split("/");
     const s = SIP.session.get();

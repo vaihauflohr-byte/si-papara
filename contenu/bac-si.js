@@ -2,7 +2,7 @@
    Une notion est validée si l'élève atteint 16/20 à l'une de ses séries avant l'échéance (le jour de son DS, 6 h). */
 window.SIP = window.SIP || {};
 SIP.BAC = {
-"maj": "2026-09-29",
+"maj": "2026-10-01",
 "seuil": 16,
 "notions": [
 {
@@ -395,10 +395,10 @@ SIP.BAC = {
 "rang": 33,
 "p": 15,
 "dom": "simu",
-"cours": "2027-02-09",
-"ds": "DS 14",
-"ds_date": "2027-02-25",
-"echeance": "2027-02-25T06:00:00-10:00",
+"cours": "2027-02-23",
+"ds": null,
+"ds_date": null,
+"echeance": null,
 "enLigne": false
 },
 {
@@ -407,10 +407,10 @@ SIP.BAC = {
 "rang": 34,
 "p": 15,
 "dom": "phy",
-"cours": "2027-02-02",
-"ds": "DS 13",
-"ds_date": "2027-02-11",
-"echeance": "2027-02-11T06:00:00-10:00",
+"cours": "2027-02-23",
+"ds": null,
+"ds_date": null,
+"echeance": null,
 "enLigne": false
 },
 {
@@ -419,10 +419,10 @@ SIP.BAC = {
 "rang": 35,
 "p": 13,
 "dom": "info",
-"cours": "2027-02-02",
-"ds": "DS 13",
-"ds_date": "2027-02-11",
-"echeance": "2027-02-11T06:00:00-10:00",
+"cours": "2027-02-23",
+"ds": null,
+"ds_date": null,
+"echeance": null,
 "enLigne": false
 },
 {
@@ -431,10 +431,10 @@ SIP.BAC = {
 "rang": 36,
 "p": 9,
 "dom": "ener",
-"cours": "2027-01-26",
-"ds": "DS 12",
-"ds_date": "2027-02-04",
-"echeance": "2027-02-04T06:00:00-10:00",
+"cours": "2027-02-23",
+"ds": null,
+"ds_date": null,
+"echeance": null,
 "enLigne": false
 },
 {
@@ -443,10 +443,10 @@ SIP.BAC = {
 "rang": 37,
 "p": 7,
 "dom": "simu",
-"cours": "2027-02-09",
-"ds": "DS 14",
-"ds_date": "2027-02-25",
-"echeance": "2027-02-25T06:00:00-10:00",
+"cours": "2027-02-23",
+"ds": null,
+"ds_date": null,
+"echeance": null,
 "enLigne": false
 },
 {
@@ -459,7 +459,7 @@ SIP.BAC = {
 "ds": null,
 "ds_date": null,
 "echeance": null,
-"enLigne": false
+"enLigne": true
 },
 {
 "id": "phy-fluides",
@@ -467,10 +467,10 @@ SIP.BAC = {
 "rang": 39,
 "p": 3,
 "dom": "phy",
-"cours": "2027-01-19",
-"ds": "DS 11",
-"ds_date": "2027-01-28",
-"echeance": "2027-01-28T06:00:00-10:00",
+"cours": "2027-02-23",
+"ds": null,
+"ds_date": null,
+"echeance": null,
 "enLigne": false
 },
 {
@@ -483,7 +483,7 @@ SIP.BAC = {
 "ds": null,
 "ds_date": null,
 "echeance": null,
-"enLigne": false
+"enLigne": true
 },
 {
 "id": "phy-electricite",
@@ -491,10 +491,10 @@ SIP.BAC = {
 "rang": 41,
 "p": 0,
 "dom": "phy",
-"cours": "2027-01-26",
-"ds": "DS 12",
-"ds_date": "2027-02-04",
-"echeance": "2027-02-04T06:00:00-10:00",
+"cours": "2027-02-23",
+"ds": null,
+"ds_date": null,
+"echeance": null,
 "enLigne": false
 }
 ]
