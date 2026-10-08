@@ -8,7 +8,6 @@
   let ANIM_EN_COURS = null; // animation de la fiche affichée (arrêtée en quittant la page)
   let MISSIONS_EN_COURS = null; // missions à étoiles de cette animation (assets/missions.js)
   let VERIF_EN_COURS = null; // questions « Vérifie que tu as compris » de la fiche (assets/verif.js)
-  let OBSERVE_EN_COURS = null; // série « Observe et réponds » posée sur l'animation (assets/observe.js)
   let serieEnCours = false;
 
   // ---------------- Outils ----------------
@@ -136,19 +135,15 @@
 
     if (s.niveau === "TSI" && SIP.BAC) {
       // Terminale : tout le tableau de bord est tourné vers l'écrit du bac ; les questions de cours passent en bas
-      // Terminale : une seule chose à voir, le prochain DS et ses notions (Fiche, puis Série) ; tout le reste est replié
       $app.innerHTML = `<h1>Bonjour ${esc(s.nom)}</h1>
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
-      ${prochainDS(hist)}
-      <details class="sequence plus"><summary><span>Aller plus loin</span><span class="discret">révision du jour, parcours, sujet blanc, toutes les notions, mes résultats</span></summary>
-        <div class="plus-in">
-          ${outilsBac(hist)}
-          ${notionsBac(hist)}
-          ${derniers}
-          <h2>Questions de cours rapides <span class="discret">QCM des chapitres, mini-fiches et révision de la semaine</span></h2>
-          <details class="sequence rapides"><summary><span>Ouvrir les questions de cours</span><span class="discret">${pluriel(modules.length, "module")}</span></summary>
-            <div class="rapides-in">${grille}${blocsModules(modules, hist, true)}</div></details>
-        </div></details>
+      ${tuileBac(hist)}
+      ${outilsBac(hist)}
+      ${notionsBac(hist)}
+      ${derniers}
+      <h2>Questions de cours rapides <span class="discret">QCM des chapitres, mini-fiches et révision de la semaine</span></h2>
+      <details class="sequence rapides"><summary><span>Ouvrir les questions de cours</span><span class="discret">${pluriel(modules.length, "module")}</span></summary>
+        <div class="rapides-in">${grille}${blocsModules(modules, hist, true)}</div></details>
       <p class="pied"><button class="btn-lien" id="deco">Se déconnecter</button></p>`;
     } else {
       $app.innerHTML = `<h1>Bonjour ${esc(s.nom)}</h1>
@@ -184,27 +179,6 @@
         <div class="bac-d"><div><div class="grand">${faites}<small> / ${lot.length}</small></div><div class="discret">validée${faites > 1 ? "s" : ""}</div></div>
           <span class="btn">S'entraîner →</span></div>
       </a>`;
-  }
-  // Le prochain DS : pour chaque notion, « Fiche » puis « Série ». C'est la seule consigne : fiche, puis série jusqu'à 16.
-  function prochainDS(hist) {
-    const B = SIP.BAC; if (!B) return "";
-    const now = Date.now(), prochaines = B.notions.filter((n) => n.echeance && Date.parse(n.echeance) > now).sort((a, b) => a.echeance.localeCompare(b.echeance));
-    const lot = prochaines.length ? prochaines.filter((n) => n.ds_date === prochaines[0].ds_date).sort((a, b) => a.rang - b.rang) : [];
-    if (!lot.length) return tuileBac(hist);
-    const jour = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Pacific/Tahiti" });
-    const faites = lot.filter((n) => etatNotion(n, hist).valide).length;
-    const lignes = lot.map((n) => {
-      const e = etatNotion(n, hist), fn = noteFiche(hist, n.id), comprise = fn !== null && fn >= 16;
-      const fiche = ficheBac(n.id) ? `<a class="btn ${comprise ? "sec fait" : (e.valide ? "sec" : "")}" href="#/fiche/${n.id}">${comprise ? "✓ Fiche" : "1. Fiche"}${fn !== null && !comprise ? ` <small>${SIP.nb(fn, 3)}/20</small>` : ""}</a>` : "";
-      const serie = n.enLigne ? `<a class="btn ${e.valide ? "sec fait" : (comprise || !ficheBac(n.id) ? "" : "sec")}" href="${PAGE_BAC}#n=${n.id}">${e.valide ? "✓ Série" : "2. Série"}${!e.valide && e.txt.includes("/20") ? ` <small>${e.txt.replace(/^.*?(\d[\d,]*)\/20.*$/, "$1")}/20</small>` : ""}</a>` : `<span class="btn sec off">bientôt</span>`;
-      return `<li class="${e.valide ? "ok" : ""}"><span class="ds-nom"><b>${esc(n.lab)}</b><span class="discret">${DOM_BAC[n.dom] || ""}</span></span><span class="ds-btns">${fiche}${serie}</span></li>`;
-    }).join("");
-    return `<section class="carte ds-hero ${faites === lot.length ? "fait" : "a-faire"}">
-        <div class="ds-tete"><div><div class="eyebrow">Prochain DS</div><div class="bac-titre">${esc(lot[0].ds || "DS")} <span>· ${esc(jour(lot[0].ds_date))}</span></div></div>
-          <div class="ds-compte"><div class="grand">${faites}<small> / ${lot.length}</small></div><div class="discret">validée${faites > 1 ? "s" : ""}</div></div></div>
-        <ul class="ds-lot">${lignes}</ul>
-        <p class="bac-regle">Pour chaque notion : lis la fiche, puis fais la série jusqu'à ${B.seuil}/20. Avant 6 h le jour du DS, essais illimités.</p>
-      </section>`;
   }
   const PAGE_BAC = "entrainements/bac-si.html";
   const DOM_BAC = { ana: "Analyse", meca: "Mécanique", ener: "Énergie", info: "Information", auto: "Automatique", simu: "Modélisation", phy: "Physique" };
@@ -296,13 +270,10 @@
       <div class="print-tete"><img src="assets/logo-papara.svg" alt="" width="54" height="43"><div><div class="eyebrow">Lycée Tuianu Le Gayic · Papara · Terminale SI · fiche de révision${ds}</div><b>${esc(F.titre)}</b></div></div>
       <div class="fiche-bac-tete no-print">
         <div><div class="eyebrow">Fiche de révision${n ? ` · ${DOM_BAC[n.dom] || ""}` : ""}${ds}</div><h1>${esc(F.titre)}</h1>${F.sous ? `<p class="discret">${esc(F.sous)}</p>` : ""}</div>
-        <div class="fiche-bac-actions">${n && n.enLigne ? `<a class="btn" href="${PAGE_BAC}#n=${id}">S'entraîner sur cette notion →</a>` : ""}${anim && SIP.OBSERVE && SIP.OBSERVE.nb(id) ? `<button class="btn sec" type="button" id="go-obs">Observe et réponds <span class="discret">${SIP.OBSERVE.nb(id)} questions</span></button>` : anim ? `<button class="btn sec" type="button" id="go-obs">Comprendre en manipulant</button>` : ""}<button class="btn sec" type="button" id="imp">Imprimer</button></div>
+        <div class="fiche-bac-actions">${n && n.enLigne ? `<a class="btn" href="${PAGE_BAC}#n=${id}">S'entraîner sur cette notion →</a>` : ""}<button class="btn sec" type="button" id="imp">Imprimer</button></div>
       </div>
+      ${anim ? `<section class="anim no-print" id="anim" aria-labelledby="anim-t"><div class="anim-tete"><div class="eyebrow">Comprendre en manipulant</div><h2 id="anim-t">${esc(anim.titre)}</h2>${anim.consigne ? `<p>${anim.consigne}</p>` : ""}</div><div class="anim-zone"></div></section>` : ""}
       <article class="fiche fiche-bac">${F.html}</article>
-      ${anim ? `<details class="sequence anim-pli no-print" id="anim-pli"><summary><span>Comprendre en manipulant</span><span class="discret">${esc(anim.titre)}${SIP.OBSERVE && SIP.OBSERVE.nb(id) ? ` · observe et réponds (${SIP.OBSERVE.nb(id)} questions)` : ""}${SIP.MISSIONS && SIP.MISSIONS.nb(id) ? " · animation et missions à étoiles" : " · animation"}</span></summary>
-        <section class="anim${SIP.OBSERVE && SIP.OBSERVE.nb(id) ? " obs-mode" : ""}" id="anim" aria-labelledby="anim-t">
-          ${SIP.OBSERVE && SIP.OBSERVE.nb(id) ? `<div class="an-modes" role="tablist" aria-label="Mode"><button type="button" class="an-mode" role="tab" data-mode="observe" aria-selected="true">Observe et réponds <span class="discret">${SIP.OBSERVE.nb(id)} questions</span></button><button type="button" class="an-mode" role="tab" data-mode="manipuler" aria-selected="false">Manipuler <span class="discret">curseurs et missions</span></button></div>` : ""}
-          <div class="anim-tete"><h2 id="anim-t">${esc(anim.titre)}</h2>${anim.consigne ? `<p class="an-consigne-manip">${anim.consigne}</p>` : ""}</div><div class="anim-zone"></div></section></details>` : ""}
       ${liens.length ? `<p class="no-print fiche-liens">Fiches liées : ${liens.map((l) => `<a href="#/fiche/${l}">${esc(ficheBac(l).titre)}</a>`).join(" · ")}</p>` : ""}
       <p class="pied no-print">${connecte ? `<a href="#/tableau">← Tableau de bord</a> · ` : ""}<a href="#/fiches-bac">Toutes les fiches</a></p>`;
     document.getElementById("imp").onclick = () => window.print();
@@ -311,28 +282,9 @@
       catch (e) { console.error(e); }
     }
     if (anim) {
-      // l'animation ne se monte qu'à l'ouverture du volet (et une seule fois) : la fiche reste légère à lire
-      const pli = $app.querySelector("#anim-pli"); let montee = false;
-      const monter = () => {
-        if (montee || !pli.open) return; montee = true;
-        try { ANIM_EN_COURS = anim.monter($app.querySelector(".anim-zone"), SIP.ANIM) || null; }
-        catch (e) { console.error(e); $app.querySelector("#anim").remove(); return; }
-        if (SIP.MISSIONS) { try { MISSIONS_EN_COURS = SIP.MISSIONS.monter($app.querySelector(".anim-zone"), id); } catch (e) { console.error(e); } }
-        const section = $app.querySelector("#anim"), opts = { titre: F.titre, lienEntrainement: n && n.enLigne ? `${PAGE_BAC}#n=${id}` : null };
-        const mode = (m) => {
-          section.classList.toggle("obs-mode", m === "observe");
-          section.querySelectorAll(".an-mode").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.mode === m)));
-          if (OBSERVE_EN_COURS) { try { OBSERVE_EN_COURS.arreter(); } catch (e) { /* rien */ } OBSERVE_EN_COURS = null; }
-          if (m === "observe" && SIP.OBSERVE) { try { OBSERVE_EN_COURS = SIP.OBSERVE.monter($app.querySelector(".anim-zone"), id, opts); } catch (e) { console.error(e); } }
-        };
-        section.querySelectorAll(".an-mode").forEach((b) => (b.onclick = () => mode(b.dataset.mode)));
-        if (SIP.OBSERVE && SIP.OBSERVE.nb(id)) mode("observe");
-      };
-      pli.addEventListener("toggle", monter);
-      const go = $app.querySelector("#go-obs");
-      if (go) go.onclick = () => { if (!pli.open) pli.open = true; monter(); pli.scrollIntoView({ behavior: "smooth", block: "start" }); };
-      if (location.hash.endsWith("#anim") || sessionStorage.getItem("sip-anim-ouverte") === "1") { pli.open = true; monter(); }
-      pli.addEventListener("toggle", () => { try { sessionStorage.setItem("sip-anim-ouverte", pli.open ? "1" : "0"); } catch (e) {} });
+      try { ANIM_EN_COURS = anim.monter($app.querySelector(".anim-zone"), SIP.ANIM) || null; }
+      catch (e) { console.error(e); $app.querySelector("#anim").remove(); return; }
+      if (SIP.MISSIONS) { try { MISSIONS_EN_COURS = SIP.MISSIONS.monter($app.querySelector(".anim-zone"), id); } catch (e) { console.error(e); } }
     }
   }
   function vueFichesBac() {
@@ -347,7 +299,7 @@
       ${bilanEtoiles()}
       ${groupes.map((g) => `<h2>${esc(g.ds || "Hors DS")} <span class="discret">${g.date ? jourLong(g.date) : ""}</span></h2>
         <div class="nb-liste">${g.l.map((n) => `<a class="nb-row fiche-ligne" href="#/fiche/${n.id}"><span class="nb-rk">${n.rang}</span>
-          <span class="nb-nm"><b>${esc(ficheBac(n.id).titre)}${SIP.ANIMS_BAC && SIP.ANIMS_BAC[n.id] ? `<span class="anim-badge">animation</span>` : ""}${SIP.OBSERVE && SIP.OBSERVE.nb(n.id) ? `<span class="anim-badge obs-badge" title="${SIP.OBSERVE.nb(n.id)} questions sur l'animation">observe</span>` : ""}${SIP.MISSIONS ? SIP.MISSIONS.etoilesHTML(n.id) : ""}</b><span class="discret">${esc(n.lab)} · ${DOM_BAC[n.dom] || ""}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("")}</div>`).join("")}
+          <span class="nb-nm"><b>${esc(ficheBac(n.id).titre)}${SIP.ANIMS_BAC && SIP.ANIMS_BAC[n.id] ? `<span class="anim-badge">animation</span>` : ""}${SIP.MISSIONS ? SIP.MISSIONS.etoilesHTML(n.id) : ""}</b><span class="discret">${esc(n.lab)} · ${DOM_BAC[n.dom] || ""}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("")}</div>`).join("")}
       ${reste > 0 ? `<p class="discret" style="margin-top:18px">${pluriel(reste, "autre notion")} : fiche à venir, au fil du planning.</p>` : ""}`;
   }
   // étoiles des missions (gardées dans ce navigateur)
@@ -604,8 +556,6 @@
   async function router() {
     if (MISSIONS_EN_COURS) { try { MISSIONS_EN_COURS.arreter(); } catch (e) { /* rien */ } }
     MISSIONS_EN_COURS = null;
-    if (OBSERVE_EN_COURS) { try { OBSERVE_EN_COURS.arreter(); } catch (e) { /* rien */ } }
-    OBSERVE_EN_COURS = null;
     if (VERIF_EN_COURS) { try { VERIF_EN_COURS.arreter(); } catch (e) { /* rien */ } }
     VERIF_EN_COURS = null;
     if (ANIM_EN_COURS && ANIM_EN_COURS.arreter) { try { ANIM_EN_COURS.arreter(); } catch (e) { /* rien */ } }

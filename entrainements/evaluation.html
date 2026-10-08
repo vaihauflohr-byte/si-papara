@@ -175,6 +175,10 @@ pre.code{margin:0;background:var(--paper);border:1px solid var(--rule);border-le
 pre.code .kw{color:var(--accent);font-weight:600} pre.code .str{color:var(--c-auto)} pre.code .cm{color:var(--ink-3)} pre.code .bl{background:var(--warn-soft);color:var(--warn);font-weight:600;padding:0 2px;border-radius:2px}
 .qbox{background:var(--paper);border:1px solid var(--rule);border-top:3px solid var(--accent);border-radius:var(--r);padding:16px 18px;min-width:0}
 .ctx{font-size:.9rem;color:var(--ink-2);background:var(--paper-2);border-radius:4px;padding:8px 11px;margin-bottom:12px}
+.rappel{font-size:.9rem;background:var(--paper-2);border-left:3px solid var(--ink-2);border-radius:0 4px 4px 0;padding:7px 11px;margin-bottom:12px}
+.rappel .rp-t{color:var(--ink-2);font-weight:600}
+.rappel ul{margin:3px 0 0 1.1em;padding:0}
+.rappel li{margin:2px 0}
 .qlabel{font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:.76rem;color:var(--ink-3);display:flex;gap:10px;align-items:center}
 .qlabel .lvq{display:inline-flex;gap:2px;align-items:flex-end;height:10px}
 .qlabel .lvq i{width:4px;background:var(--rule);border-radius:1px}
@@ -483,6 +487,9 @@ body{background:var(--ground)}
 .ev-fig svg{display:block;width:100%;height:auto;max-height:52mm}
 .ev-fig .data{font-size:8.6pt;margin-top:2px}
 .ev-copie .ctx{font-size:9.6pt;color:#222;margin:0 0 1mm;padding:0;border:0;background:none}
+.ev-copie .rappel{font-size:9.6pt;color:#222;margin:0 0 1mm;padding:0 0 0 2mm;border-left:1.5px solid #555}
+.ev-copie .rappel ul{margin:0 0 0 4mm;padding:0}
+.ev-copie .rappel .rp-t{font-weight:600}
 .ev-texte{margin:0}
 .ev-texte p{margin:0 0 1mm}
 .ev-ch{margin:1.5mm 0 0;padding:0;list-style:none;display:grid;gap:1.2mm}
@@ -1421,6 +1428,23 @@ function drawFrom(key){
 }
 const poolSize=key=>POOLS[key]?[1,2,3].reduce((a,l)=>a+POOLS[key][l].length,0):0;
 const poolCount=key=>POOLS[key]?[1,2,3].reduce((a,l)=>a+(POOLS[key].count||{1:4,2:4,3:3})[l],0):0;
+
+/* Questions liées : l'énoncé d'une question de suite redonne les résultats numériques des questions précédentes du
+   même groupe, comme un sujet de bac (« on prendra F = 1 200 N »), pour que l'élève qui a raté ou oublié la première
+   question puisse quand même traiter la suivante. qs : la liste des questions tirées, i : l'indice de la question. */
+function rappelPrecedent(qs,i){
+  const q=qs[i]; if(!q||!q.gj) return "";
+  const meme=k=>(k.key!=null&&k.key===q.key&&k.gi===q.gi&&k.lv===q.lv)||(q.grp!=null&&k.grp===q.grp);
+  const parts=[]; for(let k=i-1;k>=0&&meme(qs[k])&&qs[k].gj<q.gj;k--) parts.unshift(qs[k]);
+  const strip=t=>String(t==null?"":t).replace(/<[^>]+>/g,"").replace(/\s+/g," ").trim();
+  const items=parts.filter(p=>p.type!=="ch"&&typeof p.ans==="number"&&isFinite(p.ans)).map(p=>{
+    const a=Number.isInteger(p.ans)?p.ans:Math.abs(p.ans)>=100?Math.round(p.ans):Number(p.ans.toPrecision(3));
+    const phrases=strip(p.q).split(/(?<=[.?!])\s+/), ask=phrases.filter(x=>/calcul|détermin|quel|combien|déduis|donne|exprime|évalue|\?/i.test(x));
+    const txt=(ask.length?ask[ask.length-1]:phrases[phrases.length-1]).replace(/[.?!]\s*$/,"");
+    return `<li>${txt} : <b>${nf(a,4)}${p.unit?" "+p.unit:""}</b></li>`; });
+  if(!items.length) return "";
+  return `<div class="rappel"><span class="rp-t">On prendra, d'après ${items.length>1?"les questions précédentes":"la question précédente"}</span><ul>${items.join("")}</ul></div>`;
+}
 
 /* Réservoirs : actions mécaniques (meca-actions) et cinématique (meca-cinematique).
    Tout est encapsulé : seules les entrées de POOLS sont ajoutées. */
@@ -19605,7 +19629,7 @@ const nbQuestions = (gs) => gs.reduce((a, g) => a + g.qs.length, 0);
 
 /* ---------- rendu papier ---------- */
 const lettre = (k) => String.fromCharCode(65 + k);
-function htmlQuestion(q, num, pts, cfg, figDejaVue) {
+function htmlQuestion(q, num, pts, cfg, figDejaVue, rappel) {
   const fig = !figDejaVue && (q.fig || q.data) ? `<div class="ev-fig">${q.fig || ""}${q.data ? `<div class="data">${q.data}</div>` : ""}</div>` : "";
   let rep = "";
   if (q.type === "ch") rep = `<ol class="ev-ch">${q.ch.map((c, k) => `<li><span class="ev-case"></span><span class="lt">${lettre(k)}</span><span>${c}</span></li>`).join("")}</ol>`;
@@ -19613,11 +19637,11 @@ function htmlQuestion(q, num, pts, cfg, figDejaVue) {
   else if (q.type === "num") rep = `${cfg.calculs ? `<div class="ev-lignes" aria-hidden="true"><i></i><i></i><i></i></div>` : ""}<p class="ev-rep">Résultat :<span class="pt"></span>${q.unit || ""}</p>`;
   else if (q.type === "ordre") rep = `<p class="ev-aide">Numérote les étapes dans l'ordre (1 = la première).</p><ul class="ev-ordre">${q.items.map((x) => `<li><span class="ev-case num"></span><span>${x.t}</span></li>`).join("")}</ul>`;
   return `<section class="ev-q"><div class="ev-qh"><b>${num}.</b><span class="ev-pts">${nb(pts)} pt${pts >= 2 ? "s" : ""}</span></div>
-    <div class="ev-corps${fig ? " avecfig" : ""}">${fig}${q.ctx0 ? `<div class="ctx">${q.ctx0}</div>` : ""}${q.ctx ? `<div class="ctx">${q.ctx}</div>` : ""}<div class="ev-texte">${q.q}</div>${rep}</div></section>`;
+    <div class="ev-corps${fig ? " avecfig" : ""}">${fig}${q.ctx0 ? `<div class="ctx">${q.ctx0}</div>` : ""}${q.ctx ? `<div class="ctx">${q.ctx}</div>` : ""}${rappel || ""}<div class="ev-texte">${q.q}</div>${rep}</div></section>`;
 }
 function htmlCopie(cfg, el, gs, k) {
   const n = nbQuestions(gs), pts = 20 / n; let num = 0;
-  const corps = gs.map((g) => { let prec = null; const t = g.qs.map((q) => { num++; const deja = prec !== null && q.fig === prec; prec = q.fig || null; return htmlQuestion(q, num, pts, cfg, deja); }).join("");
+  const corps = gs.map((g) => { let prec = null; const t = g.qs.map((q, j) => { num++; const deja = prec !== null && q.fig === prec; prec = q.fig || null; return htmlQuestion(q, num, pts, cfg, deja, rappelPrecedent(g.qs, j)); }).join("");
     return g.qs.length > 1 ? `<div class="ev-groupe">${t}</div>` : t; }).join("");
   return `<article class="ev-copie">
     <header class="ev-tete"><img src="../assets/logo-papara.svg" alt=""><div><div class="eyebrow">Lycée Tuianu Le Gayic · Papara · Terminale SI · évaluation en classe</div><b class="titre">${h(cfg.titre)}</b></div>

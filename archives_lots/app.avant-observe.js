@@ -8,7 +8,6 @@
   let ANIM_EN_COURS = null; // animation de la fiche affichée (arrêtée en quittant la page)
   let MISSIONS_EN_COURS = null; // missions à étoiles de cette animation (assets/missions.js)
   let VERIF_EN_COURS = null; // questions « Vérifie que tu as compris » de la fiche (assets/verif.js)
-  let OBSERVE_EN_COURS = null; // série « Observe et réponds » posée sur l'animation (assets/observe.js)
   let serieEnCours = false;
 
   // ---------------- Outils ----------------
@@ -296,13 +295,11 @@
       <div class="print-tete"><img src="assets/logo-papara.svg" alt="" width="54" height="43"><div><div class="eyebrow">Lycée Tuianu Le Gayic · Papara · Terminale SI · fiche de révision${ds}</div><b>${esc(F.titre)}</b></div></div>
       <div class="fiche-bac-tete no-print">
         <div><div class="eyebrow">Fiche de révision${n ? ` · ${DOM_BAC[n.dom] || ""}` : ""}${ds}</div><h1>${esc(F.titre)}</h1>${F.sous ? `<p class="discret">${esc(F.sous)}</p>` : ""}</div>
-        <div class="fiche-bac-actions">${n && n.enLigne ? `<a class="btn" href="${PAGE_BAC}#n=${id}">S'entraîner sur cette notion →</a>` : ""}${anim && SIP.OBSERVE && SIP.OBSERVE.nb(id) ? `<button class="btn sec" type="button" id="go-obs">Observe et réponds <span class="discret">${SIP.OBSERVE.nb(id)} questions</span></button>` : anim ? `<button class="btn sec" type="button" id="go-obs">Comprendre en manipulant</button>` : ""}<button class="btn sec" type="button" id="imp">Imprimer</button></div>
+        <div class="fiche-bac-actions">${n && n.enLigne ? `<a class="btn" href="${PAGE_BAC}#n=${id}">S'entraîner sur cette notion →</a>` : ""}<button class="btn sec" type="button" id="imp">Imprimer</button></div>
       </div>
       <article class="fiche fiche-bac">${F.html}</article>
-      ${anim ? `<details class="sequence anim-pli no-print" id="anim-pli"><summary><span>Comprendre en manipulant</span><span class="discret">${esc(anim.titre)}${SIP.OBSERVE && SIP.OBSERVE.nb(id) ? ` · observe et réponds (${SIP.OBSERVE.nb(id)} questions)` : ""}${SIP.MISSIONS && SIP.MISSIONS.nb(id) ? " · animation et missions à étoiles" : " · animation"}</span></summary>
-        <section class="anim${SIP.OBSERVE && SIP.OBSERVE.nb(id) ? " obs-mode" : ""}" id="anim" aria-labelledby="anim-t">
-          ${SIP.OBSERVE && SIP.OBSERVE.nb(id) ? `<div class="an-modes" role="tablist" aria-label="Mode"><button type="button" class="an-mode" role="tab" data-mode="observe" aria-selected="true">Observe et réponds <span class="discret">${SIP.OBSERVE.nb(id)} questions</span></button><button type="button" class="an-mode" role="tab" data-mode="manipuler" aria-selected="false">Manipuler <span class="discret">curseurs et missions</span></button></div>` : ""}
-          <div class="anim-tete"><h2 id="anim-t">${esc(anim.titre)}</h2>${anim.consigne ? `<p class="an-consigne-manip">${anim.consigne}</p>` : ""}</div><div class="anim-zone"></div></section></details>` : ""}
+      ${anim ? `<details class="sequence anim-pli no-print" id="anim-pli"><summary><span>Comprendre en manipulant</span><span class="discret">${esc(anim.titre)}${SIP.MISSIONS ? " · animation et missions à étoiles" : " · animation"}</span></summary>
+        <section class="anim" id="anim" aria-labelledby="anim-t"><div class="anim-tete"><h2 id="anim-t">${esc(anim.titre)}</h2>${anim.consigne ? `<p>${anim.consigne}</p>` : ""}</div><div class="anim-zone"></div></section></details>` : ""}
       ${liens.length ? `<p class="no-print fiche-liens">Fiches liées : ${liens.map((l) => `<a href="#/fiche/${l}">${esc(ficheBac(l).titre)}</a>`).join(" · ")}</p>` : ""}
       <p class="pied no-print">${connecte ? `<a href="#/tableau">← Tableau de bord</a> · ` : ""}<a href="#/fiches-bac">Toutes les fiches</a></p>`;
     document.getElementById("imp").onclick = () => window.print();
@@ -318,19 +315,8 @@
         try { ANIM_EN_COURS = anim.monter($app.querySelector(".anim-zone"), SIP.ANIM) || null; }
         catch (e) { console.error(e); $app.querySelector("#anim").remove(); return; }
         if (SIP.MISSIONS) { try { MISSIONS_EN_COURS = SIP.MISSIONS.monter($app.querySelector(".anim-zone"), id); } catch (e) { console.error(e); } }
-        const section = $app.querySelector("#anim"), opts = { titre: F.titre, lienEntrainement: n && n.enLigne ? `${PAGE_BAC}#n=${id}` : null };
-        const mode = (m) => {
-          section.classList.toggle("obs-mode", m === "observe");
-          section.querySelectorAll(".an-mode").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.mode === m)));
-          if (OBSERVE_EN_COURS) { try { OBSERVE_EN_COURS.arreter(); } catch (e) { /* rien */ } OBSERVE_EN_COURS = null; }
-          if (m === "observe" && SIP.OBSERVE) { try { OBSERVE_EN_COURS = SIP.OBSERVE.monter($app.querySelector(".anim-zone"), id, opts); } catch (e) { console.error(e); } }
-        };
-        section.querySelectorAll(".an-mode").forEach((b) => (b.onclick = () => mode(b.dataset.mode)));
-        if (SIP.OBSERVE && SIP.OBSERVE.nb(id)) mode("observe");
       };
       pli.addEventListener("toggle", monter);
-      const go = $app.querySelector("#go-obs");
-      if (go) go.onclick = () => { if (!pli.open) pli.open = true; monter(); pli.scrollIntoView({ behavior: "smooth", block: "start" }); };
       if (location.hash.endsWith("#anim") || sessionStorage.getItem("sip-anim-ouverte") === "1") { pli.open = true; monter(); }
       pli.addEventListener("toggle", () => { try { sessionStorage.setItem("sip-anim-ouverte", pli.open ? "1" : "0"); } catch (e) {} });
     }
@@ -347,7 +333,7 @@
       ${bilanEtoiles()}
       ${groupes.map((g) => `<h2>${esc(g.ds || "Hors DS")} <span class="discret">${g.date ? jourLong(g.date) : ""}</span></h2>
         <div class="nb-liste">${g.l.map((n) => `<a class="nb-row fiche-ligne" href="#/fiche/${n.id}"><span class="nb-rk">${n.rang}</span>
-          <span class="nb-nm"><b>${esc(ficheBac(n.id).titre)}${SIP.ANIMS_BAC && SIP.ANIMS_BAC[n.id] ? `<span class="anim-badge">animation</span>` : ""}${SIP.OBSERVE && SIP.OBSERVE.nb(n.id) ? `<span class="anim-badge obs-badge" title="${SIP.OBSERVE.nb(n.id)} questions sur l'animation">observe</span>` : ""}${SIP.MISSIONS ? SIP.MISSIONS.etoilesHTML(n.id) : ""}</b><span class="discret">${esc(n.lab)} · ${DOM_BAC[n.dom] || ""}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("")}</div>`).join("")}
+          <span class="nb-nm"><b>${esc(ficheBac(n.id).titre)}${SIP.ANIMS_BAC && SIP.ANIMS_BAC[n.id] ? `<span class="anim-badge">animation</span>` : ""}${SIP.MISSIONS ? SIP.MISSIONS.etoilesHTML(n.id) : ""}</b><span class="discret">${esc(n.lab)} · ${DOM_BAC[n.dom] || ""}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("")}</div>`).join("")}
       ${reste > 0 ? `<p class="discret" style="margin-top:18px">${pluriel(reste, "autre notion")} : fiche à venir, au fil du planning.</p>` : ""}`;
   }
   // étoiles des missions (gardées dans ce navigateur)
@@ -604,8 +590,6 @@
   async function router() {
     if (MISSIONS_EN_COURS) { try { MISSIONS_EN_COURS.arreter(); } catch (e) { /* rien */ } }
     MISSIONS_EN_COURS = null;
-    if (OBSERVE_EN_COURS) { try { OBSERVE_EN_COURS.arreter(); } catch (e) { /* rien */ } }
-    OBSERVE_EN_COURS = null;
     if (VERIF_EN_COURS) { try { VERIF_EN_COURS.arreter(); } catch (e) { /* rien */ } }
     VERIF_EN_COURS = null;
     if (ANIM_EN_COURS && ANIM_EN_COURS.arreter) { try { ANIM_EN_COURS.arreter(); } catch (e) { /* rien */ } }

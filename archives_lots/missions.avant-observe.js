@@ -234,7 +234,7 @@ window.SIP = window.SIP || {};
   }
 
   SIP.MISSIONS = {
-    monter, contexte,
+    monter,
     etoiles: etoilesDe,
     total() { const L = SIP.MISSIONS_BAC || {}; let g = 0, p = 0; for (const id in L) { p += L[id].length; g += etoilesDe(id).slice(0, L[id].length).filter(Boolean).length; } return { gagnees: g, possibles: p }; },
     nb: (id) => (SIP.MISSIONS_BAC && SIP.MISSIONS_BAC[id] ? SIP.MISSIONS_BAC[id].length : 0),

@@ -256,8 +256,8 @@ window.SIP = window.SIP || {};
         let px = -dir[1], py = dir[0]; if ((px * (O[0] - P[0]) + py * (O[1] - P[1])) > 0) { px = -px; py = -py; }
         A.texte(g, P[0] + dir[0] * L * 0.55 + px * 16, P[1] + dir[1] * L * 0.55 + py * 16 + 5, "F", "an-lab c", "middle");
         if (Math.abs(M) > 0.05) {
-          const ep = 1.4 + Math.min(4, Math.abs(M) / 5), gM = A.groupe(g); gM.setAttribute("data-role", "moment");
-          const c = A.chemin(gM, M > 0 ? A.arc(O[0], O[1], 34, 330, 210) : A.arc(O[0], O[1], 34, 210, 330), "an-v an-accent");
+          const ep = 1.4 + Math.min(4, Math.abs(M) / 5);
+          const c = A.chemin(g, M > 0 ? A.arc(O[0], O[1], 34, 330, 210) : A.arc(O[0], O[1], 34, 210, 330), "an-v an-accent");
           c.setAttribute("stroke-width", ep); c.setAttribute("marker-end", `url(#${svg._id}-accent)`);
         }
         mes.set("d", "Bras de levier d = OA·sin θ", nf3(d) + " m");
@@ -317,9 +317,8 @@ window.SIP = window.SIP || {};
           A.texte(g, xG + 8, yS - 58 + (P * kN) / 2 + 4, "P", "an-lab c");
           if (NM > 0.02) A.fleche(g, xM, yS, xM, yS - NM * kN, "accent", 3);
           if (NF > 0.02) A.fleche(g, xF, yS, xF, yS - NF * kN, "accent", 3);
-          const gV = A.groupe(g); gV.setAttribute("data-role", "valeurs");
-          A.texteI(g, xM - 36, yS + 24, "N", "M", "an-lab a s"); A.texte(gV, xM - 18, yS + 24, " = " + nf3(NM) + " N", "an-lab a s");
-          A.texteI(g, xF - 30, yS + 24, "N", "F", "an-lab a s"); A.texte(gV, xF - 12, yS + 24, " = " + nf3(NF) + " N", "an-lab a s");
+          A.texteI(g, xM - 36, yS + 24, "N", "M", "an-lab a s"); A.texte(g, xM - 18, yS + 24, " = " + nf3(NM) + " N", "an-lab a s");
+          A.texteI(g, xF - 30, yS + 24, "N", "F", "an-lab a s"); A.texte(g, xF - 12, yS + 24, " = " + nf3(NF) + " N", "an-lab a s");
         }
         A.texte(g, xM, yS + 44, "roues motrices (M)", "an-cap", "middle");
         A.texte(g, xF, yS + 44, "roue folle (F)", "an-cap", "middle");
@@ -1316,11 +1315,10 @@ window.SIP = window.SIP || {};
         refs.n2 = A.texte(gFix, k2, 236, "", "an-cap", "middle");
         texteIS(gFix, k1, 254, "Z", "1", " = " + Z1 + (eng ? " dents" : " (poulie)"), "an-lab s", "middle");
         texteIS(gFix, k2, 254, "Z", "2", " = " + Z2 + (eng ? " dents" : " (poulie)"), "an-lab s", "middle");
-        const gV = A.groupe(gFix); gV.setAttribute("data-role", "valeurs");
-        texteIS(gV, k1, 272, "N", "e", " = " + nf3(NE) + " tr/min", "an-lab s", "middle");
-        texteIS(gV, k2, 272, "N", "s", " = " + nf3(r * NE) + " tr/min", "an-lab s", "middle");
-        texteIS(gV, k1, 290, "C", "e", " = 2,00 N·m", "an-lab s c", "middle");
-        texteIS(gV, k2, 290, "C", "s", " = " + nf3z(Cs) + " N·m", "an-lab s a", "middle");
+        texteIS(gFix, k1, 272, "N", "e", " = " + nf3(NE) + " tr/min", "an-lab s", "middle");
+        texteIS(gFix, k2, 272, "N", "s", " = " + nf3(r * NE) + " tr/min", "an-lab s", "middle");
+        texteIS(gFix, k1, 290, "C", "e", " = 2,00 N·m", "an-lab s c", "middle");
+        texteIS(gFix, k2, 290, "C", "s", " = " + nf3z(Cs) + " N·m", "an-lab s a", "middle");
         tourner(); infos();
       }
       function tourner() {
@@ -1446,14 +1444,13 @@ window.SIP = window.SIP || {};
         if (fe > 0) { const l = lg(fe, KF); A.fleche(gD, xc - 26, yF, xc - 26 - l, yF, "muted", 3); A.texte(gD, xc - 26 - Math.max(l / 2, 6), yF - 8, "f", "an-lab s", "middle"); }
         // somme des forces et accélération : même direction, même sens
         const sF = arrete ? 0 : M.sF, a = sF / m;
-        const gV = A.groupe(gD); gV.setAttribute("data-role", "vecteurs");
         if (Math.abs(sF) > 1e-9) {
           const s = Math.sign(sF), lS = lg(Math.abs(sF), KF), lA = lg(Math.abs(a), KA);
-          A.fleche(gV, xc, YP - 52, xc + s * lS, YP - 52, "accent", 3);
-          A.texte(gV, xc + s * (lS + 6), YP - 48, "ΣF", "an-lab a", s > 0 ? "start" : "end");
-          A.fleche(gV, xc, YP - 70, xc + s * lA, YP - 70, "good", 3);
-          A.texte(gV, xc + s * (lA + 6), YP - 66, "a", "an-lab g", s > 0 ? "start" : "end");
-        } else A.texte(gV, xc, YP - 52, "ΣF = 0", "an-lab s a", "middle");
+          A.fleche(gD, xc, YP - 52, xc + s * lS, YP - 52, "accent", 3);
+          A.texte(gD, xc + s * (lS + 6), YP - 48, "ΣF", "an-lab a", s > 0 ? "start" : "end");
+          A.fleche(gD, xc, YP - 70, xc + s * lA, YP - 70, "good", 3);
+          A.texte(gD, xc + s * (lA + 6), YP - 66, "a", "an-lab g", s > 0 ? "start" : "end");
+        } else A.texte(gD, xc, YP - 52, "ΣF = 0", "an-lab s a", "middle");
         // mesures
         const tA = tArrivee(M);
         mes.set("S", "ΣF = F − f", arrete ? (F > 0 ? "0 (adhérence)" : "0 (à l'arrêt)") : nf3(sF) + " N");
