@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BTS Électrotechnique · Entraînement E4</title>
+<meta name="description" content="Entraînement à l'épreuve E4 (conception – étude préliminaire) du BTS Électrotechnique : sujets d'annales, documents, auto-évaluation avec la grille officielle N0–N3.">
+<style>
+@font-face{font-family:'Barlow Condensed';font-weight:600;font-display:swap;src:url(../assets/fonts/barlow-condensed-600.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-weight:700;font-display:swap;src:url(../assets/fonts/barlow-condensed-700.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-weight:400;font-display:swap;src:url(../assets/fonts/ibm-plex-sans-400.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-weight:600;font-display:swap;src:url(../assets/fonts/ibm-plex-sans-600.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-weight:500;font-display:swap;src:url(../assets/fonts/ibm-plex-mono-500.woff2) format('woff2')}
+:root{color-scheme:light;
+  --ground:#edf1f4;--paper:#fff;--paper-2:#f4f7f9;--ink:#15202b;--ink-2:#44525f;--ink-3:#77838f;
+  --rule:#d5dce3;--rule-2:#e6ebef;--line-strong:#15202b;
+  --accent:#1d3f7a;--accent-soft:#e2e9f5;--accent-ink:#fff;
+  --good:#146c43;--good-soft:#dff2e7;--bad:#b42318;--bad-soft:#fde4e1;--warn:#8a5a00;--warn-soft:#fff2d2;
+  --f-disp:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;--r:6px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --ground:#0d1318;--paper:#141c24;--paper-2:#19232d;--ink:#e2e8ee;--ink-2:#a9b5c1;--ink-3:#7b8894;
+  --rule:#28343f;--rule-2:#1f2a34;--line-strong:#c8d2dc;--accent:#8fb0ee;--accent-soft:#1a2a44;--accent-ink:#0d1318;
+  --good:#6ccb97;--good-soft:#132d1f;--bad:#ff8f84;--bad-soft:#3a1714;--warn:#e8b75a;--warn-soft:#32270e}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --ground:#0d1318;--paper:#141c24;--paper-2:#19232d;--ink:#e2e8ee;--ink-2:#a9b5c1;--ink-3:#7b8894;
+  --rule:#28343f;--rule-2:#1f2a34;--line-strong:#c8d2dc;--accent:#8fb0ee;--accent-soft:#1a2a44;--accent-ink:#0d1318;
+  --good:#6ccb97;--good-soft:#132d1f;--bad:#ff8f84;--bad-soft:#3a1714;--warn:#e8b75a;--warn-soft:#32270e}
+*{box-sizing:border-box}html,body{margin:0}[hidden]{display:none!important}
+body{background:var(--ground);color:var(--ink);font:15.5px/1.55 var(--f-body)}
+a{color:var(--accent);text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+b,strong{font-weight:600}
+h1{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:clamp(1.7rem,3.6vw,2.4rem);line-height:1;margin:.1em 0 .5em;text-wrap:balance}
+h2{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:1.35rem;line-height:1.1;margin:30px 0 12px;padding-bottom:6px;border-bottom:1.5px solid var(--line-strong)}
+h3{font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.03em;font-size:1.1rem;line-height:1.15;margin:0 0 .35em}
+.eyebrow{font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.12em;font-size:.76rem;color:var(--ink-3)}
+.discret{color:var(--ink-2);font-size:.9rem}
+.mono{font-family:var(--f-mono)}
+/* en-tête */
+.haut{background:var(--paper);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:20}
+.haut-in{max-width:1280px;margin:0 auto;padding:9px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{display:inline-flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none;min-width:0}
+.logo img{width:46px;height:auto;display:block}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .logo img{filter:invert(1)}}
+.logo-ey{font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.12em;font-size:.7rem;color:var(--ink-3)}
+.logo-nom{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:1.45rem;line-height:.95}
+.haut-droite{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.86rem}
+.sip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.82rem}
+.sip.ok{background:var(--good-soft);color:var(--good)}.sip.ko{background:var(--warn-soft);color:var(--warn)}.sip.ap{background:var(--accent-soft);color:var(--accent)}
+.sip a{color:inherit;font-weight:600}
+main{max-width:1280px;margin:0 auto;padding:18px 16px 70px}
+/* boutons */
+.btn{appearance:none;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:600 .92rem/1.2 var(--f-body);padding:9px 14px;border-radius:var(--r);cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+.btn:hover{border-color:var(--ink-3)}
+.btn.plein{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.plein:hover{filter:brightness(1.1)}
+.btn.petit{padding:5px 10px;font-size:.82rem;white-space:nowrap}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.danger{color:var(--bad)}
+/* cartes */
+.carte{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:18px 20px}
+.carte+.carte{margin-top:14px}
+.grille2{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.chip{display:inline-block;font-size:.78rem;padding:2px 9px;border-radius:999px;background:var(--paper-2);border:1px solid var(--rule);color:var(--ink-2);margin:2px 3px 2px 0;white-space:nowrap}
+.chip.dispo{background:var(--good-soft);color:var(--good);border-color:transparent}
+.chip.attente{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.etapes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:14px 0 6px}
+.etape{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:14px 16px}
+.etape .num{font-family:var(--f-disp);font-weight:700;font-size:2rem;line-height:1;color:var(--accent)}
+.barre{height:8px;background:var(--rule-2);border-radius:999px;overflow:hidden}
+.barre>span{display:block;height:100%;background:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--rule-2);vertical-align:top}
+th{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.05em;font-weight:600;font-size:.8rem;color:var(--ink-3)}
+td.num,th.num{text-align:right;font-family:var(--f-mono)}
+/* page d'entraînement */
+.bandeau-jeu{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.bandeau-jeu .titre{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:1.2rem;line-height:1}
+.bandeau-jeu .progres{flex:1;min-width:160px}
+.bandeau-jeu .chrono{font-family:var(--f-mono);font-weight:500;font-size:1.05rem;padding:4px 10px;border-radius:4px;background:var(--paper-2);border:1px solid var(--rule)}
+.bandeau-jeu .chrono.fin{background:var(--bad-soft);color:var(--bad)}
+.jouer{display:grid;grid-template-columns:minmax(360px,45%) 1fr;gap:16px;align-items:start}
+.docs{position:sticky;top:66px;height:calc(100vh - 82px);min-height:420px;display:flex;flex-direction:column;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);overflow:hidden}
+@media (max-width:980px){.jouer{grid-template-columns:1fr}.docs{display:none}.docs.ouvert{display:flex;position:fixed;inset:0;z-index:50;height:100vh!important;min-height:0;border-radius:0}.haut-droite .discret{display:none}.haut-in{padding:7px 12px}.logo img{width:36px}.logo-nom{font-size:1.2rem}.bandeau-jeu .titre{font-size:1rem}}
+.docs-tabs{display:flex;gap:4px;padding:8px 8px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.docs-tabs button{appearance:none;border:1px solid transparent;border-bottom:none;background:transparent;color:var(--ink-2);font:600 .85rem/1 var(--f-body);padding:8px 12px;border-radius:var(--r) var(--r) 0 0;cursor:pointer}
+.docs-tabs button.actif{background:var(--accent);color:var(--accent-ink)}
+.docs-tabs .fermer{margin-left:auto;display:none}
+@media (max-width:980px){.docs-tabs .fermer{display:inline-block}}
+.docs-outils{display:flex;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--rule);flex-wrap:wrap;font-size:.85rem}
+.docs-outils .mono{white-space:nowrap}
+.docs-outils select{font:inherit;padding:4px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);max-width:170px}
+.docs-page{flex:1;overflow:auto;background:#7d8790;padding:10px;text-align:center}
+.docs-page img{width:var(--zoom,100%);max-width:none;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35);display:inline-block}
+.docs-vide{color:#fff;padding:30px;font-size:.9rem}
+.flottant{display:none;position:fixed;right:14px;bottom:14px;z-index:40;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+@media (max-width:980px){.flottant{display:inline-flex}}
+/* question */
+.q-tete{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.q-num{font-family:var(--f-disp);font-weight:700;font-size:1.25rem;line-height:1;background:var(--ink);color:var(--paper);padding:5px 10px;border-radius:4px}
+.q-enonce{font-size:1.04rem;font-weight:600;margin:8px 0 10px}
+.contexte{background:var(--paper-2);border-left:3px solid var(--rule);padding:8px 14px;border-radius:0 var(--r) var(--r) 0;margin:10px 0;font-size:.95rem}
+.contexte p,.contexte ul{margin:.3em 0}
+details.section{margin:0 0 12px;border:1px solid var(--rule);border-radius:var(--r);padding:0 14px;background:var(--paper-2)}
+details.section summary{cursor:pointer;padding:9px 0;font-weight:600;font-size:.92rem}
+details.section>div{padding:0 0 10px;font-size:.93rem}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+.chips .btn{font-family:var(--f-mono);font-weight:500}
+.capacite{font-size:.85rem;color:var(--ink-2);margin:6px 0 14px}
+.champs{display:grid;gap:10px;margin:14px 0}
+.champ{display:grid;grid-template-columns:minmax(140px,1fr) auto;gap:6px 12px;align-items:center;padding:8px 10px;border:1px solid var(--rule);border-radius:var(--r)}
+.champ .lab{font-weight:600}
+.champ .saisie{display:flex;align-items:center;gap:6px}
+.champ input[type=text]{font:500 1.02rem/1.2 var(--f-mono);width:150px;padding:7px 9px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
+.champ .unite{font-family:var(--f-mono);color:var(--ink-2);min-width:2.5em}
+.champ.ok{border-color:var(--good);background:var(--good-soft)}.champ.ko{border-color:var(--bad);background:var(--bad-soft)}
+.champ .verdict{grid-column:1/-1;font-size:.88rem}
+.choix{display:grid;gap:5px;grid-column:1/-1}
+.choix label{display:flex;gap:8px;align-items:flex-start;padding:5px 8px;border-radius:4px;cursor:pointer}
+.choix label:hover{background:var(--paper-2)}
+textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper);color:var(--ink);resize:vertical}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.indice{background:var(--warn-soft);border-left:3px solid var(--warn);padding:8px 14px;border-radius:0 var(--r) var(--r) 0;margin:10px 0;font-size:.94rem}
+.papier{background:var(--accent-soft);padding:8px 14px;border-radius:var(--r);font-size:.92rem;margin:10px 0}
+/* atelier schéma : document réponse à compléter à l'écran */
+.atelier{border:1px solid var(--rule);border-radius:var(--r);margin:12px 0;overflow:hidden;background:var(--paper)}
+.atelier-outils{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px;border-bottom:1px solid var(--rule);background:var(--paper-2);font-size:.86rem}
+.atelier-outils .btn.actif{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.atelier-outils select{font:inherit;padding:4px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);max-width:180px}
+.atelier-couleurs{display:inline-flex;gap:4px;margin-left:4px}
+.atelier-couleurs button{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.atelier-couleurs button.actif{border-color:var(--ink);box-shadow:0 0 0 2px var(--paper) inset}
+.atelier-outils .sep{width:1px;height:22px;background:var(--rule);margin:0 2px}
+.atelier-outils input[type=range]{vertical-align:middle;width:140px}
+.atelier-zone{position:relative;background:#fff;line-height:0}
+.atelier-zone svg{width:100%;height:auto;display:block;touch-action:none;user-select:none}
+.atelier-zone svg.dessinable{cursor:crosshair}
+.atelier-zone svg .calque *,.atelier-zone svg .temp *,.atelier-zone svg .pts *{vector-effect:non-scaling-stroke}
+.atelier-zone svg .calque text,.atelier-zone svg .pts text{font-family:var(--f-body);font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
+.atelier-cases{position:absolute;inset:0;pointer-events:none}
+.atelier-cases select,.atelier-cases input{position:absolute;pointer-events:auto;font:600 .82rem/1.1 var(--f-body);padding:1px 2px;border:1.5px solid var(--accent);border-radius:3px;background:rgba(255,255,255,.95);color:#15202b;min-width:0;max-width:none}
+.atelier-cases select.ok,.atelier-cases input.ok{border-color:var(--good);background:#dff2e7}
+.atelier-cases select.ko,.atelier-cases input.ko{border-color:var(--bad);background:#fde4e1}
+.atelier-cases input.texte-libre{border-style:dashed}
+.atelier-lecture{padding:8px 12px;font-size:.9rem;border-top:1px solid var(--rule);line-height:1.5}
+.atelier-lecture .mono{font-weight:500}
+.atelier-aide{padding:6px 12px;font-size:.84rem;color:var(--ink-2);border-top:1px solid var(--rule-2)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .atelier-zone{background:#fff}}
+/* correction */
+.correction{margin-top:16px;border-top:2px solid var(--line-strong);padding-top:12px}
+.corrige{border-left:3px solid var(--accent);padding:2px 14px;margin:10px 0 16px;font-size:.96rem}
+.corrige p{margin:.45em 0}.corrige ul{margin:.3em 0;padding-left:1.3em}
+.formule{font-family:var(--f-mono);font-size:.95em;background:var(--accent-soft);padding:1px 6px;border-radius:3px;white-space:nowrap}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.15;margin:0 .2em;font-size:.95em}
+.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 .25em}
+.resultat{font-weight:600;background:var(--good-soft);border-radius:4px;padding:7px 11px}
+.note{font-size:.88rem;color:var(--ink-2)}
+.img-corrige{max-width:100%;border:1px solid var(--rule);border-radius:4px;cursor:zoom-in;display:block;margin:8px 0}
+.grille{border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;margin:10px 0}
+.grille .tete{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.grille label{display:flex;gap:10px;align-items:flex-start;padding:6px 8px;border-radius:4px;cursor:pointer;font-size:.93rem}
+.grille label:hover{background:var(--paper-2)}
+.grille label.auto{cursor:default;color:var(--ink-2)}
+.grille input{margin-top:4px;width:17px;height:17px;flex:none}
+.grille .tag{font-size:.74rem;padding:1px 6px;border-radius:999px;margin-left:auto;white-space:nowrap}
+.grille .tag.ok{background:var(--good-soft);color:var(--good)}.grille .tag.ko{background:var(--bad-soft);color:var(--bad)}
+.niveau{display:inline-flex;align-items:baseline;gap:8px;font-family:var(--f-disp);font-weight:700;font-size:1.5rem;line-height:1}
+.niveau small{font:600 .8rem/1.1 var(--f-body);text-transform:none;letter-spacing:0}
+.n0{color:var(--bad)}.n1{color:var(--warn)}.n2{color:var(--accent)}.n3{color:var(--good)}
+.pastille{display:inline-block;min-width:2.1em;text-align:center;font-family:var(--f-disp);font-weight:700;padding:2px 6px;border-radius:4px;background:var(--paper-2)}
+.pastille.n0{background:var(--bad-soft)}.pastille.n1{background:var(--warn-soft)}.pastille.n2{background:var(--accent-soft)}.pastille.n3{background:var(--good-soft)}
+.pastille.nn{color:var(--ink-3)}
+/* bilan */
+.score{display:flex;gap:22px;flex-wrap:wrap;align-items:center}
+.score .grand{font-family:var(--f-disp);font-weight:700;font-size:3.4rem;line-height:1}
+.score .grand small{font-size:1.4rem;color:var(--ink-3)}
+.repartition{display:flex;gap:6px;flex-wrap:wrap}
+.repartition span{padding:4px 10px;border-radius:4px;font-weight:600;font-size:.9rem}
+.liste-q{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.liste-q a{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--rule);border-radius:4px;text-decoration:none;color:var(--ink);font-size:.86rem}
+.liste-q a:hover{border-color:var(--ink-3)}
+.nav-q{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.nav-q button{appearance:none;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:600 .78rem/1 var(--f-mono);padding:5px 7px;border-radius:4px;cursor:pointer;min-width:34px}
+.nav-q button.cour{outline:2px solid var(--accent)}
+.nav-q button.n0{background:var(--bad-soft)}.nav-q button.n1{background:var(--warn-soft)}.nav-q button.n2{background:var(--accent-soft)}.nav-q button.n3{background:var(--good-soft)}
+.nav-q button.rep{border-style:dashed}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:92vw;z-index:70;background:#16181B;color:#fff;padding:10px 16px;border-radius:6px;font-size:.92rem;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:80;display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
+.lightbox img{max-width:100%;max-height:100%;background:#fff}
+.lien-sujet{display:block;color:inherit;text-decoration:none}
+.lien-sujet:hover h3{color:var(--accent)}
+.pied{margin-top:40px;color:var(--ink-3);font-size:.82rem}
+@media (max-width:980px){.nav-q{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}.docs-outils{flex-wrap:nowrap;overflow-x:auto;gap:4px}.docs-outils select{max-width:120px}}
+@media print{.haut,.docs,.flottant,.actions,.nav-q{display:none!important}.jouer{display:block}}
+</style>
+</head>
+<body>
+<header class="haut"><div class="haut-in">
+  <a class="logo" href="#/"><img src="../assets/logo-papara.svg" alt="" onerror="this.remove()"><span><span class="logo-ey">LPO Papara · BTS Électrotechnique</span><br><span class="logo-nom">Entraînement E4</span></span></a>
+  <div class="haut-droite"><span class="discret">Conception – étude préliminaire · U4</span><span id="sip-etat"></span></div>
+</div></header>
+<main id="app"></main>
+<button class="btn plein flottant" id="btn-docs" hidden>📄 Documents</button>
+
+<script src="e4/carte.js"></script>
+<script src="e4/sujets/2023nc-microcentrale.js"></script>
+<script>
+/* =====================================================================
+   Entraînement E4 — moteur de la page.
+   Parcours = liste de questions (un sujet complet, ou les questions d'une notion
+   dans tous les sujets transcrits). Deux modes :
+     guidé : correction et auto-évaluation question par question, indices autorisés ;
+     blanc : épreuve chronométrée (4 h), sans indice, correction à la fin.
+   L'auto-évaluation reprend la grille officielle du barème : l'élève coche les
+   indicateurs qu'il a réellement produits (ceux qui dépendent d'un résultat
+   numérique sont cochés automatiquement) → niveau N0 à N3 par question.
+   Résultats gardés dans le navigateur et transmis au suivi du site (SIP) si l'élève
+   est connecté.
+   ===================================================================== */
+(function () {
+  "use strict";
+  const E4 = window.E4;
+  const SUJETS = E4.SUJETS || [];
+  const NOTIONS = E4.NOTIONS || [];
+  const CARTE = E4.CARTE || [];
+  const TOTAL_CARTE = CARTE.reduce((a, s) => a + s.nb, 0);
+  const NIVEAUX = ["Non acquise", "En cours d'acquisition", "Partiellement acquise", "Totalement acquise et transférable"];
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const nb = (x, d = 3) => Number.isFinite(x) ? Number(x.toPrecision(d)).toLocaleString("fr-FR", { maximumFractionDigits: 10 }) : "—";
+  const app = document.getElementById("app");
+  const sujetDe = (id) => SUJETS.find((s) => s.id === id);
+  const notionDe = (id) => NOTIONS.find((n) => n.id === id) || { id, nom: id };
+  const nomEleve = () => { try { const s = window.SIP && SIP.session && SIP.session.get(); return s ? s.nom : null; } catch (e) { return null; } };
+
+  // ---------- rangement local ----------
+  const cle = (parcours) => "e4run:" + (nomEleve() || "local") + ":" + parcours;
+  const lire = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+  const garder = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  const effacer = (k) => { try { localStorage.removeItem(k); } catch (e) {} };
+  function tousLesRuns() {
+    const out = [];
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("e4run:")) { const r = lire(k); if (r) out.push(Object.assign({ cle: k }, r)); } } } catch (e) {}
+    return out.sort((a, b) => (b.maj || 0) - (a.maj || 0));
+  }
+
+  // ---------- analyse des réponses ----------
+  function parseNombre(s) {
+    if (s == null) return NaN;
+    let t = String(s).trim().replace(/[\s  ]/g, "").replace(/,/g, ".").replace(/[×x*]10\^?\(?(-?\d+)\)?/i, "e$1").replace(/\^/g, "");
+    t = t.replace(/[^0-9eE.+-]/g, "");
+    return t === "" ? NaN : parseFloat(t);
+  }
+  function champJuste(ch, val) {
+    if (ch.type === "choix") return val != null && Number(val) === ch.attendu;
+    if (ch.type === "point") {
+      if (!val || !Number.isFinite(val.x) || !Number.isFinite(val.y)) return false;
+      const t = ch.tol || {}, ecart = (v, a, tol) => t.log ? (v > 0 && a > 0 && Math.abs(Math.log10(v) - Math.log10(a)) <= (tol ?? 0.1)) : Math.abs(v - a) / Math.abs(a || 1) <= (tol ?? 10) / 100;
+      return ecart(val.x, ch.attendu.x, t.x) && ecart(val.y, ch.attendu.y, t.y);
+    }
+    const v = parseNombre(val); if (!Number.isFinite(v)) return false;
+    if (ch.abs !== undefined) return Math.abs(v - ch.attendu) <= ch.abs + 1e-9;
+    return Math.abs(v - ch.attendu) / Math.abs(ch.attendu) <= (ch.tol || 2) / 100 + 1e-9;
+  }
+  function niveauDe(q, coches) {
+    const n = coches.filter(Boolean).length, s = q.seuils || [1, null, q.indicateurs.length];
+    if (s[2] != null && n >= s[2]) return 3;
+    if (s[1] != null && n >= s[1]) return 2;
+    if (s[0] != null && n >= s[0]) return 1;
+    return 0;
+  }
+  const poids = (q) => q.indicateurs.length;
+  function noteSur20(items) {   // items : [{q, niveau}]
+    const faits = items.filter((i) => i.niveau != null);
+    if (!faits.length) return null;
+    const p = faits.reduce((a, i) => a + poids(i.q), 0), g = faits.reduce((a, i) => a + poids(i.q) * i.niveau / 3, 0);
+    return Math.round(200 * g / p) / 10;
+  }
+
+  // ---------- parcours ----------
+  function parcoursSujet(id, mode) {
+    const s = sujetDe(id); if (!s) return null;
+    return { id: id + ":" + mode, mode, titre: s.titre, sous: s.session + " · " + s.questions.length + " questions", sujet: s,
+             items: s.questions.map((q) => ({ s, q })), module: "e4-" + id + (mode === "blanc" ? "-blanc" : ""),
+             titreSite: "E4 · " + s.session + " — " + s.titre + (mode === "blanc" ? " (sujet blanc)" : " (guidé)") };
+  }
+  function parcoursNotion(nid) {
+    const n = notionDe(nid), items = [];
+    SUJETS.forEach((s) => s.questions.forEach((q) => { if (q.notion === nid) items.push({ s, q }); }));
+    if (!items.length) return null;
+    return { id: "notion:" + nid, mode: "guide", titre: n.nom, sous: items.length + " questions tirées des sujets transcrits", notion: n,
+             items, module: "e4-notion-" + nid, titreSite: "E4 · Notion — " + n.nom };
+  }
+  const idItem = (it) => it.s.id + "/" + it.q.id;
+  // parcours par notion : ordre tiré au hasard, fixé par la graine de l'entraînement (même ordre à la reprise et au bilan)
+  function ordonner(prc, run) {
+    if (!prc.notion || !run || run.graine == null) return prc;
+    let a = run.graine >>> 0; const rnd = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const items = prc.items.slice(); for (let i = items.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [items[i], items[j]] = [items[j], items[i]]; }
+    return Object.assign({}, prc, { items });
+  }
+
+  // ---------- routage ----------
+  window.addEventListener("hashchange", rendre);
+  let chrono = null;
+  function rendre() {
+    clearInterval(chrono); chrono = null;
+    document.getElementById("btn-docs").hidden = true;
+    const h = location.hash.replace(/^#\/?/, ""), p = h.split("/");
+    window.scrollTo(0, 0);
+    if (p[0] === "sujet" && p[1]) return vueSujet(p[1]);
+    if (p[0] === "jouer" && p[1] && p[2]) return vueJouer(parcoursSujet(p[1], p[2]));
+    if (p[0] === "notion" && p[1]) return vueJouer(parcoursNotion(p[1]));
+    if (p[0] === "bilan" && p[1]) return vueBilan(p[1] === "notion" ? parcoursNotion(p[2]) : parcoursSujet(p[1], p[2]));
+    if (p[0] === "revoir" && p[1]) return p[1] === "notion" ? vueJouer(parcoursNotion(p[2]), Number(p[3]) || 0) : vueJouer(parcoursSujet(p[1], p[2]), Number(p[3]) || 0);
+    return vueAccueil();
+  }
+
+  // ---------- accueil ----------
+  function vueAccueil() {
+    const runs = tousLesRuns();
+    const dispo = Object.fromEntries(SUJETS.map((s) => [s.id, s]));
+    const nbParNotionDispo = {}; SUJETS.forEach((s) => s.questions.forEach((q) => (nbParNotionDispo[q.notion] = (nbParNotionDispo[q.notion] || 0) + 1)));
+    const max = Math.max(...NOTIONS.map((n) => n.nb));
+    app.innerHTML = `
+      <h1>S'entraîner à l'épreuve E4 avec les sujets d'annales</h1>
+      <p class="discret" style="max-width:820px">L'épreuve E4 dure 4 h : un dossier de présentation-questionnement, un dossier technique (DTEC), un dossier ressources (DRES) et un dossier réponses (DREP). La plupart des réponses se construisent <b>à partir des documents</b> : l'entraînement consiste à trouver vite la bonne page, en tirer la bonne donnée, puis dérouler le calcul ou l'argument attendu.</p>
+      <div class="etapes">
+        <div class="etape"><div class="num">1</div><h3>Lis les documents</h3><p class="discret">Les documents du sujet sont à côté des questions. Chaque question te dit lesquels ouvrir ; un bouton « Où chercher ? » te montre la page exacte si tu bloques.</p></div>
+        <div class="etape"><div class="num">2</div><h3>Réponds sur ta copie</h3><p class="discret">Rédige comme à l'examen (relation, unités, calcul), puis saisis tes résultats : les valeurs numériques et les choix sont vérifiés automatiquement.</p></div>
+        <div class="etape"><div class="num">3</div><h3>Évalue-toi avec la grille officielle</h3><p class="discret">Le corrigé s'affiche avec les indicateurs du barème : coche ceux que tu as réellement produits → niveau N0 à N3, comme le correcteur. Le bilan montre tes notions solides et fragiles.</p></div>
+      </div>
+      ${runs.length ? `<h2>Mes entraînements</h2><div class="carte" style="padding:8px 14px"><table><thead><tr><th>Parcours</th><th>Mode</th><th>Avancement</th><th class="num">Note indicative</th><th></th></tr></thead><tbody>${runs.slice(0, 12).map(ligneRun).join("")}</tbody></table></div>` : ""}
+      <h2>Les sujets</h2>
+      <div class="grille2">${CARTE.map((c) => {
+        const s = dispo[c.id];
+        const top = Object.entries(c.notions).slice(0, 4).map(([n, k]) => `<span class="chip">${esc(notionDe(n).nom)} · ${k}</span>`).join("");
+        return `<div class="carte">${s ? `<a class="lien-sujet" href="#/sujet/${c.id}">` : "<div>"}
+            <div class="eyebrow">${esc(c.session)}</div><h3 style="margin-top:4px">${esc(c.titre)}</h3>
+            <p class="discret" style="margin:4px 0 8px">${c.parties.map((p) => "<b>" + esc(p.id) + "</b> " + esc(p.titre)).join(" · ")}</p>
+            <div>${top}</div>
+            <p style="margin:10px 0 0">${s ? `<span class="chip dispo">Disponible · ${c.nb} questions</span>` : `<span class="chip attente">Bientôt · ${c.nb} questions</span>`}</p>
+          ${s ? "</a>" : "</div>"}</div>`; }).join("")}</div>
+      <h2>Carte des notions de l'épreuve <span class="discret" style="font-family:var(--f-body);font-weight:400;text-transform:none;font-size:.88rem">${TOTAL_CARTE} questions des ${CARTE.length} sujets 2022–2026, classées par notion</span></h2>
+      <div class="carte">
+        <p class="discret" style="margin-top:0">Les six premières notions font près des deux tiers des questions. Une notion est « disponible » dès qu'un sujet transcrit la contient : l'entraînement par notion enchaîne alors ses questions, documents compris.</p>
+        <table><thead><tr><th>Notion</th><th style="width:34%">Part des questions</th><th class="num">Questions</th><th class="num">Sujets</th><th></th></tr></thead><tbody>
+        ${NOTIONS.map((n) => { const ns = CARTE.filter((c) => c.notions[n.id]).length, k = nbParNotionDispo[n.id] || 0;
+          return `<tr><td><b>${esc(n.nom)}</b><br><span class="discret">${esc(n.desc)}</span></td>
+            <td><div class="barre" title="${n.nb} questions sur ${TOTAL_CARTE}"><span style="width:${Math.round(100 * n.nb / max)}%"></span></div><span class="discret">${Math.round(100 * n.nb / TOTAL_CARTE)} %</span></td>
+            <td class="num">${n.nb}</td><td class="num">${ns} / ${CARTE.length}</td>
+            <td>${k ? `<a class="btn petit" href="#/notion/${n.id}">S'entraîner · ${k} q.</a>` : `<span class="discret">à venir</span>`}</td></tr>`; }).join("")}
+        </tbody></table>
+      </div>
+      <p class="pied">Sujets officiels de l'épreuve E4 du BTS Électrotechnique (référentiel 2020), sessions 2022 à 2026. Grille d'indicateurs et niveaux N0–N3 : barème officiel de correction. La note sur 20 est indicative : elle pondère chaque question par son nombre d'indicateurs.</p>`;
+  }
+  function ligneRun(r) {
+    const prc = r.parcours.startsWith("notion:") ? parcoursNotion(r.parcours.slice(7)) : parcoursSujet(r.parcours.split(":")[0], r.parcours.split(":")[1]);
+    if (!prc) return "";
+    const faits = prc.items.filter((it) => (r.reponses[idItem(it)] || {}).niveau != null);
+    const note = noteSur20(faits.map((it) => ({ q: it.q, niveau: r.reponses[idItem(it)].niveau })));
+    const lien = prc.notion ? "#/notion/" + prc.notion.id : "#/jouer/" + prc.sujet.id + "/" + prc.mode;
+    const bilan = prc.notion ? "#/bilan/notion/" + prc.notion.id : "#/bilan/" + prc.sujet.id + "/" + prc.mode;
+    return `<tr><td><b>${esc(prc.titre)}</b><br><span class="discret">${esc(prc.sous)}</span></td><td>${prc.mode === "blanc" ? "Sujet blanc" : "Guidé"}</td>
+      <td>${faits.length} / ${prc.items.length} évaluées${r.fini ? " · terminé" : ""}</td><td class="num">${note == null ? "—" : nb(note, 3) + " / 20"}</td>
+      <td style="white-space:nowrap">${r.fini ? `<a class="btn petit" href="${bilan}">Bilan</a>` : `<a class="btn petit plein" href="${lien}">Reprendre</a>`}</td></tr>`;
+  }
+
+  // ---------- présentation d'un sujet ----------
+  function vueSujet(id) {
+    const s = sujetDe(id); if (!s) return vueAccueil();
+    const c = CARTE.find((x) => x.id === id) || { notions: {} };
+    const rg = lire(cle(id + ":guide")), rb = lire(cle(id + ":blanc"));
+    app.innerHTML = `
+      <p><a href="#/">← Tous les sujets</a></p>
+      <div class="eyebrow">${esc(s.session)} · ${esc(s.ref)}</div>
+      <h1>${esc(s.titre)}</h1>
+      <p style="max-width:820px">${esc(s.resume)}</p>
+      <div class="grille2">
+        <div class="carte"><h3>Les parties</h3><table><tbody>${s.parties.map((p) => `<tr><td><b>${p.id}</b></td><td>${esc(p.titre)}<br><span class="discret">${esc(p.objectif)}</span></td><td class="num">${s.questions.filter((q) => q.partie === p.id).length} q.</td></tr>`).join("")}</tbody></table></div>
+        <div class="carte"><h3>Les notions du sujet</h3><p>${Object.entries(c.notions).map(([n, k]) => `<span class="chip">${esc(notionDe(n).nom)} · ${k}</span>`).join("")}</p>
+          <h3 style="margin-top:14px">Les documents</h3><p class="discret">${Object.values(s.docs).map((d) => esc(d.titre) + " (" + d.pages + " p.)").join(" · ")}</p></div>
+      </div>
+      <h2>Comment t'entraîner</h2>
+      <div class="grille2">
+        <div class="carte"><h3>Mode guidé</h3><p class="discret">Question par question : tu réponds, tu vérifies, tu t'évalues avec la grille, puis tu passes à la suite. Indices « Où chercher ? » disponibles. Idéal pour découvrir le sujet.</p>
+          <div class="actions">${rg && !rg.fini ? `<a class="btn plein" href="#/jouer/${id}/guide">Reprendre (${Object.values(rg.reponses).filter((r) => r.niveau != null).length} / ${s.questions.length})</a><button class="btn danger" data-reset="${id}:guide">Recommencer</button>` : `<a class="btn plein" href="#/jouer/${id}/guide">Commencer</a>`}${rg && rg.fini ? `<a class="btn" href="#/bilan/${id}/guide">Voir le bilan</a><button class="btn danger" data-reset="${id}:guide">Recommencer</button>` : ""}</div></div>
+        <div class="carte"><h3>Sujet blanc · 4 h</h3><p class="discret">Les conditions de l'épreuve : chronomètre, pas d'indice, pas de correction avant la fin. Tu peux circuler entre les questions. À la fin (ou quand le temps est écoulé), tu corriges et tu t'évalues question par question.</p>
+          <div class="actions">${rb && !rb.fini ? `<a class="btn plein" href="#/jouer/${id}/blanc">Reprendre l'épreuve</a><button class="btn danger" data-reset="${id}:blanc">Abandonner</button>` : `<a class="btn plein" href="#/jouer/${id}/blanc">Démarrer l'épreuve</a>`}${rb && rb.fini ? `<a class="btn" href="#/bilan/${id}/blanc">Voir le bilan</a><button class="btn danger" data-reset="${id}:blanc">Recommencer</button>` : ""}</div></div>
+      </div>`;
+    app.querySelectorAll("[data-reset]").forEach((b) => b.addEventListener("click", () => { if (confirm("Effacer cet entraînement et repartir de zéro ?")) { effacer(cle(b.dataset.reset)); vueSujet(id); } }));
+  }
+
+  // ---------- visionneuse de documents ----------
+  function Visionneuse(zone, surFermer) {
+    let s = null, doc = "sujet", page = 1, zoom = 100;
+    zone.className = "docs"; zone.innerHTML = "";
+    const tabs = document.createElement("div"); tabs.className = "docs-tabs";
+    const outils = document.createElement("div"); outils.className = "docs-outils";
+    const vue = document.createElement("div"); vue.className = "docs-page";
+    zone.append(tabs, outils, vue);
+    function dessiner() {
+      if (!s) { tabs.innerHTML = ""; outils.innerHTML = ""; vue.innerHTML = `<div class="docs-vide">Aucun document pour cette question.</div>`; return; }
+      tabs.innerHTML = Object.entries(s.docs).map(([k, d]) => `<button class="${k === doc ? "actif" : ""}" data-doc="${k}" title="${esc(d.titre)}">${esc(d.nom)}</button>`).join("") + `<button class="fermer" data-fermer>✕ Fermer</button>`;
+      tabs.querySelectorAll("[data-doc]").forEach((b) => b.addEventListener("click", () => { doc = b.dataset.doc; page = 1; dessiner(); }));
+      tabs.querySelector("[data-fermer]").addEventListener("click", () => surFermer && surFermer());
+      const d = s.docs[doc];
+      const reps = Object.entries(s.reperes).filter(([, v]) => v[0] === doc);
+      outils.innerHTML = `<button class="btn petit" data-nav="-1" ${page <= 1 ? "disabled" : ""}>◀</button><span class="mono">p. ${page} / ${d.pages}</span><button class="btn petit" data-nav="1" ${page >= d.pages ? "disabled" : ""}>▶</button>
+        ${reps.length ? `<select data-rep><option value="">Aller à…</option>${reps.map(([k, v]) => `<option value="${v[1]}" ${v[1] === page ? "selected" : ""}>${esc(k)}</option>`).join("")}</select>` : ""}
+        <span style="margin-left:auto"></span><button class="btn petit" data-zoom="-">−</button><span class="mono">${zoom} %</span><button class="btn petit" data-zoom="+">+</button>`;
+      outils.querySelectorAll("[data-nav]").forEach((b) => b.addEventListener("click", () => { page = Math.min(d.pages, Math.max(1, page + Number(b.dataset.nav))); dessiner(); }));
+      const sel = outils.querySelector("[data-rep]"); if (sel) sel.addEventListener("change", () => { if (sel.value) { page = Number(sel.value); dessiner(); } });
+      outils.querySelectorAll("[data-zoom]").forEach((b) => b.addEventListener("click", () => { zoom = b.dataset.zoom === "+" ? Math.min(220, zoom + 30) : Math.max(70, zoom - 30); dessiner(); }));
+      vue.style.setProperty("--zoom", zoom + "%");
+      vue.innerHTML = `<img src="${s.dossier}${doc}-${page}.jpg" alt="${esc(d.titre)}, page ${page}" loading="eager">`;
+      vue.scrollTop = 0;
+    }
+    return {
+      charger(sujet) { if (s !== sujet) { s = sujet; doc = "sujet"; page = 1; } dessiner(); },
+      aller(d, p) { if (!s || !s.docs[d]) return; doc = d; page = Math.min(s.docs[d].pages, Math.max(1, p)); dessiner(); },
+      repere(nom) { if (!s) return; const m = /^Sujet p\.?\s*(\d+)/i.exec(nom); if (m) return this.aller("sujet", Number(m[1])); const r = s.reperes[nom]; if (r) this.aller(r[0], r[1]); }
+    };
+  }
+
+  // ---------- atelier schéma ----------
+  // Symboles (inspirés des symboles IEC 60617), dessinés dans un carré de 40 unités centré sur le point de pose.
+  const SYMBOLES = {
+    disjoncteur: { nom: "Disjoncteur", svg: '<path d="M0 20V6M0 -12V-20M0 6L10 -9M-4 -16L4 -8M-4 -8L4 -16"/>' },
+    sectionneur: { nom: "Sectionneur", svg: '<path d="M0 20V6M0 -12V-20M0 6L10 -9M-5 -12H5"/>' },
+    interrupteur: { nom: "Interrupteur", svg: '<path d="M0 20V6M0 -12V-20M0 6L10 -9"/>' },
+    contacteur: { nom: "Contact de contacteur (KM)", svg: '<path d="M0 20V6M0 -12V-20M0 6L10 -9M-5 -12a5 5 0 0 1 10 0"/>' },
+    fusible: { nom: "Fusible", svg: '<path d="M0 -20V20M-5 -12H5V12H-5Z"/>' },
+    thermique: { nom: "Relais thermique (F)", svg: '<path d="M0 -20V-8M0 8V20M-8 -8H8V8H-8ZM-3 -2H3V2"/>' },
+    transformateur: { nom: "Transformateur", svg: '<path d="M0 -20V-16M0 16V20"/><circle cx="0" cy="-6" r="10"/><circle cx="0" cy="6" r="10"/>' },
+    moteur: { nom: "Moteur (M)", svg: '<circle cx="0" cy="0" r="14"/><path d="M0 -20V-14"/><text x="0" y="5" font-size="14" text-anchor="middle" stroke="none" fill="currentColor">M</text>' },
+    generatrice: { nom: "Génératrice / alternateur (G)", svg: '<circle cx="0" cy="0" r="14"/><path d="M0 -20V-14"/><text x="0" y="5" font-size="14" text-anchor="middle" stroke="none" fill="currentColor">G</text>' },
+    condensateur: { nom: "Condensateur", svg: '<path d="M0 -20V-4M0 4V20M-10 -4H10M-10 4H10"/>' },
+    terre: { nom: "Terre", svg: '<path d="M0 -20V0M-12 0H12M-8 6H8M-3 12H3"/>' },
+    voyant: { nom: "Voyant / lampe", svg: '<circle cx="0" cy="0" r="10"/><path d="M0 -20V-10M0 10V20M-7 -7L7 7M-7 7L7 -7"/>' },
+    resistance: { nom: "Résistance", svg: '<path d="M-20 0H-12M12 0H20M-12 -5H12V5H-12Z"/>' },
+    reseau: { nom: "Réseau / source", svg: '<circle cx="0" cy="0" r="12"/><path d="M-6 0q3 -5 6 0t6 0M0 12V20"/>' },
+    capteur: { nom: "Capteur (bloc)", svg: '<path d="M-16 -10H16V10H-16ZM-16 10L-8 -10M-20 0H-16"/>' },
+    noeud: { nom: "Nœud", svg: '<circle cx="0" cy="0" r="3.5" fill="currentColor"/>' }
+  };
+  const COULEURS = ["#1d4ed8", "#c2410c", "#15803d"];
+  function Atelier(hote, it, r, ro, corrige, sauver) {
+    const q = it.q, s = it.s, D = q.dessin, taille = s.taille || [910, 1287];
+    const [cx, cy, cw, ch] = D.cadre || [0, 0, taille[0], taille[1]];
+    const src = s.dossier + D.doc + "-" + D.page + ".jpg", srcCorr = corrige && D.corrige ? s.dossier + D.corrige : null;
+    const outils = D.outils !== false;
+    const elems = Array.isArray(r.valeurs.dessin) ? r.valeurs.dessin : (r.valeurs.dessin = []);
+    const pts = (q.champs || []).filter((c) => c.type === "point"), cases = (q.champs || []).filter((c) => c.pos);
+    const ax = q.axes || null;
+    const conv = (a, v, inverse) => { const [[p1, v1], [p2, v2]] = a.p, f = a.log ? Math.log10 : (x) => x, g = a.log ? (x) => Math.pow(10, x) : (x) => x;
+      return inverse ? p1 + (f(v) - f(v1)) * (p2 - p1) / (f(v2) - f(v1)) : g(f(v1) + (v - p1) * (f(v2) - f(v1)) / (p2 - p1)); };
+    const versData = (x, y) => ax ? { x: conv(ax.x, x), y: conv(ax.y, y) } : { x, y };
+    const versPix = (d) => ax ? [conv(ax.x, d.x, true), conv(ax.y, d.y, true)] : [d.x, d.y];
+    let outil = pts.length ? "point" : "crayon", couleur = COULEURS[0], symbole = "disjoncteur", ptCourant = pts[0] ? pts[0].id : null, encours = null;
+    const palette = Object.entries(SYMBOLES).map(([k, v]) => `<option value="${k}">${esc(v.nom)}</option>`).join("");
+    hote.innerHTML = `<div class="atelier">
+      <div class="atelier-outils">${ro ? (srcCorr ? `<label>Superposer le corrigé <input type="range" min="0" max="100" value="0" data-opacite></label><span class="discret">0 % = ton tracé, 100 % = le corrigé</span>` : `<span class="discret">Ton document réponse (lecture seule).</span>`)
+        : `${pts.length ? `<button class="btn petit" data-outil="point">✚ Placer un point</button>` : ""}${outils ? `<button class="btn petit" data-outil="crayon">✎ Crayon</button><button class="btn petit" data-outil="ligne">╱ Ligne</button><button class="btn petit" data-outil="fleche">→ Flèche</button><button class="btn petit" data-outil="texte">T Texte</button><button class="btn petit" data-outil="symbole">⎔ Symbole</button><select data-symbole hidden>${palette}</select><span class="atelier-couleurs">${COULEURS.map((c) => `<button data-couleur="${c}" style="background:${c}" title="couleur"></button>`).join("")}</span><span class="sep"></span><button class="btn petit" data-outil="gomme">⌫ Gomme</button><button class="btn petit" data-annuler title="Annuler le dernier tracé">↶</button><button class="btn petit" data-vider>Tout effacer</button>` : ""}`}</div>
+      <div class="atelier-zone"><svg viewBox="${cx} ${cy} ${cw} ${ch}" class="${ro ? "" : "dessinable"}" xmlns="http://www.w3.org/2000/svg">
+        <defs>${COULEURS.map((c, i) => `<marker id="fl-${i}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="${c}"/></marker>`).join("")}</defs>
+        <image href="${src}" x="0" y="0" width="${taille[0]}" height="${taille[1]}"/>
+        ${srcCorr ? `<image class="corr" href="${srcCorr}" x="0" y="0" width="${taille[0]}" height="${taille[1]}" opacity="0"/>` : ""}
+        <g class="calque"></g><g class="pts"></g><g class="temp"></g></svg>
+        <div class="atelier-cases"></div></div>
+      ${pts.length || cases.length ? `<div class="atelier-lecture" data-lecture></div>` : ""}
+      ${!ro && (outils || pts.length) ? `<div class="atelier-aide">${pts.length ? "Clique sur le graphique pour placer le point (tu peux le déplacer). " : ""}${outils ? "Crayon, lignes, flèches, texte et symboles se dessinent directement sur le document ; la gomme retire un tracé." : ""}</div>` : ""}
+    </div>`;
+    const svg = hote.querySelector("svg"), calque = svg.querySelector(".calque"), gpts = svg.querySelector(".pts"), temp = svg.querySelector(".temp"), zc = hote.querySelector(".atelier-cases"), lecture = hote.querySelector("[data-lecture]");
+    const pc = (x, y, w, h) => `left:${(100 * (x - cx)) / cw}%;top:${(100 * (y - cy)) / ch}%;width:${(100 * w) / cw}%;height:${(100 * h) / ch}%`;
+    // cases posées sur le document
+    zc.innerHTML = cases.map((c) => { const v = r.valeurs[c.id], etat = corrige ? (champJuste(c, v) ? "ok" : "ko") : "";
+      if (c.type === "choix") return `<select data-case name="${c.id}" class="${etat}" style="${pc(...c.pos)}" ${ro ? "disabled" : ""} title="${esc(c.label)}"><option value="">…</option>${c.options.map((o, i) => `<option value="${i}" ${v != null && Number(v) === i ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+      return `<input data-case type="text" name="${c.id}" class="${etat}${c.attendu === undefined ? " texte-libre" : ""}" style="${pc(...c.pos)}" value="${esc(v ?? "")}" ${ro ? "readonly" : ""} title="${esc(c.label)}" placeholder="${esc(c.unite || "")}">`; }).join("");
+    zc.querySelectorAll("[data-case]").forEach((el) => el.addEventListener("change", () => { const v = el.value; if (v === "") delete r.valeurs[el.name]; else r.valeurs[el.name] = el.tagName === "SELECT" ? Number(v) : v; sauver(); majLecture(); }));
+    const idc = (k) => Math.max(0, COULEURS.indexOf(k));
+    const svgElem = (e, i) => { const k = e.k || COULEURS[0], d = `data-i="${i}"`;
+      if (e.t === "c") return `<polyline ${d} points="${e.p.map((p) => p.join(",")).join(" ")}" fill="none" stroke="${k}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+      if (e.t === "l" || e.t === "f") return `<line ${d} x1="${e.a[0]}" y1="${e.a[1]}" x2="${e.b[0]}" y2="${e.b[1]}" stroke="${k}" stroke-width="2.5" stroke-linecap="round" ${e.t === "f" ? `marker-end="url(#fl-${idc(k)})"` : ""}/>`;
+      if (e.t === "t") return `<text ${d} x="${e.p[0]}" y="${e.p[1]}" font-size="16" fill="${k}">${esc(e.s)}</text>`;
+      if (e.t === "s" && SYMBOLES[e.id]) return `<g ${d} transform="translate(${e.p[0]} ${e.p[1]}) rotate(${e.r || 0})" stroke="${k}" fill="none" stroke-width="2" color="${k}">${SYMBOLES[e.id].svg}</g>`;
+      return ""; };
+    const dessinerCalque = () => { calque.innerHTML = elems.map(svgElem).join(""); };
+    const dessinerPts = () => { gpts.innerHTML = pts.map((c) => { const v = r.valeurs[c.id]; if (!v) return ""; const [x, y] = versPix(v), k = ro && corrige ? (champJuste(c, v) ? "#15803d" : "#b42318") : "#c2410c";
+      return `<g><line x1="${x - 16}" y1="${y}" x2="${x + 16}" y2="${y}" stroke="${k}" stroke-width="2"/><line x1="${x}" y1="${y - 16}" x2="${x}" y2="${y + 16}" stroke="${k}" stroke-width="2"/><circle cx="${x}" cy="${y}" r="5" fill="${k}"/><text x="${x + 10}" y="${y - 8}" font-size="14" fill="${k}">${esc(c.label)}</text></g>`; }).join(""); };
+    const fmt = (v) => Number.isFinite(v) ? Number(v.toPrecision(3)).toLocaleString("fr-FR", { maximumFractionDigits: 10 }) : "—";
+    const majLecture = () => { if (!lecture) return;
+      const lp = pts.map((c) => { const v = r.valeurs[c.id], n = c.noms || ["x", "y"], u = c.unites || ["", ""];
+        const lu = v ? `${n[0]} ≈ <span class="mono">${fmt(v.x)} ${esc(u[0])}</span> · ${n[1]} ≈ <span class="mono">${fmt(v.y)} ${esc(u[1])}</span>` : "<i>pas encore placé</i>";
+        const verdict = corrige ? (champJuste(c, v) ? ` <b class="n3">✓ bien placé</b>` : ` <b class="n0">✗ attendu : ${n[0]} = ${fmt(c.attendu.x)} ${esc(u[0])}, ${n[1]} = ${fmt(c.attendu.y)} ${esc(u[1])}</b>`) : "";
+        return `<div><b>${esc(c.label)}</b> : ${lu}${verdict}</div>`; });
+      const lc = corrige ? cases.map((c) => { const v = r.valeurs[c.id], ok = champJuste(c, v); const att = c.type === "choix" ? c.options[c.attendu] : c.attendu; return `<div>${esc(c.label)} : ${ok ? `<b class="n3">✓</b>` : `<b class="n0">✗</b> attendu <b>${esc(att)}${c.unite ? " " + esc(c.unite) : ""}</b>`}</div>`; }) : [];
+      lecture.innerHTML = lp.concat(lc).join(""); };
+    dessinerCalque(); dessinerPts(); majLecture();
+    const op = hote.querySelector("[data-opacite]"); if (op) op.addEventListener("input", () => { svg.querySelector(".corr").setAttribute("opacity", op.value / 100); });
+    if (ro) return;
+    // ---- outils ----
+    const majOutils = () => { hote.querySelectorAll("[data-outil]").forEach((b) => b.classList.toggle("actif", b.dataset.outil === outil)); hote.querySelectorAll("[data-couleur]").forEach((b) => b.classList.toggle("actif", b.dataset.couleur === couleur));
+      const sel = hote.querySelector("[data-symbole]"); if (sel) sel.hidden = outil !== "symbole"; svg.style.cursor = outil === "gomme" ? "not-allowed" : outil === "texte" ? "text" : "crosshair"; };
+    hote.querySelectorAll("[data-outil]").forEach((b) => b.addEventListener("click", () => { outil = b.dataset.outil; majOutils(); }));
+    hote.querySelectorAll("[data-couleur]").forEach((b) => b.addEventListener("click", () => { couleur = b.dataset.couleur; majOutils(); }));
+    const sel = hote.querySelector("[data-symbole]"); if (sel) sel.addEventListener("change", () => (symbole = sel.value));
+    const ba = hote.querySelector("[data-annuler]"); if (ba) ba.addEventListener("click", () => { elems.pop(); dessinerCalque(); sauver(); });
+    const bv = hote.querySelector("[data-vider]"); if (bv) bv.addEventListener("click", () => { if (elems.length && confirm("Effacer tout ton tracé ?")) { elems.length = 0; dessinerCalque(); sauver(); } });
+    majOutils();
+    const P = (ev) => { const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; const m = svg.getScreenCTM(); if (!m) return null; const o = pt.matrixTransform(m.inverse()); return [Math.round(o.x * 10) / 10, Math.round(o.y * 10) / 10]; };
+    const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+    const distSeg = (p, a, b) => { const l2 = dist(a, b) ** 2; if (!l2) return dist(p, a); let t = ((p[0] - a[0]) * (b[0] - a[0]) + (p[1] - a[1]) * (b[1] - a[1])) / l2; t = Math.max(0, Math.min(1, t)); return dist(p, [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]); };
+    const distElem = (p, e) => e.t === "c" ? Math.min(...e.p.map((x) => dist(p, x))) : e.t === "l" || e.t === "f" ? distSeg(p, e.a, e.b) : dist(p, e.p);
+    const seuil = cw / 60;
+    let saisieTexte = null;
+    svg.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0 || saisieTexte) return; const p = P(ev); if (!p) return; ev.preventDefault(); svg.setPointerCapture(ev.pointerId);
+      if (outil === "point" && ptCourant) {
+        const proche = pts.find((c) => r.valeurs[c.id] && dist(versPix(r.valeurs[c.id]), p) < seuil * 1.5); if (proche) ptCourant = proche.id;
+        r.valeurs[ptCourant] = versData(p[0], p[1]); encours = { t: "pt" }; dessinerPts(); majLecture(); sauver();
+      } else if (outil === "crayon") encours = { t: "c", p: [p], k: couleur };
+      else if (outil === "ligne" || outil === "fleche") encours = { t: outil === "ligne" ? "l" : "f", a: p, b: p, k: couleur };
+      else if (outil === "symbole") { elems.push({ t: "s", id: symbole, p, k: couleur, r: 0 }); dessinerCalque(); sauver(); }
+      else if (outil === "gomme") { let best = -1, bd = seuil; elems.forEach((e, i) => { const d = distElem(p, e); if (d < bd) { bd = d; best = i; } }); if (best >= 0) { elems.splice(best, 1); dessinerCalque(); sauver(); } }
+      else if (outil === "texte") {
+        const inp = document.createElement("input"); inp.type = "text"; inp.className = "texte-libre"; inp.placeholder = "texte puis Entrée"; inp.style.cssText = pc(p[0], p[1] - 14, Math.min(cw * 0.35, 240), 24); zc.appendChild(inp); saisieTexte = inp; inp.focus();
+        const fin = (ok) => { if (!saisieTexte) return; saisieTexte = null; const sv = inp.value.trim(); inp.remove(); if (ok && sv) { elems.push({ t: "t", p, s: sv, k: couleur }); dessinerCalque(); sauver(); } };
+        inp.addEventListener("keydown", (k) => { if (k.key === "Enter") fin(true); if (k.key === "Escape") fin(false); }); inp.addEventListener("blur", () => fin(true));
+      }
+    });
+    svg.addEventListener("pointermove", (ev) => { if (!encours) return; const p = P(ev); if (!p) return;
+      if (encours.t === "pt") { r.valeurs[ptCourant] = versData(p[0], p[1]); dessinerPts(); majLecture(); return; }
+      if (encours.t === "c") { if (dist(encours.p[encours.p.length - 1], p) > 1.5) encours.p.push(p); } else encours.b = p;
+      temp.innerHTML = svgElem(encours, "tmp"); });
+    const finTrace = (ev) => { if (!encours) return; const e = encours; encours = null; temp.innerHTML = "";
+      if (e.t === "pt") { sauver(); return; }
+      if (e.t === "c" ? e.p.length > 1 : dist(e.a, e.b) > 2) { elems.push(e); dessinerCalque(); sauver(); } };
+    svg.addEventListener("pointerup", finTrace); svg.addEventListener("pointercancel", finTrace);
+    svg.addEventListener("keydown", (ev) => { if ((ev.ctrlKey || ev.metaKey) && ev.key === "z") { elems.pop(); dessinerCalque(); sauver(); } });
+    svg.tabIndex = 0;
+  }
+
+  // ---------- page d'entraînement ----------
+  function vueJouer(prc, revue) {
+    if (!prc) return vueAccueil();
+    const K = cle(prc.id);
+    let run = lire(K);
+    if (!run) run = { parcours: prc.id, mode: prc.mode, debut: Date.now(), idx: 0, phase: "repondre", reponses: {}, indices: 0, fini: false, maj: Date.now(), graine: Math.floor(Math.random() * 4294967296) };
+    prc = ordonner(prc, run);
+    const lienBilan = prc.notion ? "#/bilan/notion/" + prc.notion.id : "#/bilan/" + prc.sujet.id + "/" + prc.mode;
+    if (run.fini && revue == null) { location.hash = lienBilan; return; }
+    if (revue != null) { if (!run.fini) { location.hash = prc.notion ? "#/notion/" + prc.notion.id : "#/jouer/" + prc.sujet.id + "/" + prc.mode; return; } run.idx = Math.min(prc.items.length - 1, Math.max(0, revue)); }
+    const enRevue = run.fini;
+    const sauver = () => { run.maj = Date.now(); garder(K, run); };
+    const blanc = prc.mode === "blanc";
+    const DUREE = (prc.sujet && prc.sujet.duree_min || 240) * 60e3;
+
+    app.innerHTML = `
+      <div class="bandeau-jeu">
+        <a class="btn petit" href="${prc.notion ? "#/" : "#/sujet/" + prc.sujet.id}">← Quitter</a>
+        <span class="titre">${esc(prc.titre)}</span>
+        <div class="progres"><div class="barre"><span id="prog" style="width:0"></span></div><div class="discret" id="prog-txt"></div></div>
+        ${blanc && !enRevue ? `<span class="chrono" id="chrono">4:00:00</span>` : ""}
+        <button class="btn petit ${enRevue ? "plein" : ""}" id="btn-terminer">${enRevue ? "← Retour au bilan" : blanc ? "Terminer l'épreuve" : "Terminer · bilan"}</button>
+      </div>
+      <div class="nav-q" id="nav-q"></div>
+      <div class="jouer"><div id="docs"></div><div id="travail"></div></div>`;
+    const docsEl = document.getElementById("docs"), travail = document.getElementById("travail"), btnDocs = document.getElementById("btn-docs");
+    const viz = Visionneuse(docsEl, () => docsEl.classList.remove("ouvert"));
+    btnDocs.hidden = false; btnDocs.onclick = () => docsEl.classList.add("ouvert");
+    document.getElementById("btn-terminer").addEventListener("click", () => {
+      if (enRevue) { location.hash = lienBilan; return; }
+      if (blanc && run.phase === "repondre") { if (confirm("Terminer l'épreuve et passer à la correction ?")) { run.phase = "corriger"; run.finEpreuve = Date.now(); run.idx = 0; sauver(); afficher(); } }
+      else if (confirm("Terminer cet entraînement et voir le bilan ? (tu pourras reprendre les questions N0 et N1)")) finir();
+    });
+    if (blanc && !enRevue) {
+      const el = document.getElementById("chrono");
+      const tic = () => {
+        if (run.phase !== "repondre") { el.textContent = "Correction"; el.classList.remove("fin"); return; }
+        const reste = Math.max(0, DUREE - (Date.now() - run.debut)), h = Math.floor(reste / 3600e3), m = Math.floor(reste / 60e3) % 60, sec = Math.floor(reste / 1e3) % 60;
+        el.textContent = `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+        if (reste < 15 * 60e3) el.classList.add("fin");
+        if (reste === 0) { run.phase = "corriger"; run.finEpreuve = Date.now(); run.idx = 0; sauver(); afficher(); alert("Temps écoulé : place à la correction."); }
+      };
+      tic(); chrono = setInterval(tic, 1000);
+    }
+
+    function finir() {
+      run.fini = true; run.termine = Date.now(); sauver();
+      const fin = () => { location.hash = lienBilan; };
+      if (run.transmis) return fin();
+      transmettre(prc, run).then((ok) => { if (ok) { run.transmis = true; sauver(); } }).finally(fin);
+    }
+    function rep(it) { const k = idItem(it); return run.reponses[k] || (run.reponses[k] = { valeurs: {}, coches: null, niveau: null, indice: false }); }
+
+    function dessinerNav() {
+      const nav = document.getElementById("nav-q");
+      nav.innerHTML = prc.items.map((it, i) => { const r = run.reponses[idItem(it)] || {}; const cls = r.niveau != null ? "n" + r.niveau : (Object.keys(r.valeurs || {}).length ? "rep" : "");
+        return `<button class="${cls} ${i === run.idx ? "cour" : ""}" data-i="${i}" title="${esc(it.q.capacite)}">${prc.notion ? esc(it.s.session.slice(0, 4)) + "·" : ""}${esc(it.q.id)}</button>`; }).join("");
+      nav.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { run.idx = Number(b.dataset.i); sauver(); afficher(); }));
+      const faits = prc.items.filter((it) => (run.reponses[idItem(it)] || {}).niveau != null).length;
+      document.getElementById("prog").style.width = Math.round(100 * (run.phase === "corriger" ? faits : run.idx) / prc.items.length) + "%";
+      document.getElementById("prog-txt").textContent = run.phase === "corriger" ? `Correction : ${faits} / ${prc.items.length} questions évaluées` : `Question ${run.idx + 1} / ${prc.items.length}${blanc ? "" : " · " + faits + " évaluée" + (faits > 1 ? "s" : "")}`;
+    }
+
+    let derniere = null;
+    function afficher() {
+      if (run.idx >= prc.items.length) run.idx = prc.items.length - 1;
+      const it = prc.items[run.idx], q = it.q, s = it.s, r = rep(it);
+      viz.charger(s);
+      if (idItem(it) !== derniere) { derniere = idItem(it); if (q.docs && q.docs.length) viz.repere(q.docs[0]); else if (q.drep) viz.aller("drep", q.drep); }
+      dessinerNav();
+      const partie = s.parties.find((p) => p.id === q.partie) || {}, section = s.sections.find((x) => x.id === q.section);
+      const premiere = run.idx === 0 || prc.items[run.idx - 1].q.section !== q.section || prc.items[run.idx - 1].s !== s;
+      const corrige = run.phase === "corriger" || r.niveau != null || (!blanc && r.verifie);
+      const ro = corrige || run.phase === "corriger";
+      const champs = (q.champs || []).filter((ch) => !ch.pos && ch.type !== "point").map((ch) => {
+        const v = r.valeurs[ch.id];
+        const etat = corrige ? (champJuste(ch, v) ? "ok" : "ko") : "";
+        if (ch.type === "choix")
+          return `<div class="champ ${etat}"><span class="lab">${ch.label}</span><span></span><div class="choix">${ch.options.map((o, i) => `<label><input type="radio" name="${ch.id}" value="${i}" ${v != null && Number(v) === i ? "checked" : ""} ${ro ? "disabled" : ""}> <span>${esc(o)}</span></label>`).join("")}</div>
+            ${corrige ? `<div class="verdict">${etat === "ok" ? "✓ Bonne réponse" : "✗ Réponse attendue : <b>" + esc(ch.options[ch.attendu]) + "</b>"}</div>` : ""}</div>`;
+        return `<div class="champ ${etat}"><span class="lab">${ch.label}</span><span class="saisie"><input type="text" inputmode="decimal" autocomplete="off" name="${ch.id}" value="${esc(v ?? "")}" ${ro ? "readonly" : ""} placeholder="valeur"><span class="unite">${esc(ch.unite || "")}</span></span>
+            ${corrige ? `<div class="verdict">${etat === "ok" ? "✓ Juste" : "✗ Attendu : <b>" + nb(ch.attendu, 4) + " " + esc(ch.unite || "") + "</b>" + (ch.abs !== undefined ? "" : " (± " + (ch.tol || 2) + " %)")}</div>` : ""}</div>`;
+      }).join("");
+      travail.innerHTML = `
+        <div class="carte">
+          <div class="eyebrow">Partie ${esc(q.partie)} · ${esc(partie.titre || "")}${prc.notion ? " · " + esc(s.titre) + " (" + esc(s.session) + ")" : ""}</div>
+          ${section ? `<details class="section" ${premiere ? "open" : ""}><summary>${esc(section.titre)} — contexte et données de la partie</summary><div>${partie.objectif && premiere ? "<p><b>Objectif :</b> " + esc(partie.objectif) + "</p>" : ""}${section.intro}${section.docs && section.docs.length ? "<p><b>Documents :</b> " + section.docs.map((d) => `<button class="btn petit" data-rep="${esc(d)}">${esc(d)}</button>`).join(" ") + "</p>" : ""}</div></details>` : ""}
+          ${q.contexte ? `<div class="contexte">${q.contexte}</div>` : ""}
+          <div class="q-tete"><span class="q-num">${esc(q.id)}</span>${q.docs && q.docs.length ? `<span class="chips"><span class="discret">À consulter :</span>${q.docs.map((d) => `<button class="btn petit" data-rep="${esc(d)}">${esc(d)}</button>`).join("")}</span>` : `<span class="discret">Sans document : tout est dans l'énoncé.</span>`}</div>
+          <div class="q-enonce">${q.enonce}</div>
+          <div class="capacite"><b>Capacité évaluée :</b> ${esc(q.capacite)} · <span class="chip">${esc(notionDe(q.notion).nom)}</span></div>
+          ${q.dessin ? `<div class="papier">✎ <b>Document réponse à compléter à l'écran</b>${q.drep ? ` · <button class="btn petit" data-drep="${q.drep}">Voir la page entière</button>` : ""}</div><div id="atelier"></div>` : q.drep ? `<div class="papier">✎ Document réponse à compléter sur papier : <button class="btn petit" data-drep="${q.drep}">Voir le DREP</button></div>` : ""}
+          ${champs ? `<div class="champs">${champs}</div>` : ""}
+          ${q.texte || !(q.champs && q.champs.length) ? `<p class="discret" style="margin:6px 0 4px">Ta réponse rédigée (facultatif ici, mais obligatoire sur la copie) :</p><textarea name="texte" ${ro ? "readonly" : ""} placeholder="Relation utilisée, données relevées, calcul, conclusion…">${esc(r.valeurs.texte || "")}</textarea>` : ""}
+          ${r.indice && q.ou ? `<div class="indice"><b>Où chercher ?</b> ${q.ou}</div>` : ""}
+          <div class="actions" id="actions"></div>
+          <div id="correction"></div>
+        </div>`;
+      if (q.dessin) Atelier(document.getElementById("atelier"), it, r, ro, corrige, sauver);
+      travail.querySelectorAll("[data-rep]").forEach((b) => b.addEventListener("click", () => { viz.repere(b.dataset.rep); if (window.innerWidth <= 980) docsEl.classList.add("ouvert"); }));
+      travail.querySelectorAll("[data-drep]").forEach((b) => b.addEventListener("click", () => { viz.aller("drep", Number(b.dataset.drep)); if (window.innerWidth <= 980) docsEl.classList.add("ouvert"); }));
+      // saisie
+      const lireSaisies = () => {
+        travail.querySelectorAll("input[type=text]:not([data-case]):not(.texte-libre)").forEach((i) => { if (i.value.trim() !== "") r.valeurs[i.name] = i.value.trim(); else delete r.valeurs[i.name]; });
+        travail.querySelectorAll("input[type=radio]:checked").forEach((i) => (r.valeurs[i.name] = Number(i.value)));
+        const t = travail.querySelector("textarea"); if (t) { if (t.value.trim()) r.valeurs.texte = t.value; else delete r.valeurs.texte; }
+        sauver();
+      };
+      travail.querySelectorAll(".champs input,textarea").forEach((i) => i.addEventListener("change", lireSaisies));
+      const actions = document.getElementById("actions");
+      const prec = run.idx > 0 ? `<button class="btn" data-go="-1">← Précédente</button>` : "";
+      const suiv = run.idx < prc.items.length - 1 ? `<button class="btn ${corrige ? "plein" : ""}" data-go="1">Suivante →</button>` : `<button class="btn plein" data-fin>Terminer → bilan</button>`;
+      if (run.phase === "corriger" || corrige) {
+        actions.innerHTML = prec + (r.niveau == null && !enRevue ? "" : suiv);
+        montrerCorrection(it, r, actions, suiv);
+      } else {
+        actions.innerHTML = prec + (blanc ? suiv : `${q.ou ? `<button class="btn" data-indice ${r.indice ? "disabled" : ""}>💡 Où chercher ?</button>` : ""}<button class="btn plein" data-verifier>Vérifier et m'évaluer</button>`);
+        const bi = actions.querySelector("[data-indice]"); if (bi) bi.addEventListener("click", () => { r.indice = true; run.indices++; sauver(); afficher(); viz.repere((q.docs || [])[0] || ""); });
+        const bv = actions.querySelector("[data-verifier]"); if (bv) bv.addEventListener("click", () => { lireSaisies(); r.verifie = true; sauver(); afficher(); });
+      }
+      actions.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => { lireSaisies(); run.idx += Number(b.dataset.go); sauver(); afficher(); }));
+      const bf = actions.querySelector("[data-fin]"); if (bf) bf.addEventListener("click", () => { lireSaisies(); if (enRevue) { location.hash = lienBilan; return; } if (run.phase === "corriger" || !blanc) { if (confirm("Terminer et voir le bilan ?")) finir(); } else if (confirm("Terminer l'épreuve et passer à la correction ?")) { run.phase = "corriger"; run.finEpreuve = Date.now(); run.idx = 0; sauver(); afficher(); } });
+    }
+
+    function montrerCorrection(it, r, actions, suivHtml) {
+      const q = it.q, zone = document.getElementById("correction");
+      if (!r.coches) r.coches = q.indicateurs.map(() => false);
+      // indicateurs automatiques
+      const auto = {}; Object.entries(q.auto || {}).forEach(([ch, idx]) => { const c = (q.champs || []).find((x) => x.id === ch); if (c) { const ok = champJuste(c, r.valeurs[ch]); (Array.isArray(idx) ? idx : [idx]).forEach((i) => { auto[i] = auto[i] === undefined ? ok : auto[i] && ok; }); } });
+      Object.entries(auto).forEach(([idx, ok]) => (r.coches[idx] = ok));
+      const valide = r.niveau != null;
+      const dessinerGrille = () => {
+        const n = niveauDe(q, r.coches), cnt = r.coches.filter(Boolean).length;
+        zone.innerHTML = `<div class="correction">
+          <h3>Corrigé</h3>
+          ${q.corrigeImg && !q.dessin ? `<img class="img-corrige" src="${it.s.dossier}${q.corrigeImg}" alt="Document réponse corrigé" data-zoom>` : ""}
+          <div class="corrige">${q.corrige}</div>
+          ${q.ou && !r.indice ? `<div class="indice"><b>Où était la réponse ?</b> ${q.ou}</div>` : ""}
+          <div class="grille">
+            <div class="tete"><div><h3 style="margin:0">Grille d'évaluation · barème officiel</h3><span class="discret">Coche <b>honnêtement</b> ce que tu as écrit sur ta copie. Les indicateurs liés à un résultat saisi sont cochés automatiquement.</span></div>
+              <div class="niveau n${n}">N${n} <small>${NIVEAUX[n]} · ${cnt} / ${q.indicateurs.length} indicateur${cnt > 1 ? "s" : ""}</small></div></div>
+            ${q.indicateurs.map((txt, i) => `<label class="${auto[i] !== undefined ? "auto" : ""}"><input type="checkbox" data-i="${i}" ${r.coches[i] ? "checked" : ""} ${auto[i] !== undefined || valide ? "disabled" : ""}> <span>${txt}</span>${auto[i] !== undefined ? `<span class="tag ${auto[i] ? "ok" : "ko"}">${auto[i] ? "vérifié ✓" : "faux ✗"}</span>` : ""}</label>`).join("")}
+            <p class="discret" style="margin:8px 0 0">Seuils : ${["N1", "N2", "N3"].map((k, i) => (q.seuils || [])[i] != null ? k + " dès " + q.seuils[i] : null).filter(Boolean).join(" · ")} indicateur(s).</p>
+          </div>
+          ${!valide ? `<div class="actions"><button class="btn plein" data-valider>Valider mon évaluation : N${n}</button></div>` : `<p class="discret">Évaluation enregistrée : <b class="n${r.niveau}">N${r.niveau}</b>. ${r.indice ? "Indice utilisé." : ""}</p>`}
+        </div>`;
+        zone.querySelectorAll("input[type=checkbox]").forEach((c) => c.addEventListener("change", () => { r.coches[c.dataset.i] = c.checked; sauver(); dessinerGrille(); }));
+        const im = zone.querySelector("[data-zoom]"); if (im) im.addEventListener("click", () => lightbox(im.src));
+        const bv = zone.querySelector("[data-valider]"); if (bv) bv.addEventListener("click", () => { r.niveau = niveauDe(q, r.coches); sauver(); dessinerNav(); dessinerGrille(); if (run.phase === "corriger" || !blanc) { actions.innerHTML = (run.idx > 0 ? `<button class="btn" data-go="-1">← Précédente</button>` : "") + suivHtml; actions.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => { run.idx += Number(b.dataset.go); sauver(); afficher(); })); const bf = actions.querySelector("[data-fin]"); if (bf) bf.addEventListener("click", () => { if (enRevue) { location.hash = lienBilan; return; } if (confirm("Terminer et voir le bilan ?")) finir(); }); } });
+      };
+      dessinerGrille();
+    }
+    afficher();
+  }
+
+  // ---------- bilan ----------
+  function vueBilan(prc) {
+    if (!prc) return vueAccueil();
+    const run = lire(cle(prc.id));
+    if (!run) { location.hash = prc.notion ? "#/notion/" + prc.notion.id : "#/sujet/" + prc.sujet.id; return; }
+    prc = ordonner(prc, run);
+    const items = prc.items.map((it) => ({ it, q: it.q, r: run.reponses[idItem(it)] || {}, niveau: (run.reponses[idItem(it)] || {}).niveau ?? null }));
+    const faits = items.filter((i) => i.niveau != null);
+    const note = noteSur20(faits);
+    const rep = [0, 1, 2, 3].map((n) => faits.filter((i) => i.niveau === n).length);
+    const duree = run.termine ? Math.round((run.termine - run.debut) / 60e3) : null;
+    const par = (clef, lib) => { const g = {}; faits.forEach((i) => { const k = clef(i); (g[k] = g[k] || []).push(i); });
+      return Object.entries(g).map(([k, L]) => ({ k, lib: lib(k, L), n: L.length, note: noteSur20(L), faible: L.filter((i) => i.niveau <= 1).length })); };
+    const parPartie = prc.sujet ? par((i) => i.q.partie, (k) => "Partie " + k + " · " + (prc.sujet.parties.find((p) => p.id === k) || {}).titre) : [];
+    const parNotion = par((i) => i.q.notion, (k) => notionDe(k).nom).sort((a, b) => (a.note ?? 0) - (b.note ?? 0));
+    const lienJeu = prc.notion ? "#/notion/" + prc.notion.id : "#/jouer/" + prc.sujet.id + "/" + prc.mode;
+    const lienRevue = (k) => (prc.notion ? "#/revoir/notion/" + prc.notion.id + "/" : "#/revoir/" + prc.sujet.id + "/" + prc.mode + "/") + k;
+    app.innerHTML = `
+      <p><a href="${prc.notion ? "#/" : "#/sujet/" + prc.sujet.id}">← ${prc.notion ? "Accueil" : esc(prc.titre)}</a></p>
+      <div class="eyebrow">${esc(prc.sous)} · ${prc.mode === "blanc" ? "sujet blanc" : "mode guidé"}</div>
+      <h1>Bilan · ${esc(prc.titre)}</h1>
+      <div class="carte"><div class="score">
+        <div><div class="grand">${note == null ? "—" : nb(note, 3)}<small> / 20</small></div><div class="discret">note indicative sur ${faits.length} question${faits.length > 1 ? "s" : ""} évaluée${faits.length > 1 ? "s" : ""}${faits.length < items.length ? " (" + (items.length - faits.length) + " non traitée" + (items.length - faits.length > 1 ? "s" : "") + ")" : ""}</div></div>
+        <div><div class="repartition">${[3, 2, 1, 0].map((n) => `<span class="pastille n${n}" style="font-size:.95rem">N${n} · ${rep[n]}</span>`).join("")}</div>
+          <div class="discret" style="margin-top:6px">N3 totalement acquise · N2 partiellement · N1 en cours · N0 non acquise${duree != null ? " · durée " + Math.floor(duree / 60) + " h " + String(duree % 60).padStart(2, "0") : ""}${run.indices ? " · " + run.indices + " indice" + (run.indices > 1 ? "s" : "") : ""}</div></div>
+        <div style="margin-left:auto" class="actions"><button class="btn" id="btn-faibles" ${faits.some((i) => i.niveau <= 1) ? "" : "disabled"}>Retravailler les N0 et N1</button><button class="btn" id="btn-envoyer">Transmettre au professeur</button></div>
+      </div></div>
+      ${parPartie.length ? `<h2>Par partie</h2><div class="carte" style="padding:8px 14px"><table><thead><tr><th>Partie</th><th class="num">Questions</th><th class="num">N0–N1</th><th style="width:30%">Niveau</th><th class="num">/ 20</th></tr></thead><tbody>${parPartie.map(ligneGroupe).join("")}</tbody></table></div>` : ""}
+      <h2>Par notion <span class="discret" style="font-family:var(--f-body);font-weight:400;text-transform:none;font-size:.88rem">de la plus fragile à la plus solide</span></h2>
+      <div class="carte" style="padding:8px 14px"><table><thead><tr><th>Notion</th><th class="num">Questions</th><th class="num">N0–N1</th><th style="width:30%">Niveau</th><th class="num">/ 20</th></tr></thead><tbody>${parNotion.map(ligneGroupe).join("")}</tbody></table></div>
+      <h2>Question par question</h2>
+      <div class="carte"><div class="liste-q">${items.map((i, k) => `<a href="${lienRevue(k)}"><span class="pastille ${i.niveau == null ? "nn" : "n" + i.niveau}">${i.niveau == null ? "—" : "N" + i.niveau}</span><span>${esc(i.q.id)}${i.r.indice ? " 💡" : ""}</span></a>`).join("")}</div>
+        <p class="discret" style="margin-bottom:0">Clique sur une question pour revoir ton évaluation et le corrigé.</p></div>`;
+    function ligneGroupe(g) { const niv = g.note == null ? 0 : g.note / 20; return `<tr><td>${esc(g.lib)}</td><td class="num">${g.n}</td><td class="num">${g.faible || ""}</td><td><div class="barre"><span style="width:${Math.round(100 * niv)}%;background:${niv >= .8 ? "var(--good)" : niv >= .5 ? "var(--accent)" : "var(--bad)"}"></span></div></td><td class="num">${g.note == null ? "—" : nb(g.note, 3)}</td></tr>`; }
+    document.getElementById("btn-faibles").addEventListener("click", () => {
+      items.forEach((i) => { if (i.niveau != null && i.niveau <= 1) { const r = run.reponses[idItem(i.it)]; r.niveau = null; r.coches = null; r.verifie = false; r.valeurs = {}; } });
+      run.fini = false; run.transmis = false; run.idx = items.findIndex((i) => (run.reponses[idItem(i.it)] || {}).niveau == null); if (run.idx < 0) run.idx = 0;
+      if (prc.mode === "blanc") run.phase = "corriger";
+      garder(cle(prc.id), run); location.hash = lienJeu;
+    });
+    document.getElementById("btn-envoyer").addEventListener("click", () => transmettre(prc, run, true));
+  }
+
+  // ---------- transmission au site SI Papara ----------
+  async function transmettre(prc, run, manuel) {
+    const items = prc.items.map((it) => ({ q: it.q, r: run.reponses[idItem(it)] || {} })).filter((i) => i.r.niveau != null);
+    const note = noteSur20(items.map((i) => ({ q: i.q, niveau: i.r.niveau })));
+    if (note == null) { if (manuel) toast("Aucune question évaluée : rien à transmettre."); return false; }
+    if (!window.SIP || !SIP.session || !SIP.session.get()) { toast(manuel ? "Tu n'es pas connecté(e) au site : connecte-toi sur la page d'accueil du site, puis reviens transmettre." : "Résultat gardé sur cet appareil (non connecté au site)."); return false; }
+    const details = items.map((i) => { const d = { q: i.q.id + " · " + i.q.capacite.slice(0, 90), rep: "N" + i.r.niveau + " (" + i.r.coches.filter(Boolean).length + "/" + i.q.indicateurs.length + " indicateurs)" + (i.r.indice ? " · indice" : ""), attendu: "N3", pts: Math.round(100 * i.r.niveau / 3) / 100, erreurs: i.r.niveau <= 1 ? 1 : 0, notion: i.q.notion };
+      const tr = i.r.valeurs && i.r.valeurs.dessin; if (Array.isArray(tr) && tr.length && JSON.stringify(tr).length < 30000) d.dessin = tr; return d; });
+    try {
+      const ok = await SIP.ecrire("enregistrer", { module: prc.module, titre: prc.titreSite, type: "externe", score: note, score_max: 20, duree_s: run.termine ? Math.round((run.termine - run.debut) / 1000) : null, details });
+      toast(SIP.apercu && SIP.apercu.actif() ? "Aperçu : résultat gardé dans ce navigateur (rien n'est transmis)." : ok ? "Résultat transmis au professeur ✓" : "Hors ligne : résultat gardé, il partira au retour du réseau.");
+      return true;
+    } catch (e) { toast(e.message === "SESSION_EXPIREE" ? "Ta connexion a expiré : reconnecte-toi sur le site." : "Transmission impossible : " + e.message); return false; }
+  }
+  let tmr = null;
+  function toast(msg) { let t = document.querySelector(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); } t.textContent = msg; t.hidden = false; clearTimeout(tmr); tmr = setTimeout(() => (t.hidden = true), 6000); }
+  function lightbox(src) { const l = document.createElement("div"); l.className = "lightbox"; l.innerHTML = `<img src="${src}" alt="">`; l.addEventListener("click", () => l.remove()); document.body.appendChild(l); }
+
+  // ---------- état de connexion (site SI Papara) ----------
+  function etatSip() {
+    const el = document.getElementById("sip-etat"); if (!el) return;
+    if (!window.SIP || !SIP.session) { el.innerHTML = `<span class="sip ko">Hors site · résultats gardés sur cet appareil</span>`; return; }
+    const s = SIP.session.get();
+    if (s && s.apercu) { el.innerHTML = `<span class="sip ap"><b>Aperçu professeur</b> · ${esc((SIP.niveau(s.niveau) || {}).court || s.niveau)} · rien n'est transmis · <a href="../index.html#/tableau">Tableau de bord</a></span>`; return; }
+    el.innerHTML = s ? `<span class="sip ok">Connecté(e) : <b>${esc(s.nom)}</b> · résultats transmis au professeur · <a href="../index.html#/tableau">Mon espace</a></span>` : `<span class="sip ko">Non connecté(e) · <a href="../index.html#/connexion/BTS2-STI">Me connecter</a> (BTS 2 STI) · <a href="../index.html#/connexion/BTS2-ADM">ADM</a></span>`;
+    if (s && SIP.viderFile) SIP.viderFile().then((n) => { if (n) toast(`${n} résultat${n > 1 ? "s" : ""} en attente transmis ✓`); }).catch(() => {});
+  }
+  window.addEventListener("load", () => { etatSip(); rendre(); });
+})();
+</script>
+
+<!-- site SI Papara : connexion de l'élève et envoi des résultats au professeur (ignoré si la page est ouverte seule) -->
+<script src="../config.js" onerror="void 0"></script>
+<script>
+  if (window.SIP_CONFIG && SIP_CONFIG.supabaseUrl && SIP_CONFIG.supabaseAnonKey)
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
+</script>
+<script src="../assets/backend.js" onerror="void 0"></script>
+</body>
+</html>
