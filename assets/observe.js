@@ -27,6 +27,7 @@ window.SIP = window.SIP || {};
   const norm = (t) => String(t).replace(/<[^>]+>/g, " ").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
   const typo = (t) => (SIP.FICHE_OUTILS ? SIP.FICHE_OUTILS.typo(t) : t);
   const nf = (x) => (SIP.ANIM ? SIP.ANIM.nf(x, 1) : String(x));
+  const nu = (h) => String(h == null ? "" : h).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   const melanger = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 
   let COURANT = null;
@@ -66,6 +67,17 @@ window.SIP = window.SIP || {};
         <p class="obs-retour" role="status"></p>
         <div class="obs-actions"></div>`;
       carte.querySelectorAll(".vq-opt").forEach((b) => (b.onclick = () => repondre(+b.dataset.i)));
+      // « Signaler une erreur » (assets/signaler.js) : questions fixes, la référence observe:k suffit à la retrouver
+      if (SIP.signaler) {
+        const sb = SIP.signaler.bouton(); sb.classList.add("obs-sig"); carte.appendChild(sb);
+        sb.onclick = () => {
+          const r = T.rep[T.k];
+          SIP.signaler.ouvrir({ source: "observe", notion: id, module: "observe-" + id, ref: "observe:" + T.k,
+            question: nu(q.q) + "\nChoix : " + q.choix.map((c, i) => `${i + 1}) ${nu(c)}`).join(" ; ") + (D.consigne ? "\nConsigne : " + nu(D.consigne) : ""),
+            figure: "", reponse: r ? r.rep : "", attendu: nu(q.choix[q.bonne]), correction: nu(q.expl || "") },
+            { surEnvoi: () => SIP.signaler.marquer(sb) });
+        };
+      }
     }
 
     function repondre(i) {

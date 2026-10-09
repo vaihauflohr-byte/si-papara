@@ -7,11 +7,19 @@
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231d3f7a'/%3E%3Cpath d='M9 22l5-12 4 8 3-5 3 9' stroke='white' stroke-width='2.5' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/style.css">
+<!-- appli : installation sur l'écran d'accueil (si_papara_appli.py) -->
+<link rel="manifest" href="manifest-prof.webmanifest">
+<link rel="apple-touch-icon" href="assets/icones/apple-touch-icon.png">
+<meta name="theme-color" content="#1d3f7a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SI Papara prof">
+<!-- /appli -->
 </head>
 <body>
 <header class="haut large"><div class="haut-in">
   <a class="logo" href="prof.html"><img class="logo-img" src="assets/logo-papara.svg" alt="Lycée Tuianu Le Gayic, Papara" width="60" height="48"><span class="logo-txt"><span class="logo-ey">Espace professeur</span><span class="logo-nom">SI <em>Papara</em></span></span></a>
-  <div class="qui"><a href="index.html">Site élèves</a> · <a href="index.html#/apercu">Aperçu élève</a> · <a href="entrainements/evaluation.html">Évaluation en classe</a> · <button class="btn-lien cache" id="deco">Déconnexion</button></div>
+  <div class="qui"><a href="index.html">Site élèves</a> · <a href="entrainements/evaluation.html">Évaluation en classe</a> · <button class="btn-lien cache" id="deco">Déconnexion</button></div>
 </div></header>
 <div id="banniere"></div>
 <main class="large" id="app"></main>
@@ -22,9 +30,14 @@
     document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
 </script>
 <script src="assets/backend.js"></script>
+<script src="assets/appli.js"></script>
+<script src="assets/figures-apercu.js"></script>
 <script src="assets/moteur.js"></script>
 <script src="contenu/competences.js"></script>
 <script src="contenu/bac-si.js"></script>
+<script src="contenu/calendrier.js"></script>
+<script src="assets/calendrier.js"></script>
+<script>if (SIP.calendrier) SIP.calendrier.appliquerBac(SIP.BAC);</script>
 <script src="contenu/seconde-si.js"></script>
 <script src="contenu/1si-s1a.js"></script>
 <script src="contenu/1si-s1b.js"></script>

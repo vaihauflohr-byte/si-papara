@@ -424,6 +424,11 @@ details.corr .qtext{font-size:.98rem;margin:.4rem 0}
 <script src="../contenu/fiches-bac.js"></script>
 <script src="../contenu/calendrier.js"></script>
 <script src="../assets/calendrier.js"></script>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../assets/icones/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SI Papara">
 </head>
 <body>
 <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
@@ -19617,6 +19622,27 @@ const txt=h=>String(h==null?"":h).replace(/<[^>]+>/g," ").replace(/\s+/g," ").tr
 function hook(ev){ try{ if(typeof window.BACSI_HOOK==="function") return window.BACSI_HOOK(ev); }catch(e){ console.warn(e); } return null; }
 function detailsOf(res){ return res.map(r=>({q:txt((r.q.ctx?r.q.ctx+" · ":"")+r.q.q).slice(0,400),rep:txt(r.rep).slice(0,80),attendu:txt(r.correct).slice(0,120),pts:r.ok?1:0,notion:r.q.nid||null,niveau:r.q.lv||1,
   g:r.q.key!=null&&r.q.gi!=null?`${r.q.key}:${r.q.lv||1}:${r.q.gi}`:null})); } // g : générateur de la question (l'évaluation en classe peut la reposer avec d'autres valeurs)
+/* site SI Papara : « Signaler une erreur » sous chaque question (window.BACSI_SIGNALER, défini par assets/pont-bac.js).
+   La question part telle que l'élève l'a vue (valeurs tirées comprises) avec la référence de son générateur. */
+const sigOn=()=>typeof window.BACSI_SIGNALER==="function";
+let sigCur=null, sigRes=null;   // question affichée ; copie corrigée du sujet blanc
+function sigData(q,r,source,module){
+  const ch=q.type==="ch"?"\nChoix : "+q.ch.map((c,k)=>`${k+1}) ${txt(c)}`).join(" ; "):"";
+  return {source,notion:q.nid||(st&&st.id)||null,module,ref:q.key!=null&&q.gi!=null?`${q.key}:${q.lv||1}:${q.gi}`:null,
+    question:[q.ctx0,q.ctx,q.q].filter(Boolean).map(txt).join("\n")+(q.data?"\nDonnées : "+txt(q.data):"")+ch+(q.unit?"\nUnité attendue : "+q.unit:""),
+    figure:q.fig||"",reponse:r?txt(r.rep):"",attendu:q.type==="ch"?txt(q.ch[q.ok]):shownAns(q),correction:txt(q.expl)};
+}
+function sigFill(){
+  if(!sigOn()) return;
+  app.querySelectorAll(".sig-place").forEach(p=>{
+    const k=p.dataset.sig, data=k==null?sigCur:()=>{ const x=sigRes&&sigRes[+k]; return x?sigData(x.q,{rep:x.rep},"blanc","bac-blanc"):null; };
+    if(!data) return;
+    const b=document.createElement("button"); b.type="button"; b.className="sig-lien"; b.innerHTML='<span aria-hidden="true">⚑</span><span>Signaler une erreur</span>';
+    b.onclick=()=>{ const d=data(); if(d) window.BACSI_SIGNALER(d,{surEnvoi:()=>{ b.disabled=true; b.innerHTML='<span aria-hidden="true">✓</span><span>Signalé</span>'; }}); };
+    p.replaceWith(b);
+  });
+}
+document.addEventListener("bacsi-signaler",sigFill);   // le pont du site se charge après le premier affichage
 const fDay=t=>new Date(t).toLocaleDateString("fr-FR",{day:"numeric",month:"short"});
 function releve(){
   st=null; document.body.classList.remove("playing");
@@ -19850,8 +19876,10 @@ function draw(){
       ${ans}<div id="fb"></div><div class="next" id="nx" hidden><button class="btn primary big" id="next" type="button">${P?(st.i+1<st.qs.length+st.queue.length||st.qs.length<st.budget?"Question suivante →":"Voir le bilan →"):(st.i+1<st.qs.length?"Question suivante →":"Voir le bilan →")}</button></div>
       <div class="score"><span>Question <b>${st.i+1}</b> / ${total}</span><span class="note${st.note<10?" low":""}">Note <b>${st.note}</b> / 20</span></div>
       <div class="hintk">${q.type==="ch"?"Touches 1 à "+q.ch.length+" pour répondre.":"Donne 3 chiffres significatifs (virgule ou point). Entrée pour valider."}</div>
+      <span class="sig-place"></span>
     </div>
   </div>`;
+  sigCur=()=>sigData(q,st.answered?st.res[st.i]:null,P?"parcours":"serie",P?"bac-parcours":"bac-"+st.id+(st.M.series.length>1?"-s"+(st.k+1):"")); sigFill();
   $("#quit").onclick=()=>{ if(P){ st.retries.forEach(saveRev); home(); } else if(st.M.series.length>1) openNotion(st.id); else home(); };
   if(q.type==="ch") app.querySelectorAll(".choice").forEach(b=>b.onclick=()=>answer(+b.dataset.k));
   else { $("#ans").focus({preventScroll:true}); $("#val").onclick=answerNum; }
@@ -20004,8 +20032,10 @@ function drawBlanc(){
       ${ans}
       <div class="bl-go"><button class="btn" id="bl-prev" type="button"${bl.i?"":" disabled"}>← Précédente</button><span class="soon">${nb} réponse${nb>1?"s":""} sur ${n}</span><button class="btn primary" id="bl-next" type="button">${bl.i+1<n?"Suivante →":"Terminer"}</button></div>
       <div class="hintk">${q.type==="ch"?"Touches 1 à "+q.ch.length+" pour choisir ; tu peux changer d'avis jusqu'à la fin.":"3 chiffres significatifs suffisent (virgule ou point). Entrée : question suivante."}</div>
+      <span class="sig-place"></span>
     </div>
   </div>`;
+  sigCur=()=>sigData(q,null,"blanc","bac-blanc"); sigFill();
   app.querySelectorAll(".bl-nav [data-j]").forEach(b=>b.onclick=()=>goBlanc(+b.dataset.j));
   if(q.type==="ch") app.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{ bl.rep[bl.i]=+b.dataset.k; drawBlanc(); });
   else { const inp=$("#ans"); inp.focus({preventScroll:true}); inp.oninput=()=>{ bl.rep[bl.i]=inp.value; const d=app.querySelector(`.bl-nav [data-j="${bl.i}"]`); if(d) d.classList.toggle("done",answered(inp.value)); }; }
@@ -20037,7 +20067,7 @@ function finishBlanc(timeUp){
   const corr=res.map((x,k)=>{ const r=byId[x.q.nid]||ALLBY[x.q.nid];
     return `<details class="corr ${x.ok?"ok":"ko"}"${x.ok?"":" open"}><summary><span class="cn">${k+1}</span><span class="ct">${esc(r.lab)} · ${x.q.q.replace(/<[^>]+>/g,"").slice(0,90)}${x.q.q.length>90?"…":""}</span><span class="cv">${x.ok?"juste":x.blank?"sans réponse":"faux"}</span></summary>
       ${x.q.ctx0?`<div class="ctx">${x.q.ctx0}</div>`:""}${x.q.ctx?`<div class="ctx">${x.q.ctx}</div>`:""}<p class="qtext">${x.q.q}</p>
-      <p>Ta réponse : <b>${x.rep}</b>${x.ok?"":` · attendue : <b>${x.correct}</b>`}</p><div class="fb ${x.ok?"ok":"ko"}"><p>${x.q.expl}</p></div></details>`; }).join("");
+      <p>Ta réponse : <b>${x.rep}</b>${x.ok?"":` · attendue : <b>${x.correct}</b>`}</p><div class="fb ${x.ok?"ok":"ko"}"><p>${x.q.expl}</p></div><span class="sig-place" data-sig="${k}"></span></details>`; }).join("");
   app.innerHTML=`<div class="bar"><span class="lv"><small>sujet blanc</small>Sujet blanc · copie corrigée</span></div>
   <div class="end">
     <div class="panel"><div class="eyebrow">${timeUp?"Temps écoulé · copie ramassée":"Note finale"}</div><div class="bignote">${nf(note,1)}<small> / 20</small></div><div class="verdict ${cls}">${vd}</div>
@@ -20048,6 +20078,7 @@ function finishBlanc(timeUp){
   </div>`;
   $("#again").onclick=startBlanc; $("#home").onclick=home;
   app.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>openNotion(b.dataset.n));
+  sigCur=null; sigRes=res; sigFill();
   window.scrollTo({top:0});
 }
 document.addEventListener("keydown",e=>{
@@ -20087,6 +20118,8 @@ window.addEventListener("hashchange",()=>{ if(location.hash.length>1) route(); }
     document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
 </script>
 <script src="../assets/backend.js"></script>
+<script src="../assets/appli.js"></script>
+<script src="../assets/signaler.js"></script>
 <script src="../contenu/bac-si.js"></script>
 <script>if (window.SIP && SIP.calendrier) SIP.calendrier.appliquerBac(SIP.BAC);</script>
 <script src="../assets/pont-bac.js"></script>

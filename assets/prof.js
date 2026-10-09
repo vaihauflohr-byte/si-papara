@@ -39,7 +39,7 @@
       catch (x) { err.textContent = x.message; }
     };
   }
-  document.getElementById("deco").onclick = async () => { await SIP.api.profDeconnexion(); if (SIP.apercu && SIP.apercu.actif()) SIP.apercu.quitter(); D = null; vueConnexion(); };
+  document.getElementById("deco").onclick = async () => { await SIP.api.profDeconnexion(); D = null; vueConnexion(); };
 
   async function charger() {
     $app.innerHTML = `<p class="discret">Chargement des données…</p>`;
@@ -50,6 +50,12 @@
     D.fiches_suivi.forEach((f) => D.parEleve[f.eleve_id] && D.parEleve[f.eleve_id].F.push(f));
     D.lectures.forEach((l) => D.parEleve[l.eleve_id] && D.parEleve[l.eleve_id].L.push(l));
     Object.values(D.parEleve).forEach((x) => x.E.sort((a, b) => b.fait_le.localeCompare(a.fait_le)));
+    await chargerSignalements();
+  }
+  // signalements d'erreurs des élèves (supabase/signalements.sql) : chargés à part, pour que le reste marche sans eux
+  async function chargerSignalements() {
+    D.signalements = null; D.sigErreur = "";
+    try { D.signalements = await SIP.api.profSignalements(); } catch (e) { D.sigErreur = e.message || String(e); }
   }
 
   // Indicateurs d'un élève
@@ -80,7 +86,7 @@
         <div class="rang"><select id="niv" style="width:auto">${opts}</select>
         <button class="btn sec" id="maj">Actualiser</button></div>
         <button class="btn sec" id="csv">Exporter CSV</button></div>
-      <div class="onglets no-print"><button data-o="suivi" class="${onglet === "suivi" ? "actif" : ""}">Suivi</button><button data-o="competences" class="${onglet === "competences" ? "actif" : ""}">Compétences</button><button data-o="bac" class="${onglet === "bac" ? "actif" : ""}">Bac SI</button><button data-o="eleves" class="${onglet === "eleves" ? "actif" : ""}">Élèves et codes</button><button data-o="apercu" class="${onglet === "apercu" ? "actif" : ""}">Aperçu élève</button></div>
+      <div class="onglets no-print"><button data-o="suivi" class="${onglet === "suivi" ? "actif" : ""}">Suivi</button><button data-o="competences" class="${onglet === "competences" ? "actif" : ""}">Compétences</button><button data-o="bac" class="${onglet === "bac" ? "actif" : ""}">Bac SI</button><button data-o="eleves" class="${onglet === "eleves" ? "actif" : ""}">Élèves et codes</button><button data-o="signalements" class="${onglet === "signalements" ? "actif" : ""}">Signalements${nbSigNouveaux() ? ` <span class="sig-pastille">${nbSigNouveaux()}</span>` : ""}</button></div>
       <div id="corps">${contenu}</div>`;
     document.getElementById("niv").onchange = (e) => { niveau = e.target.value; try { localStorage.setItem("sip_prof_niveau", niveau); } catch (x) {} afficher(); };
     document.getElementById("maj").onclick = async () => { await charger(); afficher(); };
@@ -89,15 +95,103 @@
   }
   const elevesFiltres = () => D.eleves.filter((e) => !niveau || e.niveau === niveau).sort((a, b) => a.niveau.localeCompare(b.niveau) || a.nom.localeCompare(b.nom));
 
-  function afficher() { onglet === "eleves" ? vueEleves() : onglet === "competences" ? vueCompetences() : onglet === "bac" ? vueBac() : onglet === "apercu" ? vueApercu() : vueSuivi(); }
+  function afficher() { onglet === "eleves" ? vueEleves() : onglet === "competences" ? vueCompetences() : onglet === "bac" ? vueBac() : onglet === "signalements" ? vueSignalements() : vueSuivi(); }
 
-  // ---------------- Aperçu élève : le site tel que le voit chaque filière, sans compte élève ----------------
-  function vueApercu() {
-    const extra = { TSI: "Tableau de bord tourné vers le bac : prochain DS, fiches, séries notées, sujet blanc.", "BTS2-STI": "Avec l'entraînement E4 (sujets d'annales, auto-évaluation N0–N3).", "BTS2-ADM": "Avec l'entraînement E4 (sujets d'annales, auto-évaluation N0–N3)." };
-    cadre(`<p class="discret">Ouvre le site élève comme un élève de la filière choisie, sans identifiant. Tout fonctionne (séries, fiches du jour, révision de la semaine, bac SI, E4) mais <b>rien n'est transmis</b> : tes essais restent dans ce navigateur et n'apparaissent ni dans le suivi ni dans les grilles. Dans l'aperçu, un bandeau permet de changer de filière, d'effacer tes essais ou de quitter.</p>
-      <div class="grille">${SIP.NIVEAUX.map((n) => `<div class="carte tuile"><div class="discret">${esc(n.groupe)}</div><h3>${esc(n.nom)}</h3>
-        ${n.desc ? `<div class="discret">${esc(n.desc)}</div>` : ""}${extra[n.id] ? `<div class="discret">${esc(extra[n.id])}</div>` : ""}<span class="etiquette" style="margin:6px 0 12px">${SIP.modulesDu(n.id).length} modules</span>
-        <a class="btn" style="margin-top:auto" href="index.html#/apercu/${n.id}" target="_blank" rel="noopener">Ouvrir l'aperçu ↗</a></div>`).join("")}</div>`);
+  // ---------------- Signalements d'erreurs ----------------
+  const sigDuNiveau = () => (D.signalements || []).filter((x) => !niveau || x.niveau === niveau);
+  const nbSigNouveaux = () => (D && D.signalements ? sigDuNiveau().filter((x) => x.statut === "nouveau").length : 0);
+  const SIG_SOURCE = { serie: "Série notée", parcours: "Parcours", blanc: "Sujet blanc", observe: "Observe et réponds", verif: "Vérifie que tu as compris", autre: "Autre" };
+  const SIG_MOTIF = { juste: "Ma réponse est juste, mais elle a été comptée fausse", correction: "La réponse attendue ou la correction est fausse",
+    enonce: "L'énoncé n'est pas clair, ou il manque une donnée", figure: "La figure ne correspond pas à l'énoncé", autre: "Autre chose" };
+  const SIG_STATUT = { nouveau: ["alerte", "à traiter"], corrige: ["ok", "erreur confirmée"], rejete: ["", "pas d'erreur"] };
+  let filtreSig = "nouveau";
+  const notionLab = (id) => { const n = id && BAC && BAC.notions.find((x) => x.id === id); return n ? n.lab : id || "—"; };
+  // la figure de la question, en image : un SVG dans une balise <img> n'exécute rien (le texte vient d'un élève)
+  function apercuFigure(svg) {
+    try {
+      const doc = new DOMParser().parseFromString(`<!doctype html><body>${svg}</body>`, "text/html");
+      const el = doc.querySelector("svg"); if (!el) return "";
+      el.querySelectorAll("script,foreignObject,iframe,image,a").forEach((n) => n.remove());
+      [el, ...el.querySelectorAll("*")].forEach((n) => [...n.attributes].forEach((a) => { if (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) n.removeAttribute(a.name); }));
+      const F = SIP.FIG_APERCU || { css: "", defs: "" };
+      const st = doc.createElementNS("http://www.w3.org/2000/svg", "style"); st.textContent = F.css; el.insertBefore(st, el.firstChild);
+      if (F.defs) {
+        const d = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${F.defs}</svg>`, "image/svg+xml").documentElement.firstElementChild;
+        if (d) el.insertBefore(doc.importNode(d, true), st.nextSibling);
+      }
+      if (!el.getAttribute("width")) { const vb = (el.getAttribute("viewBox") || "0 0 400 200").split(/[\s,]+/).map(Number); el.setAttribute("width", vb[2] || 400); el.setAttribute("height", vb[3] || 200); }
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(el));
+    } catch (e) { return ""; }
+  }
+  const texteSignalement = (x, e) => [
+    `Signalement n° ${x.id} · ${SIG_SOURCE[x.source] || x.source} · ${notionLab(x.notion)}${x.ref ? ` · réf. ${x.ref}` : ""}${x.module ? ` · ${x.module}` : ""}`,
+    `Élève : ${e ? e.nom : "?"} · ${SIP.fmtDate(x.cree_le, true)}`,
+    `Motif : ${SIG_MOTIF[x.motif] || x.motif}${x.commentaire ? ` — « ${x.commentaire} »` : ""}`,
+    `Question :\n${x.question}`, `Réponse de l'élève : ${x.reponse || "—"}`, `Réponse attendue : ${x.attendu || "—"}`, x.correction ? `Correction affichée : ${x.correction}` : ""
+  ].filter(Boolean).join("\n");
+  function vueSignalements() {
+    if (D.signalements === null) {
+      const absente = /signalements|schema cache|does not exist|relation/i.test(D.sigErreur);
+      return cadre(`<div class="carte"><h2 style="margin-top:0">Signalements d'erreurs</h2>
+        ${absente ? `<p><b>Pas encore activés.</b> Dans Supabase : <b>SQL Editor → New query</b>, colle tout le fichier <code>supabase/signalements.sql</code>, puis <b>Run</b>. Reviens ensuite ici et clique sur « Actualiser ».</p>`
+          : `<p>Les signalements n'ont pas pu être chargés.</p>`}<p class="discret">${esc(D.sigErreur)}</p></div>`);
+    }
+    const L = sigDuNiveau(), compte = (f) => L.filter((x) => (f === "tous" ? true : f === "traite" ? x.statut !== "nouveau" : x.statut === f)).length;
+    const liste = L.filter((x) => (filtreSig === "tous" ? true : filtreSig === "traite" ? x.statut !== "nouveau" : x.statut === filtreSig));
+    const seuil = (BAC && BAC.seuil) || 16;
+    const carte = (x) => {
+      const e = D.parEleve[x.eleve_id] && D.parEleve[x.eleve_id].e, [cls, lib] = SIG_STATUT[x.statut] || ["", x.statut];
+      const fig = x.figure ? apercuFigure(x.figure) : "", serie = x.source === "serie" && /^bac-/.test(x.module || "");
+      return `<article class="carte sig-carte ${x.statut}" data-sig="${x.id}">
+        <div class="sig-h"><span class="etiquette ${cls}">${lib}</span> <b>${esc(e ? e.nom : "élève supprimé")}</b>
+          <span class="discret">${esc((SIP.niveau(x.niveau) || {}).court || x.niveau)} · ${SIP.fmtDate(x.cree_le, true)}</span></div>
+        <div class="sig-quoi">${esc(SIG_SOURCE[x.source] || x.source)} · <b>${esc(notionLab(x.notion))}</b>${x.ref ? ` · <code title="Référence de la question : générateur (clé:niveau:n°) ou numéro de la question">${esc(x.ref)}</code>` : ""}</div>
+        <p class="sig-motif">« ${esc(SIG_MOTIF[x.motif] || x.motif)} »${x.commentaire ? `<br><span class="sig-com">${esc(x.commentaire)}</span>` : ""}</p>
+        <details${x.statut === "nouveau" ? " open" : ""}><summary>La question, telle que l'élève l'a eue</summary>
+          <div class="sig-q">${esc(x.question)}</div>
+          ${fig ? `<img class="sig-fig" alt="Figure de la question" src="${fig}">` : ""}
+          <dl class="sig-rep"><dt>Réponse de l'élève</dt><dd>${esc(x.reponse || "—")}</dd><dt>Réponse attendue</dt><dd>${esc(x.attendu || "—")}</dd></dl>
+          ${x.correction ? `<p class="sig-corr"><b>Correction affichée :</b> ${esc(x.correction)}</p>` : ""}
+        </details>
+        <div class="rang sig-act no-print">
+          ${x.statut !== "corrige" ? `<button class="btn sec" type="button" data-statut="corrige">Erreur confirmée</button>` : ""}
+          ${x.statut !== "rejete" ? `<button class="btn sec" type="button" data-statut="rejete">Pas d'erreur</button>` : ""}
+          ${x.statut !== "nouveau" ? `<button class="btn-lien" type="button" data-statut="nouveau">Remettre « à traiter »</button>` : ""}
+          ${serie ? (x.valide_serie ? `<span class="etiquette ok">série validée (${seuil}/20)</span>`
+            : `<button class="btn" type="button" data-valider title="Si l'erreur lui a coûté la validation : la série lui est comptée ${seuil}/20, à la date du signalement">Valider sa série</button>`) : ""}
+          <button class="btn-lien" type="button" data-copier>Copier le signalement</button>
+        </div></article>`;
+    };
+    cadre(`<p class="discret">Les élèves signalent ici les questions qu'ils croient fausses, avec la question telle qu'ils l'ont eue (valeurs comprises).
+        <b>Erreur confirmée</b> : la question est fausse, elle sera corrigée (« Copier le signalement » le met dans le presse-papiers, prêt à transmettre).
+        <b>Pas d'erreur</b> : la question est juste. <b>Valider sa série</b> : si l'erreur a coûté la validation à l'élève, la série lui est comptée ${seuil}/20 à la date du signalement.</p>
+      <div class="rang no-print sig-filtres">${[["nouveau", "À traiter"], ["traite", "Traités"], ["tous", "Tous"]].map(([f, t]) =>
+        `<button class="btn ${filtreSig === f ? "" : "sec"}" type="button" data-filtre="${f}">${t} (${compte(f)})</button>`).join("")}</div>
+      ${liste.length ? `<div class="sig-liste">${liste.map(carte).join("")}</div>`
+        : `<div class="carte"><p>${filtreSig === "nouveau" ? "Aucun signalement à traiter." : "Aucun signalement."}</p></div>`}`);
+    document.querySelectorAll("[data-filtre]").forEach((b) => (b.onclick = () => { filtreSig = b.dataset.filtre; vueSignalements(); }));
+    document.querySelectorAll(".sig-carte").forEach((c) => {
+      const id = +c.dataset.sig, x = D.signalements.find((r) => r.id === id);
+      const occupe = (on) => c.querySelectorAll("button").forEach((b) => (b.disabled = on));
+      c.querySelectorAll("[data-statut]").forEach((b) => (b.onclick = async () => {
+        occupe(true);
+        try { await SIP.api.traiterSignalement(id, b.dataset.statut); x.statut = b.dataset.statut; x.traite_le = new Date().toISOString(); vueSignalements(); }
+        catch (e) { occupe(false); alert("Impossible : " + e.message); }
+      }));
+      const v = c.querySelector("[data-valider]");
+      if (v) v.onclick = async () => {
+        occupe(true);
+        try { await SIP.api.validerSignalement(id, seuil); await charger(); vueSignalements(); }
+        catch (e) { occupe(false); alert("Impossible : " + e.message); }
+      };
+      const cp = c.querySelector("[data-copier]");
+      if (cp) cp.onclick = async () => {
+        const t = texteSignalement(x, D.parEleve[x.eleve_id] && D.parEleve[x.eleve_id].e);
+        try { await navigator.clipboard.writeText(t); cp.textContent = "Copié ✓"; }
+        catch (e) { const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); cp.textContent = "Copié ✓"; } catch (x2) { cp.textContent = "Copie impossible"; } ta.remove(); }
+        setTimeout(() => (cp.textContent = "Copier le signalement"), 2500);
+      };
+    });
   }
 
   // ---------------- Grille de compétences de la classe ----------------

@@ -60,15 +60,16 @@ window.SIP = window.SIP || {};
   // =====================================================================
   //  Backend DÉMO
   // =====================================================================
-  // CLE : clé de stockage (mode démo : "sip_demo_db" ; aperçu professeur : "sip_apercu_db")
-  function BackendDemo(CLE = "sip_demo_db", nomFictif = "demo") {
+  function BackendDemo() {
+    const CLE = "sip_demo_db";
     const load = () => {
       let db;
       try { db = JSON.parse(localStorage.getItem(CLE)); } catch (e) {}
-      if (!db) db = { eleves: [], entrainements: [], fiches_suivi: [], lectures: [], seq: 1 };
-      let ajout = !db.eleves.length;
-      SIP.NIVEAUX.forEach((n) => { if (!db.eleves.some((x) => x.id === "demo-" + n.id)) { ajout = true; db.eleves.push({ id: "demo-" + n.id, niveau: n.id, nom: nomFictif, pin: "1234", actif: true, cree_le: new Date().toISOString() }); } });
-      if (ajout) { try { localStorage.setItem(CLE, JSON.stringify(db)); } catch (e) {} }
+      if (!db) {
+        db = { eleves: [], entrainements: [], fiches_suivi: [], lectures: [], seq: 1 };
+        SIP.NIVEAUX.forEach((n) => db.eleves.push({ id: "demo-" + n.id, niveau: n.id, nom: "demo", pin: "1234", actif: true, cree_le: new Date().toISOString() }));
+        try { localStorage.setItem(CLE, JSON.stringify(db)); } catch (e) {}
+      }
       return db;
     };
     const save = (db) => { try { localStorage.setItem(CLE, JSON.stringify(db)); } catch (e) {} };
@@ -116,6 +117,19 @@ window.SIP = window.SIP || {};
         db.lectures.push({ eleve_id: v, fiche_id, jour, su, lu_le: new Date().toISOString() });
         save(db);
       },
+      async signaler(p) {
+        const db = load(); const v = moi(); const e = db.eleves.find((x) => x.id === v);
+        db.signalements = db.signalements || [];
+        const maintenant = new Date().toISOString();
+        db.signalements.push(Object.assign({ id: db.seq++, eleve_id: v, niveau: e ? e.niveau : "", statut: "nouveau", valide_serie: false,
+          cree_le: maintenant, traite_le: null }, SIP.nettoyerSignalement(p), { fait_le: p.fait_le || maintenant }));
+        save(db);
+      },
+      async mesSignalements() {
+        const db = load(); const v = moi();
+        return (db.signalements || []).filter((x) => x.eleve_id === v).sort((a, b) => b.cree_le.localeCompare(a.cree_le)).slice(0, 50)
+          .map((x) => ({ id: x.id, source: x.source, notion: x.notion, motif: x.motif, statut: x.statut, valide_serie: x.valide_serie, cree_le: x.cree_le, traite_le: x.traite_le, question: String(x.question || "").slice(0, 140) }));
+      },
       // ----- prof -----
       async profConnexion(email, mdp) { if (mdp !== "demo") throw new Error("En mode démo, le mot de passe prof est : demo"); sessionStorage.setItem("sip_prof", "1"); },
       async profSession() { try { return sessionStorage.getItem("sip_prof") === "1"; } catch (e) { return false; } },
@@ -123,6 +137,22 @@ window.SIP = window.SIP || {};
       async profDonnees() {
         const db = load(); const depuis = SIP.ajouterJours(SIP.aujourdhui(), -70);
         return { eleves: db.eleves.map(({ pin, ...r }) => r), entrainements: db.entrainements, fiches_suivi: db.fiches_suivi, lectures: db.lectures.filter((l) => l.jour >= depuis) };
+      },
+      async profSignalements() { const db = load(); return (db.signalements || []).slice().sort((a, b) => b.cree_le.localeCompare(a.cree_le)).slice(0, 300); },
+      async traiterSignalement(id, statut) {
+        const db = load(); const x = (db.signalements || []).find((r) => r.id === id);
+        if (x) { x.statut = statut; x.traite_le = statut === "nouveau" ? null : new Date().toISOString(); }
+        save(db);
+      },
+      async validerSignalement(id, note) {
+        const db = load(); const x = (db.signalements || []).find((r) => r.id === id);
+        if (!x) throw new Error("Signalement introuvable.");
+        if (x.source !== "serie" || !/^bac-/.test(x.module || "")) throw new Error("Ce signalement ne vient pas d'une série notée.");
+        if (!x.valide_serie) db.entrainements.push({ id: db.seq++, eleve_id: x.eleve_id, niveau: x.niveau, module: x.module, type: "externe",
+          titre: "Bac SI · série validée par le professeur (erreur signalée)", score: note, score_max: 20, duree_s: null,
+          details: { signalement: x.id }, fait_le: x.fait_le || x.cree_le, recu_le: x.cree_le });
+        x.statut = "corrige"; x.valide_serie = true; x.traite_le = new Date().toISOString();
+        save(db);
       },
       async creerEleve(niveau, nom, pin) {
         const db = load();
@@ -173,6 +203,10 @@ window.SIP = window.SIP || {};
       }),
       adopter: (ids) => rpc("adopter_fiches", { p_jeton: jeton(), p_fiches: ids }),
       lire: (fiche_id, su) => rpc("lire_fiche", { p_jeton: jeton(), p_fiche: fiche_id, p_su: su }),
+      signaler: (p) => { const x = SIP.nettoyerSignalement(p); return rpc("signaler_erreur", {
+        p_jeton: jeton(), p_source: x.source, p_notion: x.notion, p_module: x.module, p_ref: x.ref, p_question: x.question, p_figure: x.figure,
+        p_reponse: x.reponse, p_attendu: x.attendu, p_correction: x.correction, p_motif: x.motif, p_commentaire: x.commentaire, p_fait_le: p.fait_le || null }); },
+      mesSignalements: () => rpc("mes_signalements", { p_jeton: jeton() }),
       // ----- prof -----
       async profConnexion(email, mdp) {
         const { error } = await sb.auth.signInWithPassword({ email, password: mdp });
@@ -181,12 +215,6 @@ window.SIP = window.SIP || {};
         if (!data) { await sb.auth.signOut(); throw new Error("Ce compte n'est pas inscrit comme prof (table « profs »)."); }
       },
       async profSession() { const { data } = await sb.auth.getSession(); if (!data.session) return false; const r = await sb.rpc("is_prof"); return !!r.data; },
-      async profStatut() {
-        try {
-          const { data } = await sb.auth.getSession(); if (!data || !data.session) return "non";
-          const r = await sb.rpc("is_prof"); if (r.error) return "inconnu"; return r.data ? "oui" : "non";
-        } catch (e) { return "inconnu"; }
-      },
       async profDeconnexion() { await sb.auth.signOut(); },
       async profDonnees() {
         const depuis = SIP.ajouterJours(SIP.aujourdhui(), -70);
@@ -197,6 +225,16 @@ window.SIP = window.SIP || {};
         eleves.forEach((e) => delete e.pin_hash);
         return { eleves, entrainements, fiches_suivi, lectures };
       },
+      async profSignalements() {
+        const { data, error } = await sb.from("signalements").select("*").order("cree_le", { ascending: false }).limit(300);
+        if (error) throw new Error(error.message);
+        return data;
+      },
+      async traiterSignalement(id, statut) {
+        const { error } = await sb.from("signalements").update({ statut, traite_le: statut === "nouveau" ? null : new Date().toISOString() }).eq("id", id);
+        if (error) throw new Error(error.message);
+      },
+      validerSignalement: (id, note) => rpc("valider_signalement", { p_id: id, p_note: note }),
       creerEleve: (niveau, nom, pin) => rpc("creer_eleve", { p_niveau: niveau, p_nom: nom, p_pin: pin }),
       changerPin: (id, pin) => rpc("changer_pin", { p_eleve: id, p_pin: pin }),
       async basculerActif(id, actif) { const { error } = await sb.from("eleves").update({ actif }).eq("id", id); if (error) throw new Error(error.message); },
@@ -204,62 +242,59 @@ window.SIP = window.SIP || {};
     };
   }
 
+  // =====================================================================
+  //  Backend HORS LIGNE : le site est configuré mais la bibliothèque Supabase n'a pas pu se charger
+  //  (appli ouverte sans réseau, réseau filtré). Surtout pas la démo : la session de l'élève est gardée,
+  //  ses résultats et signalements vont dans la file d'attente et partiront au retour du réseau.
+  // =====================================================================
+  function BackendHorsLigne() {
+    const ko = async () => { const e = new Error("Pas de réseau (HORS_LIGNE)"); e.reseau = true; throw e; };
+    const api = { mode: "hors-ligne" };
+    ["connexion", "etat", "enregistrer", "adopter", "lire", "signaler", "mesSignalements", "profConnexion", "profDonnees", "profSignalements",
+      "traiterSignalement", "validerSignalement", "creerEleve", "changerPin", "basculerActif", "supprimerEleve", "profDeconnexion"].forEach((f) => (api[f] = ko));
+    api.profSession = async () => false;
+    return api;
+  }
+
+  // un signalement d'erreur : champs bornés (la base les borne aussi)
+  const MOTIFS_SIG = ["juste", "correction", "enonce", "figure", "autre"], SOURCES_SIG = ["serie", "parcours", "blanc", "observe", "verif", "autre"];
+  const coupe = (v, n) => (v == null || v === "" ? null : String(v).slice(0, n));
+  SIP.nettoyerSignalement = (p) => ({
+    source: SOURCES_SIG.includes(p.source) ? p.source : "autre", notion: coupe(p.notion, 80), module: coupe(p.module, 80), ref: coupe(p.ref, 80),
+    question: coupe(p.question, 4000) || "(question non transmise)", figure: /^\s*<svg[\s>]/i.test(p.figure || "") ? coupe(p.figure, 60000) : null,
+    reponse: coupe(p.reponse, 300), attendu: coupe(p.attendu, 300), correction: coupe(p.correction, 4000),
+    motif: MOTIFS_SIG.includes(p.motif) ? p.motif : "autre", commentaire: coupe(p.commentaire, 600)
+  });
+  SIP.estReseau = (e) => !!e && (e.reseau === true || /failed to fetch|networkerror|load failed|network request failed|hors_ligne/i.test(e.message || ""));
+
   const configure = CFG.supabaseUrl && CFG.supabaseAnonKey;
-  const principal = configure && window.supabase ? BackendSupabase() : BackendDemo();
-  if (configure && !window.supabase) console.warn("Supabase configuré mais la bibliothèque n'a pas chargé : mode démo.");
-
-  // =====================================================================
-  //  Aperçu professeur : voir le site comme un élève de n'importe quelle
-  //  filière, sans compte élève. Réservé au professeur connecté (espace prof,
-  //  même navigateur). Tout se passe dans une base locale à ce navigateur
-  //  ("sip_apercu_db") : rien n'est écrit dans la vraie base, les grilles et
-  //  le suivi des élèves restent propres.
-  // =====================================================================
-  const CLE_AVANT = "sip_session_avant_apercu", CLE_APERCU = "sip_apercu_db";
-  const locale = BackendDemo(CLE_APERCU, "Aperçu");
-  SIP.apercu = {
-    actif() { const s = SIP.session.get(); return !!(s && s.apercu); },
-    demarrer(niveau) {
-      if (!SIP.niveau(niveau)) return false;
-      const s = SIP.session.get();
-      if (s && !s.apercu) { try { localStorage.setItem(CLE_AVANT, JSON.stringify(s)); } catch (e) {} }   // session élève remise à la sortie
-      SIP.session.set({ apercu: true, jeton: "apercu", eleve_id: "demo-" + niveau, nom: "Aperçu professeur", niveau });
-      return true;
-    },
-    quitter() {
-      let avant = null;
-      try { avant = JSON.parse(localStorage.getItem(CLE_AVANT)); localStorage.removeItem(CLE_AVANT); } catch (e) {}
-      if (avant) SIP.session.set(avant); else SIP.session.clear();
-    },
-    effacer() { try { localStorage.removeItem(CLE_APERCU); } catch (e) {} }   // efface les essais faits en aperçu
-  };
-  // "oui" | "non" | "inconnu" (réseau). En mode démo, tout le monde est « prof ».
-  SIP.statutProf = async () => (principal.mode === "demo" ? "oui" : principal.profStatut());
-
-  const vers = (f) => (...a) => (SIP.apercu.actif() ? locale : principal)[f](...a);
-  SIP.api = Object.assign({}, principal, { etat: vers("etat"), enregistrer: vers("enregistrer"), adopter: vers("adopter"), lire: vers("lire") });
+  SIP.api = !configure ? BackendDemo() : window.supabase ? BackendSupabase() : BackendHorsLigne();
+  if (configure && !window.supabase) console.warn("Supabase configuré mais la bibliothèque n'a pas chargé (pas de réseau ?) : mode hors ligne, résultats en file d'attente.");
 
   // ---------- Écritures élève avec file d'attente hors-ligne ----------
   async function envoyer(op) {
     if (op.f === "enregistrer") return SIP.api.enregistrer(op.a);
     if (op.f === "lire") return SIP.api.lire(op.a.fiche_id, op.a.su);
     if (op.f === "adopter") return SIP.api.adopter(op.a);
+    if (op.f === "signaler") return SIP.api.signaler(op.a);
   }
   SIP.ecrire = async (f, a) => {
     const op = { f, a };
-    if (f === "enregistrer" && !a.fait_le) a.fait_le = new Date().toISOString();
-    if (SIP.apercu.actif()) { await envoyer(op); return true; }   // aperçu : base locale, jamais de file d'attente
+    if ((f === "enregistrer" || f === "signaler") && !a.fait_le) a.fait_le = new Date().toISOString();
     try { await envoyer(op); return true; }
     catch (e) {
       if (e.message === "SESSION_EXPIREE") throw e;
+      if (f === "signaler" && !SIP.estReseau(e)) throw e;     // refus de la base (ex. trop de signalements) : on le dit tout de suite
       const q = lireFile(); q.push(op); ecrireFile(q); return false;
     }
   };
   SIP.viderFile = async () => {
-    if (SIP.apercu.actif()) return 0;   // résultats d'un élève en attente : envoyés quand sa session revient
     const q = lireFile(); if (!q.length) return 0;
     const reste = [];
-    for (const op of q) { try { await envoyer(op); } catch (e) { reste.push(op); } }
+    for (const op of q) {
+      try { await envoyer(op); }
+      catch (e) { if (op.f !== "signaler" || SIP.estReseau(e)) reste.push(op); }   // un signalement refusé par la base n'est pas renvoyé sans fin
+    }
     ecrireFile(reste); return q.length - reste.length;
   };
 })(window.SIP);

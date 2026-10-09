@@ -1,0 +1,33 @@
+{
+  "id": "./prof.html",
+  "name": "SI Papara — espace professeur",
+  "short_name": "SI Papara prof",
+  "description": "Suivi des élèves, grille du bac SI, signalements.",
+  "start_url": "./prof.html",
+  "scope": "./",
+  "lang": "fr",
+  "dir": "ltr",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1d3f7a",
+  "icons": [
+    {
+      "src": "assets/icones/icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icones/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icones/icone-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -8,6 +8,7 @@
   let ANIM_EN_COURS = null; // animation de la fiche affichée (arrêtée en quittant la page)
   let MISSIONS_EN_COURS = null; // missions à étoiles de cette animation (assets/missions.js)
   let VERIF_EN_COURS = null; // questions « Vérifie que tu as compris » de la fiche (assets/verif.js)
+  let OBSERVE_EN_COURS = null; // série « Observe et réponds » posée sur l'animation (assets/observe.js)
   let serieEnCours = false;
 
   // ---------------- Outils ----------------
@@ -19,25 +20,13 @@
 
   function banniere() {
     const b = document.getElementById("banniere");
-    const att = SIP.enAttente(), s = SIP.session.get(), ap = !!(s && s.apercu);
-    b.innerHTML = (ap ? `<div class="apercu-banniere"><span><b>Aperçu professeur</b> · tu vois le site comme un élève de</span>
-        <select id="ap-niv" aria-label="Filière de l'aperçu">${SIP.NIVEAUX.map((n) => `<option value="${n.id}" ${n.id === s.niveau ? "selected" : ""}>${esc(n.nom)}</option>`).join("")}</select>
-        <span class="discret">rien n'est transmis, les essais restent dans ce navigateur</span>
-        <span class="ap-liens"><button class="btn-lien" type="button" id="ap-raz">Effacer mes essais</button> · <a href="prof.html">Espace prof</a> · <button class="btn-lien" type="button" id="ap-fin">Quitter l'aperçu</button></span></div>` : "") +
-      (SIP.api.mode === "demo" && !ap ? `<div class="demo-banniere">Mode démo : les données restent dans ce navigateur. Identifiant <b>demo</b>, code <b>1234</b>.</div>` : "") +
-      (att && !ap ? `<div class="demo-banniere">${pluriel(att, "résultat")} en attente d'envoi (pas de réseau). Envoi automatique au retour de la connexion.</div>` : "");
-    if (!ap) return;
-    document.getElementById("ap-niv").onchange = (e) => { SIP.apercu.demarrer(e.target.value); ETAT = null; aller("#/tableau"); };
-    document.getElementById("ap-raz").onclick = () => { if (confirm("Effacer tous les essais faits en aperçu (séries, fiches, révisions) dans ce navigateur ?")) { SIP.apercu.effacer(); ETAT = null; aller("#/tableau"); } };
-    document.getElementById("ap-fin").onclick = () => { SIP.apercu.quitter(); ETAT = null; aller(SIP.session.get() ? "#/tableau" : "#/"); };
+    const att = SIP.enAttente();
+    b.innerHTML = (SIP.api.mode === "demo" ? `<div class="demo-banniere">Mode démo : les données restent dans ce navigateur. Identifiant <b>demo</b>, code <b>1234</b>.</div>` : "") +
+      (att ? `<div class="demo-banniere">${pluriel(att, "résultat")} en attente d'envoi (pas de réseau). Envoi automatique au retour de la connexion.</div>` : "");
   }
-  // navigation qui recharge la vue même si l'adresse ne change pas
-  function aller(h) { if (location.hash === h) router(); else location.hash = h; }
-  const salut = (s) => (s.apercu ? `Aperçu · ${esc(SIP.niveau(s.niveau).nom)}` : `Bonjour ${esc(s.nom)}`);
-  const boutonDeco = () => (SIP.apercu.actif() ? `<button class="btn-lien" id="deco">Quitter l'aperçu</button>` : `<button class="btn-lien" id="deco">Se déconnecter</button>`);
   function entete() {
     const s = SIP.session.get(); const q = document.getElementById("qui");
-    q.innerHTML = s ? (s.apercu ? `<b>Aperçu prof</b><br>${esc(SIP.niveau(s.niveau).nom)}` : `<b>${esc(s.nom)}</b><br>${esc(SIP.niveau(s.niveau).nom)}`) : esc(SIP.CFG.etablissement || "");
+    q.innerHTML = s ? `<b>${esc(s.nom)}</b><br>${esc(SIP.niveau(s.niveau).nom)}` : esc(SIP.CFG.etablissement || "");
   }
 
   // État des fiches adoptées, enrichi du contenu
@@ -72,32 +61,11 @@
   function vueAccueil() {
     const groupes = {};
     SIP.NIVEAUX.forEach((n) => (groupes[n.groupe] = groupes[n.groupe] || []).push(n));
-    $app.innerHTML = `<div id="accueil-prof"></div><h1>S'entraîner, mémoriser, réviser</h1>
+    $app.innerHTML = `<h1>S'entraîner, mémoriser, réviser</h1>
       <p class="discret">Choisis ta classe pour te connecter.</p>
       ${Object.entries(groupes).map(([g, ns]) => `<h2>${esc(g)}</h2><div class="grille">${ns.map((n) =>
         `<a class="carte tuile" href="#/connexion/${n.id}"><h3>${esc(n.nom)}</h3>${n.desc ? `<div class="discret">${esc(n.desc)}</div>` : ""}<span class="etiquette" style="margin-top:6px">${SIP.modulesDu(n.id).length} modules</span></a>`).join("")}</div>`).join("")}
       <p class="pied"><a href="prof.html">Espace professeur</a></p>`;
-    SIP.statutProf().then((st) => { const z = document.getElementById("accueil-prof"); if (st === "oui" && z) z.innerHTML = carteApercu(); }).catch(() => {});
-  }
-  // Les 7 filières, pour entrer en aperçu d'un clic
-  function carteApercu(titre) {
-    return `<section class="carte apercu-carte">
-      <div class="eyebrow">Mode professeur</div><h2>${titre || "Voir le site comme un élève"}</h2>
-      <p class="discret">Sans compte élève : choisis une filière. Tout fonctionne comme pour un élève (séries, fiches, révisions, bac SI, E4), mais rien n'est transmis : les essais restent dans ce navigateur et n'apparaissent pas dans ton suivi.</p>
-      <div class="apercu-niveaux">${SIP.NIVEAUX.map((n) => `<a class="btn sec" href="#/apercu/${n.id}">${esc(n.nom)}</a>`).join("")}</div></section>`;
-  }
-  async function vueApercu(niveau) {
-    $app.innerHTML = `<p class="discret">Vérification de l'accès professeur…</p>`;
-    const st = await SIP.statutProf();
-    if (st !== "oui") {
-      $app.innerHTML = `<div class="carte" style="max-width:600px"><h1>Aperçu réservé au professeur</h1>
-        <p>${st === "inconnu" ? "Impossible de vérifier ton accès professeur (pas de réseau ?). Réessaie dans un instant." : "L'aperçu permet au professeur de voir le site comme un élève de chaque filière, sans compte élève. Connecte-toi d'abord à l'espace professeur <b>dans ce navigateur</b> (une seule fois : la connexion est gardée), puis reviens ici."}</p>
-        <div class="rang"><a class="btn" href="prof.html">Espace professeur</a><a class="btn sec" href="#/">Accueil</a>${st === "inconnu" ? `<button class="btn sec" type="button" id="re">Réessayer</button>` : ""}</div></div>`;
-      const re = document.getElementById("re"); if (re) re.onclick = () => vueApercu(niveau);
-      return;
-    }
-    if (niveau && SIP.niveau(niveau)) { SIP.apercu.demarrer(niveau); ETAT = null; aller("#/tableau"); return; }
-    $app.innerHTML = carteApercu("Aperçu élève : choisis une filière") + `<p class="pied"><a href="prof.html">← Espace professeur</a></p>`;
   }
 
   function vueConnexion(niveau) {
@@ -169,43 +137,53 @@
     if (s.niveau === "TSI" && SIP.BAC) {
       // Terminale : tout le tableau de bord est tourné vers l'écrit du bac ; les questions de cours passent en bas
       // Terminale : une seule chose à voir, le prochain DS et ses notions (Fiche, puis Série) ; tout le reste est replié
-      $app.innerHTML = `<h1>${salut(s)}</h1>
+      $app.innerHTML = `<h1>Bonjour ${esc(s.nom)}</h1>
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
+      <div id="appli-bandeau"></div><div id="sig-nouvelles"></div>
       ${prochainDS(hist)}
       <details class="sequence plus"><summary><span>Aller plus loin</span><span class="discret">révision du jour, parcours, sujet blanc, toutes les notions, mes résultats</span></summary>
         <div class="plus-in">
           ${outilsBac(hist)}
           ${notionsBac(hist)}
           ${derniers}
+          <div id="mes-sig"></div>
           <h2>Questions de cours rapides <span class="discret">QCM des chapitres, mini-fiches et révision de la semaine</span></h2>
           <details class="sequence rapides"><summary><span>Ouvrir les questions de cours</span><span class="discret">${pluriel(modules.length, "module")}</span></summary>
             <div class="rapides-in">${grille}${blocsModules(modules, hist, true)}</div></details>
         </div></details>
-      <p class="pied">${boutonDeco()}</p>`;
+      <p class="pied"><button class="btn-lien" id="deco">Se déconnecter</button></p>`;
     } else {
-      $app.innerHTML = `<h1>${salut(s)}</h1>
+      $app.innerHTML = `<h1>Bonjour ${esc(s.nom)}</h1>
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
-      ${/^BTS2/.test(s.niveau) ? tuileE4(hist) : ""}
+      <div id="appli-bandeau"></div>
       ${grille}
       ${blocsModules(modules, hist)}
       ${derniers}
-      <p class="pied">${boutonDeco()}</p>`;
+      <p class="pied"><button class="btn-lien" id="deco">Se déconnecter</button></p>`;
     }
-    document.getElementById("deco").onclick = () => {
-      if (SIP.apercu.actif()) { SIP.apercu.quitter(); ETAT = null; aller(SIP.session.get() ? "#/tableau" : "#/"); return; }
-      SIP.session.clear(); ETAT = null; location.hash = "#/";
-    };
+    document.getElementById("deco").onclick = () => { SIP.session.clear(); ETAT = null; location.hash = "#/"; };
+    if (SIP.appli) SIP.appli.bandeau(document.getElementById("appli-bandeau"));
+    if (s.niveau === "TSI") afficherMesSignalements();
   }
 
-  // BTS 2 : l'entraînement à l'épreuve E4 (sujets d'annales, auto-évaluation N0–N3) en tête du tableau de bord
-  function tuileE4(hist) {
-    const e4 = hist.filter((h) => h.type === "externe" && /^e4-/.test(h.module || ""));
-    const meilleur = e4.length ? Math.max(...e4.map((h) => sur20(h.score, h.score_max))) : null;
-    return `<a class="carte bac-hero ${e4.length ? "fait" : "a-faire"}" href="entrainements/bts-e4.html">
-        <div><div class="eyebrow">BTS Électrotechnique · épreuve E4</div><div class="bac-titre">Entraînement E4 <span>sujets d'annales</span></div>
-        <p class="discret" style="margin:0">Les documents du sujet à côté des questions, vérification des calculs, auto-évaluation avec la grille officielle N0–N3, sujet blanc chronométré.</p></div>
-        <div class="bac-d">${e4.length ? `<div><div class="grand">${SIP.nb(meilleur, 3)}<small> / 20</small></div><div class="discret">meilleur résultat · ${e4.length} entraînement${e4.length > 1 ? "s" : ""}</div></div>` : ""}<span class="btn">S'entraîner →</span></div>
-      </a>`;
+  // Questions signalées comme fausses par l'élève (assets/signaler.js) : la liste, et la réponse du professeur une fois traitées
+  async function afficherMesSignalements() {
+    if (!SIP.api.mesSignalements) return;
+    let L; try { L = await SIP.api.mesSignalements(); } catch (e) { return; }   // base pas encore mise à jour, ou hors ligne : rien à montrer
+    if (!Array.isArray(L) || !L.length) return;
+    const LIB = { nouveau: ["alerte", "en attente"], corrige: ["ok", "retenu ✓"], rejete: ["", "pas d'erreur"] };
+    const box = document.getElementById("mes-sig");
+    if (box) box.innerHTML = `<h2>Mes signalements <span class="discret">les questions que tu as signalées comme fausses</span></h2>
+      <ul class="mes-sig">${L.slice(0, 10).map((x) => { const l = LIB[x.statut] || ["", x.statut];
+        return `<li><span class="etiquette ${l[0]}">${l[1]}</span> <span class="discret">${SIP.fmtDate(x.cree_le)}</span> ${esc(x.question || "")}${(x.question || "").length >= 140 ? "…" : ""}</li>`; }).join("")}</ul>`;
+    let vus = {}; try { vus = JSON.parse(localStorage.getItem("sip_sig_vus")) || {}; } catch (e) { /* rien */ }
+    const neufs = L.filter((x) => x.statut !== "nouveau" && vus[x.id] !== x.statut);
+    const zone = document.getElementById("sig-nouvelles");
+    if (zone && neufs.length) zone.innerHTML = neufs.slice(0, 3).map((x) => `<div class="carte sig-nouv ${x.statut}">${x.statut === "corrige"
+      ? `<b>Ton signalement du ${SIP.fmtDate(x.cree_le)} est retenu :</b> la question va être corrigée${x.valide_serie ? ", et ta série t'est comptée comme validée" : ""}. Merci !`
+      : `<b>Ton signalement du ${SIP.fmtDate(x.cree_le)} a été vérifié :</b> la question était juste. Relis la correction : la réponse attendue est la bonne.`}</div>`).join("");
+    neufs.forEach((x) => (vus[x.id] = x.statut));
+    try { localStorage.setItem("sip_sig_vus", JSON.stringify(vus)); } catch (e) { /* rien */ }
   }
 
   // Terminale SI : les séries du bac à valider (16/20) avant le prochain DS
@@ -343,16 +321,18 @@
       <div class="print-tete"><img src="assets/logo-papara.svg" alt="" width="54" height="43"><div><div class="eyebrow">Lycée Tuianu Le Gayic · Papara · Terminale SI · fiche de révision${ds}</div><b>${esc(F.titre)}</b></div></div>
       <div class="fiche-bac-tete no-print">
         <div><div class="eyebrow">Fiche de révision${n ? ` · ${DOM_BAC[n.dom] || ""}` : ""}${ds}</div><h1>${esc(F.titre)}</h1>${F.sous ? `<p class="discret">${esc(F.sous)}</p>` : ""}</div>
-        <div class="fiche-bac-actions">${n && n.enLigne ? `<a class="btn" href="${PAGE_BAC}#n=${id}">S'entraîner sur cette notion →</a>` : ""}<button class="btn sec" type="button" id="imp">Imprimer</button></div>
+        <div class="fiche-bac-actions">${n && n.enLigne ? `<a class="btn" href="${PAGE_BAC}#n=${id}">S'entraîner sur cette notion →</a>` : ""}${anim && SIP.OBSERVE && SIP.OBSERVE.nb(id) ? `<button class="btn sec" type="button" id="go-obs">Observe et réponds <span class="discret">${SIP.OBSERVE.nb(id)} questions</span></button>` : anim ? `<button class="btn sec" type="button" id="go-obs">Comprendre en manipulant</button>` : ""}<button class="btn sec" type="button" id="imp">Imprimer</button></div>
       </div>
       <article class="fiche fiche-bac">${F.html}</article>
-      ${anim ? `<details class="sequence anim-pli no-print" id="anim-pli"><summary><span>Comprendre en manipulant</span><span class="discret">${esc(anim.titre)}${SIP.MISSIONS ? " · animation et missions à étoiles" : " · animation"}</span></summary>
-        <section class="anim" id="anim" aria-labelledby="anim-t"><div class="anim-tete"><h2 id="anim-t">${esc(anim.titre)}</h2>${anim.consigne ? `<p>${anim.consigne}</p>` : ""}</div><div class="anim-zone"></div></section></details>` : ""}
+      ${anim ? `<details class="sequence anim-pli no-print" id="anim-pli"><summary><span>Comprendre en manipulant</span><span class="discret">${esc(anim.titre)}${SIP.OBSERVE && SIP.OBSERVE.nb(id) ? ` · observe et réponds (${SIP.OBSERVE.nb(id)} questions)` : ""}${SIP.MISSIONS && SIP.MISSIONS.nb(id) ? " · animation et missions à étoiles" : " · animation"}</span></summary>
+        <section class="anim${SIP.OBSERVE && SIP.OBSERVE.nb(id) ? " obs-mode" : ""}" id="anim" aria-labelledby="anim-t">
+          ${SIP.OBSERVE && SIP.OBSERVE.nb(id) ? `<div class="an-modes" role="tablist" aria-label="Mode"><button type="button" class="an-mode" role="tab" data-mode="observe" aria-selected="true">Observe et réponds <span class="discret">${SIP.OBSERVE.nb(id)} questions</span></button><button type="button" class="an-mode" role="tab" data-mode="manipuler" aria-selected="false">Manipuler <span class="discret">curseurs et missions</span></button></div>` : ""}
+          <div class="anim-tete"><h2 id="anim-t">${esc(anim.titre)}</h2>${anim.consigne ? `<p class="an-consigne-manip">${anim.consigne}</p>` : ""}</div><div class="anim-zone"></div></section></details>` : ""}
       ${liens.length ? `<p class="no-print fiche-liens">Fiches liées : ${liens.map((l) => `<a href="#/fiche/${l}">${esc(ficheBac(l).titre)}</a>`).join(" · ")}</p>` : ""}
       <p class="pied no-print">${connecte ? `<a href="#/tableau">← Tableau de bord</a> · ` : ""}<a href="#/fiches-bac">Toutes les fiches</a></p>`;
     document.getElementById("imp").onclick = () => window.print();
     if (SIP.VERIF) {
-      try { VERIF_EN_COURS = SIP.VERIF.monter($app.querySelector(".fiche-bac"), id, { titre: F.titre, connecte, apercu: SIP.apercu.actif(), lienEntrainement: n && n.enLigne ? `${PAGE_BAC}#n=${id}` : null }); }
+      try { VERIF_EN_COURS = SIP.VERIF.monter($app.querySelector(".fiche-bac"), id, { titre: F.titre, connecte, lienEntrainement: n && n.enLigne ? `${PAGE_BAC}#n=${id}` : null }); }
       catch (e) { console.error(e); }
     }
     if (anim) {
@@ -363,8 +343,19 @@
         try { ANIM_EN_COURS = anim.monter($app.querySelector(".anim-zone"), SIP.ANIM) || null; }
         catch (e) { console.error(e); $app.querySelector("#anim").remove(); return; }
         if (SIP.MISSIONS) { try { MISSIONS_EN_COURS = SIP.MISSIONS.monter($app.querySelector(".anim-zone"), id); } catch (e) { console.error(e); } }
+        const section = $app.querySelector("#anim"), opts = { titre: F.titre, lienEntrainement: n && n.enLigne ? `${PAGE_BAC}#n=${id}` : null };
+        const mode = (m) => {
+          section.classList.toggle("obs-mode", m === "observe");
+          section.querySelectorAll(".an-mode").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.mode === m)));
+          if (OBSERVE_EN_COURS) { try { OBSERVE_EN_COURS.arreter(); } catch (e) { /* rien */ } OBSERVE_EN_COURS = null; }
+          if (m === "observe" && SIP.OBSERVE) { try { OBSERVE_EN_COURS = SIP.OBSERVE.monter($app.querySelector(".anim-zone"), id, opts); } catch (e) { console.error(e); } }
+        };
+        section.querySelectorAll(".an-mode").forEach((b) => (b.onclick = () => mode(b.dataset.mode)));
+        if (SIP.OBSERVE && SIP.OBSERVE.nb(id)) mode("observe");
       };
       pli.addEventListener("toggle", monter);
+      const go = $app.querySelector("#go-obs");
+      if (go) go.onclick = () => { if (!pli.open) pli.open = true; monter(); pli.scrollIntoView({ behavior: "smooth", block: "start" }); };
       if (location.hash.endsWith("#anim") || sessionStorage.getItem("sip-anim-ouverte") === "1") { pli.open = true; monter(); }
       pli.addEventListener("toggle", () => { try { sessionStorage.setItem("sip-anim-ouverte", pli.open ? "1" : "0"); } catch (e) {} });
     }
@@ -381,7 +372,7 @@
       ${bilanEtoiles()}
       ${groupes.map((g) => `<h2>${esc(g.ds || "Hors DS")} <span class="discret">${g.date ? jourLong(g.date) : ""}</span></h2>
         <div class="nb-liste">${g.l.map((n) => `<a class="nb-row fiche-ligne" href="#/fiche/${n.id}"><span class="nb-rk">${n.rang}</span>
-          <span class="nb-nm"><b>${esc(ficheBac(n.id).titre)}${SIP.ANIMS_BAC && SIP.ANIMS_BAC[n.id] ? `<span class="anim-badge">animation</span>` : ""}${SIP.MISSIONS ? SIP.MISSIONS.etoilesHTML(n.id) : ""}</b><span class="discret">${esc(n.lab)} · ${DOM_BAC[n.dom] || ""}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("")}</div>`).join("")}
+          <span class="nb-nm"><b>${esc(ficheBac(n.id).titre)}${SIP.ANIMS_BAC && SIP.ANIMS_BAC[n.id] ? `<span class="anim-badge">animation</span>` : ""}${SIP.OBSERVE && SIP.OBSERVE.nb(n.id) ? `<span class="anim-badge obs-badge" title="${SIP.OBSERVE.nb(n.id)} questions sur l'animation">observe</span>` : ""}${SIP.MISSIONS ? SIP.MISSIONS.etoilesHTML(n.id) : ""}</b><span class="discret">${esc(n.lab)} · ${DOM_BAC[n.dom] || ""}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("")}</div>`).join("")}
       ${reste > 0 ? `<p class="discret" style="margin-top:18px">${pluriel(reste, "autre notion")} : fiche à venir, au fil du planning.</p>` : ""}`;
   }
   // étoiles des missions (gardées dans ce navigateur)
@@ -469,7 +460,7 @@
           <span class="etiquette ${app.cls}" style="font-size:.9rem">${app.txt}</span>
         </div>
         ${competences && competences.length ? `<div class="comp-chips">${competences.map((c) => SIP.COMPETENCES[c] ? `<span class="etiquette" title="${esc(SIP.COMPETENCES[c].txt)}">${c} · ${esc(SIP.COMPETENCES[c].txt)}</span>` : "").join("")}</div>` : ""}
-        <p class="discret">${SIP.apercu.actif() ? "Aperçu : résultat gardé dans ce navigateur, rien n'est transmis." : envoye ? "Résultat enregistré ✓ — ton professeur le voit." : "Pas de réseau : résultat gardé sur cet appareil, envoi automatique plus tard."}</p>
+        <p class="discret">${envoye ? "Résultat enregistré ✓ — ton professeur le voit." : "Pas de réseau : résultat gardé sur cet appareil, envoi automatique plus tard."}</p>
       </div>
 
       ${erreurs.length ? `<h2>À corriger</h2><div class="corrections">${erreurs.map((d) =>
@@ -638,6 +629,8 @@
   async function router() {
     if (MISSIONS_EN_COURS) { try { MISSIONS_EN_COURS.arreter(); } catch (e) { /* rien */ } }
     MISSIONS_EN_COURS = null;
+    if (OBSERVE_EN_COURS) { try { OBSERVE_EN_COURS.arreter(); } catch (e) { /* rien */ } }
+    OBSERVE_EN_COURS = null;
     if (VERIF_EN_COURS) { try { VERIF_EN_COURS.arreter(); } catch (e) { /* rien */ } }
     VERIF_EN_COURS = null;
     if (ANIM_EN_COURS && ANIM_EN_COURS.arreter) { try { ANIM_EN_COURS.arreter(); } catch (e) { /* rien */ } }
@@ -647,7 +640,6 @@
     const s = SIP.session.get();
     window.scrollTo(0, 0);
     try {
-      if (h[0] === "apercu") return await vueApercu(h[1]);
       if (!s) { if (h[0] === "connexion") return vueConnexion(h[1]); if (h[0] === "fiche") return vueFicheBac(h[1]); return vueAccueil(); }
       switch (h[0]) {
         case "module": return vueModule(h[1]);
@@ -670,7 +662,5 @@
   window.addEventListener("beforeunload", (e) => { if (serieEnCours) { e.preventDefault(); e.returnValue = ""; } });
   window.addEventListener("online", () => SIP.viderFile().then(banniere));
   SIP.viderFile().catch(() => {}).then(banniere);
-  // Aperçu resté ouvert alors que le professeur s'est déconnecté de l'espace prof : on en sort
-  if (SIP.apercu.actif()) SIP.statutProf().then((st) => { if (st === "non") { SIP.apercu.quitter(); ETAT = null; aller(SIP.session.get() ? "#/tableau" : "#/"); } }).catch(() => {});
   router();
 })(window.SIP);

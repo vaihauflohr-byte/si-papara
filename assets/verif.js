@@ -93,6 +93,11 @@ window.SIP = window.SIP || {};
         <div class="vq-q">${typo(q.q)}</div>${q.fig ? `<figure class="vq-fig">${q.fig}</figure>` : ""}<div class="vq-zone"></div>
         <p class="vq-retour" role="status"></p><div class="vq-expl" hidden></div>`;
       const zone = b.querySelector(".vq-zone"), retour = b.querySelector(".vq-retour"), expl = b.querySelector(".vq-expl");
+      // « Signaler une erreur » (assets/signaler.js) : la question telle que l'élève l'a eue, avec ses valeurs
+      if (SIP.signaler) {
+        const sb = SIP.signaler.bouton(); sb.classList.add("vq-sig"); b.appendChild(sb);
+        sb.onclick = () => SIP.signaler.ouvrir(donneesSignalement(q, k), { surEnvoi: () => SIP.signaler.marquer(sb) });
+      }
       const fin = (ok, donne, attendu, affiche) => {
         if (essai.rep[k]) return;
         if (!essai.t0) essai.t0 = Date.now();
@@ -151,11 +156,23 @@ window.SIP = window.SIP || {};
       return b;
     }
 
+    const attenduDe = (q) => q.type === "qcm" ? texteNu(q.choix[q.bonne]) : q.type === "vf" ? (q.vrai ? "Vrai" : "Faux")
+      : q.type === "num" ? `${nf3(+q.rep)}${q.unite ? " " + q.unite : ""}` : q.type === "ordre" ? q.items.map((t) => texteNu(t)).join(" → ") : "";
+    function donneesSignalement(q, k) {
+      const rep = essai.rep[k];
+      const enonce = texteNu(q.q)
+        + (q.type === "qcm" ? "\nChoix : " + q.choix.map((c, i) => `${i + 1}) ${texteNu(c)}`).join(" ; ") : "")
+        + (q.type === "vf" ? "\n(Vrai ou faux)" : "")
+        + (q.type === "ordre" ? "\nÉtapes à ranger : " + q.items.map((t) => texteNu(t)).join(" ; ") : "")
+        + (q.unite ? "\nUnité : " + q.unite : "");
+      return { source: "verif", notion: id, module: "fiche-" + id, ref: "verif:" + Q[k].i, question: enonce, figure: q.fig || "",
+        reponse: rep ? rep.donne : "", attendu: rep ? rep.attendu : attenduDe(q), correction: texteNu(q.expl || "") };
+    }
     const repondues = () => essai.rep.filter(Boolean).length;
     const justes = () => essai.rep.filter((x) => x && x.ok).length;
     function majBarre() {
       const a = repondues(), j = justes();
-      barre.innerHTML = `<div><b>Vérifie que tu as compris</b> <span class="discret">· ${n} questions dans la fiche, après chaque partie${o.apercu ? " · aperçu professeur : rien n'est transmis" : o.connecte ? " · ta note est transmise à ton professeur" : ""}</span></div>
+      barre.innerHTML = `<div><b>Vérifie que tu as compris</b> <span class="discret">· ${n} questions dans la fiche, après chaque partie${o.connecte ? " · ta note est transmise à ton professeur" : ""}</span></div>
         <div class="vq-prog"><span class="vq-t" aria-hidden="true"><i style="width:${(100 * a) / n}%"></i></span><span>${a} / ${n} répondue${a > 1 ? "s" : ""}${a ? ` · ${j} juste${j > 1 ? "s" : ""}` : ""}</span>
         ${a < n ? `<button class="btn sec" type="button">${a ? "Question suivante ↓" : "Commencer ↓"}</button>` : ""}</div>`;
       const bt = barre.querySelector("button");
@@ -185,7 +202,7 @@ window.SIP = window.SIP || {};
         const ok = await SIP.ecrire("enregistrer", { module: "fiche-" + id, titre: "Fiche : " + (o.titre || id), type: "externe", score: j, score_max: n,
           duree_s: essai.t0 ? Math.round((Date.now() - essai.t0) / 1000) : null,
           details: essai.rep.map((x) => ({ q: x.q, rep: x.donne, attendu: x.attendu, pts: x.ok ? 1 : 0, i: x.i })) }); // i : numéro de la question dans la fiche (évaluation en classe)
-        essai.envoye = o.apercu ? "Aperçu : note gardée dans ce navigateur, rien n'est transmis." : ok ? "Note transmise à ton professeur." : "Pas de réseau : ta note sera transmise dès que possible.";
+        essai.envoye = ok ? "Note transmise à ton professeur." : "Pas de réseau : ta note sera transmise dès que possible.";
         if (o.apresEnvoi) o.apresEnvoi();
       } catch (e) { essai.envoye = "La note n'a pas pu être transmise (" + e.message + ")."; }
       envoi.textContent = essai.envoye;
