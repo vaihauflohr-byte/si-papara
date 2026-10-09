@@ -14,18 +14,18 @@ SIP.VERIF_BAC = SIP.VERIF_BAC || {};
   /* ------------------------------------------------ Actions mécaniques et moments */
   V["meca-actions"] = [
     { apres: "essentiel", type: "qcm",
-      q: `Sur un levier articulé en O, une force ${v("F")} de 80 N s'applique en A, à 0,25 m de O. Son support passe par O. Que vaut son moment en O ?`,
+      q: `Sur un levier articulé en O, une force ${v("F")} de 80 N s'applique en A, à 0,25 m de O. Sa droite d'action passe par O. Que vaut son moment en O ?`,
       choix: ["0 N·m : le bras de levier est nul", "20 N·m : F·OA", "On ne peut pas conclure sans l'angle", "80 N·m : la norme de la force"], bonne: 0,
-      expl: "Le bras de levier d est la distance de O au <b>support</b> de la force. Si ce support passe par O, d = 0, donc M<sub>O</sub> = F·d = 0, quelle que soit la norme de F." },
+      expl: "Le bras de levier d est la distance de O à la <b>droite d'action</b> de la force. Si elle passe par O, d = 0, donc M<sub>O</sub> = F·d = 0, quelle que soit la norme de F." },
     { apres: "essentiel", type: "vf",
       q: "La notation A<sub>1/2</sub> désigne l'action exercée <b>par la pièce 2 sur la pièce 1</b>, au point A.",
       vrai: false,
       expl: "C'est l'inverse : A<sub>1/2</sub> est l'action exercée <b>par 1 sur 2</b>. L'action de 2 sur 1 se note A<sub>2/1</sub> ; les deux sont opposées." },
     { apres: "formules", type: "num",
-      gen(r) { const p = r.tirer([4, 5, 6, 8, 10]), S = r.tirer([12.5, 20, 25, 50]);
-        return { q: `Dans un vérin, l'air comprimé à p = ${p} bar pousse un piston de surface S = ${nf(S, 1)} cm². Calcule la force exercée sur le piston.`,
-          rep: p * 1e5 * S * 1e-4, unite: "N",
-          expl: `F = p·S avec des unités SI : p = ${p} × 10<sup>5</sup> Pa et S = ${nf(S, 1)} × 10<sup>−4</sup> m², donc F = ${nf3(p * 1e5 * S * 1e-4)} N. Le piège : multiplier des bars par des cm².` }; } },
+      gen(r) { const m = r.tirer([1.2, 2.5, 4, 12, 120]), a = r.tirer([5, 8, 10, 15, 20]), Px = m * 9.81 * Math.sin(rad(a));
+        return { q: `Un robot de masse m = ${nf(m)} kg est sur une pente inclinée de α = ${a}°. Calcule la composante de son poids le long de la pente, P<sub>x</sub>.`,
+          rep: Px, unite: "N",
+          expl: `P = m·g = ${nf3(m * 9.81)} N, puis P<sub>x</sub> = P·sin α = ${nf3(m * 9.81)} × sin ${a}° = ${nf3(Px)} N. C'est elle qui tire le robot vers le bas de la pente ; P<sub>y</sub> = P·cos α appuie sur le sol. Le piège : confondre sin et cos.` }; } },
     { apres: "formules", type: "num",
       gen(r) { const xA = r.tirer([0.15, 0.2, 0.25]), yA = r.tirer([0.05, 0.1]), Fx = r.tirer([-40, -30, 20, 30]), Fy = r.tirer([40, 50, 60]), M = xA * Fy - yA * Fx;
         return { q: `Depuis O, le point A a pour coordonnées x<sub>A</sub> = ${nf(xA)} m et y<sub>A</sub> = ${nf(yA)} m. La force en A a pour composantes F<sub>x</sub> = ${nf(Fx, 0)} N et F<sub>y</sub> = ${Fy} N. Calcule son moment en O, avec son signe.`,
@@ -33,13 +33,13 @@ SIP.VERIF_BAC = SIP.VERIF_BAC || {};
           expl: `M<sub>O</sub> = x<sub>A</sub>·F<sub>y</sub> − y<sub>A</sub>·F<sub>x</sub> = ${nf(xA)} × ${Fy} − ${nf(yA)} × ${Fx < 0 ? `(${nf(Fx, 0)})` : Fx} = ${nf3(M)} N·m. ${M > 0 ? "Positif : la force fait tourner dans le sens trigonométrique." : "Négatif : sens horaire."}` }; } },
     { apres: "methode", type: "ordre",
       q: "Remets dans l'ordre les étapes du calcul d'un moment.",
-      items: ["Choisir le point où l'on calcule le moment", "Tracer le support de la force et mesurer le bras de levier perpendiculairement", "Donner le signe selon le sens de rotation", "Calculer avec des longueurs en mètres", "Conclure par une phrase qui nomme le point"],
-      expl: "Le point d'abord (sans lui, « le moment » ne veut rien dire), puis le bras de levier, le signe, le calcul en unités SI et la phrase de conclusion." },
+      items: ["Isoler le solide et poser les hypothèses du sujet", "Lister le poids, puis une action par contact avec l'extérieur", "Remplir le tableau : action, point, direction, sens, norme", "Choisir le point des moments, là où passent les inconnues", "Calculer avec le bras de levier perpendiculaire et conclure en nommant le point"],
+      expl: "D'abord le bilan (isoler, lister, tableau) : sans lui, on oublie une action ou on en invente une. Ensuite le point des moments, choisi pour faire disparaître les inconnues, puis le calcul et la phrase de conclusion." },
     { apres: "exemple", type: "num",
-      gen(r) { const L = r.tirer([20, 25, 30]), F = r.tirer([60, 80, 100]), t = r.tirer([30, 45, 60]), M = F * (L / 100) * Math.sin(rad(t));
-        return { q: `Une clé mesure OA = ${L} cm entre l'axe de l'écrou O et la main A. L'opérateur exerce F = ${F} N, inclinée de ${t}° par rapport au manche. Calcule le moment en O.`,
-          rep: M, unite: "N·m",
-          expl: `d = OA·sin ${t}° = ${nf(L / 100)} × ${nf3(Math.sin(rad(t)))} = ${nf3((L / 100) * Math.sin(rad(t)))} m, donc M<sub>O</sub> = F·d = ${nf3(M)} N·m. Seule la composante perpendiculaire au manche fait tourner l'écrou.` }; } },
+      gen(r) { const m = r.tirer([15, 20, 25, 30]), OB = r.tirer([1, 1.2, 1.5]), OA = r.tirer([0.6, 0.8, 0.9]), t = r.tirer([30, 45, 60]), d = OA * Math.sin(rad(t)), T = m * 9.81 * OB / d;
+        return { q: `Même potence : charge m = ${m} kg suspendue en B avec OB = ${nf(OB)} m, câble attaché en A avec OA = ${nf(OA)} m, incliné de ${t}° sur le bras. À l'équilibre, calcule la tension T du câble.`,
+          rep: T, unite: "N",
+          expl: `Moments en O : la pivot n'en a pas. Poids : − ${nf3(m * 9.81)} × ${nf(OB)} ; câble : + T × d avec d = OA·sin ${t}° = ${nf3(d)} m. Donc T = ${fr(`${nf3(m * 9.81)} × ${nf(OB)}`, nf3(d))} = ${nf3(T)} N.` }; } },
     { apres: "pieges", type: "qcm",
       q: "Un élève écrit : « La clé mesure OA = 300 mm et F = 50 N est perpendiculaire au manche, donc M<sub>O</sub> = 50 × 300 = 15 000 N·m. » Quelle est son erreur ?",
       choix: ["Il a gardé OA en mm : 15 000 N·mm = 15,0 N·m", "Il fallait multiplier par sin 300", "Le moment est nul car la force est perpendiculaire", "Il a oublié le poids de la clé"], bonne: 0,

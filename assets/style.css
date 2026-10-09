@@ -86,6 +86,16 @@ b, strong { font-weight: 600; }
   .logo { gap: 10px; } .logo-img { width: 44px; } .logo-ey { display: none; } .logo-nom { font-size: 1.45rem; }
 }
 .demo-banniere { background: var(--warn-soft); color: var(--warn); font-size: .85rem; text-align: center; padding: 6px 16px; border-bottom: 1px solid var(--rule); }
+/* aperçu professeur (voir le site comme un élève, sans compte) */
+.apercu-banniere { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 12px; background: var(--accent-soft);
+  color: var(--ink); font-size: .86rem; padding: 6px 16px; border-bottom: 1px solid var(--rule); text-align: center; }
+.apercu-banniere b { color: var(--accent); }
+.apercu-banniere select { width: auto; min-height: 0; padding: 3px 8px; font-size: .86rem; background: var(--paper); }
+.apercu-banniere .btn-lien { padding: 0; }
+.apercu-banniere .ap-liens { white-space: nowrap; }
+.apercu-carte { border-top: 3px solid var(--accent); margin-bottom: 18px; }
+.apercu-carte h2 { margin-top: 4px; }
+.apercu-niveaux { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
 
 /* ---------- boutons ---------- */
 .btn { appearance: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -524,7 +534,7 @@ details.rapides .rapides-in details.sequence { box-shadow: none; }
 }
 
 @media print {
-  .haut, .no-print, .demo-banniere { display: none !important; }
+  .haut, .no-print, .demo-banniere, .apercu-banniere { display: none !important; }
   body { background: #fff; color: #000; }
 }
 

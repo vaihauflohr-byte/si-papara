@@ -172,7 +172,7 @@ window.SIP = window.SIP || {};
     const justes = () => essai.rep.filter((x) => x && x.ok).length;
     function majBarre() {
       const a = repondues(), j = justes();
-      barre.innerHTML = `<div><b>Vérifie que tu as compris</b> <span class="discret">· ${n} questions dans la fiche, après chaque partie${o.connecte ? " · ta note est transmise à ton professeur" : ""}</span></div>
+      barre.innerHTML = `<div><b>Vérifie que tu as compris</b> <span class="discret">· ${n} questions dans la fiche, après chaque partie${o.apercu ? " · aperçu professeur : rien n'est transmis" : o.connecte ? " · ta note est transmise à ton professeur" : ""}</span></div>
         <div class="vq-prog"><span class="vq-t" aria-hidden="true"><i style="width:${(100 * a) / n}%"></i></span><span>${a} / ${n} répondue${a > 1 ? "s" : ""}${a ? ` · ${j} juste${j > 1 ? "s" : ""}` : ""}</span>
         ${a < n ? `<button class="btn sec" type="button">${a ? "Question suivante ↓" : "Commencer ↓"}</button>` : ""}</div>`;
       const bt = barre.querySelector("button");
@@ -202,7 +202,7 @@ window.SIP = window.SIP || {};
         const ok = await SIP.ecrire("enregistrer", { module: "fiche-" + id, titre: "Fiche : " + (o.titre || id), type: "externe", score: j, score_max: n,
           duree_s: essai.t0 ? Math.round((Date.now() - essai.t0) / 1000) : null,
           details: essai.rep.map((x) => ({ q: x.q, rep: x.donne, attendu: x.attendu, pts: x.ok ? 1 : 0, i: x.i })) }); // i : numéro de la question dans la fiche (évaluation en classe)
-        essai.envoye = ok ? "Note transmise à ton professeur." : "Pas de réseau : ta note sera transmise dès que possible.";
+        essai.envoye = o.apercu ? "Aperçu : note gardée dans ce navigateur, rien n'est transmis." : ok ? "Note transmise à ton professeur." : "Pas de réseau : ta note sera transmise dès que possible.";
         if (o.apresEnvoi) o.apresEnvoi();
       } catch (e) { essai.envoye = "La note n'a pas pu être transmise (" + e.message + ")."; }
       envoi.textContent = essai.envoye;

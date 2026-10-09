@@ -112,9 +112,11 @@ window.SIP = window.SIP || {};
       const paquet = Object.assign({}, d, { motif: m.value, commentaire: boite.querySelector("#sig-com").value.trim() });
       try {
         const parti = await SIP.ecrire("signaler", paquet);
+        const apercu = SIP.apercu && SIP.apercu.actif && SIP.apercu.actif();
         boite.innerHTML = `<h2 id="sig-titre">Merci !</h2>
-          <p class="sig-merci">${parti ? "Ton signalement est parti chez ton professeur." : "Pas de réseau : ton signalement partira dès que la connexion revient."}
-          Il va vérifier la question ; s'il y a une erreur, elle sera corrigée.</p>
+          <p class="sig-merci">${apercu ? "Aperçu professeur : le signalement est gardé dans ce navigateur, rien n'est envoyé."
+            : (parti ? "Ton signalement est parti chez ton professeur." : "Pas de réseau : ton signalement partira dès que la connexion revient.")
+              + " Il va vérifier la question ; s'il y a une erreur, elle sera corrigée."}</p>
           <div class="sig-act"><button type="button" class="sig-ok">Fermer</button></div>`;
         const f = boite.querySelector(".sig-ok"); f.onclick = fermer; f.focus();
         if (o.surEnvoi) { try { o.surEnvoi(parti); } catch (e) { /* rien */ } }

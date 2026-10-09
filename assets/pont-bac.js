@@ -15,6 +15,7 @@
       padding:7px 14px;font:14px/1.4 var(--f-body,system-ui,sans-serif);border-bottom:1px solid rgba(0,0,0,.08)}
     .sip-bandeau.ok{background:#E7F4EC;color:#0D5A2C}
     .sip-bandeau.ko{background:#FDECEA;color:#8A1C1C}
+    .sip-bandeau.ap{background:#E2E9F5;color:#1D3F7A}
     .sip-bandeau a{color:inherit;font-weight:700}
     .sip-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:92vw;z-index:70;
       background:#16181B;color:#fff;padding:10px 16px;border-radius:6px;font:14px/1.4 var(--f-body,system-ui,sans-serif);
@@ -29,7 +30,11 @@
     if (!b) return;
     const s = SIP.session.get(), demo = SIP.api && SIP.api.mode === "demo" ? " · mode démo" : "";
     b.hidden = false;
-    if (s) {
+    if (s && s.apercu) {
+      b.className = "sip-bandeau ap";
+      b.innerHTML = `<span><b>Aperçu professeur</b> (${SIP.esc((SIP.niveau(s.niveau) || {}).court || s.niveau)}) · rien n'est transmis : séries et révisions restent dans ce navigateur.</span>
+        <a href="${RACINE}index.html#/tableau">Tableau de bord de l'aperçu</a>`;
+    } else if (s) {
       b.className = "sip-bandeau ok";
       b.innerHTML = `<span>Connecté(e) : <b>${SIP.esc(s.nom)}</b> (${SIP.esc((SIP.niveau(s.niveau) || {}).court || s.niveau)})${demo} · tes séries, parcours et révisions sont transmis au professeur.</span>
         <a href="${RACINE}index.html#/tableau">Mon espace</a>`;
@@ -69,7 +74,7 @@
     if (!SIP.session.get()) { toast("Tu n'es pas connecté(e) : ce résultat n'est pas transmis au professeur."); return; }
     try {
       const ok = await SIP.ecrire("enregistrer", t);
-      toast(ok ? "Résultat transmis au professeur ✓" : "Hors ligne : résultat gardé, il partira au retour du réseau.");
+      toast(SIP.apercu && SIP.apercu.actif() ? "Aperçu : résultat gardé dans ce navigateur (rien n'est transmis)." : ok ? "Résultat transmis au professeur ✓" : "Hors ligne : résultat gardé, il partira au retour du réseau.");
     } catch (e) {
       if (e.message === "SESSION_EXPIREE") {
         SIP.session.clear(); bandeau();

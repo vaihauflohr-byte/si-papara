@@ -60,16 +60,15 @@ window.SIP = window.SIP || {};
   // =====================================================================
   //  Backend DÉMO
   // =====================================================================
-  function BackendDemo() {
-    const CLE = "sip_demo_db";
+  // CLE : clé de stockage (mode démo : "sip_demo_db" ; aperçu professeur : "sip_apercu_db")
+  function BackendDemo(CLE = "sip_demo_db", nomFictif = "demo") {
     const load = () => {
       let db;
       try { db = JSON.parse(localStorage.getItem(CLE)); } catch (e) {}
-      if (!db) {
-        db = { eleves: [], entrainements: [], fiches_suivi: [], lectures: [], seq: 1 };
-        SIP.NIVEAUX.forEach((n) => db.eleves.push({ id: "demo-" + n.id, niveau: n.id, nom: "demo", pin: "1234", actif: true, cree_le: new Date().toISOString() }));
-        try { localStorage.setItem(CLE, JSON.stringify(db)); } catch (e) {}
-      }
+      if (!db) db = { eleves: [], entrainements: [], fiches_suivi: [], lectures: [], seq: 1 };
+      let ajout = !db.eleves.length;
+      SIP.NIVEAUX.forEach((n) => { if (!db.eleves.some((x) => x.id === "demo-" + n.id)) { ajout = true; db.eleves.push({ id: "demo-" + n.id, niveau: n.id, nom: nomFictif, pin: "1234", actif: true, cree_le: new Date().toISOString() }); } });
+      if (ajout) { try { localStorage.setItem(CLE, JSON.stringify(db)); } catch (e) {} }
       return db;
     };
     const save = (db) => { try { localStorage.setItem(CLE, JSON.stringify(db)); } catch (e) {} };
@@ -215,6 +214,12 @@ window.SIP = window.SIP || {};
         if (!data) { await sb.auth.signOut(); throw new Error("Ce compte n'est pas inscrit comme prof (table « profs »)."); }
       },
       async profSession() { const { data } = await sb.auth.getSession(); if (!data.session) return false; const r = await sb.rpc("is_prof"); return !!r.data; },
+      async profStatut() {
+        try {
+          const { data } = await sb.auth.getSession(); if (!data || !data.session) return "non";
+          const r = await sb.rpc("is_prof"); if (r.error) return "inconnu"; return r.data ? "oui" : "non";
+        } catch (e) { return "inconnu"; }
+      },
       async profDeconnexion() { await sb.auth.signOut(); },
       async profDonnees() {
         const depuis = SIP.ajouterJours(SIP.aujourdhui(), -70);
@@ -253,6 +258,7 @@ window.SIP = window.SIP || {};
     ["connexion", "etat", "enregistrer", "adopter", "lire", "signaler", "mesSignalements", "profConnexion", "profDonnees", "profSignalements",
       "traiterSignalement", "validerSignalement", "creerEleve", "changerPin", "basculerActif", "supprimerEleve", "profDeconnexion"].forEach((f) => (api[f] = ko));
     api.profSession = async () => false;
+    api.profStatut = async () => "inconnu";
     return api;
   }
 
@@ -268,8 +274,40 @@ window.SIP = window.SIP || {};
   SIP.estReseau = (e) => !!e && (e.reseau === true || /failed to fetch|networkerror|load failed|network request failed|hors_ligne/i.test(e.message || ""));
 
   const configure = CFG.supabaseUrl && CFG.supabaseAnonKey;
-  SIP.api = !configure ? BackendDemo() : window.supabase ? BackendSupabase() : BackendHorsLigne();
+  const principal = !configure ? BackendDemo() : window.supabase ? BackendSupabase() : BackendHorsLigne();
   if (configure && !window.supabase) console.warn("Supabase configuré mais la bibliothèque n'a pas chargé (pas de réseau ?) : mode hors ligne, résultats en file d'attente.");
+
+  // =====================================================================
+  //  Aperçu professeur : voir le site comme un élève de n'importe quelle
+  //  filière, sans compte élève. Réservé au professeur connecté (espace prof,
+  //  même navigateur). Tout se passe dans une base locale à ce navigateur
+  //  ("sip_apercu_db") : rien n'est écrit dans la vraie base, les grilles et
+  //  le suivi des élèves restent propres.
+  // =====================================================================
+  const CLE_AVANT = "sip_session_avant_apercu", CLE_APERCU = "sip_apercu_db";
+  const locale = BackendDemo(CLE_APERCU, "Aperçu");
+  SIP.apercu = {
+    actif() { const s = SIP.session.get(); return !!(s && s.apercu); },
+    demarrer(niveau) {
+      if (!SIP.niveau(niveau)) return false;
+      const s = SIP.session.get();
+      if (s && !s.apercu) { try { localStorage.setItem(CLE_AVANT, JSON.stringify(s)); } catch (e) {} }   // session élève remise à la sortie
+      SIP.session.set({ apercu: true, jeton: "apercu", eleve_id: "demo-" + niveau, nom: "Aperçu professeur", niveau });
+      return true;
+    },
+    quitter() {
+      let avant = null;
+      try { avant = JSON.parse(localStorage.getItem(CLE_AVANT)); localStorage.removeItem(CLE_AVANT); } catch (e) {}
+      if (avant) SIP.session.set(avant); else SIP.session.clear();
+    },
+    effacer() { try { localStorage.removeItem(CLE_APERCU); } catch (e) {} }   // efface les essais faits en aperçu
+  };
+  // "oui" | "non" | "inconnu" (réseau). En mode démo, tout le monde est « prof ».
+  SIP.statutProf = async () => (principal.mode === "demo" ? "oui" : principal.profStatut());
+
+  const vers = (f) => (...a) => (SIP.apercu.actif() ? locale : principal)[f](...a);
+  SIP.api = Object.assign({}, principal, { etat: vers("etat"), enregistrer: vers("enregistrer"), adopter: vers("adopter"), lire: vers("lire"),
+    signaler: vers("signaler"), mesSignalements: vers("mesSignalements") });
 
   // ---------- Écritures élève avec file d'attente hors-ligne ----------
   async function envoyer(op) {
@@ -281,6 +319,7 @@ window.SIP = window.SIP || {};
   SIP.ecrire = async (f, a) => {
     const op = { f, a };
     if ((f === "enregistrer" || f === "signaler") && !a.fait_le) a.fait_le = new Date().toISOString();
+    if (SIP.apercu.actif()) { await envoyer(op); return true; }   // aperçu : base locale, jamais de file d'attente
     try { await envoyer(op); return true; }
     catch (e) {
       if (e.message === "SESSION_EXPIREE") throw e;
@@ -289,6 +328,7 @@ window.SIP = window.SIP || {};
     }
   };
   SIP.viderFile = async () => {
+    if (SIP.apercu.actif()) return 0;   // résultats d'un élève en attente : envoyés quand sa session revient
     const q = lireFile(); if (!q.length) return 0;
     const reste = [];
     for (const op of q) {

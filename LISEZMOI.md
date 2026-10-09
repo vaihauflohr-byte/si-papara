@@ -7,7 +7,7 @@ Aucun serveur à maintenir, rien ne dépend de Claude.
 
 | Élève | Prof (`prof.html`) |
 |---|---|
-| Se connecte avec **classe + identifiant + code à 4 chiffres** | Voit **chaque entraînement** de chaque élève, question par question (réponse donnée, réponse attendue, points, nombre d'essais) |
+| Se connecte avec **classe + identifiant + code à 4 chiffres** (le professeur, lui, peut tout voir sans compte élève : « Aperçu élève ») | Voit **chaque entraînement** de chaque élève, question par question (réponse donnée, réponse attendue, points, nombre d'essais) |
 | S'entraîne par séries de 10 questions tirées dans de grandes banques (données aléatoires) : **il part de 20 points, chaque erreur retire 2 points** (un calcul raté au 1er essai coûte déjà 2 points) → note /20 + appréciation (Maîtrisé ≥ 16, En cours 12–16, Fragile 8–12, À retravailler < 8) |
 | Page « Mes compétences » : sa moyenne /20 par compétence du programme de SI | Onglet « Compétences » : grille élèves × compétences (moyennes /20), et bloc compétences dans la fiche de chaque élève | Suit la lecture quotidienne des fiches (calendrier sur 60 jours, assiduité par fiche) |
 | À la fin : **mini-fiches** proposées → ajoutées à son programme de **60 jours** | Voit qui a fait la **révision de la semaine** (et sur les 4 dernières semaines) |
@@ -52,6 +52,17 @@ Tu peux mettre le lien du site dans l'ENT (nati.pf) comme lien externe.
 Les codes sont chiffrés en base : ils ne sont visibles qu'à la création. Code perdu → « Nouveau code ».
 5 codes faux d'affilée bloquent le compte 10 minutes.
 Fin d'année : « Désactiver » plutôt que « Supprimer » (supprimer efface tout l'historique).
+
+## Aperçu professeur : tester une filière sans compte élève
+
+Pour voir le site exactement comme un élève de **n'importe quelle filière** (2de SI, 1re SI, Tle SI, BTS 1/2 STI et ADM), sans créer de compte élève :
+
+- `prof.html` → onglet **Aperçu élève** → « Ouvrir l'aperçu » sur la filière voulue (ou lien « Aperçu élève » en haut de l'espace prof) ;
+- ou, une fois connecté à l'espace prof dans ce navigateur, la page d'accueil du site affiche un bloc **Mode professeur** avec les 7 filières ; l'adresse `index.html#/apercu/BTS2-STI` (`2SI`, `1SI`, `TSI`, `BTS1-STI`, `BTS1-ADM`, `BTS2-STI`, `BTS2-ADM`) y mène directement.
+
+Dans l'aperçu, tout fonctionne comme pour un élève : tableau de bord de la filière (prochain DS en Terminale, tuile E4 en BTS 2), séries, fiches du jour, révision de la semaine, fiches de révision, pages `bac-si.html` et `bts-e4.html`. **Rien n'est transmis** : les essais sont gardés dans une base locale au navigateur (`sip_apercu_db`) et n'apparaissent ni dans le suivi ni dans les grilles. Un bandeau bleu en haut permet de **changer de filière**, d'**effacer ses essais** ou de **quitter l'aperçu**.
+
+Sécurité : l'aperçu ne s'ouvre que si le navigateur a une session professeur valide (compte Supabase inscrit dans `profs`) ; un élève qui tape l'adresse voit « Aperçu réservé au professeur ». Se déconnecter de l'espace prof ferme l'aperçu. Si un élève était connecté sur l'appareil, sa session revient quand on quitte l'aperçu, et ses résultats en attente (hors ligne) ne sont jamais mélangés à ceux de l'aperçu. En mode démo (site non configuré), l'aperçu est ouvert à tous.
 
 ## Contenu actuel
 
