@@ -275,9 +275,25 @@
     return `<section class="carte ds-hero ${faites === lot.length ? "fait" : "a-faire"}">
         <div class="ds-tete"><div><div class="eyebrow">Prochain DS</div><div class="bac-titre">${esc(lot[0].ds || "DS")} <span>· ${esc(jour(lot[0].ds_date))}</span></div></div>
           <div class="ds-compte"><div class="grand">${faites}<small> / ${lot.length}</small></div><div class="discret">validée${faites > 1 ? "s" : ""}</div></div></div>
-        <ul class="ds-lot">${lignes}</ul>
-        <p class="bac-regle">Pour chaque notion : lis la fiche, puis fais la série jusqu'à ${B.seuil}/20. Avant 6 h le jour du DS, essais illimités.</p>
+        <ul class="ds-lot">${lignes}${ligneDSBlanc(lot[0].ds, hist)}</ul>
+        <p class="bac-regle">Pour chaque notion : lis la fiche, puis fais la série jusqu'à ${B.seuil}/20. Avant 6 h le jour du DS, essais illimités.${dsBlanc(lot[0].ds) ? " Puis fais le DS blanc, en conditions de DS." : ""}</p>
       </section>`;
+  }
+  // DS blancs de Terminale SI (entrainements/ds-blanc.html, liste dans contenu/ds-blancs.js)
+  const dsBlanc = (ds) => (SIP.DS_BLANCS || []).find((b) => b.ds === ds) || null;
+  const essaisDSB = (hist, b) => hist.filter((h) => h.type === "externe" && h.module === b.module);
+  function ligneDSBlanc(ds, hist) {
+    const b = dsBlanc(ds); if (!b) return "";
+    const E = essaisDSB(hist, b), best = E.length ? Math.max(...E.map((h) => sur20(h.score, h.score_max))) : null;
+    return `<li class="ds-blanc${E.length ? " ok" : ""}"><span class="ds-nom"><b>DS blanc</b><span class="discret">${esc(b.titre)} · ${b.duree_min} min, en conditions de DS</span></span>
+      <span class="ds-btns"><a class="btn ${E.length ? "sec fait" : "sec"}" href="${b.page}">${E.length ? `✓ DS blanc <small>${SIP.nb(best, 3)}/20</small>` : "3. DS blanc"}</a></span></li>`;
+  }
+  function tuileDSBlancs(hist) {
+    const L = SIP.DS_BLANCS || []; if (!L.length) return "";
+    const E = hist.filter((h) => h.type === "externe" && /^dsb-/.test(h.module || "")), dernier = E[0];
+    return `<a class="carte tuile" href="entrainements/ds-blanc.html">
+        <div class="discret">DS blancs</div><div class="grand">${dernier ? `${SIP.nb(sur20(dernier.score, dernier.score_max), 3)}<small> / 20</small>` : `${L.length}<small> sujet${L.length > 1 ? "s" : ""}</small>`}</div>
+        <div class="discret">${dernier ? `Dernier le ${SIP.fmtDate(dernier.fait_le)} · ${pluriel(E.length, "essai")}.` : "Un sujet du même type que le DS, en 1 h, corrigé et noté."}</div></a>`;
   }
   const PAGE_BAC = "entrainements/bac-si.html";
   const DOM_BAC = { ana: "Analyse", meca: "Mécanique", ener: "Énergie", info: "Information", auto: "Automatique", simu: "Modélisation", phy: "Physique" };
@@ -334,6 +350,7 @@
       <a class="carte tuile" href="${PAGE_BAC}#parcours">
         <div class="discret">Mon parcours</div><div class="grand">${parc ? `${parc}<small> cette sem.</small>` : "Faiblesses"}</div>
         <div class="discret">10 questions sur les notions que tu maîtrises le moins.</div></a>
+      ${tuileDSBlancs(hist)}
       <a class="carte tuile" href="${PAGE_BAC}#blanc">
         <div class="discret">Sujet blanc</div><div class="grand">${dernier ? `${SIP.nb(sur20(dernier.score, dernier.score_max), 3)}<small> / 20</small>` : "40 min"}</div>
         <div class="discret">${dernier ? `Dernier le ${SIP.fmtDate(dernier.fait_le)} · ${pluriel(blancs.length, "sujet")}.` : "20 questions chronométrées, en conditions d'examen."}</div></a>

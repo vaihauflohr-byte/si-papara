@@ -16,6 +16,7 @@ Aucun serveur à maintenir, rien ne dépend de Claude.
 | Hors ligne : résultats gardés puis envoyés au retour du réseau | |
 | **Appli** : installe le site sur l'écran d'accueil de son téléphone (icône au logo du lycée) ; les pages déjà ouvertes marchent sans réseau | Onglet **« Signalements »** : les questions que les élèves croient fausses, telles qu'ils les ont eues (valeurs, figure), avec sa réponse et la réponse attendue |
 | **« Signaler une erreur »** sous chaque question des séries, du sujet blanc, d'Observe et de « Vérifie » ; il voit ensuite si son signalement est retenu | « Erreur confirmée », « Pas d'erreur », « Valider sa série » (la série lui est comptée 16/20 à la date du signalement) |
+| **DS blancs** (Terminale SI, `entrainements/ds-blanc.html`) : un sujet du même type que le prochain DS (mêmes notions, même format, autre système), en 1 h chrono ou sans chrono ; les résultats chiffrés et le DR sont vérifiés par le site, les justifications auto-évaluées avec le corrigé ; nouvelles valeurs à chaque essai | Note /20 de chaque essai et détail question par question (réponse, rédaction, points du barème) dans le suivi ; colonne **« DS blanc »** dans l'onglet Bac SI et dans l'export CSV |
 
 Au bout de 60 jours de cycle, une fiche passe « ancrée » : elle quitte la lecture quotidienne mais reste dans la révision hebdo.
 

@@ -546,6 +546,8 @@ details.rapides .rapides-in details.sequence { box-shadow: none; }
 .ds-lot { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
 .ds-lot li { display: flex; justify-content: space-between; align-items: center; gap: 10px 16px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--paper-2); flex-wrap: wrap; }
 .ds-lot li.ok { background: var(--good-soft); border-color: transparent; }
+.ds-lot li.ds-blanc { border-style: dashed; border-color: var(--accent); background: var(--accent-soft); }
+.ds-lot li.ds-blanc.ok { border-style: solid; border-color: transparent; background: var(--good-soft); }
 .ds-nom { display: flex; flex-direction: column; min-width: 0; }
 .ds-nom .discret { font-size: .8rem; }
 .ds-btns { display: flex; gap: 8px; flex-shrink: 0; }
