@@ -166,6 +166,10 @@ table.bareme td.qui{white-space:nowrap;font-size:.82rem}table.bareme td.num{whit
   table.bareme td{border:0}table.bareme td:first-child{grid-column:1 / -1;padding-bottom:0}}
 table.bilan-corr td.ok{background:var(--good-soft)}table.bilan-corr td.ko,table.bilan-corr tr.ko td{background:var(--bad-soft)}
 table.bilan-corr .att{font-size:.8rem;color:var(--ink-2)}
+@media (max-width:560px){table.bilan-corr thead{display:none}table.bilan-corr,table.bilan-corr tbody,table.bilan-corr tr,table.bilan-corr td{display:block;width:100%}
+  table.bilan-corr tr{border:1px solid var(--rule);border-radius:5px;margin:0 0 8px;overflow:hidden}
+  table.bilan-corr td{border:0;border-top:1px solid var(--rule-2);padding:5px 9px}table.bilan-corr td:first-child{border-top:0;font-weight:600}
+  table.bilan-corr td[data-l]::before{content:attr(data-l) " : ";color:var(--ink-3);font-size:.8rem}table.bilan-corr .att{display:inline}table.bilan-corr td br{display:none}table.bilan-corr .att::before{content:" · "}}
 .err{color:var(--warn);font-size:.88rem;margin:6px 0}
 .deux{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:640px){.deux{grid-template-columns:1fr}}
 .barre-bas{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;background:var(--paper);border-top:1px solid var(--rule);padding:8px 16px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 14px rgba(0,0,0,.08)}
@@ -175,7 +179,60 @@ table.bilan-corr .att{font-size:.8rem;color:var(--ink-2)}
 .dsb-boite{background:var(--paper);color:var(--ink);border-radius:10px;max-width:480px;width:100%;padding:18px 20px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
 .dsb-boite h2{margin:0 0 8px}
 @media (max-width:560px){.dsb-fond{align-items:flex-end;padding:0}.dsb-boite{border-radius:14px 14px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}}
-@media print{.barre,.barre-bas,.haut,#sip-etat,.fin-copie,.fin-corr,.sig-place{display:none!important}body{background:#fff}.feuille{border:0}}
+/* choix du mode */
+h2.modes-t{font-size:1.05rem;margin:16px 0 8px}
+.modes{display:grid;gap:8px}
+.mode{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px;cursor:pointer;min-height:44px}
+.mode:hover{border-color:var(--accent)}
+.mode.conseil{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.mode-t{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;font-family:var(--f-disp);font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:1.1rem;color:var(--accent)}
+.mode-t .etiquette{font-family:var(--f-body);text-transform:none;letter-spacing:0}
+.mode-d{display:block;font-size:.9rem;color:var(--ink-2);margin-top:3px}
+/* question par question */
+.pas-nav{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 8px}
+.pas-g{display:flex;flex-wrap:wrap;gap:6px}
+.pas-p{display:inline-flex;align-items:center;justify-content:center;min-width:46px;height:38px;padding:0 6px;border-radius:5px;border:1px solid var(--rule);background:var(--paper);color:var(--ink-3);font-family:var(--f-mono);font-weight:600;font-size:.88rem;text-decoration:none}
+.pas-p.ecrit{border-color:var(--ink-3);color:var(--ink)}
+.pas-p.ok{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+.pas-p.part{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.pas-p.ko{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+.pas-p.cur{outline:2px solid var(--accent);outline-offset:2px;color:var(--ink)}
+.pas-score{margin:0 0 10px;font-size:.92rem}.pas-score b{font-family:var(--f-mono);font-size:1.05rem}
+details.docs{border:1px solid var(--rule);border-radius:5px;margin:8px 0;background:var(--paper-2)}
+details.docs>summary{cursor:pointer;padding:8px 10px}
+details.docs>summary b{color:var(--accent);font-weight:600}
+details.docs[open]>summary{border-bottom:1px solid var(--rule)}
+.docs-f{display:block;font-size:.8rem;color:var(--ink-3);margin-top:1px}
+details.docs>.pres,details.docs>.part-intro{padding:4px 10px 8px;background:var(--paper);border-radius:0 0 5px 5px}
+.feuille.pas .q{scroll-margin-top:64px;border-top:0}.feuille.pas>h2.part:first-child{margin-top:0}
+.pas-act{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:14px}
+.pas-act .discret{font-size:.84rem}
+.verdict{display:flex;flex-direction:column;gap:2px;margin:8px 0;padding:8px 12px;border-radius:5px;background:var(--paper-2);font-size:.92rem}
+.verdict.ok{background:var(--good-soft)}.verdict.part{background:var(--warn-soft)}.verdict.ko{background:var(--bad-soft)}
+.verdict b{font-family:var(--f-mono)}
+.coche-aide{font-size:.9rem;font-weight:500;margin:10px 0 2px}
+/* bilan de l'essai : par question, par notion */
+.rq-l{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
+.rq{display:inline-flex;flex-direction:column;align-items:center;min-width:60px;padding:5px 6px;border-radius:5px;border:1px solid var(--rule);background:var(--paper);font:inherit;color:inherit;cursor:pointer;line-height:1.25}
+.rq b,.rq span{font-family:var(--f-mono);font-size:.85rem}.rq small{color:var(--ink-3);font-size:.74rem}
+.rq.ok{background:var(--good-soft);border-color:var(--good)}.rq.part{background:var(--warn-soft);border-color:var(--warn)}.rq.ko{background:var(--bad-soft);border-color:var(--bad)}
+.rn-t{margin-top:14px}
+ul.rn{list-style:none;margin:4px 0 0;padding:0}
+ul.rn li{display:grid;grid-template-columns:minmax(0,1fr) 110px auto;gap:4px 12px;align-items:center;padding:7px 0;border-top:1px solid var(--rule-2)}
+.rn-l{font-size:.92rem}.rn-l .discret{font-size:.78rem;font-family:var(--f-mono)}
+.rn-b{height:8px;border-radius:4px;background:var(--rule-2);overflow:hidden}.rn-b i{display:block;height:100%;background:var(--good)}
+ul.rn li.part .rn-b i{background:var(--warn)}ul.rn li.ko .rn-b i{background:var(--bad)}
+.rn-p{font-family:var(--f-mono);font-size:.88rem;white-space:nowrap;text-align:right}
+.rn-f{grid-column:1 / -1;font-size:.86rem}
+.feuille.corr .q{scroll-margin-top:12px}
+/* vérification des rédactions par l'IA */
+.ia-r{font-size:.84rem;color:var(--ink-2);margin-top:3px}
+.ia-note{font-size:.88rem;margin:8px 0;padding:7px 11px;border-radius:5px;background:var(--paper-2);border-left:3px solid var(--accent)}
+.ia-note p{margin:.2rem 0}.ia-note.ko{background:var(--warn-soft);border-left-color:var(--warn)}
+.attente{color:var(--ink-3);font-style:italic}
+.btn.petit{min-height:34px;padding:4px 12px;font-size:.88rem;margin-top:4px}
+@media (max-width:560px){ul.rn li{grid-template-columns:minmax(0,1fr) auto}.rn-b{grid-column:1 / -1;grid-row:2}}
+@media print{.barre,.barre-bas,.haut,#sip-etat,.fin-copie,.fin-corr,.sig-place,.pas-nav,.pas-act,.rq-l{display:none!important}body{background:#fff}.feuille{border:0}}
 /* figures : mêmes classes que les DS papier et l'entraînement */
 .v-ink{stroke:var(--ink);stroke-width:1.6;fill:none}
 .v-thin{stroke:var(--ink);stroke-width:1.1;fill:none}
@@ -1037,6 +1094,7 @@ if (typeof window !== "undefined"){
 
 })();
 </script>
+<script>window.DSB_FICHES = ["meca-actions", "meca-statique", "meca-frottement", "info-programmation", "info-codage", "meca-cinematique", "meca-transmission", "phy-newton", "ener-puissance", "ener-rendement", "phy-thermo", "ana-exigences", "ana-structure", "ener-stockage", "ener-moteur", "phy-energie-meca", "simu-modele", "ana-ecarts", "phy-mesure", "info-numerisation", "meca-rdm", "ener-thermique", "meca-liaisons", "phy-ondes", "info-transmission", "meca-dynamique", "phy-gravitation", "auto-schema-bloc", "auto-performances", "auto-correcteur", "ener-circuits", "ana-comportement", "meca-fluides", "ener-sources", "innov-conception", "dd-environnement", "ener-convertisseur", "phy-electricite", "phy-optique", "info-logique"];</script>
 <script>
 /* =====================================================================
    SI Papara — DS blancs de Terminale SI (entrainements/ds-blanc.html)
@@ -1045,10 +1103,17 @@ if (typeof window !== "undefined"){
    le 1er essai prend les valeurs du sujet papier, les suivants des valeurs tirées au hasard.
    - réponses chiffrées : vérifiées par le site (écart relatif ≤ 2 %, signe compris) ;
    - bilan des actions (DR) : actions à cocher (avec des pièges), puis point, direction, sens, norme ;
-   - justifications et conclusions : rédigées, puis l'élève coche avec le corrigé les éléments
-     du barème présents dans sa réponse (rien de coché sans réponse rédigée) ;
+   - justifications et conclusions : rédigées ; une IA (fonction Supabase « corriger », API Claude) dit
+     pour chaque élément rédigé du barème s'il est présent, en partie ou absent ; sans elle, l'élève coche
+     avec le corrigé les éléments présents dans sa réponse (rien de coché sans réponse rédigée) ;
    - la note /20 et le détail question par question partent dans le suivi du professeur
      (module « dsb-dsXX »), comme les séries ; « Signaler une erreur » sur chaque question.
+   Trois façons de le faire :
+   - « question par question » (mode "pas") : une question à la fois ; « Vérifier » fige la réponse
+     et affiche aussitôt la correction (verdict de chaque case, corrigé, barème, auto-évaluation,
+     erreurs fréquentes), puis on passe à la suivante. Pour apprendre. Titre envoyé : « (question par question) » ;
+   - « en conditions de DS » (mode "ds") : toute la copie, chrono, correction à la fin ;
+   - « à mon rythme » (mode "libre") : toute la copie, sans chrono, correction à la fin.
    Copie en cours gardée sur l'appareil (chrono compris) : on peut fermer et revenir.
    ===================================================================== */
 (function () {
@@ -1110,6 +1175,14 @@ if (typeof window !== "undefined"){
   function ecrireTout(o) { const k = cleStock(); memoire[k] = o; try { localStorage.setItem(k, JSON.stringify(o)); } catch (e) { /* stockage indisponible : la copie reste en mémoire */ } }
   const dossier = (id) => { const t = lireTout(); return t[id] || { essais: [] }; };
   function garder(id, d) { const t = lireTout(); t[id] = d; ecrireTout(t); }
+  /* recopie des champs de l'essai affiché dans la copie gardée sur l'appareil */
+  function sauverEssai(S, essai, champs) {
+    const d = dossier(S.id), e = d.essais.find((x) => x.n === essai.n);
+    if (!e) return;
+    champs.forEach((c) => { e[c] = essai[c]; });
+    garder(S.id, d);
+  }
+  const nomMode = (m) => (m === "ds" ? "chrono" : m === "pas" ? "question par question" : "sans chrono");
 
   /* ---------- sujet instancié pour un essai ---------- */
   const cache = {};
@@ -1121,35 +1194,119 @@ if (typeof window !== "undefined"){
   const sujet = (id) => SUJETS.find((s) => s.id === id);
   const enCours = (d) => d.essais.find((e) => !e.rendu);
 
-  /* ---------- notation ---------- */
+  /* ---------- notation ----------
+     Éléments rédigés du barème : verdict de l'IA s'il existe (présent 1, en partie ½, absent 0),
+     sinon la case cochée par l'élève avec le corrigé (et rien sans réponse rédigée). */
+  const IA_FRAC = { present: 1, partiel: 0.5, absent: 0 };
+  const iaVerdict = (q, essai, i) => { const x = essai.ia && essai.ia[q.n]; return x && x.etat === "ok" && x.elements ? x.elements[i] || null : null; };
   function noteQuestion(q, essai) {
     const rep = essai.rep || {}, v = rep.v || {}, t = (rep.t || {})[q.n] || "";
     const champ = (id) => q.champs.find((c) => c.id === id);
     const lignes = q.ind.map((ind, i) => {
-      let frac = null, auto = false;
+      let frac = null, auto = false, ia = null;
       if (ind.frac) { auto = true; frac = ind.frac(rep); }
       else if (ind.champs) {
         auto = true;
         const ok = ind.champs.map((id) => verdict(champ(id), v[id]).ok === true);
         frac = ind.partiel ? ok.filter(Boolean).length / ok.length : (ok.every(Boolean) ? 1 : 0);
+      } else if (t.trim() && (ia = iaVerdict(q, essai, i))) {
+        frac = IA_FRAC[ia.v] || 0;
       } else {
         frac = t.trim() && (essai.coches || {})[q.n + ":" + i] ? 1 : 0;
       }
-      return { ind, i, auto, frac, p: ind.p * frac };
+      return { ind, i, auto, ia, frac, p: ind.p * frac };
     });
-    return { lignes, total: lignes.reduce((a, l) => a + l.p, 0), auto: lignes.filter((l) => l.auto).reduce((a, l) => a + l.p, 0), redige: !!t.trim() };
+    const somme = (f) => lignes.filter(f).reduce((a, l) => a + l.p, 0);
+    return { lignes, total: somme(() => true), auto: somme((l) => l.auto), ia: somme((l) => !!l.ia), redige: !!t.trim() };
   }
   function noteEssai(S, essai) {
     const I = instance(S, essai);
     const parQ = I.questions.map((q) => ({ q, r: noteQuestion(q, essai) }));
-    const brut = parQ.reduce((a, x) => a + x.r.total, 0);
-    return { I, parQ, note: Math.round(brut * 4) / 4, auto: parQ.reduce((a, x) => a + x.r.auto, 0), max: parQ.reduce((a, x) => a + x.q.pts, 0) };
+    const brut = parQ.reduce((a, x) => a + x.r.total, 0), somme = (k) => parQ.reduce((a, x) => a + x.r[k], 0);
+    return { I, parQ, note: Math.round(brut * 4) / 4, auto: somme("auto"), ia: somme("ia"), max: parQ.reduce((a, x) => a + x.q.pts, 0) };
   }
   const repondue = (q, essai) => {
     const rep = essai.rep || {};
     if (q.champs.some((c) => c.type === "bilan")) { const b = rep.bilan || {}; return Object.values(b.coches || {}).some(Boolean); }
     return q.champs.some((c) => { const x = (rep.v || {})[c.id]; return x != null && String(x).trim() !== ""; }) || !!((rep.t || {})[q.n] || "").trim();
   };
+  /* ce qui reste vide dans une question (avant de la vérifier) */
+  function videsDe(q, essai) {
+    const rep = essai.rep || {}, v = rep.v || {}, out = [];
+    q.champs.forEach((c) => {
+      if (c.type === "bilan") { if (!Object.values((rep.bilan || {}).coches || {}).some(Boolean)) out.push("le bilan des actions"); return; }
+      if (v[c.id] == null || String(v[c.id]).trim() === "") out.push(texteBrut(c.lab).replace(/\s*:\s*$/, "") || "une case");
+    });
+    if (q.texte && !((rep.t || {})[q.n] || "").trim()) out.push("ta réponse rédigée");
+    return out;
+  }
+
+  /* ---------- vérification des réponses rédigées par l'IA (SIP.ia → fonction Supabase « corriger ») ----------
+     Seulement pour les essais commencés quand elle est en service (essai.ia = {}). Pour chaque question à
+     rédaction non vide : un appel, avec l'énoncé, le corrigé, les éléments rédigés du barème et le texte de
+     l'élève ; les verdicts sont gardés dans l'essai (jamais redemandés). Question par question : juste après
+     « Vérifier » ; sinon : à l'ouverture de la correction. Sans réponse de l'IA : auto-évaluation, comme avant. */
+  /* coupe-circuit : si la fonction ne répond pas du tout (pas encore installée, réseau), on n'insiste pas
+     pendant 5 minutes (auto-évaluation, sans message à chaque question) ; « Réessayer avec l'IA » le lève */
+  const HS = "sip_ia_hs";
+  const iaHS = () => { try { return Date.now() - Number(sessionStorage.getItem(HS) || 0) < 5 * 60000; } catch (e) { return false; } };
+  const marquerHS = (oui) => { try { if (oui) sessionStorage.setItem(HS, String(Date.now())); else sessionStorage.removeItem(HS); } catch (e) { /* stockage indisponible */ } };
+  const iaDispo = () => !!(window.SIP && SIP.ia && SIP.ia.actif && SIP.ia.actif()) && !iaHS();
+  const elementsRediges = (q) => q.ind.map((ind, i) => ({ ind, i })).filter((x) => !x.ind.frac && !x.ind.champs);
+  const texteRedige = (q, essai) => String((((essai.rep || {}).t) || {})[q.n] || "").trim();
+  const iaDe = (q, essai) => (essai.ia && essai.ia[q.n]) || null;
+  const iaAttendue = (q, essai) => !!(essai.ia && iaDispo() && q.texte && texteRedige(q, essai) && elementsRediges(q).length);
+  const iaEnVol = new Set();
+  const cleIA = (S, essai, q) => `${S.id}:${essai.n}:${q.n}`;
+  /* l'IA lit en ce moment cette réponse (appel parti de cette page) */
+  const iaLit = (S, essai, q) => iaEnVol.has(cleIA(S, essai, q));
+  /* à (re)demander : jamais demandée, ou « en cours » gardé sans appel en vol dans cette page (page fermée pendant l'appel) */
+  const iaARelancer = (S, essai, q) => { const x = iaDe(q, essai); return iaAttendue(q, essai) && !iaLit(S, essai, q) && (!x || x.etat === "encours"); };
+  let vueIA = null;                /* vue affichée à prévenir quand un verdict arrive : { id, n, maj(qn) } */
+  function texteIA(h) { return texteBrut(String(h || "").replace(/<sub>(.*?)<\/sub>/gi, "_$1")); }
+  function majIA(S, essai, qn, val) {
+    essai.ia = essai.ia || {}; essai.ia[qn] = val;
+    const d = dossier(S.id), e = d.essais.find((x) => x.n === essai.n); if (!e) return;
+    e.ia = e.ia || {}; e.ia[qn] = val; garder(S.id, d);
+  }
+  const prevenir = (S, essai, qn) => {
+    try { if (vueIA && vueIA.id === S.id && vueIA.n === essai.n) vueIA.maj(qn); }
+    catch (e) { console.warn("DS blanc : affichage du verdict de l'IA", e); }
+  };
+  async function verifierIA(S, essai, q, force) {
+    const cle = cleIA(S, essai, q);
+    if (force) marquerHS(false);
+    if (iaEnVol.has(cle) || !iaAttendue(q, essai)) return;
+    /* déjà lue (par une autre vue, ou une file restée en route) : on reprend son verdict, sans nouvel appel */
+    const e0 = dossier(S.id).essais.find((x) => x.n === essai.n), x0 = e0 && e0.ia && e0.ia[q.n];
+    if (x0 && x0.etat === "ok") { essai.ia = e0.ia; prevenir(S, essai, q.n); return; }
+    iaEnVol.add(cle);
+    const el = elementsRediges(q);
+    majIA(S, essai, q.n, { etat: "encours", t: Date.now() }); prevenir(S, essai, q.n);
+    let val;
+    try {
+      const d = await SIP.ia.corriger({
+        sujet: S.id, question: (`Question ${q.n}. ` + texteIA(q.q)).slice(0, 3800), corrige: texteIA(q.rep).slice(0, 5800),
+        elements: el.map(({ ind, i }) => ({ i, t: texteIA(ind.h || ind.t).slice(0, 380), p: ind.p })), reponse: texteRedige(q, essai).slice(0, 2000) });
+      const elements = {};
+      /* un élément sans verdict n'est pas compté absent : l'élève le coche lui-même avec le corrigé */
+      d.elements.forEach((x) => { const v = x && String(x.verdict || "").toLowerCase(); if (x && el.some((y) => y.i === x.i) && ["present", "partiel", "absent"].includes(v)) elements[x.i] = { v, r: String(x.raison || "").slice(0, 300) }; });
+      val = { etat: "ok", elements, conseil: String(d.conseil || "").slice(0, 400), t: Date.now() };
+      marquerHS(false);
+    } catch (err) {
+      const code = (err && (err.code || err.message)) || "IA";
+      if (code === "IA_RESEAU") marquerHS(true);
+      val = { etat: "erreur", erreur: code, t: Date.now() };
+    }
+    iaEnVol.delete(cle);
+    majIA(S, essai, q.n, val); prevenir(S, essai, q.n);
+  }
+  function messageIA(code) {
+    if (code === "QUOTA") return "Tu as utilisé toutes tes vérifications par l'IA pour aujourd'hui : coche toi-même, avec le corrigé, ce que ta réponse contient.";
+    if (code === "NON_CONNECTE" || code === "SESSION_EXPIREE") return "Connecte-toi pour que l'IA vérifie ta rédaction. En attendant, coche toi-même, avec le corrigé, ce que ta réponse contient.";
+    if (code === "PROF_NON_CONNECTE" || code === "NON_AUTORISE") return "Aperçu : connecte-toi à l'espace prof dans ce navigateur pour voir la vérification par l'IA. En attendant, coche avec le corrigé.";
+    return "La vérification par l'IA n'a pas pu se faire (réseau ?) : coche toi-même, avec le corrigé, ce que ta réponse contient, ou réessaie.";
+  }
 
   /* ---------- en-tête de page : connexion, aperçu ---------- */
   function etat() {
@@ -1169,6 +1326,8 @@ if (typeof window !== "undefined"){
 
   /* ---------- vues ---------- */
   let minuteur = null;
+  let aSauver = null;              /* sauvegarde de la frappe en cours, différée de 250 ms : écrite avant tout changement de vue */
+  function vider() { if (aSauver) { const f = aSauver; aSauver = null; f(); } }
   function stopMinuteur() { if (minuteur) { clearInterval(minuteur); minuteur = null; } }
   function aller(h) { if (location.hash === h) afficher(); else location.hash = h; }
 
@@ -1185,14 +1344,19 @@ if (typeof window !== "undefined"){
     $app.innerHTML = `<p class="haut"><a href="${RACINE}index.html#/tableau">← Tableau de bord</a></p>
       <div id="sip-etat">${etat()}</div>
       <h1>DS blancs <span class="discret" style="font-size:1rem;text-transform:none;font-family:var(--f-body);font-weight:400">Terminale SI</span></h1>
-      <p>Un DS blanc, c'est un sujet du même type que ton prochain DS : mêmes notions, même durée, mêmes types de questions, mais un autre système. Fais-le en conditions réelles, puis corrige-toi avec le corrigé détaillé.</p>
+      <p>Un DS blanc, c'est un sujet du même type que ton prochain DS : mêmes notions, même durée, mêmes types de questions, mais un autre système. Commence question par question, avec la correction après chaque réponse, puis refais-le en conditions de DS.</p>
       ${cartes || `<p class="discret">Aucun DS blanc pour l'instant.</p>`}`;
   }
 
-  function vueSujet(S) {
+  function vueSujet(S, qn) {
     const d = dossier(S.id), c = enCours(d), j = dateDS(S);
-    if (c) return vueCopie(S, c);
+    if (c) return c.mode === "pas" ? vuePas(S, c, qn) : vueCopie(S, c);
     const faits = d.essais.filter((e) => e.rendu).sort((a, b) => b.n - a.n);
+    /* conseil : d'abord question par question, puis en conditions de DS */
+    const dejaPas = faits.some((e) => e.mode === "pas"), conseil = dejaPas ? "ds" : "pas";
+    const mode = (m, titre, txt) => `<button class="mode${m === conseil ? " conseil" : ""}" type="button" data-go="${m}">
+        <span class="mode-t">${titre}${m === conseil ? `<span class="etiquette ok">${dejaPas ? "conseillé maintenant" : "conseillé pour commencer"}</span>` : ""}</span>
+        <span class="mode-d">${txt}</span></button>`;
     $app.innerHTML = `<p class="haut"><a href="#">← DS blancs</a> · <a href="${RACINE}index.html#/tableau">Tableau de bord</a></p>
       <div id="sip-etat">${etat()}</div>
       <div class="eyebrow">Entraînement au ${esc(S.ds)}${j ? " du " + esc(j) : ""}</div>
@@ -1202,16 +1366,20 @@ if (typeof window !== "undefined"){
         <p><b>Même format que le ${esc(S.ds)}</b> : ${S.duree_min} min, noté sur 20, parties indépendantes, document réponse. Calculatrice autorisée.</p>
         <ul>
           <li>Tes <b>résultats numériques</b> se tapent dans les cases (virgule ou point) : le site les vérifie.</li>
-          <li>Tes <b>justifications et conclusions</b> se rédigent comme sur ta copie. Après avoir rendu, tu coches avec le corrigé ce que tu as vraiment écrit.</li>
+          <li>Tes <b>justifications et conclusions</b> se rédigent comme sur ta copie. ${iaDispo() ? "Une IA les compare au corrigé et te dit ce qui manque (si elle ne peut pas, tu coches toi-même avec le corrigé)." : "Avec le corrigé, tu coches ce que tu as vraiment écrit."}</li>
           <li>Le <b>document réponse</b> se remplit à l'écran.</li>
-          <li>Ta copie est gardée sur ce téléphone : tu peux fermer et revenir, le chrono continue.</li>
+          <li>Ta copie est gardée sur ce téléphone : tu peux fermer et revenir (en conditions de DS, le chrono continue).</li>
           <li>À chaque nouvel essai, de nouvelles valeurs.</li>
         </ul>
-        <div class="rang"><button class="btn" data-go="ds">Commencer en conditions de DS (${S.duree_min} min)</button>
-          <button class="btn sec" data-go="libre">À mon rythme, sans chrono</button></div>
+        <h2 class="modes-t">Comment veux-tu le faire ?</h2>
+        <div class="modes">
+          ${mode("pas", "Question par question", "Tu réponds à une question puis tu la vérifies : la correction, tes erreurs et tes points s'affichent tout de suite. Puis la suivante. <b>Pour apprendre.</b>")}
+          ${mode("ds", `En conditions de DS · ${S.duree_min} min`, "Toute la copie, avec le chrono ; la correction à la fin. <b>Pour te tester avant le vrai DS.</b>")}
+          ${mode("libre", "À mon rythme", "Toute la copie, sans chrono ; la correction à la fin.")}
+        </div>
       </div>
       ${faits.length ? `<h2>Mes essais</h2><div class="table-defil"><table class="essais"><thead><tr><th>Essai</th><th>Rendu le</th><th>Mode</th><th class="num">Note</th><th>Professeur</th><th></th></tr></thead><tbody>
-        ${faits.map((e) => `<tr><td>n° ${e.n}</td><td>${fmtDate(e.fin)}</td><td>${e.mode === "ds" ? "chrono" : "sans chrono"}</td><td class="num"><b>${note20(e.note || 0)}</b> / 20</td>
+        ${faits.map((e) => `<tr><td>n° ${e.n}</td><td>${fmtDate(e.fin)}</td><td>${nomMode(e.mode)}</td><td class="num"><b>${note20(e.note || 0)}</b> / 20</td>
           <td>${e.envoye ? `<span class="etiquette ok">reçue</span>` : `<span class="etiquette alerte">à envoyer</span>`}</td><td><a href="#${S.id}/correction/${e.n}">${e.envoye ? "Voir la correction" : "Terminer la correction"}</a></td></tr>`).join("")}
       </tbody></table></div>` : ""}`;
     $app.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => commencer(S, b.dataset.go)));
@@ -1224,7 +1392,10 @@ if (typeof window !== "undefined"){
     let P, seed = 0;
     if (n === 1) P = Object.assign({}, S.REF);
     else { seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0; P = S.tirage(alea(seed)); }
-    d.essais.push({ n, seed, P, mode, debut: Date.now(), fin: null, rep: { v: {}, bilan: { coches: {}, lignes: {} }, t: {} }, coches: {}, rendu: false, envoye: false, note: null });
+    const e = { n, seed, P, mode, debut: Date.now(), fin: null, rep: { v: {}, bilan: { coches: {}, lignes: {} }, t: {} }, coches: {}, rendu: false, envoye: false, note: null };
+    if (mode === "pas") { e.etape = 0; e.verif = {}; }          /* question affichée, questions vérifiées (figées) */
+    if (iaDispo()) e.ia = {};                                     /* rédactions vérifiées par l'IA (verdicts gardés ici) */
+    d.essais.push(e);
     garder(S.id, d);
     window.scrollTo(0, 0);
     aller("#" + S.id);
@@ -1269,6 +1440,28 @@ if (typeof window !== "undefined"){
         ${q.texte ? `<label class="redac"><span>Ta réponse rédigée <span class="discret">(${esc(q.texte)})</span></span><textarea data-t="${esc(q.n)}" rows="4" placeholder="Rédige comme sur ta copie : formules, calculs, phrase de conclusion.">${esc(t[q.n] || "")}</textarea></label>` : ""}
       </div></section>`;
   }
+  /* saisie des réponses (copie entière ou question seule) : cases, menus, bilan, rédaction, bouton ± */
+  function brancherSaisie(S, essai, I, sauver) {
+    on("input", (ev) => {
+      const el = ev.target, rep = essai.rep;
+      if (el.dataset.ch) rep.v[el.dataset.ch] = el.value;
+      else if (el.dataset.t) rep.t[el.dataset.t] = el.value;
+      else if (el.dataset.bilan) { const l = rep.bilan.lignes[el.dataset.bilan] = rep.bilan.lignes[el.dataset.bilan] || {}; l[el.dataset.k] = el.value; }
+      else if (el.dataset.coche && el.closest(".bilan-c")) { rep.bilan.coches[el.dataset.coche] = el.checked; const box = el.closest(".bilan-c"); box.classList.toggle("on", el.checked); box.querySelector(".bc-champs").hidden = !el.checked; }
+      else return;
+      if (["phs", "phm", "th", "cote"].includes(el.dataset.ch)) { const z = $app.querySelector("[data-trace]"); if (z) z.innerHTML = traceHTML(S, essai, I); }
+      sauver();
+    });
+    on("change", (ev) => { if (ev.target.matches("select,input[type=checkbox]") && !ev.target.closest("table.bareme")) ev.target.dispatchEvent(new Event("input", { bubbles: true })); });
+    on("click", (ev) => {
+      const b = ev.target.closest("[data-pm]"); if (!b) return;
+      ev.preventDefault();
+      const inp = $app.querySelector(`input[data-ch="${CSS.escape(b.dataset.pm)}"]`); if (!inp) return;
+      const v = inp.value.trim();
+      inp.value = /^[-−]/.test(v) ? v.replace(/^[-−]\s*/, "") : "−" + v;
+      inp.dispatchEvent(new Event("input", { bubbles: true })); inp.focus();
+    });
+  }
   function vueCopie(S, essai) {
     const I = instance(S, essai), D = I.DS;
     const restant = () => essai.mode === "ds" ? S.duree_min * 60000 - (Date.now() - essai.debut) : null;
@@ -1305,26 +1498,12 @@ if (typeof window !== "undefined"){
     };
     stopMinuteur(); maj(); if (essai.mode === "ds") minuteur = setInterval(maj, 1000);
     let t0 = null;
-    const sauver = () => { clearTimeout(t0); t0 = setTimeout(() => { const d = dossier(S.id), e = d.essais.find((x) => x.n === essai.n); if (e && !e.rendu) { e.rep = essai.rep; garder(S.id, d); } maj(); }, 250); };
-    on("input", (ev) => {
-      const el = ev.target, rep = essai.rep;
-      if (el.dataset.ch) rep.v[el.dataset.ch] = el.value;
-      else if (el.dataset.t) rep.t[el.dataset.t] = el.value;
-      else if (el.dataset.bilan) { const l = rep.bilan.lignes[el.dataset.bilan] = rep.bilan.lignes[el.dataset.bilan] || {}; l[el.dataset.k] = el.value; }
-      else if (el.dataset.coche) { rep.bilan.coches[el.dataset.coche] = el.checked; const box = el.closest(".bilan-c"); box.classList.toggle("on", el.checked); box.querySelector(".bc-champs").hidden = !el.checked; }
-      else return;
-      if (["phs", "phm", "th", "cote"].includes(el.dataset.ch)) { const z = $app.querySelector("[data-trace]"); if (z) z.innerHTML = traceHTML(S, essai, I); }
-      sauver();
-    });
-    on("change", (ev) => { if (ev.target.matches("select,input[type=checkbox]")) ev.target.dispatchEvent(new Event("input", { bubbles: true })); });
-    on("click", (ev) => {
-      const b = ev.target.closest("[data-pm]"); if (!b) return;
-      ev.preventDefault();
-      const inp = $app.querySelector(`input[data-ch="${CSS.escape(b.dataset.pm)}"]`); if (!inp) return;
-      const v = inp.value.trim();
-      inp.value = /^[-\u2212]/.test(v) ? v.replace(/^[-\u2212]\s*/, "") : "−" + v;
-      inp.dispatchEvent(new Event("input", { bubbles: true })); inp.focus();
-    });
+    const sauver = () => {
+      clearTimeout(t0);
+      aSauver = () => { const d = dossier(S.id), e = d.essais.find((x) => x.n === essai.n); if (e && !e.rendu) { e.rep = essai.rep; garder(S.id, d); } };
+      t0 = setTimeout(() => { vider(); maj(); }, 250);
+    };
+    brancherSaisie(S, essai, I, sauver);
     const demander = () => {
       const vides = I.questions.filter((q) => !repondue(q, essai)).map((q) => q.n);
       boite(`<h2>Rendre ta copie ?</h2><p>${vides.length ? `Sans réponse : <b>${vides.join(", ")}</b>.` : "Tu as répondu à toutes les questions."} Une fois rendue, ta copie ne se modifie plus.</p>`,
@@ -1334,13 +1513,128 @@ if (typeof window !== "undefined"){
   }
 
   function rendre(S, essai, tempsEcoule) {
-    stopMinuteur();
+    stopMinuteur(); vider();
     const d = dossier(S.id), e = d.essais.find((x) => x.n === essai.n) || essai;
     e.rep = essai.rep; e.rendu = true; e.fin = e.mode === "ds" ? Math.min(Date.now(), e.debut + S.duree_min * 60000) : Date.now(); e.ecoule = !!tempsEcoule;
     e.note = noteEssai(S, e).note;
     garder(S.id, d);
     window.scrollTo(0, 0);
     aller(`#${S.id}/correction/${e.n}`);
+  }
+
+  /* ---------- question par question : une question à la fois, vérifiée et corrigée aussitôt ----------
+     « Vérifier » fige la réponse (essai.verif[q.n]) et remplace la question par sa correction : verdict de
+     chaque case, réponse rédigée, corrigé, barème (cases d'auto-évaluation), erreurs fréquentes, signalement.
+     Les documents (présentation, hypothèses de la partie) sont repliés au-dessus de la question ; ils
+     s'ouvrent d'eux-mêmes quand la question cite une de leurs figures ou une exigence. */
+  const docsOuverts = {};          /* blocs de documents ouverts ou fermés par l'élève, le temps de la page */
+  let pasAffiche = "";             /* question affichée : remonter en haut quand elle change */
+  const figuresDe = (html) => { const out = [], re = /Figure\s+(\d+)\s*[–-]\s*([^<(]+)/g; let m; while ((m = re.exec(html))) out.push({ n: m[1], t: m[2].trim().replace(/[\s,.;:]+$/, "") }); return out; };
+  const etatQ = (r, q) => (r.total >= q.pts - 1e-9 ? "ok" : r.total > 1e-9 ? "part" : "ko");
+  function suivanteDe(Q, essai, k) {
+    for (let i = k + 1; i < Q.length; i++) if (!essai.verif[Q[i].n]) return Q[i];
+    for (let i = 0; i < k; i++) if (!essai.verif[Q[i].n]) return Q[i];
+    return null;
+  }
+  function vuePas(S, essai, qn) {
+    const I = instance(S, essai), D = I.DS, Q = I.questions;
+    essai.verif = essai.verif || {};
+    let k = qn ? Q.findIndex((x) => x.n === qn) : Number(essai.etape) || 0;
+    if (k < 0 || k >= Q.length) k = 0;
+    if (essai.etape !== k) { essai.etape = k; sauverEssai(S, essai, ["etape"]); }
+    const q = Q[k], partie = D.parties.find((p) => p.questions.includes(q)), vue = !!essai.verif[q.n];
+    const cle = `${S.id}:${essai.n}:${q.n}`;
+    if (pasAffiche !== cle) { pasAffiche = cle; window.scrollTo(0, 0); }
+    const R = noteEssai(S, essai);
+    const pastilles = D.parties.map((p) => `<span class="pas-g">${p.questions.map((x) => {
+      const i = Q.indexOf(x), v = !!essai.verif[x.n], r = R.parQ[i].r;
+      return `<a class="pas-p${v ? " " + etatQ(r, x) : repondue(x, essai) ? " ecrit" : ""}${i === k ? " cur" : ""}" href="#${S.id}/q/${encodeURIComponent(x.n)}" data-nav="${esc(x.n)}"${i === k ? ' aria-current="step"' : ""} aria-label="Question ${esc(x.n)}${v ? `, vérifiée : ${pts(r.total)} sur ${pts(x.pts)}` : ""}">${esc(x.n)}</a>`;
+    }).join("")}</span>`).join("");
+    /* blocs de documents : ouverts par défaut à la première question, quand la question cite une de leurs figures ou une exigence */
+    const cites = new Set(((texteBrut(q.q).match(/figures?\s+\d+(?:\s*(?:,|et)\s*\d+)*/gi) || []).join(" ").match(/\d+/g)) || []);
+    const doc = (id, titre, html, defaut) => {
+      const figs = figuresDe(html);
+      const auto = defaut || figs.some((f) => cites.has(f.n)) || (/exigence/i.test(q.q) && figs.some((f) => /exigence/i.test(f.t)));
+      const ouvert = id in docsOuverts ? docsOuverts[id] : auto;
+      return `<details class="docs" data-doc="${id}"${ouvert ? " open" : ""}><summary><b>${titre}</b>${figs.length ? `<span class="docs-f">${figs.map((f) => `figure ${f.n} : ${esc(f.t.charAt(0).toLowerCase() + f.t.slice(1))}`).join(" · ")}</span>` : ""}</summary>${html}</details>`;
+    };
+    const ip = D.parties.indexOf(partie), nomPartie = (partie.titre.split(" · ")[0] || "partie").replace(/^Partie/, "partie");
+    const suiv = suivanteDe(Q, essai, k);
+    $app.innerHTML = `<div class="barre" role="region" aria-label="DS blanc, question par question">
+        <a class="barre-q" href="#" title="Revenir aux DS blancs">${esc(D.libelle || S.ds + " blanc")}<span class="long"> · question par question</span></a>
+        <span class="avance" id="avance" title="Questions vérifiées">${Q.filter((x) => essai.verif[x.n]).length} / ${Q.length}</span>
+        <button class="btn" id="terminer" type="button">Terminer</button></div>
+      <div id="sip-etat">${etat()}</div>
+      <nav class="pas-nav" aria-label="Questions du sujet">${pastilles}</nav>
+      <p class="pas-score" id="pas-score"></p>
+      <article class="feuille pas">
+        <h2 class="part">${partie.titre}<span>${pts(partie.questions.reduce((a, x) => a + x.pts, 0))}</span></h2>
+        ${partie.objectif ? `<p class="obj">${partie.objectif}</p>` : ""}
+        ${doc("pres", "Présentation du système", `<div class="pres">${D.presentation}</div>`, k === 0)}
+        ${partie.intro ? doc("p" + ip, `Hypothèses et documents de la ${esc(nomPartie)}`, `<div class="part-intro">${partie.intro}</div>`, partie.questions[0] === q) : ""}
+        ${vue ? questionCorr(S, essai, I, q, R.parQ[k].r, true) : questionCopie(S, essai, I, q)}
+        <div class="pas-act">${vue
+          ? (suiv ? `<button class="btn" id="suivante" type="button">Question suivante : ${esc(suiv.n)} →</button>` : `<button class="btn" id="bilan" type="button">Voir mon bilan et envoyer ma note →</button>`)
+          : `<button class="btn" id="verifier" type="button">Vérifier ma réponse</button><span class="discret">Une fois vérifiée, ta réponse ne se modifie plus.</span>`}</div>
+      </article>`;
+    const majScore = () => {
+      const R2 = noteEssai(S, essai), faites = Q.filter((x) => essai.verif[x.n]);
+      const p = faites.reduce((a, x) => a + R2.parQ[Q.indexOf(x)].r.total, 0), m = faites.reduce((a, x) => a + x.pts, 0);
+      const el = document.getElementById("pas-score");
+      if (el) el.innerHTML = faites.length ? `Tes points sur les questions vérifiées : <b>${note20(p)}</b> / ${note20(m)}${faites.length < Q.length ? ` <span class="discret">· encore ${Q.length - faites.length} question${Q.length - faites.length > 1 ? "s" : ""}</span>` : ""}`
+        : `<span class="discret">Réponds, puis vérifie : la correction et tes points s'affichent tout de suite.</span>`;
+      faites.forEach((x) => { const a = $app.querySelector(`[data-nav="${CSS.escape(x.n)}"]`); if (a) { a.classList.remove("ok", "part", "ko", "ecrit"); a.classList.add(etatQ(R2.parQ[Q.indexOf(x)].r, x)); } });
+      const b = $app.querySelector(`[data-pq="${CSS.escape(q.n)}"]`); if (b) b.textContent = pts(R2.parQ[k].r.total).replace(/ pts?$/, "");
+    };
+    majScore();
+    /* verdict de l'IA arrivé : la question affichée (vérifiée) est redessinée ; pour une autre question,
+       seules sa pastille et le score changent (pas de redessin pendant que l'élève écrit) */
+    vueIA = { id: S.id, n: essai.n, maj: (qn) => {
+      const e2 = dossier(S.id).essais.find((x) => x.n === essai.n); if (e2) essai.ia = e2.ia;
+      if (qn === q.n && vue) { const y = window.scrollY; afficher(); window.scrollTo(0, y); } else majScore();
+    } };
+    on("click", (ev) => { const s = ev.target.closest("details[data-doc] > summary"); if (s) setTimeout(() => { docsOuverts[s.parentElement.dataset.doc] = s.parentElement.open; }, 0); });
+    on("click", (ev) => { const b = ev.target.closest("[data-ia]"); if (!b) return; const x = Q.find((y) => y.n === b.dataset.ia); if (x) verifierIA(S, essai, x, true); });
+    if (!vue) {
+      let t0 = null;
+      const sauver = () => {
+        clearTimeout(t0);
+        aSauver = () => sauverEssai(S, essai, ["rep"]);
+        t0 = setTimeout(() => { vider(); const a = $app.querySelector(`[data-nav="${CSS.escape(q.n)}"]`); if (a) a.classList.toggle("ecrit", repondue(q, essai)); }, 250);
+      };
+      brancherSaisie(S, essai, I, sauver);
+      document.getElementById("verifier").onclick = () => {
+        const go = () => {
+          clearTimeout(t0); aSauver = null; essai.verif[q.n] = Date.now(); sauverEssai(S, essai, ["rep", "verif"]);
+          if (iaAttendue(q, essai)) verifierIA(S, essai, q);       /* « l'IA lit… » tout de suite, le verdict redessine la question */
+          afficher();
+          const z = $app.querySelector(".feuille.pas .q"); if (z) z.scrollIntoView({ block: "start" });
+        };
+        if (!repondue(q, essai)) return boite(`<h2>Tu n'as rien répondu</h2><p>Cherche encore, ou regarde la correction : cette question comptera alors 0.</p>`, [["Voir la correction", go], ["Je cherche encore", null]]);
+        const vides = videsDe(q, essai);
+        if (vides.length) return boite(`<h2>Il reste des cases vides</h2><p>${vides.map((x) => esc(x)).join(" · ")}.</p><p>Une fois vérifiée, ta réponse ne se modifie plus.</p>`, [["Vérifier quand même", go], ["Compléter", null]]);
+        go();
+      };
+    } else {
+      /* auto-évaluation des éléments rédigés, tout de suite après la correction */
+      on("change", (ev) => {
+        const el = ev.target; if (!el.dataset.coche || !el.closest("table.bareme")) return;
+        essai.coches = essai.coches || {}; essai.coches[el.dataset.coche] = el.checked;
+        sauverEssai(S, essai, ["coches"]);
+        el.closest("tr").className = el.checked ? "ok" : "";
+        majScore();
+      });
+      brancherSignaler(S, essai, I);
+      if (iaARelancer(S, essai, q)) setTimeout(() => verifierIA(S, essai, q), 0);
+      const b = document.getElementById("suivante"); if (b) b.onclick = () => aller(`#${S.id}/q/${encodeURIComponent(suiv.n)}`);
+      const f = document.getElementById("bilan"); if (f) f.onclick = () => rendre(S, essai, false);
+    }
+    document.getElementById("terminer").onclick = () => {
+      const reste = Q.filter((x) => !essai.verif[x.n]).map((x) => x.n);
+      if (!reste.length) return rendre(S, essai, false);
+      boite(`<h2>Terminer cet essai ?</h2><p>Pas encore vérifiées : <b>${reste.join(", ")}</b>. Elles seront notées avec ce que tu y as déjà répondu (0 si rien).</p><p>Tu verras ensuite la correction complète et ta note.</p>`,
+        [["Terminer et voir ma note", () => rendre(S, essai, false)], ["Continuer", null]]);
+    };
   }
 
   /* ---------- la correction ---------- */
@@ -1358,29 +1652,56 @@ if (typeof window !== "undefined"){
       const on = !!b.coches[x.id], l = b.lignes[x.id] || {};
       if (!x.ok) return on ? `<tr class="ko"><td>${esc(x.lab)}</td><td colspan="4">✗ à ne pas mettre : ${esc(x.pourquoi)}</td></tr>` : "";
       if (!on) return `<tr class="ko"><td>${esc(x.lab)}</td><td colspan="4">✗ oubliée · attendu : ${esc(x.point)} · ${esc(libelle(B.dirs, x.dir))} · ${esc(libelle(B.sens, x.sens))} · inconnue</td></tr>`;
-      const c = (ok, txt, att) => `<td class="${ok ? "ok" : "ko"}">${esc(txt)}${ok ? " ✓" : `<br><span class="att">${esc(att)}</span>`}</td>`;
-      return `<tr><td>${esc(x.lab)}</td>${c(l.point === x.point, l.point || "—", x.point)}${c(l.dir === x.dir, libelle(B.dirs, l.dir), libelle(B.dirs, x.dir))}${c(l.sens === x.sens, libelle(B.sens, l.sens), libelle(B.sens, x.sens))}${c(l.norme === "inconnue", libelle(B.normes, l.norme), "inconnue")}</tr>`;
+      const c = (ok, txt, att, lab) => `<td class="${ok ? "ok" : "ko"}" data-l="${lab}">${esc(txt)}${ok ? " ✓" : `<br><span class="att">attendu : ${esc(att)}</span>`}</td>`;
+      return `<tr><td>${esc(x.lab)}</td>${c(l.point === x.point, l.point || "—", x.point, "Point")}${c(l.dir === x.dir, libelle(B.dirs, l.dir), libelle(B.dirs, x.dir), "Direction")}${c(l.sens === x.sens, libelle(B.sens, l.sens), libelle(B.sens, x.sens), "Sens")}${c(l.norme === "inconnue", libelle(B.normes, l.norme), "inconnue", "Norme")}</tr>`;
     }).join("");
     return `<div class="table-defil"><table class="t bilan-corr"><thead><tr><th>Ton bilan</th><th>Point</th><th>Direction</th><th>Sens</th><th>Norme</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
-  function questionCorr(S, essai, I, q, r) {
+  /* question par question : ce que le site a vérifié, ce qui reste à s'attribuer avec le corrigé */
+  function verdictPas(S, q, r, essai) {
+    const autoMax = r.lignes.filter((l) => l.auto).reduce((a, l) => a + l.ind.p, 0), man = r.lignes.filter((l) => !l.auto), manMax = man.reduce((a, l) => a + l.ind.p, 0);
+    const parIA = man.length && man.every((l) => l.ia), attente = r.redige && iaLit(S, essai, q);
+    const sym = (x, max) => (x >= max - 1e-9 ? "✓" : x > 1e-9 ? "◐" : "✗");
+    const cls = autoMax ? (r.auto >= autoMax - 1e-9 ? "ok" : r.auto > 1e-9 ? "part" : "ko") : (r.redige ? "" : "ko");
+    const l1 = autoMax ? `<span>${sym(r.auto, autoMax)} Vérifié par le site : <b>${pts(r.auto).replace(/ pts?$/, "")}</b> / ${pts(autoMax)}</span>` : "";
+    const l2 = !manMax ? "" : !r.redige ? `<span>✗ Rédaction : rien d'écrit, ${pts(manMax)} perdu${manMax > 1 ? "s" : ""}</span>`
+      : parIA ? `<span>${sym(r.ia, manMax)} Rédaction vérifiée par l'IA : <b>${pts(r.ia).replace(/ pts?$/, "")}</b> / ${pts(manMax)}</span>`
+      : attente ? `<span class="attente">⋯ L'IA lit ta rédaction…</span>`
+      : `<span>✎ Rédaction : à toi de cocher ce que ta réponse contient (${pts(manMax)} au plus)</span>`;
+    return `<p class="verdict ${cls}">${l1}${l2}</p>`;
+  }
+  /* sous le barème : conseil de l'IA et mention « vérifié par une IA », ou pourquoi elle n'a pas pu lire */
+  function blocIA(S, q, r, essai) {
+    const ia = iaDe(q, essai);
+    if (!q.texte || !r.redige || !ia) return "";
+    if (iaLit(S, essai, q)) return `<div class="ia-note"><p class="attente">⋯ L'IA compare ta réponse au corrigé…</p></div>`;
+    if (ia.etat === "ok") return `<div class="ia-note">${ia.conseil ? `<p><b>Conseil :</b> ${esc(ia.conseil)}</p>` : ""}<p class="discret">Rédaction vérifiée par une IA (Claude) à partir du corrigé : elle peut se tromper. Pas d'accord ? Signale-le avec « Signaler une erreur ».</p></div>`;
+    if (ia.etat === "encours") return "";                      /* resté « en cours » sans appel : relancé, ou cases à cocher */
+    return `<div class="ia-note ko"><p>${esc(messageIA(ia.erreur))}</p><button type="button" class="btn sec petit" data-ia="${esc(q.n)}">Réessayer avec l'IA</button></div>`;
+  }
+  function questionCorr(S, essai, I, q, r, pas) {
     const v = (essai.rep && essai.rep.v) || {}, t = ((essai.rep && essai.rep.t) || {})[q.n] || "";
-    const champs = q.champs.filter((c) => c.type !== "bilan");
+    const champs = q.champs.filter((c) => c.type !== "bilan"), attente = r.redige && iaLit(S, essai, q);
     const lignes = r.lignes.map((l) => {
-      const etatL = l.auto ? (l.frac >= 1 ? "ok" : l.frac > 0 ? "part" : "ko") : (l.frac ? "ok" : "");
+      const etatL = l.auto || l.ia ? (l.frac >= 1 ? "ok" : l.frac > 0 ? "part" : "ko") : (l.frac ? "ok" : "");
       const cell = l.auto ? `<span class="auto">${l.frac >= 1 ? "✓" : l.frac > 0 ? "◐" : "✗"} vérifié par le site</span>`
+        : l.ia ? `<span class="auto ia">${l.frac >= 1 ? "✓" : l.frac > 0 ? "◐" : "✗"} vérifié par l'IA</span>`
+        : attente ? `<span class="auto attente">⋯ l'IA lit</span>`
         : `<label class="moi"><input type="checkbox" data-coche="${esc(q.n)}:${l.i}"${l.frac ? " checked" : ""}${r.redige ? "" : " disabled"}> ${r.redige ? "c'est dans ma réponse" : "rien de rédigé"}</label>`;
-      return `<tr class="${etatL}"><td>${l.ind.h || esc(l.ind.t)}</td><td class="qui">${cell}</td><td class="num">${pts(l.p)} / ${pts(l.ind.p).replace(/ pts?$/, "")}</td></tr>`;
+      return `<tr class="${etatL}"><td>${l.ind.h || esc(l.ind.t)}${l.ia && l.ia.r ? `<div class="ia-r">${esc(l.ia.r)}</div>` : ""}</td><td class="qui">${cell}</td><td class="num">${pts(l.p)} / ${pts(l.ind.p).replace(/ pts?$/, "")}</td></tr>`;
     }).join("");
+    const aCocher = r.redige && r.lignes.some((l) => !l.auto && !l.ia) && !attente;
     return `<section class="q corr" data-q="${esc(q.n)}">
       <div class="q-tete"><span class="q-n">Q ${esc(q.n)}</span><span class="q-pts"><b data-pq="${esc(q.n)}">${pts(r.total).replace(/ pts?$/, "")}</b> / ${pts(q.pts)}</span></div>
-      <details class="enonce"><summary>Énoncé</summary><div class="q-txt">${q.q}</div></details>
+      ${pas ? `<div class="q-txt">${q.q}</div>${verdictPas(S, q, r, essai)}` : `<details class="enonce"><summary>Énoncé</summary><div class="q-txt">${q.q}</div></details>`}
       ${q.champs.some((c) => c.type === "bilan") ? bilanCorr(S, essai) : ""}
       ${champs.length ? `<ul class="mes-rep">${champs.map((c) => repChamp(c, v[c.id])).join("")}</ul>` : ""}
       ${q.trace ? `<div class="deux"><figure><figcaption>Ton tracé</figcaption>${traceHTML(S, essai, I)}</figure><figure><figcaption>Tracé corrigé</figcaption>${S.cone(I.P, I.c, { sol: true })}</figure></div>` : ""}
       ${q.texte ? `<div class="ma-redac"><div class="eyebrow">Ta réponse rédigée</div>${t.trim() ? `<p>${esc(t).replace(/\n/g, "<br>")}</p>` : `<p class="discret">Rien de rédigé.</p>`}</div>` : ""}
       <div class="ans"><div class="eyebrow">Réponse attendue · ${esc(nomNotion(q.notion))}</div>${q.rep}</div>
+      ${pas && aCocher ? `<p class="coche-aide">Compare ta réponse rédigée au corrigé, puis coche dans le barème ce qu'elle contient vraiment : ce sont tes points.</p>` : ""}
       <table class="bareme"><thead><tr><th>Élément du barème</th><th>Qui note</th><th class="num">Points</th></tr></thead><tbody>${lignes}</tbody></table>
+      ${blocIA(S, q, r, essai)}
       ${q.err ? `<p class="err"><b>Erreurs fréquentes :</b> ${q.err}</p>` : ""}
       <div class="sig-place" data-sig="${esc(q.n)}"></div>
     </section>`;
@@ -1395,11 +1716,16 @@ if (typeof window !== "undefined"){
     const duree = Math.round(((essai.fin || Date.now()) - essai.debut) / 60000);
     $app.innerHTML = `<p class="haut"><a href="#${S.id}">← ${esc(S.ds)} blanc</a> · <a href="${RACINE}index.html#/tableau">Tableau de bord</a></p>
       <div id="sip-etat">${etat()}</div>
-      <div class="eyebrow">Correction · essai n° ${essai.n} · ${essai.mode === "ds" ? "chrono" : "sans chrono"} · ${duree} min${essai.ecoule ? " · temps écoulé, copie ramassée" : ""}</div>
+      <div class="eyebrow">Correction · essai n° ${essai.n} · ${nomMode(essai.mode)} · ${duree} min${essai.ecoule ? " · temps écoulé, copie ramassée" : ""}</div>
       <h1>${esc(D.libelle)} <span class="sous">${esc(D.titre)}</span></h1>
       <div class="carte bilan-note"><div><div class="grand" id="note">${note20(R.note)}<small> / 20</small></div>
         <div class="discret" id="note-detail"></div></div>
-        <div class="consigne-corr"><b>À toi de finir la correction.</b> Pour chaque question, compare ta réponse rédigée au corrigé et coche les éléments du barème qui y sont vraiment. Les résultats chiffrés et le DR sont déjà notés par le site. Puis envoie ta note.</div></div>
+        <div class="consigne-corr">${essai.mode === "pas"
+          ? "<b>Tu as vu la correction de chaque question.</b> Tes cases cochées sont gardées ; tu peux encore les modifier plus bas. Puis envoie ta note."
+          : I.questions.some((q) => iaAttendue(q, essai))
+          ? "<b>Ta copie est corrigée.</b> Les résultats chiffrés et le DR sont notés par le site, tes rédactions par une IA à partir du corrigé. Lis chaque correction ; si l'IA n'a pas pu lire une réponse, coche toi-même ce qu'elle contient. Puis envoie ta note."
+          : "<b>À toi de finir la correction.</b> Pour chaque question, compare ta réponse rédigée au corrigé et coche les éléments du barème qui y sont vraiment. Les résultats chiffrés et le DR sont déjà notés par le site. Puis envoie ta note."}</div></div>
+      <div id="recap">${recapHTML(R)}</div>
       <div class="feuille corr">
         <h2 class="part">Présentation du système</h2><details class="enonce"><summary>Revoir la présentation et les documents</summary><div class="pres">${D.presentation}</div></details>
         ${parties}
@@ -1410,14 +1736,20 @@ if (typeof window !== "undefined"){
       const R2 = noteEssai(S, essai);
       document.getElementById("note").innerHTML = `${note20(R2.note)}<small> / 20</small>`;
       document.getElementById("note2").textContent = note20(R2.note);
-      const a4 = Math.round(R2.auto * 4) / 4, m4 = Math.max(0, Math.round((R2.note - a4) * 4) / 4), mot = (x) => (x >= 2 ? "points" : "point");
-      document.getElementById("note-detail").textContent = `dont ${note20(a4)} ${mot(a4)} vérifié${a4 >= 2 ? "s" : ""} par le site et ${note20(m4)} ${mot(m4)} que tu t'attribues avec le corrigé`;
+      const q4 = (x) => Math.round(x * 4) / 4, a4 = q4(R2.auto), i4 = q4(R2.ia), m4 = Math.max(0, q4(R2.note - a4 - i4)), mot = (x) => (x >= 2 ? "points" : "point");
+      const parts = [`${note20(a4)} ${mot(a4)} vérifié${a4 >= 2 ? "s" : ""} par le site`].concat(i4 ? [`${note20(i4)} par l'IA`] : [], m4 || !i4 ? [`${note20(m4)} ${mot(m4)} que tu t'attribues avec le corrigé`] : []);
+      document.getElementById("note-detail").textContent = "dont " + (parts.length > 1 ? parts.slice(0, -1).join(", ") + " et " + parts[parts.length - 1] : parts[0]);
       R2.parQ.forEach((x) => { const el = $app.querySelector(`[data-pq="${CSS.escape(x.q.n)}"]`); if (el) el.textContent = pts(x.r.total).replace(/ pts?$/, ""); });
+      const rc = document.getElementById("recap"); if (rc) rc.innerHTML = recapHTML(R2);
       return R2;
     };
     majNote();
+    const iaEnCours = () => I.questions.some((q) => iaEnVol.has(cleIA(S, essai, q)));
     const majEnvoi = () => {
       const b = document.getElementById("envoyer"), et = document.getElementById("envoi-etat"), s = session();
+      if (!b || !et) return;
+      b.disabled = iaEnCours();
+      if (b.disabled) { et.textContent = "L'IA lit tes rédactions…"; return; }
       if (essai.envoye) { b.textContent = "Renvoyer ma note"; b.classList.add("sec"); et.innerHTML = apercu() ? "Aperçu : rien n'est envoyé." : `Note reçue par ton professeur ✓ <span class="discret">(${note20(essai.noteEnvoyee)} / 20)</span>`; }
       else if (!s) { et.innerHTML = `<a href="${RACINE}index.html#/connexion/TSI">Connecte-toi</a> pour l'envoyer.`; }
       else et.textContent = "";
@@ -1436,25 +1768,62 @@ if (typeof window !== "undefined"){
         [["Envoyer ma note", () => envoyer(S, essai, majEnvoi)], ["Nouvel essai", () => { aller("#" + S.id); }], ["Annuler", null]]);
       aller("#" + S.id);
     };
-    /* « Signaler une erreur » sous chaque question */
-    if (window.SIP && SIP.signaler) {
-      $app.querySelectorAll(".sig-place").forEach((z) => {
-        const q = I.questions.find((x) => x.n === z.dataset.sig); if (!q) return;
-        const r = R.parQ.find((x) => x.q === q).r, v = (essai.rep && essai.rep.v) || {};
-        const b = SIP.signaler.bouton(); z.appendChild(b);
-        b.onclick = () => SIP.signaler.ouvrir({
-          source: "blanc", notion: q.notion, module: S.module, ref: `dsb:${S.id}:${q.n}:${essai.seed}`.slice(0, 80),
-          question: (`${D.libelle} · Q ${q.n} (essai n° ${essai.n})\n` + texteBrut(q.q)).slice(0, 3900),
-          figure: S.figure ? S.figure(I.P, I.c, q) : null,
-          reponse: q.champs.filter((c) => c.type !== "bilan").map((c) => `${texteBrut(c.lab)} = ${v[c.id] == null ? "—" : c.type === "choix" ? (c.options[Number(v[c.id])] || "—") : v[c.id]}`).join(" · ").slice(0, 290) || null,
-          attendu: q.champs.filter((c) => c.type === "nombre").map((c) => `${texteBrut(c.lab)} = ${nb(c.val)} ${c.unite || ""}`.trim()).join(" · ").slice(0, 290) || null,
-          correction: texteBrut(q.rep).slice(0, 3900)
-        }, { lienConnexion: RACINE + "index.html#/connexion/TSI", surEnvoi: () => SIP.signaler.marquer(b) });
-      });
-    }
+    on("click", (ev) => { const b = ev.target.closest("[data-voir]"); if (!b) return; const z = $app.querySelector(`section.q[data-q="${CSS.escape(b.dataset.voir)}"]`); if (z) z.scrollIntoView({ block: "start", behavior: "smooth" }); });
+    on("click", (ev) => { const b = ev.target.closest("[data-ia]"); if (!b) return; const q = I.questions.find((x) => x.n === b.dataset.ia); if (q) verifierIA(S, essai, q, true); });
+    brancherSignaler(S, essai, I);
+    vueIA = { id: S.id, n: essai.n, maj: (qn) => {
+      const dd = dossier(S.id), e = dd.essais.find((x) => x.n === essai.n); if (e) essai.ia = e.ia;
+      const q = I.questions.find((x) => x.n === qn), sec = q && $app.querySelector(`section.q[data-q="${CSS.escape(qn)}"]`);
+      if (sec) { sec.outerHTML = questionCorr(S, essai, I, q, noteQuestion(q, essai)); brancherSignaler(S, essai, I); }
+      const R2 = majNote();
+      if (e && e.note !== R2.note) { e.note = R2.note; garder(S.id, dd); }
+      essai.note = R2.note;
+      majEnvoi();
+    } };
+    const file = I.questions.filter((q) => iaARelancer(S, essai, q));
+    const suivant = () => { const q = file.shift(); if (q) verifierIA(S, essai, q).then(suivant, suivant); };
+    suivant(); suivant();
+  }
+
+  /* « Signaler une erreur » sous chaque question corrigée */
+  function brancherSignaler(S, essai, I) {
+    if (!(window.SIP && SIP.signaler)) return;
+    const D = I.DS, v = (essai.rep && essai.rep.v) || {};
+    $app.querySelectorAll(".sig-place").forEach((z) => {
+      const q = I.questions.find((x) => x.n === z.dataset.sig); if (!q || z.firstChild) return;
+      const b = SIP.signaler.bouton(); z.appendChild(b);
+      const t = texteRedige(q, essai), ia = iaDe(q, essai);
+      const avisIA = ia && ia.etat === "ok" ? "\n\nVerdict de l'IA sur la rédaction :\n" + elementsRediges(q).map(({ ind, i }) => { const x = ia.elements[i] || {}; return `- ${texteBrut(ind.h || ind.t)} : ${x.v === "present" ? "présent" : x.v === "partiel" ? "en partie" : "absent"}${x.r ? " (" + x.r + ")" : ""}`; }).join("\n") : "";
+      b.onclick = () => SIP.signaler.ouvrir({
+        source: "blanc", notion: q.notion, module: S.module, ref: `dsb:${S.id}:${q.n}:${essai.seed}`.slice(0, 80),
+        question: (`${D.libelle} · Q ${q.n} (essai n° ${essai.n}${essai.mode === "pas" ? ", question par question" : ""})\n` + texteBrut(q.q)).slice(0, 3900),
+        figure: S.figure ? S.figure(I.P, I.c, q) : null,
+        reponse: q.champs.filter((c) => c.type !== "bilan").map((c) => `${texteBrut(c.lab)} = ${v[c.id] == null ? "—" : c.type === "choix" ? (c.options[Number(v[c.id])] || "—") : v[c.id]}`).concat(t ? [`rédigé : « ${t} »`] : []).join(" · ").slice(0, 290) || null,
+        attendu: q.champs.filter((c) => c.type === "nombre").map((c) => `${texteBrut(c.lab)} = ${nb(c.val)} ${c.unite || ""}`.trim()).join(" · ").slice(0, 290) || null,
+        correction: (texteBrut(q.rep).slice(0, 3900 - avisIA.length) + avisIA).slice(0, 3900)
+      }, { lienConnexion: RACINE + "index.html#/connexion/TSI", surEnvoi: () => SIP.signaler.marquer(b) });
+    });
+  }
+
+  /* bilan d'un essai : points par question (un clic mène à sa correction) et par notion (fiche à revoir) */
+  function recapHTML(R) {
+    const qs = R.parQ.map(({ q, r }) => `<button type="button" class="rq ${etatQ(r, q)}" data-voir="${esc(q.n)}" aria-label="Question ${esc(q.n)} : ${pts(r.total)} sur ${pts(q.pts)}"><b>${esc(q.n)}</b><span>${note20(r.total)}<small> / ${note20(q.pts)}</small></span></button>`).join("");
+    const N = [];
+    R.parQ.forEach(({ q, r }) => { let x = N.find((y) => y.id === q.notion); if (!x) N.push((x = { id: q.notion, p: 0, max: 0, qs: [] })); x.p += r.total; x.max += q.pts; x.qs.push(q.n); });
+    const fiches = window.DSB_FICHES || [];
+    const lignes = N.map((x) => {
+      const f = x.max ? x.p / x.max : 0, cls = f >= 0.8 - 1e-9 ? "ok" : f >= 0.5 - 1e-9 ? "part" : "ko";
+      return `<li class="${cls}"><span class="rn-l">${esc(nomNotion(x.id))} <span class="discret">${x.qs.map(esc).join(", ")}</span></span>
+        <span class="rn-b" aria-hidden="true"><i style="width:${Math.round(f * 100)}%"></i></span><span class="rn-p">${note20(x.p)} / ${note20(x.max)}</span>
+        ${cls !== "ok" && fiches.includes(x.id) ? `<a class="rn-f" href="${RACINE}index.html#/fiche/${encodeURIComponent(x.id)}">Revoir la fiche</a>` : ""}</li>`;
+    }).join("");
+    return `<div class="carte recap"><div class="eyebrow">Tes points, question par question</div><div class="rq-l">${qs}</div>
+      <div class="eyebrow rn-t">Par notion</div><ul class="rn">${lignes}</ul></div>`;
   }
 
   async function envoyer(S, essai, apres) {
+    if (instance(S, essai).questions.some((q) => iaLit(S, essai, q)))
+      return boite(`<h2>L'IA lit encore tes rédactions</h2><p>Attends quelques secondes : ta note tiendra compte de ses verdicts.</p>`, [["D'accord", null]]);
     const s = session();
     if (!s) return boite(`<h2>Connecte-toi d'abord</h2><p>Sans connexion, ton professeur ne peut pas recevoir ta note. Ta copie corrigée reste sur ce téléphone.</p>`, [["Me connecter", () => { location.href = RACINE + "index.html#/connexion/TSI"; }], ["Plus tard", null]]);
     const R = noteEssai(S, essai), I = R.I;
@@ -1462,12 +1831,16 @@ if (typeof window !== "undefined"){
       const v = (essai.rep && essai.rep.v) || {}, t = ((essai.rep && essai.rep.t) || {})[q.n] || "";
       const vals = q.champs.filter((c) => c.type !== "bilan").map((c) => { const vv = verdict(c, v[c.id]); return `${texteBrut(c.lab)} = ${v[c.id] == null || v[c.id] === "" ? "—" : c.type === "choix" ? c.options[Number(v[c.id])] : v[c.id]}${vv.ok ? " ✓" : " ✗"}`; });
       if (q.champs.some((c) => c.type === "bilan")) { const nbl = S.noteBilan((essai.rep || {}).bilan); vals.unshift(`bilan : actions ${Math.round(nbl.ident * 100)} %, points et directions ${Math.round(nbl.pdir * 100)} %, sens et normes ${Math.round(nbl.sens * 100)} %`); }
-      const coch = r.lignes.filter((l) => !l.auto).map((l) => (l.frac ? "☑" : "☐")).join("");
-      return { q: `${q.n} · ${texteBrut(q.q).slice(0, 110)}`, rep: (vals.join(" · ") + (q.texte ? ` · rédigé : ${t.trim() ? "« " + t.trim().slice(0, 240) + " »" : "rien"} · auto-évaluation ${coch}` : "")).slice(0, 700),
+      /* éléments rédigés : verdicts de l'IA (✓ ◐ ✗, avec ce qui manque) ou cases cochées par l'élève (☑ ☐) */
+      const man = r.lignes.filter((l) => !l.auto), parIA = man.length && man.every((l) => l.ia);
+      const coch = man.map((l) => (l.ia ? { present: "✓", partiel: "◐", absent: "✗" }[l.ia.v] : l.frac ? "☑" : "☐")).join("");
+      const manque = parIA ? man.filter((l) => l.ia.v !== "present" && l.ia.r).map((l) => l.ia.r).join(" ") : "";
+      const redac = q.texte ? ` · rédigé : ${t.trim() ? "« " + t.trim().slice(0, 240) + " »" : "rien"} · ${parIA ? `vérifié par l'IA ${coch}${manque ? " : " + manque : ""}` : `auto-évaluation ${coch}`}` : "";
+      return { q: `${q.n} · ${texteBrut(q.q).slice(0, 110)}`, rep: (vals.join(" · ") + redac).slice(0, 700),
         attendu: q.champs.filter((c) => c.type === "nombre").map((c) => `${nb(c.val)} ${c.unite || ""}`.trim()).join(" · ") || "voir le corrigé",
         pts: Math.round(r.total * 100) / 100, bareme: q.pts, erreurs: r.total < q.pts - 1e-9 ? 1 : 0, notion: q.notion };
     });
-    const titre = `${I.DS.libelle} · ${I.DS.titre} · essai n° ${essai.n}${essai.mode === "ds" ? "" : " (sans chrono)"}`;
+    const titre = `${I.DS.libelle} · ${I.DS.titre} · essai n° ${essai.n}${essai.mode === "ds" ? "" : ` (${nomMode(essai.mode)})`}`;
     const et = document.getElementById("envoi-etat"); if (et) et.textContent = "Envoi…";
     try {
       const parti = await SIP.ecrire("enregistrer", { module: S.module, titre, type: "externe", score: R.note, score_max: 20, duree_s: Math.round(((essai.fin || Date.now()) - essai.debut) / 1000), details });
@@ -1496,15 +1869,17 @@ if (typeof window !== "undefined"){
   function on(type, fn) { $app.addEventListener(type, fn); ecouteurs.push([type, fn]); }
   function nettoyer() { ecouteurs.forEach(([t, f]) => $app.removeEventListener(t, f)); ecouteurs = []; }
   function afficher() {
-    stopMinuteur(); nettoyer();
+    vider(); stopMinuteur(); nettoyer(); vueIA = null;
     const h = decodeURIComponent(location.hash.replace(/^#/, "")), [id, vue, n] = h.split("/");
     const S = id && sujet(id);
     if (!S) return vueListe();
     if (vue === "correction" && n) return vueCorrection(S, Number(n));
-    return vueSujet(S);
+    return vueSujet(S, vue === "q" ? n : null);
   }
   window.addEventListener("hashchange", afficher);
   window.addEventListener("pageshow", (e) => { if (e.persisted) afficher(); });
+  window.addEventListener("pagehide", vider);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") vider(); });
   if (window.SIP && SIP.session && SIP.session.get() && SIP.viderFile) SIP.viderFile().catch(() => {});
   window.DSB = { afficher, noteEssai, verdict, lire, nb, instance, dossier, garder, sujet };
   afficher();

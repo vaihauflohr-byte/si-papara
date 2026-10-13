@@ -6,7 +6,7 @@
    la copie gardée sur le téléphone ne sert que sans réseau, ou quand il est trop lent.
    Les données des élèves (Supabase) ne passent jamais par ici.
    ===================================================================== */
-const VERSION = "2026-10-09T11:48";
+const VERSION = "2026-10-13T08:01";
 const CACHE = "sip-site-v1";
 const COEUR = [
   "./",
@@ -24,6 +24,7 @@ const COEUR = [
   "contenu/competences.js",
   "contenu/bac-si.js",
   "contenu/ds-blancs.js",
+  "contenu/prep-ds.js",
   "contenu/calendrier.js",
   "assets/calendrier.js",
   "contenu/methode-bac.js",

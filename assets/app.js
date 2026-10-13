@@ -174,6 +174,7 @@
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
       <div id="appli-bandeau"></div><div id="sig-nouvelles"></div>
       ${prochainDS(hist)}
+      ${dsPasses(hist)}
       <details class="sequence plus"><summary><span>Aller plus loin</span><span class="discret">révision du jour, parcours, sujet blanc, toutes les notions, mes résultats</span></summary>
         <div class="plus-in">
           ${outilsBac(hist)}
@@ -258,13 +259,59 @@
           <span class="btn">S'entraîner →</span></div>
       </a>`;
   }
-  // Le prochain DS : pour chaque notion, « Fiche » puis « Série ». C'est la seule consigne : fiche, puis série jusqu'à 16.
+  // La préparation d'un DS (contenu/prep-ds.js) : trois étapes verrouillées dans l'ordre, puis le DS blanc.
+  // L'état vient de l'historique transmis (modules prep-<ds>-<étape>) : meilleure note, validée à 16/20, ouverte.
+  const PREP_SEUIL = 16, PREP_T = ["", "Les briques", "Les calculs", "Les chaînes"];
+  const PREP_D = ["", "reconnaître, lire, nommer, calculer une grandeur simple", "appliquer une formule sur un mécanisme", "résoudre jusqu'au bout et conclure, comme au DS"];
+  const dsKey = (ds) => String(ds || "").toLowerCase().replace(/\s+/g, "");
+  const essaisPrep = (hist, id, k) => hist.filter((h) => h.type === "externe" && h.module === `prep-${id}-${k}`);
+  const aTemps = (h, lim) => Date.parse(h.recu_le || h.fait_le) <= lim;
+  function etapesDS(ds, lot, hist) {
+    const id = dsKey(ds), def = (window.SIP_PREP || {})[id], lim = lot[0] && lot[0].echeance ? Date.parse(lot[0].echeance) : Infinity;
+    const enLigne = lot.some((n) => n.enLigne) || !!(def && def.etapes && def.etapes.length);
+    const meilleure = (a) => (a.length ? Math.max(...a.map((h) => sur20(h.score, h.score_max))) : null);
+    const out = []; let prev = true;
+    if (enLigne) [1, 2, 3].forEach((k) => {
+      const e = (def && def.etapes && def.etapes[k - 1]) || {}, E = essaisPrep(hist, id, k);
+      const best = meilleure(E), bestT = meilleure(E.filter((h) => aTemps(h, lim)));
+      const ok = best !== null && best >= PREP_SEUIL, okT = bestT !== null && bestT >= PREP_SEUIL;
+      out.push({ k, t: e.t || PREP_T[k], d: e.d || PREP_D[k], q: e.q || null, best, ok, okT, n: E.length, open: prev, lien: `${PAGE_BAC}#prep=${id}:${k}${prev && k > 1 ? ":ok" : ""}` });
+      prev = ok;
+    });
+    const b = dsBlanc(ds);
+    if (b) { const E = essaisDSB(hist, b), best = meilleure(E); out.push({ k: out.length + 1, blanc: b, t: "DS blanc", d: `${b.titre} · question par question, puis en conditions de DS (${b.duree_min} min)`, best, ok: E.length > 0, okT: E.some((h) => aTemps(h, lim)), n: E.length, open: prev || E.length > 0, lien: b.page }); }
+    return out;
+  }
+  const labCourt = (lab) => lab.split(/,| \(|:/)[0];
+  // Le prochain DS : ses étapes de préparation, dans l'ordre ; les fiches des notions à lire avant.
   function prochainDS(hist) {
     const B = SIP.BAC; if (!B) return "";
     const now = Date.now(), prochaines = B.notions.filter((n) => n.echeance && Date.parse(n.echeance) > now).sort((a, b) => a.echeance.localeCompare(b.echeance));
     const lot = prochaines.length ? prochaines.filter((n) => n.ds_date === prochaines[0].ds_date).sort((a, b) => a.rang - b.rang) : [];
     if (!lot.length) return tuileBac(hist);
     const jour = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Pacific/Tahiti" });
+    const E = etapesDS(lot[0].ds, lot, hist);
+    if (E.length) {
+      const faites = E.filter((x) => x.ok).length, cur = E.find((x) => x.open && !x.ok);
+      const fiches = lot.filter((n) => ficheBac(n.id)).map((n) => { const fn = noteFiche(hist, n.id), comprise = fn !== null && fn >= 16;
+        return `<a class="btn sec${comprise ? " fait" : ""}" href="#/fiche/${n.id}" title="${esc(n.lab)}">${comprise ? "✓ " : ""}${esc(labCourt(n.lab))}${fn !== null && !comprise ? ` <small>${SIP.nb(fn, 3)}/20</small>` : ""}</a>`; }).join("");
+      const btn = (x) => {
+        if (!x.open) return `<span class="btn sec off">après l'étape ${x.k - 1}</span>`;
+        const lab = x.ok ? `✓ ${x.blanc ? "Fait" : "Validée"} <small>${SIP.nb(x.best, 3)}/20</small>` : x.best !== null ? `Reprendre <small>${SIP.nb(x.best, 3)}/20</small>` : x.blanc ? "Faire le DS blanc" : "Commencer";
+        return `<a class="btn ${x.ok ? "sec fait" : cur && cur.k === x.k ? "" : "sec"}" href="${x.lien}">${lab}</a>`;
+      };
+      const lignes = E.map((x) => `<li class="prep-et ${x.ok ? "ok" : x.open ? (cur && cur.k === x.k ? "cur" : "") : "off"}${x.blanc ? " ds-blanc" : ""}">
+          <span class="prep-n" aria-hidden="true">${x.ok ? "✓" : x.open ? x.k : "🔒"}</span>
+          <span class="ds-nom"><b>${x.blanc ? "" : `Étape ${x.k} · `}${esc(x.t)}</b><span class="discret">${esc(x.d)}${x.q ? ` · ≈ ${x.q} questions` : ""}${x.n ? ` · ${pluriel(x.n, "essai")}` : ""}</span></span>
+          <span class="ds-btns">${btn(x)}</span></li>`).join("");
+      return `<section class="carte ds-hero ${faites === E.length ? "fait" : "a-faire"}">
+        <div class="ds-tete"><div><div class="eyebrow">Prochain DS</div><div class="bac-titre">${esc(lot[0].ds || "DS")} <span>· ${esc(jour(lot[0].ds_date))}</span></div><div class="discret">${esc(lot.map((n) => n.lab).join(" · "))}</div></div>
+          <div class="ds-compte"><div class="grand">${faites}<small> / ${E.length}</small></div><div class="discret">étape${faites > 1 ? "s" : ""} validée${faites > 1 ? "s" : ""}</div></div></div>
+        ${fiches ? `<div class="prep-fiches"><span class="discret">Lis d'abord les fiches :</span>${fiches}</div>` : ""}
+        <ol class="ds-lot prep-liste">${lignes}</ol>
+        <p class="bac-regle">Dans l'ordre : chaque étape validée à ${PREP_SEUIL}/20 ouvre la suivante. On part de 20, −2 par erreur ; les valeurs changent à chaque essai. Essais illimités, avant 6 h le jour du DS.</p>
+      </section>`;
+    }
     const faites = lot.filter((n) => etatNotion(n, hist).valide).length;
     const lignes = lot.map((n) => {
       const e = etatNotion(n, hist), fn = noteFiche(hist, n.id), comprise = fn !== null && fn >= 16;
@@ -276,7 +323,41 @@
         <div class="ds-tete"><div><div class="eyebrow">Prochain DS</div><div class="bac-titre">${esc(lot[0].ds || "DS")} <span>· ${esc(jour(lot[0].ds_date))}</span></div></div>
           <div class="ds-compte"><div class="grand">${faites}<small> / ${lot.length}</small></div><div class="discret">validée${faites > 1 ? "s" : ""}</div></div></div>
         <ul class="ds-lot">${lignes}${ligneDSBlanc(lot[0].ds, hist)}</ul>
-        <p class="bac-regle">Pour chaque notion : lis la fiche, puis fais la série jusqu'à ${B.seuil}/20. Avant 6 h le jour du DS, essais illimités.${dsBlanc(lot[0].ds) ? " Puis fais le DS blanc, en conditions de DS." : ""}</p>
+        <p class="bac-regle">Pour chaque notion : lis la fiche, puis fais la série jusqu'à ${B.seuil}/20. Avant 6 h le jour du DS, essais illimités.${dsBlanc(lot[0].ds) ? " Puis fais le DS blanc : question par question, puis en conditions de DS." : ""}</p>
+      </section>`;
+  }
+  // Les DS passés : le plus récent en carte (pour revoir ses erreurs), les autres repliés dessous.
+  // Pour chacun : le DS blanc (question par question), la préparation en étapes (elle ne compte plus pour la
+  // validation des notions, mais reste ouverte), les fiches des notions.
+  function dsPasses(hist) {
+    const B = SIP.BAC; if (!B) return "";
+    const now = Date.now(), parDS = {};
+    B.notions.filter((n) => n.ds && n.ds_date && n.echeance && Date.parse(n.echeance) <= now).forEach((n) => {
+      (parDS[n.ds] = parDS[n.ds] || { ds: n.ds, date: n.ds_date, notions: [] }).notions.push(n);
+    });
+    const jour = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Pacific/Tahiti" });
+    const L = Object.values(parDS).map((x) => {
+      const id = dsKey(x.ds), b = dsBlanc(x.ds), def = (window.SIP_PREP || {})[id];
+      const prep = x.notions.some((n) => n.enLigne) || !!(def && def.etapes && def.etapes.length);
+      const E = b ? essaisDSB(hist, b) : [], best = E.length ? Math.max(...E.map((h) => sur20(h.score, h.score_max))) : null;
+      const fiches = x.notions.filter((n) => ficheBac(n.id)).sort((a, c) => a.rang - c.rang);
+      return Object.assign(x, { id, b, prep, best, nb: E.length, fiches });
+    }).filter((x) => x.b || x.prep || x.fiches.length).sort((a, c) => c.date.localeCompare(a.date));
+    if (!L.length) return "";
+    const liens = (x, grand) => [
+      x.b ? `<a class="btn${grand ? "" : " sec"}" href="${x.b.page}">DS blanc · question par question${x.best !== null ? ` <small>meilleur ${SIP.nb(x.best, 3)}/20</small>` : ""}</a>` : "",
+      x.prep ? `<a class="btn sec" href="${PAGE_BAC}#prep=${x.id}">Préparation en 3 étapes</a>` : "",
+    ].join("");
+    const fiches = (x) => x.fiches.map((n) => `<a class="btn sec" href="#/fiche/${n.id}" title="${esc(n.lab)}">${esc(labCourt(n.lab))}</a>`).join("");
+    const [d, ...avant] = L;
+    return `<section class="carte ds-passe" aria-label="DS passés">
+        <div class="eyebrow">DS passé · ${esc(jour(d.date))}</div>
+        <div class="bac-titre">${esc(d.ds)} <span>· revois tes erreurs</span></div>
+        <p class="discret">${d.b ? "Refais le DS blanc question par question : la correction s'affiche après chaque réponse." : "Reprends les étapes de la préparation et les fiches."}${d.prep ? " La préparation reste ouverte, elle ne compte plus pour la validation." : ""}</p>
+        <div class="rang ds-passe-liens">${liens(d, true)}</div>
+        ${d.fiches.length ? `<div class="prep-fiches"><span class="discret">Fiches :</span>${fiches(d)}</div>` : ""}
+        ${avant.length ? `<details class="ds-avant"><summary>Les DS d'avant <span class="discret">(${avant.length})</span></summary>
+          <ul>${avant.map((x) => `<li><span class="ds-nom"><b>${esc(x.ds)}</b><span class="discret">${esc(jour(x.date))}</span></span><span class="ds-btns">${liens(x, false)}${fiches(x)}</span></li>`).join("")}</ul></details>` : ""}
       </section>`;
   }
   // DS blancs de Terminale SI (entrainements/ds-blanc.html, liste dans contenu/ds-blancs.js)
@@ -285,7 +366,7 @@
   function ligneDSBlanc(ds, hist) {
     const b = dsBlanc(ds); if (!b) return "";
     const E = essaisDSB(hist, b), best = E.length ? Math.max(...E.map((h) => sur20(h.score, h.score_max))) : null;
-    return `<li class="ds-blanc${E.length ? " ok" : ""}"><span class="ds-nom"><b>DS blanc</b><span class="discret">${esc(b.titre)} · ${b.duree_min} min, en conditions de DS</span></span>
+    return `<li class="ds-blanc${E.length ? " ok" : ""}"><span class="ds-nom"><b>DS blanc</b><span class="discret">${esc(b.titre)} · question par question, puis en conditions de DS (${b.duree_min} min)</span></span>
       <span class="ds-btns"><a class="btn ${E.length ? "sec fait" : "sec"}" href="${b.page}">${E.length ? `✓ DS blanc <small>${SIP.nb(best, 3)}/20</small>` : "3. DS blanc"}</a></span></li>`;
   }
   function tuileDSBlancs(hist) {
@@ -299,13 +380,18 @@
   const DOM_BAC = { ana: "Analyse", meca: "Mécanique", ener: "Énergie", info: "Information", auto: "Automatique", simu: "Modélisation", phy: "Physique" };
   const jourCourt = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Pacific/Tahiti" });
   const essaisBac = (hist, id) => hist.filter((h) => h.type === "externe" && (h.module === "bac-" + id || h.module.startsWith("bac-" + id + "-s")));
+  // une notion est aussi validée quand les trois étapes de la préparation de son DS le sont, avant l'échéance
+  function prepValide(n, hist) {
+    if (!n.ds) return false; const id = dsKey(n.ds), lim = n.echeance ? Date.parse(n.echeance) : Infinity;
+    return [1, 2, 3].every((k) => essaisPrep(hist, id, k).some((h) => aTemps(h, lim) && sur20(h.score, h.score_max) >= PREP_SEUIL));
+  }
   function etatNotion(n, hist) {
     const B = SIP.BAC, E = essaisBac(hist, n.id), lim = n.echeance ? Date.parse(n.echeance) : Infinity;
     const meilleure = (a) => (a.length ? Math.max(...a.map((h) => sur20(h.score, h.score_max))) : null);
     const best = meilleure(E), bestT = meilleure(E.filter((h) => Date.parse(h.recu_le || h.fait_le) <= lim));
-    const valide = bestT !== null && bestT >= B.seuil, passe = Date.now() > lim;
+    const serieOK = bestT !== null && bestT >= B.seuil, valide = serieOK || prepValide(n, hist), passe = Date.now() > lim;
     if (!n.enLigne) return { cls: "off", txt: "bientôt en ligne", valide };
-    if (valide) return { cls: "ok", txt: `✓ validée · ${SIP.nb(bestT, 3)}/20`, valide };
+    if (valide) return { cls: "ok", txt: serieOK ? `✓ validée · ${SIP.nb(bestT, 3)}/20` : "✓ validée · préparation du DS", valide };
     if (passe) return { cls: "ko", txt: best !== null ? `hors délai · ${SIP.nb(best, 3)}/20` : "non validée", valide };
     if (best !== null) return { cls: "alerte", txt: `meilleure ${SIP.nb(best, 3)}/20`, valide };
     return { cls: "", txt: "à faire", valide };
@@ -332,7 +418,7 @@
     const avenir = B.notions.filter((n) => !(n.cours && n.cours <= dans7)).sort((a, b) => (a.cours || "9").localeCompare(b.cours || "9") || a.rang - b.rang);
     const valides = B.notions.filter((n) => etatNotion(n, hist).valide).length, enLigne = B.notions.filter((n) => n.enLigne).length;
     return `<h2>Mes notions du bac <span class="discret">${valides} validée${valides > 1 ? "s" : ""} · ${vues.length} vue${vues.length > 1 ? "s" : ""} ou en cours · ${enLigne} sur ${B.notions.length} en ligne</span></h2>
-      <p class="discret">Classées par fréquence à l'écrit. Clique sur une notion pour t'entraîner : 16/20 à une série avant le DS la valide.${nbFichesBac() ? ` Le bouton « Fiche » ouvre la fiche de révision de la notion (<a href="#/fiches-bac">toutes les fiches</a>).` : ""}</p>
+      <p class="discret">Classées par fréquence à l'écrit. Clique sur une notion pour t'entraîner : 16/20 à une série avant le DS la valide, ou les trois étapes de la préparation de son DS.${nbFichesBac() ? ` Le bouton « Fiche » ouvre la fiche de révision de la notion (<a href="#/fiches-bac">toutes les fiches</a>).` : ""}</p>
       <div class="nb-liste">${vues.map((n) => ligneNotion(n, hist)).join("") || `<p class="discret">Les premières notions arrivent avec le premier cours.</p>`}</div>
       ${avenir.length ? `<details class="sequence nb-avenir"><summary><span>À venir</span><span class="discret">${pluriel(avenir.length, "notion")}, dans l'ordre du planning</span></summary>
         <div class="nb-liste">${avenir.map((n) => ligneNotion(n, hist)).join("")}</div></details>` : ""}`;

@@ -232,16 +232,33 @@
     // colonnes : les notions déjà vues ou vues dans la semaine, dans l'ordre de leurs échéances
     const cols = BAC.notions.filter((n) => n.echeance && n.cours && n.cours <= dans7)
       .sort((a, b) => a.echeance.localeCompare(b.echeance) || a.rang - b.rang);
+    // les DS de ces notions, avec leurs étapes de préparation (trois si une notion est en ligne ou si contenu/prep-ds.js le décrit)
+    const dsList = [];
+    const dsbPas = (t) => /\(question par question\)\s*$/.test(t.titre || "");   // DS blanc fait question par question (corrigé après chaque question)
+    cols.forEach((n) => { if (!n.ds || dsList.some((d) => d.ds === n.ds)) return;
+      const id = n.ds.toLowerCase().replace(/\s+/g, ""), def = (window.SIP_PREP || {})[id], lot = BAC.notions.filter((x) => x.ds === n.ds);
+      const trois = lot.some((x) => x.enLigne) || !!(def && def.etapes && def.etapes.length);
+      const blanc = (SIP.DS_BLANCS || []).find((b) => b.ds === n.ds) || null;
+      if (trois || blanc) dsList.push({ ds: n.ds, id, date: n.ds_date, echeance: n.echeance, etapes: trois ? [1, 2, 3] : [], blanc }); });
     const liste = elevesFiltres().filter((e) => e.actif !== false && e.niveau === "TSI");
     const lignes = liste.map((e) => {
       const E = D.parEleve[e.id].E;
       const bac = E.filter((t) => t.type === "externe" && /^bac-/.test(t.module) && !/^bac-(parcours|revision|blanc)$/.test(t.module));
       const best = (a) => (a.length ? Math.max(...a.map((t) => note20(t.score, t.score_max))) : null);
+      // préparation des DS (contenu/prep-ds.js) : par DS, les étapes validées à 16/20 avant l'échéance, et le DS blanc
+      const preps = dsList.map((d) => ({ ds: d, etapes: d.etapes.map((k) => {
+        const ts = E.filter((t) => t.type === "externe" && t.module === `prep-${d.id}-${k}`), lim = Date.parse(d.echeance);
+        const b = best(ts.filter((t) => quand(t) <= lim)), a = best(ts.filter((t) => quand(t) > lim));
+        return { k, b, a, n: ts.length, ok: b !== null && b >= BAC.seuil }; }),
+        blanc: d.blanc ? (() => { const ts = E.filter((t) => t.type === "externe" && t.module === d.blanc.module), dsT = ts.filter((t) => !dsbPas(t)), qT = ts.filter(dsbPas);
+          return { n: dsT.length, b: best(dsT), nq: qT.length, q: best(qT) }; })() : null }));
+      const prepOK = (ds) => { const p = preps.find((x) => x.ds.ds === ds); return !!(p && p.etapes.length && p.etapes.every((x) => x.ok)); };
       const cells = cols.map((n) => {
         const ts = bac.filter((t) => notionDe(t.module) === n.id), lim = Date.parse(n.echeance);
         const b = best(ts.filter((t) => quand(t) <= lim)), a = best(ts.filter((t) => quand(t) > lim));
         const f = best(E.filter((t) => t.type === "externe" && t.module === "fiche-" + n.id)); // vérification de la fiche (« Ai-je compris ? »)
-        return { b, a, n: ts.length, passe: now > lim, ok: b !== null && b >= BAC.seuil, f };
+        const pv = prepOK(n.ds);   // les trois étapes de la préparation du DS validées à temps : la notion est validée aussi
+        return { b, a, n: ts.length, passe: now > lim, ok: (b !== null && b >= BAC.seuil) || pv, pv, f };
       });
       const echues = cells.filter((c) => c.passe), valides = echues.filter((c) => c.ok).length;
       const rev = E.filter((t) => t.type === "revision_jour");
@@ -250,30 +267,36 @@
       const blancs = E.filter((t) => t.module === "bac-blanc").sort((a, b) => quand(b) - quand(a));
       const blanc = blancs.length ? { dernier: note20(blancs[0].score, blancs[0].score_max), le: blancs[0].fait_le, meilleur: Math.max(...blancs.map((t) => note20(t.score, t.score_max))), n: blancs.length } : null;
       const dsbs = E.filter((t) => t.type === "externe" && /^dsb-/.test(t.module)).sort((a, b) => quand(b) - quand(a));
-      const dsb = dsbs.length ? { dernier: note20(dsbs[0].score, dsbs[0].score_max), le: dsbs[0].fait_le, ds: dsbs[0].module.replace(/^dsb-ds(\d+)$/, "DS $1"), meilleur: Math.max(...dsbs.filter((t) => t.module === dsbs[0].module).map((t) => note20(t.score, t.score_max))), n: dsbs.filter((t) => t.module === dsbs[0].module).length } : null;
-      return { e, cells, valides, echues: echues.length, note10: echues.length ? (10 * valides) / echues.length : null, jours7, parcours, blanc, dsb };
+      const dsb = dsbs.length ? { dernier: note20(dsbs[0].score, dsbs[0].score_max), le: dsbs[0].fait_le, ds: dsbs[0].module.replace(/^dsb-ds(\d+)$/, "DS $1"), pas: dsbPas(dsbs[0]), meilleur: Math.max(...dsbs.filter((t) => t.module === dsbs[0].module).map((t) => note20(t.score, t.score_max))), n: dsbs.filter((t) => t.module === dsbs[0].module).length } : null;
+      return { e, cells, valides, echues: echues.length, note10: echues.length ? (10 * valides) / echues.length : null, jours7, parcours, blanc, dsb, preps };
     });
-    return { cols, lignes };
+    return { cols, lignes, dsList };
   }
   function vueBac() {
     if (niveau && niveau !== "TSI") return cadre(`<div class="carte"><p>L'entraînement bac SI concerne la Terminale SI : choisis « Terminale SI » en haut.</p></div>`);
-    const { cols, lignes } = bacGrille();
+    const { cols, lignes, dsList } = bacGrille();
     if (!lignes.length) return cadre(`<div class="carte"><p>Aucun élève de Terminale SI. Crée-les dans l'onglet « Élèves et codes ».</p></div>`);
+    // préparation d'un DS : une pastille par étape (E1 E2 E3, puis DSb), note avant l'échéance, « après » sinon
+    const prep = (p) => `<td class="num prep-cell">${p.etapes.map((x) => x.b !== null ? `<span class="etiquette ${x.ok ? "ok" : "alerte"}" title="Étape ${x.k} : meilleure note avant l'échéance, ${x.n} essai${x.n > 1 ? "s" : ""}">E${x.k} ${x.ok ? "✓" : ""}${SIP.nb(x.b, 3)}</span>`
+        : x.a !== null ? `<span class="etiquette ko" title="Étape ${x.k} : faite après l'échéance">E${x.k} après ${SIP.nb(x.a, 3)}</span>` : `<span class="etiquette" title="Étape ${x.k} : pas faite">E${x.k} —</span>`).join(" ")}${p.blanc ? ` <span class="etiquette ${p.blanc.n ? SIP.appreciation(p.blanc.b).cls : ""}" title="DS blanc en conditions de DS ou à son rythme : meilleure note, ${p.blanc.n} essai${p.blanc.n > 1 ? "s" : ""}">DSb ${p.blanc.n ? SIP.nb(p.blanc.b, 3) : "—"}</span>` + (p.blanc.nq ? ` <span class="etiquette ${SIP.appreciation(p.blanc.q).cls}" title="DS blanc question par question (corrigé après chaque question) : meilleure note, ${p.blanc.nq} essai${p.blanc.nq > 1 ? "s" : ""}">q/q ${SIP.nb(p.blanc.q, 3)}</span>` : "") : ""}</td>`;
+    const tetePrep = dsList.map((d) => `<th class="num" title="Préparation du ${esc(d.ds)} : trois étapes validées à ${BAC.seuil}/20 avant le ${SIP.fmtDate(d.date)} 6 h, puis le DS blanc">Préparation<div class="discret">${esc(d.ds)} · ${SIP.fmtDate(d.date)}</div></th>`).join("");
     const fiche = (c) => (c.f !== null ? `<div class="discret" title="Meilleure note à la vérification de la fiche">fiche ${c.f >= 16 ? "✓ " : ""}${SIP.nb(c.f, 3)}</div>` : "");
     const cell = (c) => c.b !== null
       ? `<td class="num"><span class="etiquette ${c.ok ? "ok" : "alerte"}">${c.ok ? "✓ " : ""}${SIP.nb(c.b, 3)}</span>${c.a !== null ? `<div class="discret">après : ${SIP.nb(c.a, 3)}</div>` : ""}<div class="discret">${c.n}×</div>${fiche(c)}</td>`
       : c.a !== null ? `<td class="num"><span class="etiquette ko">hors délai</span><div class="discret">${SIP.nb(c.a, 3)}</div>${fiche(c)}</td>`
+      : c.pv ? `<td class="num"><span class="etiquette ok" title="Validée par les trois étapes de la préparation du DS">✓ prép.</span>${fiche(c)}</td>`
       : `<td class="num">${c.passe ? `<span class="etiquette ko">—</span>` : `<span class="discret">à faire</span>`}${fiche(c)}</td>`;
     const tete = cols.map((n) => `<th class="num" title="${esc(n.lab)} · ${esc(n.ds || "")} : échéance le ${SIP.fmtDate(n.ds_date)} à 6 h${n.enLigne ? "" : " · série pas encore en ligne"}">${esc(court(n.lab))}<div class="discret">${esc(n.ds || "")} · ${SIP.fmtDate(n.ds_date)}</div></th>`).join("");
-    cadre(`<p class="discret">Une notion est <b>validée</b> quand l'élève atteint <b>${BAC.seuil}/20</b> à l'une de ses séries <b>avant l'échéance</b> : le jour de son DS, 6 h (heure de réception par le serveur). Sous la note : le nombre d'essais. « après » : meilleure note obtenue après l'échéance, qui ne compte pas. « fiche » : meilleure note /20 à la vérification « Ai-je compris ? » de la fiche de révision (✓ dès 16).</p>
-      <div class="table-defil"><table class="grille-bac"><thead><tr><th>Élève</th>${tete}<th class="num">Validées à temps</th><th class="num">Note /10</th><th class="num">Révision du jour (7&nbsp;j)</th><th class="num">Parcours (7&nbsp;j)</th><th class="num">Sujet blanc</th><th class="num" title="Dernier DS blanc fait (entrainements/ds-blanc.html) : dernière note, meilleure note et nombre d'essais sur ce DS">DS blanc</th></tr></thead><tbody>
-      ${lignes.map((l) => `<tr class="cliquable" data-id="${l.e.id}"><td><b>${esc(l.e.nom)}</b></td>${l.cells.map(cell).join("")}
+    cadre(`<p class="discret">Une notion est <b>validée</b> quand l'élève atteint <b>${BAC.seuil}/20</b> à l'une de ses séries <b>avant l'échéance</b> : le jour de son DS, 6 h (heure de réception par le serveur). Sous la note : le nombre d'essais. « après » : meilleure note obtenue après l'échéance, qui ne compte pas. « fiche » : meilleure note /20 à la vérification « Ai-je compris ? » de la fiche de révision (✓ dès 16).
+      <b>Préparation</b> : les trois étapes du DS (E1 les briques, E2 les calculs, E3 les chaînes), chacune validée à ${BAC.seuil}/20 avant l'échéance et ouvrant la suivante, puis le DS blanc (DSb : meilleure note en conditions de DS ou à son rythme ; q/q : meilleure note question par question, avec le corrigé après chaque question). Les trois étapes validées valident aussi les notions du DS (« ✓ prép. »).</p>
+      <div class="table-defil"><table class="grille-bac"><thead><tr><th>Élève</th>${tete}${tetePrep}<th class="num">Validées à temps</th><th class="num">Note /10</th><th class="num">Révision du jour (7&nbsp;j)</th><th class="num">Parcours (7&nbsp;j)</th><th class="num">Sujet blanc</th><th class="num" title="Dernier DS blanc fait (entrainements/ds-blanc.html) : dernière note, meilleure note et nombre d'essais sur ce DS">DS blanc</th></tr></thead><tbody>
+      ${lignes.map((l) => `<tr class="cliquable" data-id="${l.e.id}"><td><b>${esc(l.e.nom)}</b></td>${l.cells.map(cell).join("")}${l.preps.map(prep).join("")}
         <td class="num">${l.echues ? `${l.valides} / ${l.echues}` : "—"}</td>
         <td class="num">${l.note10 === null ? "—" : `<span class="etiquette ${l.note10 >= 8 ? "ok" : l.note10 >= 5 ? "alerte" : "ko"}">${SIP.nb(l.note10, 3)}</span>`}</td>
         <td class="num"><span class="etiquette ${l.jours7 >= 5 ? "ok" : l.jours7 >= 3 ? "alerte" : "ko"}">${l.jours7} / 7 j</span></td>
         <td class="num">${l.parcours}</td>
         <td class="num">${l.blanc ? `<span class="etiquette ${SIP.appreciation(l.blanc.dernier).cls}">${SIP.nb(l.blanc.dernier, 3)}</span><div class="discret">${SIP.fmtDate(l.blanc.le)}${l.blanc.n > 1 ? ` · meilleur ${SIP.nb(l.blanc.meilleur, 3)} · ${l.blanc.n} sujets` : ""}</div>` : `<span class="discret">—</span>`}</td>
-        <td class="num">${l.dsb ? `<span class="etiquette ${SIP.appreciation(l.dsb.dernier).cls}">${SIP.nb(l.dsb.dernier, 3)}</span><div class="discret">${esc(l.dsb.ds)} · ${SIP.fmtDate(l.dsb.le)}${l.dsb.n > 1 ? ` · meilleur ${SIP.nb(l.dsb.meilleur, 3)} · ${l.dsb.n} essais` : ""}</div>` : `<span class="discret">—</span>`}</td></tr>`).join("")}
+        <td class="num">${l.dsb ? `<span class="etiquette ${SIP.appreciation(l.dsb.dernier).cls}">${SIP.nb(l.dsb.dernier, 3)}</span><div class="discret">${esc(l.dsb.ds)}${l.dsb.pas ? " · q/q" : ""} · ${SIP.fmtDate(l.dsb.le)}${l.dsb.n > 1 ? ` · meilleur ${SIP.nb(l.dsb.meilleur, 3)} · ${l.dsb.n} essais` : ""}</div>` : `<span class="discret">—</span>`}</td></tr>`).join("")}
       </tbody></table></div>
       <div class="rang no-print" style="margin-top:12px"><button class="btn sec" id="csv-bac">Exporter cette grille (CSV, pour Pronote)</button>
         <a class="btn" href="entrainements/evaluation.html" title="Sujets papier avec les mêmes questions que le site, autres valeurs, un par élève ; corrigé et comparaison avec les notes en ligne">Évaluation en classe →</a></div>
@@ -282,8 +305,8 @@
     document.querySelectorAll("tr[data-id]").forEach((tr) => (tr.onclick = () => vueDetail(tr.dataset.id)));
     document.getElementById("csv-bac").onclick = () => {
       const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-      const out = [["eleve", ...cols.map((n) => `${court(n.lab)} (${n.ds || ""})`), "validees_a_temps", "echeances_passees", "note_sur_10", "revision_jour_7j", "sujet_blanc_dernier", "sujet_blanc_meilleur", "ds_blanc", "ds_blanc_dernier", "ds_blanc_meilleur"].map(q).join(";")];
-      lignes.forEach((l) => out.push([l.e.nom, ...l.cells.map((c) => (c.b === null ? "" : SIP.nb(c.b, 3))), l.valides, l.echues, l.note10 === null ? "" : SIP.nb(l.note10, 3), l.jours7, l.blanc ? SIP.nb(l.blanc.dernier, 3) : "", l.blanc ? SIP.nb(l.blanc.meilleur, 3) : "", l.dsb ? l.dsb.ds : "", l.dsb ? SIP.nb(l.dsb.dernier, 3) : "", l.dsb ? SIP.nb(l.dsb.meilleur, 3) : ""].map(q).join(";")));
+      const out = [["eleve", ...cols.map((n) => `${court(n.lab)} (${n.ds || ""})`), ...dsList.map((d) => `preparation_${d.id}`), "validees_a_temps", "echeances_passees", "note_sur_10", "revision_jour_7j", "sujet_blanc_dernier", "sujet_blanc_meilleur", "ds_blanc", "ds_blanc_dernier", "ds_blanc_meilleur"].map(q).join(";")];
+      lignes.forEach((l) => out.push([l.e.nom, ...l.cells.map((c) => (c.b === null ? "" : SIP.nb(c.b, 3))), ...l.preps.map((p) => p.etapes.map((x) => `E${x.k} ${x.b === null ? "-" : SIP.nb(x.b, 3)}`).concat(p.blanc ? [`DSb ${p.blanc.n ? SIP.nb(p.blanc.b, 3) : "-"}`].concat(p.blanc.nq ? [`q/q ${SIP.nb(p.blanc.q, 3)}`] : []) : []).join(" / ")), l.valides, l.echues, l.note10 === null ? "" : SIP.nb(l.note10, 3), l.jours7, l.blanc ? SIP.nb(l.blanc.dernier, 3) : "", l.blanc ? SIP.nb(l.blanc.meilleur, 3) : "", l.dsb ? l.dsb.ds : "", l.dsb ? SIP.nb(l.dsb.dernier, 3) : "", l.dsb ? SIP.nb(l.dsb.meilleur, 3) : ""].map(q).join(";")));
       const blob = new Blob(["﻿" + out.join("\r\n")], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `bac-si_TSI_${SIP.aujourdhui()}.csv`; a.click();
     };
@@ -335,7 +358,7 @@
     }).join("");
     const seances = x.E.map((t) => {
       const det = Array.isArray(t.details) ? t.details : [];
-      return `<details class="seance"><summary><b>${SIP.fmtDate(t.fait_le, true)}</b> ${esc(t.titre || t.module)} <span class="etiquette">${/^fiche-/.test(t.module) ? "Vérification de fiche" : /^dsb-/.test(t.module) ? "DS blanc" : /^bac-/.test(t.module) ? "Bac SI" : LIB[t.type] || t.type}</span>
+      return `<details class="seance"><summary><b>${SIP.fmtDate(t.fait_le, true)}</b> ${esc(t.titre || t.module)} <span class="etiquette">${/^fiche-/.test(t.module) ? "Vérification de fiche" : /^dsb-/.test(t.module) ? "DS blanc" : /^prep-/.test(t.module) ? "Préparation du DS" : /^bac-/.test(t.module) ? "Bac SI" : LIB[t.type] || t.type}</span>
         ${tagNote(note20(t.score, t.score_max))} ${det.length ? `<span class="discret">${det.reduce((a, d) => a + nbErreurs(d), 0)} erreur(s)</span>` : ""} ${t.duree_s ? `<span class="discret">${Math.round(t.duree_s / 60)} min</span>` : ""}</summary>
         ${det.length ? `<div class="table-defil"><table><thead><tr><th>#</th><th>Question</th><th>Réponse élève</th><th>Attendu</th><th class="num">Points</th></tr></thead><tbody>${det.map((d, k) =>
           `<tr><td>${k + 1}</td><td>${esc(d.q)}</td><td>${esc(d.rep)}${d.essais > 1 ? ` <span class="discret">(${d.essais} essais)</span>` : ""}</td><td>${esc(d.attendu)}</td><td class="num">${d.bareme != null ? `${nbErreurs(d) ? "" : "✓ "}${SIP.nb(d.pts, 3)} / ${SIP.nb(d.bareme, 3)}` : nbErreurs(d) ? `✗ −${SIP.PENALITE * nbErreurs(d)}` : "✓"}</td></tr>`).join("")}</tbody></table></div>` : `<p class="discret">Pas de détail.</p>`}

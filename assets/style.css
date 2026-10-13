@@ -221,6 +221,7 @@ td.num .discret { font-family: var(--f-body); }
 table.grille-bac th { white-space: normal; min-width: 80px; max-width: 150px; vertical-align: bottom; }
 table.grille-bac th:first-child { min-width: 0; }
 table.grille-bac th .discret { white-space: nowrap; }
+table.grille-bac td.prep-cell { min-width: 150px; max-width: 230px; white-space: normal; line-height: 1.9; }
 tr.cliquable { cursor: pointer; } tr.cliquable:hover td { background: var(--accent-soft); }
 
 /* ---------- calendrier de lecture ---------- */
@@ -550,6 +551,18 @@ details.rapides .rapides-in details.sequence { box-shadow: none; }
 .ds-lot li.ds-blanc.ok { border-style: solid; border-color: transparent; background: var(--good-soft); }
 .ds-nom { display: flex; flex-direction: column; min-width: 0; }
 .ds-nom .discret { font-size: .8rem; }
+/* préparation du DS : étapes dans l'ordre, verrouillées */
+.ds-tete > div > .discret { font-size: .82rem; margin-top: 4px; }
+.prep-fiches { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 0; }
+.prep-fiches .btn { padding: 7px 12px; }
+.prep-fiches .btn.fait { background: var(--good-soft); color: var(--good); border-color: var(--good); }
+.prep-liste li.prep-et { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; }
+.prep-liste li.prep-et.cur { border-color: var(--accent); background: var(--paper); box-shadow: inset 3px 0 0 var(--accent); }
+.prep-liste li.prep-et.off { opacity: .6; }
+.prep-n { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .95rem; background: var(--paper); border: 1.5px solid var(--rule); color: var(--ink-2); }
+.prep-et.ok .prep-n { background: var(--good); border-color: var(--good); color: #fff; }
+.prep-et.cur .prep-n { background: var(--accent); border-color: var(--accent); color: #fff; }
+@media (max-width: 640px) { .prep-liste li.prep-et { grid-template-columns: 30px minmax(0, 1fr); } .prep-liste li.prep-et .ds-btns { grid-column: 2; } }
 .ds-btns { display: flex; gap: 8px; flex-shrink: 0; }
 .ds-btns .btn { padding: 8px 14px; white-space: nowrap; }
 .ds-btns .btn small { font-weight: 400; opacity: .8; }
@@ -622,3 +635,15 @@ details.sequence.anim-pli > .anim { border: 0; margin: 0; }
 .sig-rep dt { color: var(--ink-3); } .sig-rep dd { margin: 0; font-family: var(--f-mono); }
 .sig-corr { font-size: .9rem; color: var(--ink-2); margin: 6px 0; }
 .sig-act { margin-top: 10px; gap: 8px 12px; }
+
+/* DS passés (tableau de bord de Terminale SI) : le plus récent pour revoir ses erreurs, les autres repliés */
+.carte.ds-passe{border-left:4px solid var(--accent);padding-top:14px}
+.ds-passe .bac-titre{margin:.1em 0 .3em}
+.ds-passe p.discret{margin:0 0 10px}
+.ds-passe-liens{margin:0 0 6px}
+.ds-avant{margin-top:10px;border-top:1px solid var(--rule);padding-top:8px}
+.ds-avant summary{cursor:pointer;font-weight:600;font-size:.95rem}
+.ds-avant ul{list-style:none;margin:8px 0 0;padding:0}
+.ds-avant li{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--rule-2,var(--rule))}
+.ds-avant li:first-child{border-top:0}
+.ds-avant .ds-btns{display:flex;flex-wrap:wrap;gap:6px}

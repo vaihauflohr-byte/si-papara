@@ -57,6 +57,9 @@
     if (ev.type === "serie")
       return { module: "bac-" + ev.notion + (ev.nbSeries > 1 ? "-s" + (ev.serie + 1) : ""), titre: "Bac SI · " + ev.titre, type: "externe",
                score: ev.note, score_max: 20, duree_s: ev.duree_s, details: ev.details };
+    if (ev.type === "prep")   // étape de préparation d'un DS : module « prep-<ds>-<étape> » (ex. prep-ds02-1)
+      return { module: "prep-" + ev.ds + "-" + ev.etape, titre: "Bac SI · " + ev.titre, type: "externe",
+               score: ev.note, score_max: 20, duree_s: ev.duree_s, details: ev.details };
     if (ev.type === "parcours")
       return { module: "bac-parcours", titre: "Bac SI · " + ev.titre, type: "externe",
                score: ev.note, score_max: 20, duree_s: ev.duree_s, details: ev.details };

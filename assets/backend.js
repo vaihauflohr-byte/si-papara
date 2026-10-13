@@ -133,6 +133,7 @@ window.SIP = window.SIP || {};
       async profConnexion(email, mdp) { if (mdp !== "demo") throw new Error("En mode démo, le mot de passe prof est : demo"); sessionStorage.setItem("sip_prof", "1"); },
       async profSession() { try { return sessionStorage.getItem("sip_prof") === "1"; } catch (e) { return false; } },
       async profDeconnexion() { sessionStorage.removeItem("sip_prof"); },
+      async profJeton() { try { return sessionStorage.getItem("sip_prof") === "1" ? "demo.prof.jeton" : null; } catch (e) { return null; } },
       async profDonnees() {
         const db = load(); const depuis = SIP.ajouterJours(SIP.aujourdhui(), -70);
         return { eleves: db.eleves.map(({ pin, ...r }) => r), entrainements: db.entrainements, fiches_suivi: db.fiches_suivi, lectures: db.lectures.filter((l) => l.jour >= depuis) };
@@ -221,6 +222,7 @@ window.SIP = window.SIP || {};
         } catch (e) { return "inconnu"; }
       },
       async profDeconnexion() { await sb.auth.signOut(); },
+      async profJeton() { const { data } = await sb.auth.getSession(); return data && data.session ? data.session.access_token : null; },
       async profDonnees() {
         const depuis = SIP.ajouterJours(SIP.aujourdhui(), -70);
         const [eleves, entrainements, fiches_suivi, lectures] = await Promise.all([
@@ -258,6 +260,7 @@ window.SIP = window.SIP || {};
     ["connexion", "etat", "enregistrer", "adopter", "lire", "signaler", "mesSignalements", "profConnexion", "profDonnees", "profSignalements",
       "traiterSignalement", "validerSignalement", "creerEleve", "changerPin", "basculerActif", "supprimerEleve", "profDeconnexion"].forEach((f) => (api[f] = ko));
     api.profSession = async () => false;
+    api.profJeton = async () => null;
     api.profStatut = async () => "inconnu";
     return api;
   }
@@ -302,6 +305,39 @@ window.SIP = window.SIP || {};
     },
     effacer() { try { localStorage.removeItem(CLE_APERCU); } catch (e) {} }   // efface les essais faits en aperçu
   };
+  // =====================================================================
+  //  Vérification des réponses rédigées par l'IA : fonction Supabase « corriger »
+  //  (supabase/functions/corriger/index.ts, clé de l'API Claude côté serveur). Rien ne part sans session :
+  //  élève connecté (son jeton) ou professeur connecté en aperçu (session de l'espace prof).
+  //  On n'envoie que l'énoncé, le corrigé, les éléments du barème et le texte de l'élève.
+  //  SIP_CONFIG.ia = false coupe la vérification ; SIP_CONFIG.iaUrl sert aux tests.
+  // =====================================================================
+  const IA_URL = CFG.iaUrl || (CFG.supabaseUrl ? String(CFG.supabaseUrl).replace(/\/+$/, "") + "/functions/v1/corriger" : "");
+  SIP.ia = {
+    actif: () => !!IA_URL && CFG.ia !== false,
+    async corriger(p) {
+      const erreur = (code, reseau) => Object.assign(new Error(code), { code, reseau: !!reseau });
+      if (!SIP.ia.actif()) throw erreur("IA_ABSENTE");
+      const s = SIP.session.get(); if (!s) throw erreur("NON_CONNECTE");
+      const h = { "Content-Type": "application/json" }, corps = Object.assign({}, p);
+      if (CFG.supabaseAnonKey) h.apikey = CFG.supabaseAnonKey;
+      if (s.apercu) {
+        const t = principal.profJeton ? await principal.profJeton().catch(() => null) : null;
+        if (!t) throw erreur("PROF_NON_CONNECTE");
+        h.Authorization = "Bearer " + t;
+      } else corps.jeton = s.jeton;
+      const ctl = typeof AbortController === "function" ? new AbortController() : null, minuterie = ctl ? setTimeout(() => ctl.abort(), 40000) : null;   // la fonction s'arrête d'elle-même avant 30 s
+      let r;
+      try { r = await fetch(IA_URL, { method: "POST", headers: h, body: JSON.stringify(corps), signal: ctl ? ctl.signal : undefined }); }
+      catch (e) { throw erreur("IA_RESEAU", true); }
+      finally { if (minuterie) clearTimeout(minuterie); }
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw erreur(d.erreur || "IA_" + r.status);
+      if (!d || !Array.isArray(d.elements)) throw erreur("IA_REPONSE");
+      return d;
+    }
+  };
+
   // "oui" | "non" | "inconnu" (réseau). En mode démo, tout le monde est « prof ».
   SIP.statutProf = async () => (principal.mode === "demo" ? "oui" : principal.profStatut());
 
