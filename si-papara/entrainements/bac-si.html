@@ -232,6 +232,22 @@ pre.code .kw{color:var(--accent);font-weight:600} pre.code .str{color:var(--c-au
 .card{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:16px 18px 16px;display:flex;flex-direction:column;gap:11px;min-width:0}
 .card.week{border-top:3px solid var(--accent)}
 .card.parc{border-top:3px solid var(--good)}
+/* préparation du DS : les étapes, dans l'ordre */
+.card.prepc{border-top:3px solid var(--warn);margin-bottom:22px}
+.prep{list-style:none;margin:2px 0 0;padding:0;display:grid;gap:8px}
+.prep li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:10px 12px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper-2)}
+.prep li.ok{background:var(--good-soft);border-color:transparent}
+.prep li.cur{border-color:var(--accent);background:var(--paper);box-shadow:inset 3px 0 0 var(--accent)}
+.prep li.off{opacity:.6}
+.prep .pn{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-weight:600;font-size:.95rem;background:var(--paper);border:1.5px solid var(--rule);color:var(--ink-2)}
+.prep li.ok .pn{background:var(--good);border-color:var(--good);color:#fff}
+.prep li.cur .pn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.prep .pt{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.prep .pt b{font-size:.98rem}
+.prep .pd{font-size:.8rem;color:var(--ink-3)}
+.prep .pa{display:flex;gap:6px;flex-shrink:0}
+.btn.off{opacity:.55;pointer-events:none;background:var(--paper-2)}
+@media (max-width:560px){.prep li{grid-template-columns:30px minmax(0,1fr)}.prep .pa{grid-column:2}.prep .pa .btn{width:100%}}
 .card h2{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:1.55rem;line-height:1.05;margin:0}
 .card p{margin:0;color:var(--ink-2);font-size:.92rem}
 .card .nxt{font-size:.85rem;color:var(--ink-3);border-top:1px dashed var(--rule);padding-top:9px;margin-top:auto}
@@ -424,6 +440,10 @@ details.corr .qtext{font-size:.98rem;margin:.4rem 0}
 <script src="../contenu/fiches-bac.js"></script>
 <script src="../contenu/calendrier.js"></script>
 <script src="../assets/calendrier.js"></script>
+<script src="../contenu/bac-si.js"></script>
+<script>if (window.SIP && SIP.calendrier) SIP.calendrier.appliquerBac(SIP.BAC);</script>
+<script src="../contenu/ds-blancs.js"></script>
+<script src="../contenu/prep-ds.js"></script>
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="apple-touch-icon" href="../assets/icones/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
@@ -19580,7 +19600,7 @@ function planning(){
 }
 function home(){
   st=null; rv=null; stopBlanc(); document.body.classList.remove("playing");
-  let h=`${revCard()}<div class="dash">${weekCard()}${parcoursCard()}</div>${blancCard()}`;
+  let h=`${prepCard()}${revCard()}<div class="dash">${weekCard()}${parcoursCard()}</div>${blancCard()}`;
   h+=`<div class="choix"><span class="lbl">Je révise</span><div class="seg" role="radiogroup" aria-label="Partie révisée">
     <label><input type="radio" name="phy" id="phy-on" value="1"${withPhy?" checked":""}><span>SI + sciences physiques</span></label>
     <label><input type="radio" name="phy" id="phy-off" value="0"${withPhy?"":" checked"}><span>SI seulement</span></label></div>
@@ -19603,6 +19623,7 @@ function home(){
   app.innerHTML=h;
   app.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>openNotion(b.dataset.n));
   app.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>startParcours(b.dataset.p||curScope()));
+  prepBind(app);
   app.querySelectorAll('input[name=phy]').forEach(i=>i.onchange=()=>{ withPhy=i.value==="1"; try{ localStorage.setItem("bacsi-phy",withPhy?"1":"0"); }catch(e){} refresh(); home(); });
   app.querySelectorAll('input[name=scope]').forEach(i=>i.onchange=()=>LS.set("bacsi-scope",i.value));
   $("#rel").onclick=releve;
@@ -19870,7 +19891,7 @@ function draw(){
   else ans=`<div class="num"><input id="ans" type="text" inputmode="decimal" autocomplete="off" aria-label="Ta réponse"${q.unit?"":' placeholder="ex. 0,35"'}>${q.unit?`<span class="u">${q.unit}</span>`:""}<button class="btn primary" id="val" type="button">Valider</button></div><div class="warnmsg" id="wm" hidden></div>`;
   const title=P?`Mon parcours · ${esc(r.lab)}`:(st.M.series.length>1?`${esc(st.r.lab)} · ${esc(st.S.t)}`:esc(st.r.lab));
   const fig=`${q.fig||""}${q.data?`<div class="data">${q.data}</div>`:""}`;
-  app.innerHTML=`<div class="bar"><span class="lv"><small>n° ${r.rank}</small>${title}</span><div class="dots" aria-hidden="true">${dots}</div><button class="btn" id="quit" type="button">Quitter</button></div>
+  app.innerHTML=`<div class="bar"><span class="lv"><small>${st.prep?"préparation du DS":`n° ${r.rank}`}</small>${title}</span><div class="dots" aria-hidden="true">${dots}</div><button class="btn" id="quit" type="button">Quitter</button></div>
   <div class="play${fig?"":" nofig"}">
     ${fig?`<div class="figbox">${fig}</div>`:""}
     <div class="qbox">
@@ -19882,8 +19903,8 @@ function draw(){
       <span class="sig-place"></span>
     </div>
   </div>`;
-  sigCur=()=>sigData(q,st.answered?st.res[st.i]:null,P?"parcours":"serie",P?"bac-parcours":"bac-"+st.id+(st.M.series.length>1?"-s"+(st.k+1):"")); sigFill();
-  $("#quit").onclick=()=>{ if(P){ st.retries.forEach(saveRev); home(); } else if(st.M.series.length>1) openNotion(st.id); else home(); };
+  sigCur=()=>sigData(q,st.answered?st.res[st.i]:null,P?"parcours":"serie",P?"bac-parcours":st.prep?`prep-${st.prep.D.id}-${st.k}`:"bac-"+st.id+(st.M.series.length>1?"-s"+(st.k+1):"")); sigFill();
+  $("#quit").onclick=()=>{ if(P){ st.retries.forEach(saveRev); home(); } else if(st.prep) prepView(st.prep.D.id); else if(st.M.series.length>1) openNotion(st.id); else home(); };
   if(q.type==="ch") app.querySelectorAll(".choice").forEach(b=>b.onclick=()=>answer(+b.dataset.k));
   else { $("#ans").focus({preventScroll:true}); $("#val").onclick=answerNum; }
 }
@@ -19891,7 +19912,7 @@ function feedback(ok,correctTxt,rep){
   const q=st.qs[st.i], P=st.mode==="p";
   st.answered=true; st.res.push({ok,q,correct:correctTxt,rep});
   if(!ok) st.note=Math.max(0,st.note-2);
-  record(P?q.nid:st.id,q.lv,ok);
+  record(P||st.prep?q.nid:st.id,q.lv,ok);
   const extra=P?adapt(q,ok):"";
   $("#fb").innerHTML=`<div class="fb ${ok?"ok":"ko"}"><span class="t">${ok?"Exact":"Faux · −2 points"}</span>${ok?"":`<p>Réponse attendue : <b>${correctTxt}</b></p>`}${st.signe?`<p><b>Bonne valeur, mais pas le bon signe</b> : regarde dans quel sens la force fait tourner.</p>`:""}<p>${q.expl}</p>${extra}</div>`;
   st.signe=false;
@@ -19932,6 +19953,7 @@ function next(){
 const verdictOf=n=>n>=16?["ok","Très bien"]:n>=10?["mid","À consolider"]:["ko","À retravailler"];
 const errList=errs=>errs.length?`<h3 style="margin-top:0">Erreurs à revoir</h3><ul class="errs">${errs.map(r=>`<li>${r.q.q.replace(/<[^>]+>/g,"")}<br>Réponse : <span class="a">${r.correct.replace(/<[^>]+>/g,"")}</span></li>`).join("")}</ul>`:`<h3 style="margin-top:0">Aucune erreur</h3>`;
 function end(){
+  if(st.prep) return endPrep();
   const note=st.note, errs=st.res.filter(r=>!r.ok); saveBest(st.id,st.k,note); logAct({k:"s",id:st.id,se:st.k,note,n:st.res.length});
   hook({type:"serie",notion:st.id,serie:st.k,nbSeries:st.M.series.length,titre:st.r.lab+(st.M.series.length>1?" · "+st.S.t:""),note,n:st.res.length,erreurs:errs.length,duree_s:Math.round((Date.now()-st.t0)/1000),details:detailsOf(st.res)});
   const cls=note>=16?"ok":note>=10?"mid":"ko";
@@ -20098,12 +20120,156 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Enter"){ if(st.answered&&$("#next")){ e.preventDefault(); next(); } else if(inInput){ e.preventDefault(); answerNum(); } return; }
   if(!st.answered&&q&&q.type==="ch"&&!inInput&&/^[1-9]$/.test(e.key)){ const k=+e.key-1; if(k<q.ch.length) answer(k); }
 });
-/* liens directs (site SI Papara) : #n=<notion>, #parcours, #revision, #blanc */
+/* ---------- préparation d'un DS : trois étapes verrouillées (contenu/prep-ds.js), puis le DS blanc ----------
+   Étape 1 « Les briques » (niveau 1), 2 « Les calculs » (niveau 2), 3 « Les chaînes » (niveau 3) : chacune tire ses questions
+   dans les générateurs proches du DS (blocs de contenu/prep-ds.js, sinon tous les générateurs des notions du DS), est notée
+   comme une série (20, −2 par erreur) et, validée à 16/20, ouvre la suivante. Le site (index.html) tient le même compte
+   d'après l'historique transmis ; ici, l'état est celui de l'appareil, complété par ce que le site indique (#prep=ds02:2:ok). */
+const PREP_T=["","Les briques","Les calculs","Les chaînes"];
+const PREP_D=["","reconnaître, lire, nommer, calculer une grandeur simple","appliquer une formule sur un mécanisme","résoudre jusqu'au bout et conclure, comme au DS"];
+const PREP_SEUIL=16, PREP_OK="bacsi-prep-ouvert";
+const prepDefs=()=>window.SIP_PREP||{};
+const bacNotions=()=>(window.SIP&&SIP.BAC&&SIP.BAC.notions)||[];
+const dsKey=ds=>String(ds||"").toLowerCase().replace(/\s+/g,"");       // « DS 02 » → ds02
+const dsBlancDe=id=>((window.SIP&&SIP.DS_BLANCS)||[]).find(b=>b.id===id)||null;
+/* les DS qui ont une préparation : ceux du planning (SIP.BAC) dont une notion au moins est en ligne, ou décrits dans contenu/prep-ds.js */
+function prepDS(){
+  const out=[], seen=new Set();
+  bacNotions().filter(n=>n.ds&&n.ds_date).sort((a,b)=>a.ds_date.localeCompare(b.ds_date)||a.rang-b.rang).forEach(n=>{
+    const id=dsKey(n.ds); if(seen.has(id)) return; seen.add(id);
+    const notions=bacNotions().filter(x=>x.ds===n.ds).sort((a,b)=>a.rang-b.rang);
+    if(!(prepDefs()[id]&&prepDefs()[id].etapes)&&!notions.some(x=>keysOf(x.id).length)) return;
+    out.push({id,ds:n.ds,date:n.ds_date,echeance:n.echeance,notions});
+  });
+  return out;
+}
+const prepDe=id=>prepDS().find(D=>D.id===id)||null;
+/* le prochain DS à préparer : le premier dont l'échéance n'est pas passée */
+function prepProchain(){ const L=prepDS(), now=Date.now(); return L.find(D=>D.echeance&&Date.parse(D.echeance)>now)||null; }
+const okBloc=b=>b&&POOLS[b.k]&&POOLS[b.k][b.l]&&(b.g||[]).some(i=>POOLS[b.k][b.l][i])&&b.n>0;
+function prepEtapes(D){
+  const def=prepDefs()[D.id], et=[];
+  [1,2,3].forEach(k=>{
+    const e=def&&def.etapes&&def.etapes[k-1];
+    if(e&&(e.blocs||[]).some(okBloc)){ et.push({k,t:e.t||PREP_T[k],d:e.d||PREP_D[k],q:e.q||null,blocs:e.blocs.filter(okBloc).map(b=>({k:b.k,l:b.l,g:b.g.filter(i=>POOLS[b.k][b.l][i]),n:b.n}))}); return; }
+    const blocs=[]; D.notions.forEach(n=>keysOf(n.id).forEach(key=>{ const P=POOLS[key]; if(P&&P[k]&&P[k].length) blocs.push({k:key,l:k,g:[...Array(P[k].length).keys()],n:0}); }));
+    if(!blocs.length) return;
+    const tot=8; blocs.forEach((b,i)=>{ b.n=Math.min(b.g.length,Math.floor(tot/blocs.length)+(i<tot%blocs.length?1:0)); });
+    et.push({k,t:PREP_T[k],d:PREP_D[k],q:null,blocs:blocs.filter(b=>b.n>0)});
+  });
+  const b=dsBlancDe(D.id);
+  if(b) et.push({k:4,t:"DS blanc",d:`${b.titre} · question par question, puis en conditions de DS (${b.duree_min} min)`,blanc:b});
+  return et;
+}
+/* DS blanc déjà fait sur cet appareil (entrainements/ds-blanc.html garde ses essais par élève) */
+function dsbLocal(b){
+  if(!b) return null;
+  try{ const s=window.SIP&&SIP.session&&SIP.session.get(), k="sip_dsb_v1:"+(s?(s.apercu?"apercu":(s.eleve_id||s.nom||"eleve")):"anonyme");
+    const d=(JSON.parse(localStorage.getItem(k)||"{}")[b.id]||{}).essais||[], faits=d.filter(e=>e.rendu&&typeof e.note==="number");
+    return faits.length?{n:faits.length,best:Math.max(...faits.map(e=>e.note))}:null; }catch(e){ return null; }
+}
+const prepOuvert=()=>LS.get(PREP_OK,{});
+/* état des étapes sur cet appareil : meilleure note, validée, ouverte */
+function prepEtat(D){
+  const et=prepEtapes(D), ouv=prepOuvert()[D.id]||0; let prev=true;
+  return et.map(e=>{
+    if(e.blanc){ const l=dsbLocal(e.blanc); return {...e,best:l?l.best:null,n:l?l.n:0,ok:!!l,open:prev||!!l||ouv>=4}; }
+    const b=best("prep-"+D.id,e.k), ok=b!=null&&b>=PREP_SEUIL, open=prev||ouv>=e.k; prev=ok;
+    return {...e,best:b,ok,open};
+  });
+}
+const PSK="bacsi-prep-seen";
+/* tirage d'une étape : pour chaque bloc, n générateurs pas encore vus sur cet appareil, puis remise à zéro */
+function prepTirage(D,e){
+  const S=LS.get(PSK,{}), qs=[];
+  e.blocs.forEach((b,bi)=>{
+    const key=`${D.id}:${e.k}:${bi}`; let vus=new Set(S[key]||[]);
+    let libres=b.g.filter(i=>!vus.has(i)); if(libres.length<b.n){ vus=new Set(); libres=b.g.slice(); }
+    shuffle(libres).slice(0,b.n).forEach(i=>{ vus.add(i); genGroup(b.k,b.l,i).forEach(q=>{ q.nid=b.k.split("#")[0]; qs.push(q); }); });
+    S[key]=[...vus];
+  });
+  LS.set(PSK,S);
+  return qs;
+}
+function startPrep(id,k,force){
+  const D=prepDe(id); if(!D) return home();
+  const E=prepEtat(D), e=E.find(x=>x.k===k); if(!e||e.blanc) return prepView(id);
+  if(force){ const o=prepOuvert(); if((o[id]||0)<k){ o[id]=k; LS.set(PREP_OK,o); } }
+  else if(!e.open) return prepView(id);
+  const qs=prepTirage(D,e); if(!qs.length) return prepView(id);
+  st={mode:"s",prep:{D,e,k,E},id:"prep-"+D.id,k,r:{rank:"",lab:`${D.ds} · étape ${k} · ${e.t}`},M:{series:[{t:e.t}]},S:{t:e.t},qs,i:0,note:20,res:[],answered:false,m0:null,t0:Date.now()};
+  document.body.classList.add("playing"); draw(); window.scrollTo({top:0});
+}
+const fDS=s=>{ try{ return fD(D0(s)); }catch(e){ return s; } };
+const prepBtn=(D,x,primary)=>{
+  if(x.blanc) return x.open?`<a class="btn${x.ok?"":(primary?" primary":"")}" href="ds-blanc.html#${D.id}">${x.ok?`Refaire · meilleur ${nf(x.best,1)}/20`:"Faire le DS blanc →"}</a>`:`<span class="btn off" aria-disabled="true">après l'étape 3</span>`;
+  if(!x.open) return `<span class="btn off" aria-disabled="true">après l'étape ${x.k-1}</span>`;
+  return `<button class="btn${x.ok?"":(primary?" primary":"")}" type="button" data-prep="${D.id}:${x.k}">${x.ok?`Refaire · ${x.best}/20`:x.best!=null?`Reprendre · ${x.best}/20`:"Commencer"}</button>`;
+};
+function prepListe(D,E){
+  const cur=E.find(x=>x.open&&!x.ok);
+  return `<ol class="prep">${E.map(x=>`<li class="${x.ok?"ok":x.open?(cur&&cur.k===x.k?"cur":""):"off"}"><span class="pn">${x.ok?"✓":x.open?x.k:"🔒"}</span>
+    <span class="pt"><b>${x.k<4?`Étape ${x.k} · `:""}${esc(x.t)}</b><span class="pd">${esc(x.d)}${x.q?` · ≈ ${x.q} questions`:""}</span></span>
+    <span class="pa">${prepBtn(D,x,cur&&cur.k===x.k)}</span></li>`).join("")}</ol>`;
+}
+function prepBind(root){
+  root.querySelectorAll("[data-prep]").forEach(b=>b.onclick=()=>{ const [id,k]=b.dataset.prep.split(":"); startPrep(id,+k); });
+}
+/* carte de l'accueil : le prochain DS et ses étapes */
+function prepCard(){
+  const D=prepProchain(); if(!D) return "";
+  const E=prepEtat(D), faits=E.filter(x=>x.ok).length;
+  return `<section class="card prepc" aria-labelledby="pp-t"><div class="eyebrow">Prochain DS · ${fDS(D.date)}</div><h2 id="pp-t">Préparer le ${esc(D.ds)}</h2>
+    ${D.notions.length?`<p class="lbl2">${esc(D.notions.map(n=>n.lab).join(" · "))}</p>`:""}
+    <p>Trois étapes dans l'ordre, chacune validée à ${PREP_SEUIL}/20 ouvre la suivante${E.some(x=>x.blanc)?", puis le DS blanc":""}. Les valeurs changent à chaque essai ; recommence autant de fois qu'il faut, jusqu'à 6 h le jour du DS.</p>
+    ${prepListe(D,E)}
+    <p class="fine">${faits} / ${E.length} étape${E.length>1?"s":""} validée${faits>1?"s":""} sur cet appareil${window.SIP&&SIP.session&&SIP.session.get()?" · le détail transmis au professeur est sur <a href=\"../index.html#/tableau\">ton espace</a>":""}.</p></section>`;
+}
+function prepView(id){
+  const D=prepDe(id); if(!D) return home();
+  st=null; rv=null; stopBlanc(); document.body.classList.remove("playing");
+  const E=prepEtat(D), faits=E.filter(x=>x.ok).length;
+  app.innerHTML=`<div class="crumb"><button class="btn" id="back" type="button">← Accueil</button><b>Préparer le ${esc(D.ds)}</b><span class="soon">${fDS(D.date)}</span></div>
+    <section class="card prepc"><div class="eyebrow">Prochain DS · ${fDS(D.date)}</div><h2>Préparer le ${esc(D.ds)}</h2>
+    ${D.notions.length?`<p class="lbl2">${esc(D.notions.map(n=>n.lab).join(" · "))}</p>`:""}
+    <p>Trois étapes dans l'ordre : chacune, validée à ${PREP_SEUIL}/20, ouvre la suivante${E.some(x=>x.blanc)?", puis le DS blanc, question par question puis en conditions de DS":""}. On part de 20, −2 par erreur ; les valeurs changent à chaque essai.</p>
+    ${prepListe(D,E)}
+    <p class="fine">${faits} / ${E.length} validée${faits>1?"s":""} sur cet appareil.</p></section>
+    ${D.notions.some(n=>MODULES[n.id]&&MODULES[n.id].fiche)?`<div class="sec-h"><h2>Fiches à relire</h2></div><div class="fiches">${D.notions.filter(n=>MODULES[n.id]&&MODULES[n.id].fiche).map(n=>ficheHTML(MODULES[n.id].fiche)+ficheLien(n.id)).join("")}</div>`:""}`;
+  $("#back").onclick=home; prepBind(app); window.scrollTo({top:0});
+}
+function endPrep(){
+  const {D,e,k}=st.prep, note=st.note, errs=st.res.filter(r=>!r.ok), ok=note>=PREP_SEUIL;
+  saveBest(st.id,k,note); logAct({k:"s",id:st.id,se:k,note,n:st.res.length});
+  hook({type:"prep",ds:D.id,dsNom:D.ds,etape:k,titre:`${D.ds} · Étape ${k} : ${e.t}`,note,n:st.res.length,erreurs:errs.length,duree_s:Math.round((Date.now()-st.t0)/1000),details:detailsOf(st.res)});
+  const E=prepEtat(D), suiv=E.find(x=>x.k===k+1);
+  const cls=ok?"ok":note>=10?"mid":"ko";
+  const verdict=ok?(suiv?`Étape validée : ${suiv.blanc?"le DS blanc est ouvert":`l'étape ${k+1} est ouverte`}`:"Étape validée : tu es prêt pour le DS"):note>=10?`Pas encore : il faut ${PREP_SEUIL}/20. Recommence, les valeurs changent`:"Relis la fiche, puis recommence";
+  const errIds=[...new Set(errs.map(r=>r.q.nid))].filter(id=>MODULES[id]&&MODULES[id].fiche).slice(0,3);
+  app.innerHTML=`<div class="bar"><span class="lv"><small>préparation du DS</small>${esc(D.ds)} · étape ${k} · ${esc(e.t)} · bilan</span></div>
+  <div class="end">
+    <div class="panel"><div class="eyebrow">Note finale</div><div class="bignote">${note}<small> / 20</small></div><div class="verdict ${cls}">${verdict}</div>
+      <p>${st.res.length-errs.length} bonne${st.res.length-errs.length>1?"s":""} réponse${st.res.length-errs.length>1?"s":""} sur ${st.res.length}.</p>
+      <div class="actions">${ok&&suiv?(suiv.blanc?`<a class="btn primary" href="ds-blanc.html#${D.id}">DS blanc →</a>`:`<button class="btn primary" id="nxp" type="button">Étape ${k+1} : ${esc(suiv.t)} →</button>`):""}
+      <button class="btn${ok&&suiv?"":" primary"}" id="again" type="button">Recommencer (nouvelles valeurs)</button>
+      <button class="btn" id="tout" type="button">Toutes les étapes</button>${window.SIP&&SIP.session&&SIP.session.get()?`<a class="btn" href="../index.html#/tableau">Mon espace</a>`:""}</div></div>
+    <div class="panel">${errList(errs)}${errs.length?"":"<p>Passe à la suite, ou refais l'étape : les valeurs changent à chaque essai.</p>"}
+      ${errIds.length?`<h3>Fiche${errIds.length>1?"s":""} à relire</h3><div class="fiches">${errIds.map(id=>ficheHTML(MODULES[id].fiche)+ficheLien(id)).join("")}</div>`:""}</div>
+  </div>`;
+  const id=D.id;
+  $("#again").onclick=()=>startPrep(id,k); $("#tout").onclick=()=>prepView(id);
+  const nx=$("#nxp"); if(nx) nx.onclick=()=>startPrep(id,k+1);
+  window.scrollTo({top:0});
+}
+
+/* liens directs (site SI Papara) : #n=<notion>, #parcours, #revision, #blanc, #prep=ds02[:étape[:ok]] */
 function route(){
   const h=decodeURIComponent(location.hash.slice(1)); if(!h) return false;
   try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){}
   const m=/^n=([a-z0-9-]+)$/.exec(h);
   if(m&&isAvail(m[1])){ home(); openNotion(m[1]); return true; }
+  const p=/^prep=([a-z0-9]+)(?::([1-3])(?::(ok))?)?$/.exec(h);
+  if(p&&prepDe(p[1])){ home(); if(p[2]) startPrep(p[1],+p[2],!!p[3]); else prepView(p[1]); return true; }
   if(h==="parcours"){ home(); startParcours(curScope()); return true; }
   if(h==="revision"&&revState().all.length){ home(); startRev(); return true; }
   if(h==="blanc"&&blancIds().length){ home(); startBlanc(); return true; }
@@ -20125,8 +20291,6 @@ window.addEventListener("hashchange",()=>{ if(location.hash.length>1) route(); }
 <script src="../assets/backend.js"></script>
 <script src="../assets/appli.js"></script>
 <script src="../assets/signaler.js"></script>
-<script src="../contenu/bac-si.js"></script>
-<script>if (window.SIP && SIP.calendrier) SIP.calendrier.appliquerBac(SIP.BAC);</script>
 <script src="../assets/pont-bac.js"></script>
 </body>
 </html>
