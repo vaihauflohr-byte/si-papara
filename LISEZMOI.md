@@ -72,6 +72,7 @@ Sécurité : l'aperçu ne s'ouvre que si le navigateur a une session professeur 
 | 1re SI (cours S1 à S6) | 15 | ≈ 640 | 75 |
 | Terminale SI (cours S7 à S13 + projet robot sumo) | 18 | ≈ 700 | 88 |
 | Seconde SI, BTS | modules de démarrage (à étoffer) | | |
+| BTS 2 — projets U61/U62 | 13 projets individuels, 29 documents des dossiers 1-2-3 par projet, planning, protocole de mise en service, analyse des risques | | |
 
 Les banques 1re/Tle sont construites à partir des cours du professeur (dossiers « 1 - 1ere SI » et « 2 - TSI ») et rattachées aux compétences du BO (`contenu/competences.js`). Les calculs sont à données aléatoires : deux séries ne se ressemblent jamais.
 
@@ -125,6 +126,22 @@ Ajouter une animation = une entrée `SIP.ANIMS_BAC["<id de la notion>"] = { titr
 Mise à jour : quand le planning ou l'entraînement change, `contenu/bac-si.js` et `entrainements/bac-si.html` sont régénérés par `si_papara_bac.py` (après `build3.py`), et `entrainements/evaluation.html` par `build_eval.py` : il suffit de redéposer ces fichiers sur GitHub.
 
 Limite : la clé publique permet en théorie d'appeler la fonction d'enregistrement « à la main ». Le serveur refuse les notes hors barème, et chaque série garde ses questions et réponses : une note suspecte se vérifie en un clic.
+
+## Projets BTS 2 — U61 / U62 (14 octobre)
+
+`entrainements/bts-projets.html` = la page « Projets BTS 2 » (tuile **« Mon projet »** en tête du tableau de bord BTS 2, avant l'entraînement E4). **13 projets individuels** (`contenu/projets-bts2.js`), chacun avec un client polynésien (cas pédagogique) et une réalisation sur un système du labo : station de pompage ×3, monte-charge ×2, barrière ×2, Ciné 3S ×2, Harmotris ×2, atelier câblage ×2. Chaque projet suit le format du dossier projet du lycée : fiche, définition de la demande (U61 / U62), cahier des charges (exigences avec critères et niveaux, données chiffrées, contraintes, normes, partie en anglais), support de réalisation et matériel à prévoir, contrats de tâches individuelles **U61 (60 h, C7/C9/C11)** et **U62 (60 h, C4/C14/C15/C16)**, ressources des dossiers 1-2-3, outils, jalons.
+
+**Calés sur les grilles CCF** : chaque projet permet d'observer tous les critères de C7, C9, C11 et de C4, C14, C15, C16 — il y a toujours de la configuration ou de la programmation (C15), une réunion d'avancement avec compte rendu, une offre au client et une partie en anglais (C4). Chaque critère est relié aux documents qui le prouvent (onglet « Contrats et grilles »).
+
+**Ce que fait l'étudiant** : il lit son dossier projet, puis **construit ses dossiers 1, 2, 3** (référentiel : dossier technique des opérations ; supports d'enregistrement et de communication ; santé-sécurité et environnement) — 29 documents, classés conception (U61) / réalisation par anticipation / réalisation (U62), avec pour chacun le contenu attendu, les critères des grilles prouvés, son état (à faire, en cours, prêt pour la revue), le lien vers son fichier (Drive, ENT) et ses remarques. Outils de la **réalisation par anticipation** : **Planning** (Gantt des tâches des contrats, approvisionnement, revues, vacances hachurées, répartition automatique proposée), **Mise en service** (protocole pré-rempli par phase, critères reliés aux exigences, résultats notés pendant la mise en service = rapport), **Risques** (analyse pré-remplie, cotation gravité × probabilité). Tout s'imprime. Sans connexion, le travail reste sur l'appareil.
+
+**Espace prof → onglet « Projets BTS 2 »** : attribution des projets (le choix déclaré par l'étudiant s'affiche, « Confirmer » l'attribue), avancement des trois dossiers, documents « à valider », fiche de l'étudiant (validation ✓ / à reprendre avec commentaire pour chaque document, message pour l'étudiant, planning, protocole, risques) et **positionnement N1–N4** sur les grilles U61/U62 avec la note calculée selon leurs poids (C7 30 %, C9 35 %, C11 35 % ; C4 35 %, C14 25 %, C15 25 %, C16 15 %) — jamais montré à l'étudiant. Export CSV.
+
+- **Installation (une fois)** : Supabase → SQL Editor → New query → colle **`supabase/projets.sql`** → Run (table `projets_eleves` et deux fonctions ; rien d'autre n'est touché ; le même bloc est à la fin de `schema.sql`). Tant que ce n'est pas fait, les étudiants travaillent sur leur appareil et l'onglet prof rappelle la marche à suivre.
+- **Réglages sans rien regénérer** : `contenu/projets-reglages.js` — dates des revues (R0 lancement 9 novembre, R1 7 décembre, R2 8 février, R3 22 mars, réunion d'avancement 3 mai, revues finales 7 juin : prévisionnel, à caler sur le rythme de la classe), périodes (préliminaire, U61, U62), et une attribution de secours (`{ "identifiant": "P03" }`) utilisable avant le passage du SQL.
+- Les 13 dossiers projet existent aussi en **Word** (format du lycée, avec contrats de tâches et grilles), fournis à part : à remettre aux étudiants et à la commission.
+
+**Parcours d'entraînement (jusqu'en décembre)** — `contenu/projets-entrainement.js` : avant les vrais projets (chez les partenaires, à partir de janvier), le vrai projet est découpé en six étapes, travaillées dans le même ordre, avec le même livrable et les mêmes critères de grille : relevé et diagnostic de l'existant, simulation et choix, documents, réalisation par anticipation, réalisation et réception, démarrage du vrai projet. Toute la classe fait la même étape en même temps ; le support change selon le domaine : cinq cas fictifs (TGBT, solaire et recharge, sécurité incendie, automatismes, moteurs et pompage), une partie par étudiant (`E1-1`, `E1-2`…), calée sur son vrai projet. Sur la page des étudiants : le parcours et les cas en tête, la banque des 13 projets complets dessous. Une partie s'ouvre sur l'étape en cours (fiche, livrables avec état et lien, positionnement N1–N4 de l'étape) ; l'onglet « Le cas » donne le dossier de visite. Dans l'espace prof : attribution par cas, validation des livrables, positionnement de l'étape et retour écrit, que l'étudiant voit. Seule l'étape ouverte est rédigée ; les suivantes s'ajoutent au rythme de la classe (`outils/projets-bts2/LISEZMOI.md`). Le corrigé du professeur n'est jamais sur le site : il est dans les documents Word, fournis à part avec la fiche de l'étudiant et les cinq dossiers de visite. Les identifiants `E1-1`… demandent la version à jour de `supabase/projets.sql` (rejouable : la repasser une fois).
 
 ## 5. Ajouter du contenu
 
@@ -196,6 +213,12 @@ contenu/              modules et mini-fiches (1si-*.js, tsi-*.js, bts*.js…) + 
                       + fiches-bac.js (fiches de révision) + anim-bac.js (animations) + methode-bac.js (« Réussir l'écrit »)
                       + verif-bac.js (questions « Vérifie que tu as compris ») + missions-bac.js (missions à étoiles)
 entrainements/        bac-si.html (entraînement bac SI relié au site) + evaluation.html (évaluation en classe, espace prof)
+                      + bts-e4.html (entraînement E4) + bts-projets.html (projets BTS 2 : dossiers 1-2-3, planning, mise en service, risques)
+contenu/projets-bts2.js     les 13 projets BTS 2 (généré) ; contenu/projets-reglages.js : dates des revues, attribution de secours
+contenu/projets-entrainement.js  parcours d'entraînement : étapes, cinq cas, une partie par étudiant (généré par outils/projets-bts2/entrainement)
+assets/prof-projets.js      onglet « Projets BTS 2 » de l'espace prof
+outils/projets-bts2/        sources des 13 projets et générateur des dossiers Word (voir son LISEZMOI)
 supabase/schema.sql   base de données (tables, sécurité, fonctions)
 supabase/signalements.sql   à passer une fois sur une base existante : les signalements d'erreurs
+supabase/projets.sql        à passer une fois sur une base existante : les projets BTS 2 (attribution, travail des étudiants, validations)
 ```

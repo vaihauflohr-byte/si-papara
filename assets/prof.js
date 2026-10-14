@@ -86,16 +86,22 @@
         <div class="rang"><select id="niv" style="width:auto">${opts}</select>
         <button class="btn sec" id="maj">Actualiser</button></div>
         <button class="btn sec" id="csv">Exporter CSV</button></div>
-      <div class="onglets no-print"><button data-o="suivi" class="${onglet === "suivi" ? "actif" : ""}">Suivi</button><button data-o="competences" class="${onglet === "competences" ? "actif" : ""}">Compétences</button><button data-o="bac" class="${onglet === "bac" ? "actif" : ""}">Bac SI</button><button data-o="eleves" class="${onglet === "eleves" ? "actif" : ""}">Élèves et codes</button><button data-o="signalements" class="${onglet === "signalements" ? "actif" : ""}">Signalements${nbSigNouveaux() ? ` <span class="sig-pastille">${nbSigNouveaux()}</span>` : ""}</button><button data-o="apercu" class="${onglet === "apercu" ? "actif" : ""}">Aperçu élève</button></div>
+      <div class="onglets no-print"><button data-o="suivi" class="${onglet === "suivi" ? "actif" : ""}">Suivi</button><button data-o="competences" class="${onglet === "competences" ? "actif" : ""}">Compétences</button><button data-o="bac" class="${onglet === "bac" ? "actif" : ""}">Bac SI</button><button data-o="projets" class="${onglet === "projets" ? "actif" : ""}">Projets BTS 2</button><button data-o="eleves" class="${onglet === "eleves" ? "actif" : ""}">Élèves et codes</button><button data-o="signalements" class="${onglet === "signalements" ? "actif" : ""}">Signalements${nbSigNouveaux() ? ` <span class="sig-pastille">${nbSigNouveaux()}</span>` : ""}</button><button data-o="apercu" class="${onglet === "apercu" ? "actif" : ""}">Aperçu élève</button></div>
       <div id="corps">${contenu}</div>`;
     document.getElementById("niv").onchange = (e) => { niveau = e.target.value; try { localStorage.setItem("sip_prof_niveau", niveau); } catch (x) {} afficher(); };
-    document.getElementById("maj").onclick = async () => { await charger(); afficher(); };
+    document.getElementById("maj").onclick = async () => { await charger(); if (SIP.profProjets) await SIP.profProjets.recharger(); afficher(); };
     document.getElementById("csv").onclick = exporterCSV;
-    document.querySelectorAll("[data-o]").forEach((b) => (b.onclick = () => { onglet = b.dataset.o; afficher(); }));
+    document.querySelectorAll("[data-o]").forEach((b) => (b.onclick = () => { onglet = b.dataset.o; if (onglet === "projets" && SIP.profProjets) SIP.profProjets.fermer(); afficher(); }));
   }
   const elevesFiltres = () => D.eleves.filter((e) => !niveau || e.niveau === niveau).sort((a, b) => a.niveau.localeCompare(b.niveau) || a.nom.localeCompare(b.nom));
 
-  function afficher() { onglet === "eleves" ? vueEleves() : onglet === "competences" ? vueCompetences() : onglet === "bac" ? vueBac() : onglet === "signalements" ? vueSignalements() : onglet === "apercu" ? vueApercu() : vueSuivi(); }
+  function afficher() { onglet === "eleves" ? vueEleves() : onglet === "competences" ? vueCompetences() : onglet === "bac" ? vueBac() : onglet === "projets" ? vueProjets() : onglet === "signalements" ? vueSignalements() : onglet === "apercu" ? vueApercu() : vueSuivi(); }
+
+  // ---------------- Projets BTS 2 (assets/prof-projets.js, contenu/projets-bts2.js) ----------------
+  function vueProjets() {
+    if (!SIP.profProjets) return cadre(`<div class="carte"><p>Les fichiers des projets (contenu/projets-bts2.js, assets/prof-projets.js) ne sont pas chargés.</p></div>`);
+    SIP.profProjets.afficher({ cadre, D, niveau });
+  }
 
   // ---------------- Signalements d'erreurs ----------------
   const sigDuNiveau = () => (D.signalements || []).filter((x) => !niveau || x.niveau === niveau);
@@ -196,7 +202,7 @@
 
   // ---------------- Aperçu élève : le site tel que le voit chaque filière, sans compte élève ----------------
   function vueApercu() {
-    const extra = { TSI: "Tableau de bord tourné vers le bac : prochain DS, fiches, séries notées, sujet blanc.", "BTS2-STI": "Avec l'entraînement E4 (sujets d'annales, auto-évaluation N0–N3).", "BTS2-ADM": "Avec l'entraînement E4 (sujets d'annales, auto-évaluation N0–N3)." };
+    const extra = { TSI: "Tableau de bord tourné vers le bac : prochain DS, fiches, séries notées, sujet blanc.", "BTS2-STI": "Avec l'entraînement E4 (sujets d'annales, auto-évaluation N0–N3) et la page « Mon projet » (dossiers 1-2-3).", "BTS2-ADM": "Avec l'entraînement E4 (sujets d'annales, auto-évaluation N0–N3) et la page « Mon projet » (dossiers 1-2-3)." };
     cadre(`<p class="discret">Ouvre le site élève comme un élève de la filière choisie, sans identifiant. Tout fonctionne (séries, fiches du jour, révision de la semaine, bac SI, E4) mais <b>rien n'est transmis</b> : tes essais restent dans ce navigateur et n'apparaissent ni dans le suivi ni dans les grilles. Dans l'aperçu, un bandeau permet de changer de filière, d'effacer tes essais ou de quitter.</p>
       <div class="grille">${SIP.NIVEAUX.map((n) => `<div class="carte tuile"><div class="discret">${esc(n.groupe)}</div><h3>${esc(n.nom)}</h3>
         ${n.desc ? `<div class="discret">${esc(n.desc)}</div>` : ""}${extra[n.id] ? `<div class="discret">${esc(extra[n.id])}</div>` : ""}<span class="etiquette" style="margin:6px 0 12px">${SIP.modulesDu(n.id).length} modules</span>

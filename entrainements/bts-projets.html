@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BTS Électrotechnique · Projets BTS 2</title>
+<meta name="description" content="Projets BTS 2 Électrotechnique (U61 conception – étude détaillée, U62 réalisation – mise en service) : cahier des charges, construction des dossiers 1, 2, 3, planning, protocole de mise en service, analyse des risques, grilles d'évaluation.">
+<link rel="icon" href="../assets/icones/icone-192.png">
+<style>
+@font-face{font-family:'Barlow Condensed';font-weight:600;font-display:swap;src:url(../assets/fonts/barlow-condensed-600.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-weight:700;font-display:swap;src:url(../assets/fonts/barlow-condensed-700.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-weight:400;font-display:swap;src:url(../assets/fonts/ibm-plex-sans-400.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-weight:600;font-display:swap;src:url(../assets/fonts/ibm-plex-sans-600.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-weight:500;font-display:swap;src:url(../assets/fonts/ibm-plex-mono-500.woff2) format('woff2')}
+:root{color-scheme:light;
+  --ground:#edf1f4;--paper:#fff;--paper-2:#f4f7f9;--ink:#15202b;--ink-2:#44525f;--ink-3:#6c7884;
+  --rule:#d5dce3;--rule-2:#e6ebef;--line-strong:#15202b;
+  --accent:#1d3f7a;--accent-soft:#e2e9f5;--accent-ink:#fff;
+  --good:#146c43;--good-soft:#dff2e7;--bad:#b42318;--bad-soft:#fde4e1;--warn:#8a5a00;--warn-soft:#fff2d2;
+  --d1:#1d3f7a;--d2:#0f6b5c;--d3:#9a3412;--vac:#e9edf1;
+  --f-disp:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;--r:6px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --ground:#0d1318;--paper:#141c24;--paper-2:#19232d;--ink:#e2e8ee;--ink-2:#a9b5c1;--ink-3:#8794a0;
+  --rule:#28343f;--rule-2:#1f2a34;--line-strong:#c8d2dc;--accent:#8fb0ee;--accent-soft:#1a2a44;--accent-ink:#0d1318;
+  --good:#6ccb97;--good-soft:#132d1f;--bad:#ff8f84;--bad-soft:#3a1714;--warn:#e8b75a;--warn-soft:#32270e;
+  --d1:#8fb0ee;--d2:#5fc7b4;--d3:#f4a37a;--vac:#1c2731}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --ground:#0d1318;--paper:#141c24;--paper-2:#19232d;--ink:#e2e8ee;--ink-2:#a9b5c1;--ink-3:#8794a0;
+  --rule:#28343f;--rule-2:#1f2a34;--line-strong:#c8d2dc;--accent:#8fb0ee;--accent-soft:#1a2a44;--accent-ink:#0d1318;
+  --good:#6ccb97;--good-soft:#132d1f;--bad:#ff8f84;--bad-soft:#3a1714;--warn:#e8b75a;--warn-soft:#32270e;
+  --d1:#8fb0ee;--d2:#5fc7b4;--d3:#f4a37a;--vac:#1c2731}
+*{box-sizing:border-box}html,body{margin:0}[hidden]{display:none!important}
+body{background:var(--ground);color:var(--ink);font:15.5px/1.55 var(--f-body);-webkit-text-size-adjust:100%}
+a{color:var(--accent);text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+b,strong{font-weight:600}
+h1{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:clamp(1.55rem,3.4vw,2.3rem);line-height:1.02;margin:.1em 0 .4em;text-wrap:balance}
+h2{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:1.3rem;line-height:1.1;margin:30px 0 12px;padding-bottom:6px;border-bottom:1.5px solid var(--line-strong)}
+h2 .discret{font-family:var(--f-body);text-transform:none;font-weight:400;font-size:.88rem}
+h3{font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.03em;font-size:1.08rem;line-height:1.15;margin:0 0 .4em}
+p{margin:.4em 0 .8em}
+ul{margin:.3em 0 .8em;padding-left:1.25em}li{margin:.15em 0}
+.eyebrow{font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.12em;font-size:.76rem;color:var(--ink-3)}
+.discret{color:var(--ink-2);font-size:.9rem}
+.mono{font-family:var(--f-mono)}
+/* en-tête */
+.haut{background:var(--paper);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:30}
+.haut-in{max-width:1180px;margin:0 auto;padding:9px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{display:inline-flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none;min-width:0}
+.logo img{width:44px;height:auto;display:block}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .logo img{filter:invert(1)}}
+:root[data-theme="dark"] .logo img{filter:invert(1)}
+.logo-ey{font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.12em;font-size:.7rem;color:var(--ink-3)}
+.logo-nom{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:1.4rem;line-height:.95}
+.haut-droite{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.86rem}
+.sip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.82rem}
+.sip.ok{background:var(--good-soft);color:var(--good)}.sip.ko{background:var(--warn-soft);color:var(--warn)}.sip.ap{background:var(--accent-soft);color:var(--accent)}
+.sip a{color:inherit;font-weight:600}
+main{max-width:1180px;margin:0 auto;padding:16px 16px 80px}
+/* éléments */
+.carte{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:16px;margin:0 0 14px}
+.carte.info{border-left:4px solid var(--accent)}
+.carte.alerte{border-left:4px solid var(--warn);background:var(--warn-soft)}
+.btn{appearance:none;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:600 .92rem/1.2 var(--f-body);padding:9px 14px;border-radius:var(--r);cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;min-height:40px}
+.btn:hover{border-color:var(--ink-3)}
+.btn.plein{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.petit{padding:5px 10px;font-size:.82rem;min-height:32px}
+.btn.lien{border:0;background:none;color:var(--accent);padding:4px 0;min-height:0;text-decoration:underline}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.rang{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:.76rem;line-height:1.3;padding:2px 8px;border-radius:999px;background:var(--paper-2);border:1px solid var(--rule);color:var(--ink-2);white-space:nowrap}
+.chip.accent{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.chip.ok{background:var(--good-soft);border-color:transparent;color:var(--good)}
+.chip.ko{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
+.chip.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.chip.crit{font-family:var(--f-mono);font-size:.72rem;cursor:help}
+.chip.ph-conception{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.chip.ph-anticipation{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.chip.ph-realisation{background:var(--good-soft);color:var(--good);border-color:transparent}
+.table-defil{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 14px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;vertical-align:top;padding:7px 9px;border-bottom:1px solid var(--rule-2)}
+th{font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:.8rem;color:var(--ink-2);background:var(--paper-2)}
+td.num,th.num{text-align:right;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:var(--r);font-size:.9rem;z-index:60;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.25)}
+input[type=text],input[type=url],select,textarea{font:inherit;color:inherit;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:7px 9px;width:100%}
+textarea{resize:vertical;min-height:38px;line-height:1.4}
+select{width:auto}
+label.court{font-size:.82rem;color:var(--ink-2);display:block;margin:6px 0 3px}
+/* accueil */
+.hero{background:var(--paper);border:1px solid var(--rule);border-left:6px solid var(--accent);border-radius:var(--r);padding:18px;margin:6px 0 18px;display:grid;gap:14px}
+@media (min-width:860px){.hero{grid-template-columns:1.5fr 1fr;align-items:start}}
+.hero h1{margin:.15em 0 .2em}
+.prog{display:grid;gap:8px}
+.prog-l{display:grid;grid-template-columns:86px 1fr auto;gap:8px;align-items:center;font-size:.86rem}
+.barre{height:9px;background:var(--rule-2);border-radius:999px;overflow:hidden;display:flex}
+.barre i{display:block;height:100%}
+.barre i.v{background:var(--good)}.barre i.p{background:var(--accent)}.barre i.c{background:color-mix(in srgb,var(--accent) 35%,transparent)}
+.grille-projets{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.grille-groupes{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));margin-bottom:8px}
+.cg{background:var(--paper);border:1px solid var(--rule);border-top:4px solid var(--accent);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:6px}
+.cg .roles{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}
+.cg .roles a{display:flex;flex-direction:column;gap:1px;padding:8px 10px;border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink)}
+.cg .roles a:hover{border-color:var(--accent)}
+.cg .roles a.mien{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.cg .r-n{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.03em;color:var(--ink-3)}
+.cg .roles a.mien .r-n{color:var(--accent)}
+.synoptique{background:#fff;border:1px solid var(--rule);border-radius:var(--r);padding:8px;margin:6px 0 14px}
+.synoptique svg{display:block;width:100%;height:auto}
+tr.moi td{background:var(--accent-soft)}
+.cp{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:6px;text-decoration:none;color:var(--ink)}
+.cp:hover{border-color:var(--accent)}
+.cp.mien{border:2px solid var(--accent)}
+.cp-num{font-family:var(--f-mono);font-size:.78rem;color:var(--ink-3)}
+.cp-t{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:1.12rem;line-height:1.05}
+.cp-l{font-size:.85rem;color:var(--ink-2)}
+.cp .rang{gap:5px;margin-top:auto;padding-top:6px}
+.cp .chip{white-space:normal}
+a.ouvrir{white-space:nowrap}
+.filtres{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.filtres button{appearance:none;border:1px solid var(--rule);background:var(--paper);color:var(--ink-2);border-radius:999px;padding:5px 12px;font:600 .82rem var(--f-body);cursor:pointer}
+.filtres button.actif{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.etapes{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));counter-reset:et}
+.etape{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:14px 14px 12px 50px;position:relative}
+.etape::before{counter-increment:et;content:counter(et);position:absolute;left:12px;top:12px;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font:700 1rem/28px var(--f-disp);text-align:center}
+/* parcours d'entraînement */
+.parcours{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.parcours li{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:3px;font-size:.9rem;line-height:1.3}
+.parcours li.ouverte{border-color:var(--accent);box-shadow:inset 0 3px 0 var(--accent)}
+.parcours li:not(.ouverte){color:var(--ink-2)}
+.parcours .pn{font:700 1.5rem/1 var(--f-disp);color:var(--accent)}
+.parcours li:not(.ouverte) .pn{color:var(--ink-3)}
+.parcours .chip{align-self:flex-start;margin-top:auto}
+.prog-l.a-venir{color:var(--ink-3)}
+.etape-p.ouverte{border-left:4px solid var(--accent)}
+.trois{display:grid;gap:12px}
+@media (min-width:880px){.trois{grid-template-columns:repeat(3,1fr)}}
+.trois .carte{margin:0}
+.gravites{display:grid;gap:8px;margin:0 0 14px}
+@media (min-width:700px){.gravites{grid-template-columns:repeat(3,1fr)}}
+.gravites .g{border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:.9rem}
+.gravites .g1{background:var(--bad-soft)}.gravites .g1 b{color:var(--bad)}
+.gravites .g2{background:var(--warn-soft)}.gravites .g2 b{color:var(--warn)}
+.gravites .g3{background:var(--good-soft)}.gravites .g3 b{color:var(--good)}
+.citations blockquote{margin:0 0 10px;padding:10px 14px;border-left:4px solid var(--rule);background:var(--paper);border-radius:0 var(--r) var(--r) 0;font-style:italic}
+.synoptique figcaption{font-size:.85rem;color:#44525f;text-align:center;padding:6px 4px 2px;font-style:italic}
+dl.qr{margin:0}
+dl.qr dt{font-weight:600;margin-top:10px}
+dl.qr dt:first-child{margin-top:0}
+dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
+.pos{padding:12px}
+.pos-t{margin:0 0 8px}
+.pos-n{display:grid;gap:6px}
+@media (min-width:760px){.pos-n{grid-template-columns:repeat(4,1fr)}}
+.pos-n .niv{appearance:none;text-align:left;border:1px solid var(--rule);background:var(--paper);color:var(--ink);border-radius:var(--r);padding:8px 10px;font:inherit;font-size:.84rem;line-height:1.35;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.pos-n .niv:disabled{cursor:default}
+.pos-n .niv:not(:disabled):hover{border-color:var(--ink-3)}
+.pos-n .niv .nn{font:600 .78rem var(--f-mono);color:var(--ink-3)}
+.pos-n .niv.moi{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.pos-n .niv.moi .nn{color:var(--accent)}
+.pos-n .niv.prof{outline:2px dashed var(--good);outline-offset:-3px}
+.pos-n .niv.prof .nn{color:var(--good)}
+/* page projet */
+.fil{margin:2px 0 8px;font-size:.9rem}
+.tete-projet{margin:0 0 10px}
+.tete-projet .rang{margin-top:4px}
+.sauve{font-size:.8rem;color:var(--ink-3)}
+.sauve.ok{color:var(--good)}.sauve.ko{color:var(--warn)}
+.onglets{display:flex;gap:2px;overflow-x:auto;border-bottom:2px solid var(--line-strong);margin:12px 0 16px;position:sticky;top:62px;background:var(--ground);z-index:20;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.onglets::-webkit-scrollbar{display:none}
+.onglets a{flex:0 0 auto;padding:10px 12px 8px;font:600 .88rem var(--f-body);color:var(--ink-2);text-decoration:none;border-radius:var(--r) var(--r) 0 0;white-space:nowrap}
+.onglets a.actif{background:var(--line-strong);color:var(--paper)}
+.fiche{display:grid;gap:4px 18px;grid-template-columns:max-content 1fr;font-size:.92rem}
+.fiche dt{color:var(--ink-2)}.fiche dd{margin:0}
+@media (max-width:560px){.fiche{grid-template-columns:1fr}.fiche dt{margin-top:6px}}
+.secteurs{list-style:none;padding:0;margin:0}
+.secteurs li{font-size:.88rem}
+.ex-id{font-family:var(--f-mono);font-weight:500;white-space:nowrap}
+.deux{display:grid;gap:14px}
+@media (min-width:880px){.deux{grid-template-columns:1fr 1fr}}
+.jalons{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.jalons li{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:start;font-size:.9rem}
+.jalons .jid{font-family:var(--f-mono);font-weight:500;background:var(--accent-soft);color:var(--accent);border-radius:4px;text-align:center;padding:1px 0}
+.jalons li.passe{opacity:.6}
+/* dossiers */
+.resume-d{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin:0 0 16px}
+.resume-d .carte{margin:0;border-top:4px solid var(--dc)}
+.dossier{margin:0 0 26px}
+.dossier-t{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:3px solid var(--dc);padding-bottom:6px;margin:0 0 10px}
+.dossier-t h2{border:0;margin:0;padding:0;color:var(--dc)}
+.doc{background:var(--paper);border:1px solid var(--rule);border-left:4px solid var(--rule);border-radius:var(--r);margin:0 0 10px}
+.doc.s1{border-left-color:color-mix(in srgb,var(--accent) 45%,var(--rule))}
+.doc.s2{border-left-color:var(--accent)}
+.doc.val{border-left-color:var(--good)}
+.doc.rep{border-left-color:var(--bad)}
+.doc summary{list-style:none;cursor:pointer;padding:11px 12px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.doc summary::-webkit-details-marker{display:none}
+.doc-t{font-weight:600;line-height:1.3}
+.doc-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.doc-corps{padding:0 12px 12px;border-top:1px solid var(--rule-2)}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:var(--r);overflow:hidden;flex-wrap:wrap}
+.seg button{appearance:none;border:0;background:var(--paper);color:var(--ink-2);font:600 .82rem var(--f-body);padding:7px 10px;cursor:pointer;min-height:36px}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.retour{border-radius:var(--r);padding:8px 10px;font-size:.88rem;margin:8px 0}
+.retour.ok{background:var(--good-soft);color:var(--good)}.retour.rep{background:var(--bad-soft);color:var(--bad)}
+.retour b{display:block}
+.liste-crit{display:flex;gap:4px;flex-wrap:wrap}
+/* planning */
+.gantt-defil{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper);margin:0 0 14px}
+.gantt{border-collapse:separate;border-spacing:0;font-size:.78rem;width:max-content;min-width:100%}
+.gantt th,.gantt td{padding:0;border-bottom:1px solid var(--rule-2);border-right:1px solid var(--rule-2);height:24px;min-width:20px;text-align:center;background:var(--paper)}
+.gantt th{font-family:var(--f-mono);font-weight:500;font-size:.66rem;text-transform:none;letter-spacing:0;padding:2px 0;color:var(--ink-3);background:var(--paper-2)}
+.gantt th.mois{font-family:var(--f-disp);font-size:.75rem;text-transform:uppercase;color:var(--ink-2);text-align:left;padding-left:4px}
+.gantt .tache{position:sticky;left:0;z-index:2;text-align:left;padding:3px 8px;min-width:190px;max-width:260px;font-size:.78rem;line-height:1.25;background:var(--paper);white-space:normal}
+.gantt th.tache{background:var(--paper-2)}
+.gantt td.vac{background:repeating-linear-gradient(135deg,var(--vac) 0 4px,transparent 4px 8px)}
+.gantt td.b{background:var(--gc,var(--accent))}
+.gantt td.b.vac{background:repeating-linear-gradient(135deg,var(--gc,var(--accent)) 0 4px,color-mix(in srgb,var(--gc,var(--accent)) 55%,transparent) 4px 8px)}
+.gantt td.jal{color:var(--bad);font-weight:700}
+.gantt tr.g-prelim{--gc:#64748b}.gantt tr.g-u61{--gc:var(--d1)}.gantt tr.g-appro{--gc:var(--warn)}.gantt tr.g-u62{--gc:var(--d2)}.gantt tr.g-perso{--gc:var(--d3)}
+.pl-liste .pl-l{display:grid;grid-template-columns:1fr auto;gap:8px 12px;padding:9px 0;border-bottom:1px solid var(--rule-2);align-items:center}
+.pl-liste .pl-l:last-child{border-bottom:0}
+.pl-ctl{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:.82rem}
+.pl-ctl select{padding:5px 6px;font-size:.82rem}
+.pl-g{font-family:var(--f-mono);font-size:.72rem;color:var(--ink-3)}
+/* tableaux éditables */
+.ed td{padding:4px}
+.ed textarea,.ed input,.ed select{border-color:transparent;background:transparent;padding:5px 6px;font-size:.86rem;min-height:32px}
+.ed textarea:hover,.ed input:hover,.ed select:hover{border-color:var(--rule)}
+.ed textarea:focus,.ed input:focus,.ed select:focus{border-color:var(--accent);background:var(--paper)}
+.ed .phase-l td{background:var(--paper-2);font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:.82rem;padding:7px 9px}
+.ed .ex{font-family:var(--f-mono);font-size:.75rem;color:var(--accent)}
+.crit-c{font-family:var(--f-mono);font-weight:600;text-align:center;border-radius:4px;padding:5px 0}
+.crit-c.c1{background:var(--good-soft);color:var(--good)}.crit-c.c2{background:var(--warn-soft);color:var(--warn)}.crit-c.c3{background:var(--bad-soft);color:var(--bad)}
+.suppr{appearance:none;border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:1rem;padding:4px 6px}
+.suppr:hover{color:var(--bad)}
+/* grilles */
+.comp{border:1px solid var(--rule);border-radius:var(--r);background:var(--paper);margin:0 0 12px;overflow:hidden}
+.comp-t{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;background:var(--paper-2);border-bottom:1px solid var(--rule)}
+.comp-id{font-family:var(--f-mono);font-weight:600;font-size:1rem;color:var(--accent)}
+.comp-p{font-family:var(--f-disp);font-weight:700;font-size:1.2rem}
+.crit-l{display:grid;grid-template-columns:62px 1fr;gap:4px 10px;padding:8px 12px;border-bottom:1px solid var(--rule-2);font-size:.88rem}
+.crit-l:last-child{border-bottom:0}
+.crit-l .ou{grid-column:2;font-size:.8rem;color:var(--ink-2)}
+.contrat td:first-child{white-space:nowrap;font-family:var(--f-mono);font-size:.8rem}
+.contrat .gt td{background:var(--paper-2);font-weight:600}
+.contrat td.x{text-align:center;font-weight:700;color:var(--accent)}
+.print-tete{display:none}
+@media (max-width:640px){
+  main{padding:12px 12px 70px}.carte{padding:13px}
+  .onglets{top:58px}
+  .doc summary{grid-template-columns:1fr}
+  .prog-l{grid-template-columns:70px 1fr auto}
+}
+@media print{
+  @page{size:A4;margin:12mm}
+  body{background:#fff;color:#000;font-size:10.5pt}
+  .haut,.onglets,.fil,.no-print,.btn,.seg,.toast,.filtres{display:none!important}
+  main{max-width:none;padding:0}
+  .carte,.doc,.comp,.table-defil,.gantt-defil{border-color:#999;break-inside:avoid}
+  .print-tete{display:flex;align-items:center;gap:12px;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px}
+  .pos-n .niv{break-inside:avoid}.synoptique{break-inside:avoid}
+  .print-tete img{width:46px}
+  details.doc{display:block}details.doc>.doc-corps{display:block}
+  .gantt .tache{position:static}
+  textarea,input,select{border:0!important;background:none!important;padding:0!important;resize:none}
+  a{color:#000;text-decoration:none}
+}
+</style>
+</head>
+<body>
+<header class="haut"><div class="haut-in">
+  <a class="logo" href="#/"><img src="../assets/logo-papara.svg" alt="" onerror="this.remove()"><span><span class="logo-ey">LPO Papara · BTS Électrotechnique</span><br><span class="logo-nom">Projets BTS 2</span></span></a>
+  <div class="haut-droite"><span class="discret">U61 · U62</span><span id="sip-etat"></span></div>
+</div></header>
+<main id="app"><p class="discret">Chargement…</p></main>
+
+<script src="../contenu/projets-bts2.js"></script>
+<script src="../contenu/projets-entrainement.js" onerror="void 0"></script>
+<script src="../contenu/projets-reglages.js" onerror="void 0"></script>
+<script>
+/* =====================================================================
+   Projets BTS 2 — page des étudiants.
+   L'étudiant lit son dossier projet (cahier des charges), puis construit ses
+   dossiers 1, 2 et 3 : conception, puis réalisation par anticipation (planning,
+   protocole de mise en service, analyse des risques). Son travail est gardé sur
+   l'appareil et envoyé au professeur (supabase/projets.sql) s'il est connecté.
+   ===================================================================== */
+(function () {
+  "use strict";
+  const P = window.SIP_PROJETS;
+  const app = document.getElementById("app");
+  if (!P) { app.innerHTML = `<div class="carte alerte">Le fichier des projets (contenu/projets-bts2.js) n'a pas pu être chargé.</div>`; return; }
+  const REG = window.SIP_PROJETS_REGLAGES || {};
+  const JALONS = (REG.jalons && REG.jalons.length ? REG.jalons : P.jalons).slice().sort((a, b) => a.date.localeCompare(b.date));
+  const PERIODES = REG.periodes && REG.periodes.length ? REG.periodes : P.periodes;
+  const VACANCES = REG.vacances && REG.vacances.length ? REG.vacances : P.vacances;
+  const ATTRIB = Object.assign({}, P.attribution || {}, REG.attribution || {});
+
+  // calendrier d'un projet : celui des projets d'entraînement est propre (octobre-décembre)
+  const calDe = (p) => ({
+    J: (p && p.jalons ? p.jalons : JALONS).slice().sort((a, b) => a.date.localeCompare(b.date)),
+    PER: p && p.periodes ? p.periodes : PERIODES,
+  });
+  // parcours d'entraînement (contenu/projets-entrainement.js) : le vrai projet découpé en étapes, cinq cas, une partie par étudiant
+  const PARC = P.parcours || null;
+  const CAS = P.cas || [];
+  const ETAPES = PARC ? PARC.etapes : [];
+  const estEnt = (p) => !!(p && p.type === "entrainement");
+  const casDe = (p) => CAS.find((c) => c.id === p.cas) || { parties: [], constats: [], tables: [], documents: [], entretien: [], demande: [], existant: [], checklist_plus: [], figure: {} };
+  const ouvertes = () => ETAPES.filter((e) => e.ouverte);
+  const etapeDe = (id) => ETAPES.find((e) => e.id === id);
+  const etapeCourante = () => { const o = ouvertes(); return o[o.length - 1] || ETAPES[0]; };
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const projet = (id) => P.projets.find((p) => p.id === id);
+  const SUP = P.supports;
+  const CRIT = {};
+  ["u61", "u62"].forEach((u) => P.grilles[u].competences.forEach((c) => c.criteres.forEach((k) => (CRIT[k.id] = { txt: k.txt, comp: c.id, lib: c.lib, unite: P.grilles[u].unite, par: k.par || c.evalue }))));
+  const PHASES = { conception: "Conception (U61)", anticipation: "Réalisation par anticipation", realisation: "Réalisation (U62)" };
+  const STATUTS = ["À faire", "En cours", "Prêt pour la revue"];
+  const ORDRE_PHASES_MES = ["Hors tension", "Sous tension", "Essais fonctionnels", "Performances", "Vérification sur dossier"];
+  const DCOUL = { d1: "var(--d1)", d2: "var(--d2)", d3: "var(--d3)" };
+  const auj = () => new Date(Date.now() - 10 * 3600e3).toISOString().slice(0, 10);   // heure de Tahiti
+  const ajJ = (d, n) => new Date(Date.parse(d + "T00:00:00Z") + n * 86400e3).toISOString().slice(0, 10);
+  const lundi = (d) => { const t = new Date(Date.parse(d + "T00:00:00Z")); return ajJ(d, -((t.getUTCDay() + 6) % 7)); };
+  const fmtJour = (d, long) => new Date(d + "T12:00:00Z").toLocaleDateString("fr-FR", long ? { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" } : { day: "2-digit", month: "2-digit", timeZone: "UTC" });
+  const fmtHeure = (iso) => { try { return new Date(iso).toLocaleString("fr-FR", { timeZone: "Pacific/Tahiti", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+  const SECT_COURT = { "Production centralisée et/ou décentralisée d'énergie électrique": "Production d'énergie", "Réseaux de transport, de distribution d'énergie électrique et de communication": "Réseaux et communication",
+    "Infrastructures": "Infrastructures", "Bâtiments (résidentiel, tertiaire et industriel)": "Bâtiments", "Industrie": "Industrie", "Équipements électriques des véhicules": "Véhicules" };
+  const urlSure = (u) => /^https?:\/\/[^\s"'<>]+$/i.test(String(u || "").trim());
+  const tron = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+
+  function docsDu(p) {
+    if (estEnt(p)) return ouvertes().flatMap((e) => e.livrables.map((l) => Object.assign({ contenu: [] }, l, { etape: e.id })));
+    return P.docs_communs.filter((d) => !p.docs || p.docs.includes(d.id)).map((d) => {
+      let contenu = d.spec ? (p.spec[d.spec] || []).slice() : (d.contenu || []).slice();
+      if (d.plus && p.plus && p.plus[d.plus]) contenu = contenu.concat(p.plus[d.plus]);
+      return Object.assign({}, d, { contenu });
+    });
+  }
+
+  // ---------------- Session, état, enregistrement ----------------
+  // la session est lue au chargement de la page : assets/backend.js (SIP) est chargé après ce script
+  let S = null, estBTS2 = false, cleLocale = "sip_projet:local";
+  function lireSession() {
+    try { S = window.SIP && SIP.session ? SIP.session.get() : null; } catch (e) { S = null; }
+    estBTS2 = !!(S && /^BTS2/.test(S.niveau || ""));
+    cleLocale = "sip_projet:" + (S ? (S.apercu ? "apercu:" + S.niveau : (S.niveau || "") + ":" + String(S.nom || "").toLowerCase()) : "local");
+  }
+  let ETAT = { v: 1, projet: null, docs: {}, planning: null, mes: null, risques: null, maj: null };
+  let RETOURS = {}, ATTRIBUE = null, SERVEUR = "local", derniereSauve = null;
+  const lireLocal = () => { try { return JSON.parse(localStorage.getItem(cleLocale)); } catch (e) { return null; } };
+  const ecrireLocal = () => { try { localStorage.setItem(cleLocale, JSON.stringify(ETAT)); } catch (e) {} };
+  const normaliser = (e) => Object.assign({ v: 1, projet: null, docs: {}, planning: null, mes: null, risques: null, maj: null }, e || {}, { docs: (e && e.docs) || {} });
+
+  async function charger() {
+    const loc = lireLocal(); if (loc) ETAT = normaliser(loc);
+    if (!S) { SERVEUR = "local"; return; }
+    if (!window.SIP || !SIP.api || !SIP.api.projetEtat) { SERVEUR = "absent"; return; }
+    try {
+      const r = await SIP.api.projetEtat();
+      SERVEUR = "ok";
+      ATTRIBUE = (r && r.projet) || null;
+      RETOURS = (r && r.retours) || {};
+      const srv = r && r.etat && r.etat.maj ? r.etat : null;
+      if (srv && (!ETAT.maj || srv.maj > ETAT.maj)) ETAT = normaliser(srv);
+      else if (ETAT.maj && (!srv || ETAT.maj > srv.maj)) setTimeout(() => enregistrer(), 300);   // travail local plus récent : on l'envoie
+    } catch (e) {
+      const m = String((e && e.message) || "");
+      SERVEUR = m === "SESSION_EXPIREE" ? "expire" : /projet_mon_etat|does not exist|schema cache|PGRST202|404|Could not find/i.test(m) ? "absent" : "hors-ligne";
+    }
+    if (!ATTRIBUE && S && S.nom) ATTRIBUE = ATTRIB[S.nom] || ATTRIB[String(S.nom).toLowerCase()] || null;
+    if (ATTRIBUE && ETAT.projet && ETAT.projet !== ATTRIBUE) {   // l'étudiant avait choisi un autre projet : on garde une copie et on repart
+      try { localStorage.setItem(cleLocale + ":ancien", JSON.stringify(ETAT)); } catch (e) {}
+      ETAT = normaliser({ projet: ATTRIBUE });
+    }
+  }
+  // Le professeur attribue les projets (onglet Projets de prof.html). Tant qu'il ne l'a pas fait, l'étudiant
+  // peut déclarer le projet qu'on lui a donné (« C'est mon projet ») pour commencer : l'attribution l'emporte ensuite.
+  const choixLibre = () => !ATTRIBUE;
+  const monProjet = () => ATTRIBUE || ETAT.projet || null;
+
+  let tSauve = null;
+  function modif(refaire) {
+    ETAT.maj = new Date().toISOString(); ETAT.projet = monProjet() || ETAT.projet; ecrireLocal();
+    indicateur("modifie");
+    clearTimeout(tSauve); tSauve = setTimeout(enregistrer, 1500);
+    if (refaire) refaire();
+  }
+  async function enregistrer() {
+    clearTimeout(tSauve); ecrireLocal();
+    if (!S || SERVEUR === "absent" || SERVEUR === "local" || !window.SIP || !SIP.api.projetEnregistrer) { indicateur(); return; }
+    try { await SIP.api.projetEnregistrer(ETAT); SERVEUR = "ok"; derniereSauve = new Date().toISOString(); indicateur(); }
+    catch (e) { SERVEUR = (e && e.message) === "SESSION_EXPIREE" ? "expire" : "hors-ligne"; indicateur(); }
+  }
+  window.addEventListener("online", () => { if (SERVEUR === "hors-ligne") enregistrer(); });
+  window.addEventListener("beforeunload", () => { ecrireLocal(); });
+  function texteSauve(etat) {
+    if (etat === "modifie") return ["", "Modifications en cours d'enregistrement…"];
+    if (!S) return ["ko", "Non connecté : ton travail est gardé sur cet appareil seulement"];
+    if (S.apercu) return ["", "Aperçu : travail gardé dans ce navigateur, rien n'est transmis"];
+    if (SERVEUR === "ok") return ["ok", derniereSauve ? `Enregistré et transmis au professeur ✓ ${fmtHeure(derniereSauve)}` : "Travail synchronisé avec le site ✓"];
+    if (SERVEUR === "absent") return ["ko", "Suivi en ligne pas encore activé : travail gardé sur cet appareil"];
+    if (SERVEUR === "expire") return ["ko", "Connexion expirée : reconnecte-toi sur le site pour transmettre ton travail"];
+    return ["ko", "Hors ligne : travail gardé sur cet appareil, il partira au retour du réseau"];
+  }
+  function indicateur(etat) { document.querySelectorAll(".sauve").forEach((el) => { const [c, t] = texteSauve(etat); el.className = "sauve " + c; el.textContent = t; }); }
+
+  // ---------------- Avancement ----------------
+  function avancement(p) {
+    const r = { d1: { n: 0, c: 0, p: 0, v: 0, r: 0 }, d2: { n: 0, c: 0, p: 0, v: 0, r: 0 }, d3: { n: 0, c: 0, p: 0, v: 0, r: 0 } };
+    docsDu(p).forEach((d) => {
+      const x = r[d.dossier]; x.n++;
+      const s = (ETAT.docs[d.id] || {}).s || 0, rv = ((RETOURS.docs || {})[d.id] || {}).v;
+      if (rv === "ok") x.v++; else if (rv === "reprendre") x.r++; else if (s === 2) x.p++; else if (s === 1) x.c++;
+    });
+    return r;
+  }
+  function barre(x) {
+    const pc = (k) => (x.n ? (100 * k) / x.n : 0);
+    return `<div class="barre" role="img" aria-label="${x.v} validés, ${x.p} prêts, ${x.c} en cours sur ${x.n}"><i class="v" style="width:${pc(x.v)}%"></i><i class="p" style="width:${pc(x.p)}%"></i><i class="c" style="width:${pc(x.c + x.r)}%"></i></div>`;
+  }
+  const prochainJalon = (p) => calDe(p).J.find((j) => j.date >= auj());
+  function avEtape(e) {
+    const x = { n: 0, c: 0, p: 0, v: 0, r: 0 };
+    e.livrables.forEach((d) => {
+      const s = (ETAT.docs[d.id] || {}).s || 0, rv = ((RETOURS.docs || {})[d.id] || {}).v;
+      if (d.option && !s && !rv) return;   // livrable facultatif : compté seulement s'il est commencé
+      x.n++;
+      if (rv === "ok") x.v++; else if (rv === "reprendre") x.r++; else if (s === 2) x.p++; else if (s === 1) x.c++;
+    });
+    return x;
+  }
+
+  // ---------------- Accueil ----------------
+  let filtreSup = "";
+  function vueAccueil() {
+    const mien = monProjet(), p = mien && projet(mien);
+    const j = p && !estEnt(p) ? prochainJalon(p) : null;
+    app.innerHTML = `
+      ${p ? (estEnt(p) ? heroEntrainement(p) : heroMonProjet(p)) : ""}
+      ${!p && (estBTS2 || !S) ? `<div class="carte info">${S ? "" : "<b>Tu n'es pas connecté(e).</b> Tu peux lire les projets et travailler sur cet appareil ; pour transmettre ton travail au professeur, <a href=\"../index.html#/connexion/BTS2-STI\">connecte-toi</a> (BTS 2 STI ou ADM). "}${PARC ? "Ouvre ta partie dans le cas d'entraînement que ton professeur t'a donné, puis appuie sur <b>« C'est ma partie »</b>." : "Ouvre le projet que ton professeur t'a donné, puis appuie sur <b>« C'est mon projet »</b> pour commencer à construire tes dossiers."}</div>` : ""}
+      ${PARC ? `<h2>Parcours d'entraînement <span class="discret">d'ici décembre · le vrai projet découpé en étapes, une étape à la fois</span></h2>
+      <ol class="parcours">${ETAPES.map((e) => `<li class="${e.ouverte ? "ouverte" : ""}"><span class="pn">${e.n}</span><b>${esc(e.titre)}</b><span class="discret">${esc(e.quand)}</span>${e.ouverte ? `<span class="chip accent">en cours</span>` : `<span class="chip">à venir</span>`}</li>`).join("")}</ol>
+      <h2>Les cas d'entraînement <span class="discret">un cas par domaine · une partie par étudiant, calée sur son vrai projet</span></h2>
+      <div class="grille-groupes">${CAS.map((c) => carteCas(c, mien)).join("")}</div>` : ""}
+      <h2>${PARC ? "Banque de projets complets" : "Les 13 projets"} <span class="discret">un projet par étudiant · client polynésien et réalisation au labo</span></h2>
+      <div class="filtres no-print" role="group" aria-label="Filtrer par support du labo"><button data-f="" class="${filtreSup ? "" : "actif"}">Tous</button>${Object.keys(SUP).filter((k) => BANQUE.some((x) => x.support === k)).map((k) => `<button data-f="${k}" class="${filtreSup === k ? "actif" : ""}">${esc(SUP[k].court)}</button>`).join("")}</div>
+      <div class="grille-projets">${BANQUE.filter((x) => !filtreSup || x.support === filtreSup).map((x) => carteProjet(x, x.id === mien)).join("")}</div>
+      <h2>Comment ça marche</h2>
+      <div class="etapes">
+        <div class="etape"><h3>Lire le dossier projet</h3>Le besoin du client, le cahier des charges (exigences, données, contraintes, normes) et le support de réalisation au labo.</div>
+        <div class="etape"><h3>Construire tes dossiers 1, 2, 3</h3>D'abord la conception (U61), puis la réalisation par anticipation : planning, protocole de mise en service, autocontrôles, analyse des risques.</div>
+        <div class="etape"><h3>Réaliser et mettre en service</h3>Au labo (U62) : câblage, programmation, mise en service selon ton protocole, réunion d'avancement, réception client.</div>
+      </div>
+      ${j ? `<p class="discret">Prochaine revue : <b>${esc(j.id)} — ${esc(j.titre)}</b>, semaine du ${esc(fmtJour(j.date, true))}.</p>` : ""}`;
+    app.querySelectorAll("[data-f]").forEach((b) => (b.onclick = () => { filtreSup = b.dataset.f; vueAccueil(); }));
+  }
+  const BANQUE = P.projets.filter((x) => !estEnt(x));
+  function carteCas(c, mien) {
+    const parts = P.projets.filter((x) => estEnt(x) && x.cas === c.id);
+    return `<div class="cg">
+      <span class="cp-num">Cas ${c.id} · ${esc(c.domaine)}</span>
+      <span class="cp-t">${esc(c.court)}</span>
+      <span class="cp-l">${esc(c.client)} · ${esc(c.lieu)}</span>
+      <ul class="roles">${parts.map((r) => `<li><a href="#/p/${r.id}" class="${r.id === mien ? "mien" : ""}"><span class="r-n">${r.id}${r.id === mien ? " · MA PARTIE" : ""}</span><b>${esc(r.partie)}</b><span class="discret">prépare : ${esc(r.prepare)}</span></a></li>`).join("")}</ul></div>`;
+  }
+  function heroEntrainement(p) {
+    const c = casDe(p), e = etapeCourante();
+    return `<section class="hero">
+      <div><div class="eyebrow">Mon entraînement · ${esc(p.id)} · cas ${esc(c.id)} : ${esc(c.domaine)}</div>
+        <h1>${esc(p.partie)}</h1>
+        <p class="discret" style="margin:0 0 10px">${esc(c.court)} — ${esc(c.client)} · ${esc(c.lieu)}</p>
+        <div class="rang"><a class="btn plein" href="#/p/${p.id}/${e.id}">Étape ${e.n} : ${esc(e.court)} →</a><a class="btn" href="#/p/${p.id}/cas">Lire le dossier de visite</a></div>
+        ${RETOURS.message ? `<div class="retour ok"><b>Message du professeur</b>${esc(RETOURS.message)}</div>` : ""}</div>
+      <div class="prog">
+        ${ETAPES.map((x) => { if (!x.ouverte) return `<div class="prog-l a-venir"><span>Étape ${x.n}</span><span class="discret">${esc(x.court)} · ${esc(x.quand)}</span><span></span></div>`;
+          const a = avEtape(x); return `<div class="prog-l"><span>Étape ${x.n}</span>${barre(a)}<span class="discret">${a.v + a.p}/${a.n}</span></div>`; }).join("")}
+        <p class="discret" style="margin:4px 0 0">Vert : validé par le professeur · bleu : prêt · clair : en cours.</p>
+        <p class="sauve"></p>
+      </div></section>`;
+  }
+  function carteProjet(p, mien) {
+    return `<a class="cp ${mien ? "mien" : ""}" href="#/p/${p.id}">
+      <span class="cp-num">${p.id}${mien ? " · MON PROJET" : ""}</span>
+      <span class="cp-t">${esc(p.court)}</span>
+      <span class="cp-l">${esc(p.client)} · ${esc(p.lieu)}</span>
+      <span class="rang"><span class="chip accent">${esc(SUP[p.support].court)}</span>${p.secteurs.map((s) => `<span class="chip">${esc(SECT_COURT[s] || s)}</span>`).join("")}</span></a>`;
+  }
+  function heroMonProjet(p) {
+    const a = avancement(p), j = prochainJalon(p);
+    return `<section class="hero">
+      <div><div class="eyebrow">Mon projet · ${p.id} · ${esc(SUP[p.support].court)}</div>
+        <h1>${esc(p.court)}</h1>
+        <p class="discret" style="margin:0 0 10px">${esc(p.client)} · ${esc(p.lieu)}</p>
+        <div class="rang"><a class="btn plein" href="#/p/${p.id}/dossiers">Construire mes dossiers →</a><a class="btn" href="#/p/${p.id}">Lire le dossier projet</a></div>
+        ${RETOURS.message ? `<div class="retour ok"><b>Message du professeur</b>${esc(RETOURS.message)}</div>` : ""}</div>
+      <div class="prog">
+        ${["d1", "d2", "d3"].map((d, i) => `<div class="prog-l"><span>Dossier ${i + 1}</span>${barre(a[d])}<span class="discret">${a[d].v + a[d].p}/${a[d].n}</span></div>`).join("")}
+        <p class="discret" style="margin:4px 0 0">Vert : validé par le professeur · bleu : prêt pour la revue · clair : en cours.</p>
+        ${j ? `<p class="discret" style="margin:0">Prochaine revue : <b>${esc(j.id)}</b> — ${esc(j.titre)} (semaine du ${esc(fmtJour(j.date))})</p>` : ""}
+        <p class="sauve"></p>
+      </div></section>`;
+  }
+
+  // ---------------- Page d'un projet ----------------
+  const ONGLETS = [["projet", "Le projet"], ["dossiers", "Mes dossiers 1·2·3"], ["planning", "Planning"], ["mes", "Mise en service"], ["risques", "Risques"], ["grilles", "Contrats et grilles"]];
+  function vueProjet(p, onglet) {
+    if (estEnt(p)) return vueEntrainement(p, onglet);
+    if (!ONGLETS.some((o) => o[0] === onglet)) onglet = "projet";
+    const mien = monProjet() === p.id;
+    const nom = S && !S.apercu ? S.nom : "";
+    app.innerHTML = `
+      <div class="print-tete"><img src="../assets/logo-papara.svg" alt="" onerror="this.remove()"><div><b>LPO Papara — BTS Électrotechnique — session ${esc(P.session)}</b><br>Projet ${p.id} · ${esc(p.titre)}${nom ? ` · ${esc(nom)}` : ""}</div></div>
+      <nav class="fil no-print"><a href="#/">← Tous les projets</a></nav>
+      <header class="tete-projet">
+        <div class="eyebrow">Projet ${p.id} · ${esc(SUP[p.support].nom)}</div>
+        <h1>${esc(p.titre)}</h1>
+        <div class="rang"><span class="discret">${esc(p.client)} · ${esc(p.lieu)}</span>
+          ${mien ? (ATTRIBUE ? `<span class="chip ok">Mon projet</span>` : `<span class="chip warn" title="Ton professeur confirmera l'attribution dans son espace">Mon projet · à confirmer par le professeur</span>`) : choixLibre() && (estBTS2 || !S) ? `<button class="btn petit no-print" id="choisir">C'est mon projet</button>` : ""}
+          ${mien ? `<span class="sauve"></span>` : ""}</div>
+      </header>
+      <nav class="onglets no-print" aria-label="Parties du projet">${ONGLETS.map(([k, t]) => `<a href="#/p/${p.id}/${k}" class="${k === onglet ? "actif" : ""}" ${k === onglet ? 'aria-current="page"' : ""}>${t}</a>`).join("")}</nav>
+      <div id="contenu"></div>`;
+    brancherChoix(p, onglet);
+    const c = document.getElementById("contenu");
+    ({ projet: ongletProjet, dossiers: ongletDossiers, planning: ongletPlanning, mes: ongletMES, risques: ongletRisques, grilles: ongletGrilles }[onglet])(p, c, mien);
+    indicateur();
+    window.scrollTo(0, 0);
+  }
+  // « C'est mon projet » / « C'est ma partie » : l'étudiant déclare ce que son professeur lui a donné (l'attribution l'emporte ensuite)
+  function brancherChoix(p, onglet) {
+    const btn = document.getElementById("choisir"); if (!btn) return;
+    const quoi = estEnt(p) ? "la partie" : "le projet";
+    btn.onclick = () => {
+      if (ETAT.projet && ETAT.projet !== p.id && Object.keys(ETAT.docs).length && !confirm(`Tu as déjà commencé ${ETAT.projet}. Passer à ${p.id} efface ton travail sur ${ETAT.projet} (une copie est gardée sur cet appareil). Continuer ?`)) return;
+      if (ETAT.projet && ETAT.projet !== p.id) { try { localStorage.setItem(cleLocale + ":ancien", JSON.stringify(ETAT)); } catch (e) {} ETAT = normaliser({}); }
+      ETAT.projet = p.id; modif(); toast(estEnt(p) ? `Partie ${p.id} enregistrée comme ta partie.` : `Projet ${p.id} enregistré comme ton projet.`); vueProjet(p, onglet);
+    };
+    btn.setAttribute("aria-label", `Déclarer ${quoi} ${p.id} comme le mien`);
+  }
+  const avisLecture = (quoi) => `<div class="carte info no-print">${quoi} Ces outils servent à construire <b>ton</b> projet : ${monProjet() ? `<a href="#/p/${monProjet()}/${location.hash.split("/")[3] || "dossiers"}">ouvre le projet ${monProjet()}</a>.` : "ouvre le projet qui t'est attribué."}</div>`;
+
+  // ----- onglet « Le projet » : dossier projet et cahier des charges -----
+  function ongletProjet(p, c) {
+    const tab = (t) => `<div class="table-defil"><table><thead><tr>${t.cols.map((x) => `<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>${t.lignes.map((l) => `<tr>${l.map((x, i) => `<td>${i === 0 ? `<b>${esc(x)}</b>` : esc(x)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    c.innerHTML = `
+      <div class="rang no-print" style="justify-content:flex-end;margin:-6px 0 10px"><button class="btn petit" onclick="print()">Imprimer le dossier projet</button></div>
+      <div class="deux">
+        <section class="carte"><h3>Fiche du projet</h3>
+          <dl class="fiche">
+            <dt>Épreuve</dt><dd>E6 — U61 conception, étude détaillée du projet ; U62 réalisation, mise en service du projet</dd>
+            <dt>Établissement</dt><dd>${esc(P.etablissement)} — session ${esc(P.session)}</dd>
+            <dt>Équipe pédagogique</dt><dd>${esc(P.equipe)}</dd>
+            <dt>Client</dt><dd>${esc(p.client)}</dd><dt>Lieu</dt><dd>${esc(p.lieu)}</dd>
+            <dt>Étudiants</dt><dd>1 étudiant</dd>
+            <dt>Montant estimé</dt><dd>${esc(p.montant)}</dd><dt>Financement</dt><dd>${esc(p.financement)}</dd>
+          </dl></section>
+        <section class="carte"><h3>Secteurs professionnels</h3>
+          <ul class="secteurs">${P.secteurs.map((s) => `<li>${p.secteurs.includes(s) ? "☑" : "☐"} ${esc(s)}</li>`).join("")}</ul></section>
+      </div>
+      <h2>Présentation du projet</h2>
+      <p><b>${esc(p.pitch)}</b></p>${p.contexte.map((t) => `<p>${esc(t)}</p>`).join("")}
+      <h2>Définition de la demande</h2>
+      <p>${esc(p.objectif)}</p>
+      <div class="deux">
+        <div class="carte"><h3>Le client demande — U61 conception</h3><ul>${p.demande_u61.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+        <div class="carte"><h3>Le client demande — U62 réalisation</h3><ul>${p.demande_u62.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+      </div>
+      <h2>Cahier des charges</h2>
+      <h3>Exigences</h3>
+      <div class="table-defil"><table><thead><tr><th>Réf.</th><th>Exigence</th><th>Critère</th><th>Niveau attendu</th></tr></thead><tbody>
+        ${p.exigences.map((e) => `<tr><td class="ex-id">${e.id}</td><td><b>${esc(e.titre)}</b></td><td>${esc(e.critere)}</td><td>${esc(e.niveau)}</td></tr>`).join("")}</tbody></table></div>
+      ${p.donnees.map((t) => `<h3>${esc(t.titre)}</h3>${tab(t)}`).join("")}
+      <div class="deux">
+        <div class="carte"><h3>Contraintes</h3><ul>${p.contraintes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+        <div class="carte"><h3>Normes et règlements</h3><ul>${p.normes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+      </div>
+      <div class="carte info"><h3>En anglais</h3><p style="margin:0">${esc(p.anglais)}</p></div>
+      <h2>Support de réalisation au labo</h2>
+      <div class="carte"><h3>${esc(SUP[p.support].nom)}</h3><p class="discret">${esc(SUP[p.support].desc)}</p><p>${esc(p.support_detail)}</p>
+        <b>Matériel prévu pour la réalisation</b> <span class="discret">(à confirmer avec ton professeur)</span><ul>${p.materiel.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+      <h2>Jalons <span class="discret">prévisionnels, ajustés au rythme de la classe</span></h2>
+      <div class="carte"><ul class="jalons">${JALONS.map((j) => `<li class="${j.date < auj() ? "passe" : ""}"><span class="jid">${esc(j.id)}</span><span><b>${esc(j.titre)}</b> — semaine du ${esc(fmtJour(j.date, true))}<br><span class="discret">${esc(j.detail)}</span></span></li>`).join("")}</ul>
+        <p class="discret" style="margin:10px 0 0">${PERIODES.map((x) => `${esc(x.titre)} : du ${esc(fmtJour(x.debut))} au ${esc(fmtJour(x.fin))}`).join(" · ")}</p></div>`;
+  }
+
+  // ================= Parcours d'entraînement : une partie d'un cas =================
+  function vueEntrainement(p, onglet) {
+    const c = casDe(p);
+    const ong = [["parcours", "Mon parcours"], ["cas", "Le cas"]].concat(ouvertes().map((e) => [e.id, `Étape ${e.n} · ${e.court}`]));
+    if (!ong.some((o) => o[0] === onglet)) onglet = etapeCourante().id;
+    const mien = monProjet() === p.id;
+    const nom = S && !S.apercu ? S.nom : "";
+    const e = etapeDe(onglet);
+    app.innerHTML = `
+      <div class="print-tete"><img src="../assets/logo-papara.svg" alt="" onerror="this.remove()"><div><b>LPO Papara — BTS Électrotechnique — parcours d'entraînement aux projets</b><br>${e ? `Étape ${e.n} · ${esc(e.titre)}` : onglet === "cas" ? "Dossier de visite" : "Mon parcours"} · cas ${esc(c.id)}, partie ${esc(p.id)}${nom ? ` · ${esc(nom)}` : ""}</div></div>
+      <nav class="fil no-print"><a href="#/">← Tous les projets</a></nav>
+      <header class="tete-projet">
+        <div class="eyebrow">Entraînement · cas ${esc(c.id)} : ${esc(c.domaine)} · partie ${esc(p.id)}</div>
+        <h1>${esc(p.partie)}</h1>
+        <div class="rang"><span class="discret">${esc(c.court)} — ${esc(c.client)} · ${esc(c.lieu)}</span>
+          ${mien ? (ATTRIBUE ? `<span class="chip ok">Ma partie</span>` : `<span class="chip warn" title="Ton professeur confirmera l'attribution dans son espace">Ma partie · à confirmer par le professeur</span>`) : choixLibre() && (estBTS2 || !S) ? `<button class="btn petit no-print" id="choisir">C'est ma partie</button>` : ""}
+          ${mien ? `<span class="sauve"></span>` : ""}</div>
+      </header>
+      <nav class="onglets no-print" aria-label="Parcours d'entraînement">${ong.map(([k, t]) => `<a href="#/p/${p.id}/${k}" class="${k === onglet ? "actif" : ""}" ${k === onglet ? 'aria-current="page"' : ""}>${esc(t)}</a>`).join("")}</nav>
+      <div id="contenu"></div>`;
+    brancherChoix(p, onglet);
+    const cc = document.getElementById("contenu");
+    if (onglet === "cas") ongletCas(p, cc); else if (onglet === "parcours") ongletParcours(p, cc, mien); else ongletEtape(p, cc, e, mien);
+    indicateur();
+    window.scrollTo(0, 0);
+  }
+  const critChip = (k, plus) => `<span class="chip crit" title="${esc(k + " — " + (CRIT[k] ? CRIT[k].txt : ""))}">${k}${plus || ""}</span>`;
+  const tableSimple = (t) => `<div class="table-defil"><table><thead><tr>${t.cols.map((x) => `<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>${t.lignes.map((l) => `<tr>${l.map((x, i) => `<td>${i === 0 ? `<b>${esc(x)}</b>` : esc(x)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+
+  // ----- « Mon parcours » : les six étapes, l'avancement et les positionnements -----
+  function ongletParcours(p, cc, mien) {
+    const rv = RETOURS.docs || {};
+    cc.innerHTML = `
+      <p>Le vrai projet, découpé en étapes : chaque étape t'entraîne à une partie du travail de janvier, avec le même livrable et les mêmes critères de grille. Les étapes s'ouvrent au rythme de la classe.</p>
+      ${ETAPES.map((e) => {
+        const a = e.ouverte ? avEtape(e) : null;
+        const pr = (((RETOURS.etapes || {})[e.id]) || {}).pos || {}, au = (ETAT.auto || {})[e.id] || {};
+        return `<section class="carte etape-p ${e.ouverte ? "ouverte" : ""}">
+          <div class="rang" style="justify-content:space-between;align-items:flex-start"><div><div class="eyebrow">Étape ${e.n} · ${esc(e.quand)}</div><h3 style="margin:2px 0 4px">${esc(e.titre)}</h3></div>
+            ${e.ouverte ? `<a class="btn petit plein" href="#/p/${p.id}/${e.id}">Ouvrir l'étape →</a>` : `<span class="chip">à venir</span>`}</div>
+          <p class="discret" style="margin:0 0 6px"><b>Dans le vrai projet :</b> ${esc(e.vrai)}</p>
+          <div class="liste-crit">${e.crit.map((k) => critChip(k, `${mien && au[k] ? ` · moi N${au[k]}` : ""}${pr[k] ? ` · prof N${pr[k]}` : ""}`)).join("")}</div>
+          <ul style="margin:8px 0 0">${e.livrables.map((l) => {
+            const st = mien && e.ouverte ? (ETAT.docs[l.id] || {}).s || 0 : 0, v = (rv[l.id] || {}).v;
+            return `<li>${esc(l.titre)}${l.option ? ` <span class="discret">(facultatif)</span>` : ""} ${e.ouverte ? (v === "ok" ? `<span class="chip ok">Validé ✓</span>` : v === "reprendre" ? `<span class="chip ko">À reprendre</span>` : mien ? `<span class="chip ${st === 2 ? "accent" : ""}">${STATUTS[st]}</span>` : "") : ""}</li>`;
+          }).join("")}</ul>
+          ${a ? `<div style="margin-top:8px">${barre(a)}</div>` : ""}</section>`;
+      }).join("")}`;
+  }
+
+  // ----- « Le cas » : le dossier de visite (le corrigé n'est jamais sur le site) -----
+  function ongletCas(p, cc) {
+    const c = casDe(p), ma = c.parties.find((x) => x.id === p.id) || { focus: [] };
+    cc.innerHTML = `
+      <div class="rang no-print" style="justify-content:flex-end;margin:-6px 0 10px"><button class="btn petit" onclick="print()">Imprimer le dossier de visite</button></div>
+      <div class="carte info"><b>Dossier de visite.</b> Cas fictif mais réaliste : tu « visites » le site avec ce dossier. Ta partie : <b>${esc(ma.titre || p.partie)}</b>, qui prépare ton vrai projet (${esc(p.prepare)}). Lis tout le dossier : ta partie dépend des autres.</div>
+      <div class="deux">
+        <section class="carte"><h3>Le client et le site</h3><dl class="fiche">
+          <dt>Client</dt><dd>${esc(c.client)}</dd><dt>Lieu</dt><dd>${esc(c.lieu)}</dd><dt>Activité</dt><dd>${esc(c.activite)}</dd>
+          <dt>Interlocuteur</dt><dd>${esc(c.interlocuteur)}</dd><dt>Horaires</dt><dd>${esc(c.horaires)}</dd></dl></section>
+        <section class="carte"><h3>Ta partie : ce que tu relèves en priorité</h3><ul>${ma.focus.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+          <p class="discret" style="margin:8px 0 2px">À ajouter à ta check-list pour ce domaine :</p><ul class="discret" style="margin:0">${c.checklist_plus.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></section>
+      </div>
+      <h2>Ce que dit le client</h2>
+      <div class="citations">${c.demande.map((x) => `<blockquote>${esc(x)}</blockquote>`).join("")}</div>
+      <h2>L'existant</h2>
+      ${c.existant.map((x) => `<p>${esc(x)}</p>`).join("")}
+      ${c.figure.svg ? `<figure class="synoptique">${c.figure.svg}<figcaption>${esc(c.figure.titre)}</figcaption></figure>` : ""}
+      ${c.tables.map((t) => `<h3>${esc(t.titre)}</h3>${tableSimple(t)}`).join("")}
+      <h2>Constats de la visite</h2>
+      <div class="table-defil"><table><thead><tr><th>N°</th><th>Où</th><th>Ce qui a été vu ou dit</th><th>Photo</th></tr></thead><tbody>
+        ${c.constats.map((v) => `<tr><td class="mono"><b>${esc(v.id)}</b></td><td>${esc(v.lieu)}</td><td>${esc(v.txt)}</td><td class="discret">${v.photo ? "n° " + v.photo : "—"}</td></tr>`).join("")}</tbody></table></div>
+      <h2>Documents remis par le client</h2>
+      ${c.documents.map((t) => `<h3>${esc(t.titre)}</h3>${tableSimple(t)}`).join("")}
+      <h2>Entretien avec le client</h2>
+      <div class="carte"><dl class="qr">${c.entretien.map((x) => `<dt>${esc(x.q)}</dt><dd>${esc(x.r)}</dd>`).join("")}</dl></div>
+      <h2>Les parties du cas</h2>
+      <div class="table-defil"><table><thead><tr><th>Partie</th><th>Ce qu'on y relève en priorité</th><th>Vrai projet préparé</th></tr></thead><tbody>
+        ${c.parties.map((x) => `<tr${x.id === p.id ? ' class="moi"' : ""}><td><span class="mono">${esc(x.id)}${x.id === p.id ? " · toi" : ""}</span><br><a href="#/p/${x.id}/cas"><b>${esc(x.titre)}</b></a></td><td><ul style="margin:0">${x.focus.map((y) => `<li>${esc(y)}</li>`).join("")}</ul></td><td>${esc(x.prepare)}</td></tr>`).join("")}</tbody></table></div>
+      <div class="carte"><h3>Séance A : relevé au labo</h3><p style="margin:0">${esc(c.labo)}</p></div>`;
+  }
+
+  // ----- une étape : fiche (méthode, check-list, trames), livrables, positionnement -----
+  function ongletEtape(p, cc, e, mien) {
+    const det = e.id === "s1" ? PARC.etape1 : null;   // contenu détaillé : publié étape par étape
+    const rv = RETOURS.docs || {};
+    const au = (ETAT.auto || {})[e.id] || {}, prof = ((RETOURS.etapes || {})[e.id]) || {};
+    const docs = docsDu(p).filter((d) => d.etape === e.id);
+    cc.innerHTML = `
+      <div class="rang no-print" style="justify-content:flex-end;margin:-6px 0 10px"><button class="btn petit" onclick="print()">Imprimer la fiche de l'étape</button></div>
+      ${!mien ? avisLecture("Tu consultes cette étape.") : ""}
+      <section class="carte info"><div class="eyebrow">Étape ${e.n} · ${esc(e.quand)}${e.duree ? ` · ${esc(e.duree)}` : ""}</div>
+        <p style="margin:6px 0"><b>Dans le vrai projet :</b> ${esc(e.vrai)}</p>
+        <p class="discret" style="margin:0">${esc(e.taches)}</p><div class="liste-crit" style="margin-top:6px">${e.crit.map((k) => critChip(k)).join("")}</div>
+        ${(e.crit_option || []).length ? `<div class="liste-crit" style="margin-top:4px"><span class="discret">Facultatif, si tu animes le point d'avancement :</span>${e.crit_option.map((k) => critChip(k)).join("")}</div>` : ""}</section>
+      ${det ? `
+      <h2>Pourquoi cette étape</h2>${det.pourquoi.map((x) => `<p>${esc(x)}</p>`).join("")}
+      <h3>Ce que tu sauras faire</h3><ul>${det.objectifs.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+      <h2>Déroulé <span class="discret">indicatif, au rythme de la classe</span></h2>
+      <div class="etapes">${det.deroule.map((d) => `<div class="etape"><h3>${esc(d.titre)}</h3><span class="chip">${esc(d.duree)}</span><p style="margin:6px 0 0">${esc(d.txt)}</p></div>`).join("")}</div>
+      <h2>Méthode</h2>
+      <div class="trois">${[["Avant la visite", det.methode.avant], ["Pendant la visite", det.methode.pendant], ["Après la visite", det.methode.apres]].map(([t, L]) => `<div class="carte"><h3>${t}</h3><ul style="margin:0">${L.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")}</div>
+      <h3 style="margin-top:16px">Gravité des constats</h3>
+      <div class="gravites">${det.gravites.map((g) => `<div class="g g${g.n}"><b>${g.n} · ${esc(g.titre)}</b><span>${esc(g.txt)}</span></div>`).join("")}</div>
+      <h2>Grille de lecture <span class="discret">ce que tu compares à la norme</span></h2>
+      <div class="table-defil"><table><thead><tr>${det.grille.cols.map((x) => `<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>${det.grille.lignes.map((l) => `<tr><td><b>${esc(l[0])}</b></td><td${l[2] ? "" : ' colspan="2"'}>${esc(l[1])}</td>${l[2] ? `<td>${esc(l[2])}</td>` : ""}</tr>`).join("")}</tbody></table></div>
+      ${det.grille_note ? `<p class="discret"><b>À savoir :</b> ${esc(det.grille_note)}</p>` : ""}
+      <h2>Check-list de visite</h2>
+      <p class="discret">Note la source de chaque information : vu, mesuré, lu sur un document, dit par le client. Ajoute les points de ton domaine (onglet « Le cas »). La version à remplir est dans la fiche Word de l'étape.</p>
+      <div class="deux">${det.checklist.map((g) => `<div class="carte"><h3>${esc(g.theme)}</h3><ul style="margin:0">${g.points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")}</div>
+      <h2>Trames</h2>
+      <div class="deux"><div class="carte"><h3>Rapport de relevé et de diagnostic</h3><ol style="margin:0">${det.trame_releve.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></div>
+        <div class="carte"><h3>Questions au client et cahier des charges reformulé</h3><ol style="margin:0">${det.trame_cdc.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></div></div>
+      <div class="carte"><h3>Point d'avancement (si tu l'animes)</h3><ul>${det.reunion.odj.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><p class="discret" style="margin:0">${esc(det.reunion.cr)}</p></div>`
+      : `<div class="carte"><p style="margin:0">Le contenu de cette étape sera publié quand la classe y arrivera.</p></div>`}
+      <h2>Mes livrables</h2>
+      ${mien ? `<p class="discret">Pour chaque livrable : son état et le lien vers ton fichier (Drive, ENT…). Ton professeur le valide ou te demande de le reprendre.</p>` : ""}
+      ${RETOURS.message && mien ? `<div class="retour ok"><b>Message du professeur${RETOURS.le ? ` · ${esc(fmtHeure(RETOURS.le))}` : ""}</b>${esc(RETOURS.message)}</div>` : ""}
+      ${docs.map((x) => carteDoc(x, mien ? rv[x.id] : null, mien)).join("")}
+      ${det ? `<h2>Me positionner <span class="discret">N1 à N4, comme dans les grilles du CCF</span></h2>
+      <p class="discret">Choisis le niveau qui décrit le mieux ton travail sur cette étape. Ton professeur donne le sien${mien && prof.pos ? " (cadre en pointillé vert)" : ""} : l'écart entre les deux est ce qui t'apprend le plus.</p>
+      ${e.crit.map((k) => {
+        const d = det.descripteurs[k] || [], moi = mien ? Number(au[k]) || 0 : 0, pr = mien ? Number((prof.pos || {})[k]) || 0 : 0;
+        return `<div class="pos carte" data-crit="${k}"><div class="pos-t">${critChip(k)} <b>${esc(CRIT[k] ? CRIT[k].txt : "")}</b></div>
+          <div class="pos-n" role="group" aria-label="Mon niveau pour ${k}">${d.map((txt, i) => `<button type="button" class="niv ${moi === i + 1 ? "moi" : ""} ${pr === i + 1 ? "prof" : ""}" data-pos="${i + 1}" ${mien ? "" : "disabled"} aria-pressed="${moi === i + 1}"><span class="nn">N${i + 1}${pr === i + 1 ? " · professeur" : ""}</span>${esc(txt)}</button>`).join("")}</div></div>`;
+      }).join("")}
+      ${mien && prof.c ? `<div class="retour ok"><b>Retour du professeur sur l'étape</b>${esc(prof.c)}</div>` : ""}` : ""}`;
+    if (!mien) return;
+    brancherDocs(p, cc);
+    cc.addEventListener("click", (ev) => {
+      const b = ev.target.closest("button[data-pos]"); if (!b) return;
+      const k = b.closest("[data-crit]").dataset.crit, n = Number(b.dataset.pos);
+      ETAT.auto = ETAT.auto || {};
+      const prec = (ETAT.auto[e.id] || {})[k];
+      ETAT.auto[e.id] = Object.assign({}, ETAT.auto[e.id], { [k]: prec === n ? 0 : n });
+      modif();
+      b.closest(".pos-n").querySelectorAll("button").forEach((x) => { const on = Number(x.dataset.pos) === ETAT.auto[e.id][k]; x.classList.toggle("moi", on); x.setAttribute("aria-pressed", String(on)); });
+    });
+  }
+
+  // ----- onglet « Mes dossiers 1·2·3 » -----
+  let filtrePhase = "";
+  function ongletDossiers(p, c, mien) {
+    const docs = docsDu(p), a = avancement(p), rv = RETOURS.docs || {};
+    const html = [];
+    if (!mien) html.push(avisLecture("Tu consultes la liste des documents de ce projet."));
+    else html.push(`<p>Tes trois dossiers se construisent tout au long du projet : <b>conception</b> pendant U61, <b>réalisation par anticipation</b> à la fin de U61 (tout ce qui prépare la réalisation : planning, modes opératoires, protocole de mise en service, autocontrôles, risques), puis <b>réalisation</b> pendant U62. Pour chaque document : son contenu attendu, les critères des grilles qu'il prouve, son état et le lien vers ton fichier (Drive, ENT…).</p>`);
+    if (RETOURS.message) html.push(`<div class="retour ok"><b>Message du professeur${RETOURS.le ? ` · ${esc(fmtHeure(RETOURS.le))}` : ""}</b>${esc(RETOURS.message)}</div>`);
+    html.push(`<div class="resume-d">${P.dossiers.map((d) => `<div class="carte" style="--dc:${DCOUL[d.id]}"><div class="eyebrow">Dossier ${d.num}</div><b>${esc(d.titre)}</b>${barre(a[d.id])}<div class="discret" style="margin-top:6px">${a[d.id].v} validé${a[d.id].v > 1 ? "s" : ""} · ${a[d.id].p} prêt${a[d.id].p > 1 ? "s" : ""} · ${a[d.id].c} en cours${a[d.id].r ? ` · <span style="color:var(--bad)">${a[d.id].r} à reprendre</span>` : ""} · ${a[d.id].n} au total</div></div>`).join("")}</div>`);
+    html.push(`<div class="filtres no-print"><button data-ph="" class="${filtrePhase ? "" : "actif"}">Toutes les phases</button>${Object.entries(PHASES).map(([k, t]) => `<button data-ph="${k}" class="${filtrePhase === k ? "actif" : ""}">${t}</button>`).join("")}</div>`);
+    P.dossiers.forEach((d) => {
+      const L = docs.filter((x) => x.dossier === d.id && (!filtrePhase || x.phase === filtrePhase));
+      if (!L.length) return;
+      html.push(`<section class="dossier" style="--dc:${DCOUL[d.id]}"><div class="dossier-t"><h2>Dossier ${d.num} — ${esc(d.titre)}</h2></div>
+        <p class="discret">${esc(d.role)}</p>
+        <details class="carte" style="margin:0 0 10px"><summary><b>Fourni au départ</b> <span class="discret">(ressources à ta disposition)</span></summary><ul style="margin-top:8px">${d.fourni.concat((p.fourni_plus || {})[d.id] || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></details>
+        ${L.map((x) => carteDoc(x, rv[x.id], mien)).join("")}</section>`);
+    });
+    c.innerHTML = html.join("");
+    c.querySelectorAll("[data-ph]").forEach((b) => (b.onclick = () => { filtrePhase = b.dataset.ph; ongletDossiers(p, c, mien); }));
+    if (!mien) return;
+    brancherDocs(p, c);
+  }
+  function brancherDocs(p, c) {
+    c.onclick = (ev) => {
+      const b = ev.target.closest("button[data-s]"); if (!b) return;
+      const id = b.closest("[data-doc]").dataset.doc, s = Number(b.dataset.s);
+      ETAT.docs[id] = Object.assign({}, ETAT.docs[id], { s });
+      modif(); const det = b.closest("details"), ouvert = det && det.open;
+      const n = docsDu(p).find((x) => x.id === id), tmp = document.createElement("div");
+      tmp.innerHTML = carteDoc(n, (RETOURS.docs || {})[id], true); const nouveau = tmp.firstElementChild;
+      if (ouvert) nouveau.open = true; det.replaceWith(nouveau);
+      majResume(p, c);
+    };
+    c.oninput = (ev) => {
+      const el = ev.target; const box = el.closest("[data-doc]"); if (!box || !el.dataset.champ) return;
+      const id = box.dataset.doc; ETAT.docs[id] = Object.assign({ s: 0 }, ETAT.docs[id], { [el.dataset.champ]: el.value.slice(0, el.dataset.champ === "lien" ? 500 : 2000) });
+      if (el.dataset.champ === "lien") { const a = box.querySelector(".ouvrir"); if (a) { a.hidden = !urlSure(el.value); a.href = urlSure(el.value) ? el.value.trim() : "#"; } }
+      modif();
+    };
+  }
+  function majResume(p, c) {
+    const a = avancement(p), cartes = c.querySelectorAll(".resume-d .carte");
+    P.dossiers.forEach((d, i) => { const k = cartes[i]; if (!k) return; k.querySelector(".barre").outerHTML = barre(a[d.id]); k.querySelector(".discret").innerHTML = `${a[d.id].v} validé${a[d.id].v > 1 ? "s" : ""} · ${a[d.id].p} prêt${a[d.id].p > 1 ? "s" : ""} · ${a[d.id].c} en cours${a[d.id].r ? ` · <span style="color:var(--bad)">${a[d.id].r} à reprendre</span>` : ""} · ${a[d.id].n} au total`; });
+  }
+  function carteDoc(x, rv, mien) {
+    const e = ETAT.docs[x.id] || {}, s = mien ? e.s || 0 : 0;
+    const cls = rv && rv.v === "ok" ? "val" : rv && rv.v === "reprendre" ? "rep" : "s" + s;
+    const outil = { planning: "Planning", mes: "Mise en service", risques: "Risques" }[x.outil];
+    const etiquette = rv && rv.v === "ok" ? `<span class="chip ok">Validé ✓</span>` : rv && rv.v === "reprendre" ? `<span class="chip ko">À reprendre</span>` : mien ? `<span class="chip ${s === 2 ? "accent" : ""}">${STATUTS[s]}</span>` : "";
+    return `<details class="doc ${cls}" data-doc="${x.id}">
+      <summary><div><div class="doc-t">${esc(x.titre)}</div><div class="doc-meta"><span class="chip ph-${x.phase}">${PHASES[x.phase]}</span>${x.option ? `<span class="chip">facultatif</span>` : ""}${x.crit.map((k) => `<span class="chip crit" title="${esc(k + " — " + (CRIT[k] ? CRIT[k].txt : ""))}">${k}</span>`).join("")}</div></div>${etiquette}</summary>
+      <div class="doc-corps">
+        <label class="court">Ce que ce document doit contenir</label>
+        <ul>${x.contenu.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+        <label class="court">Critères des grilles qu'il permet de prouver</label>
+        <ul class="discret">${x.crit.map((k) => `<li><span class="mono">${k}</span> (${CRIT[k] ? CRIT[k].unite : ""}) — ${esc(CRIT[k] ? CRIT[k].txt : "")}</li>`).join("")}</ul>
+        ${outil && mien ? `<p><a class="btn petit" href="#/p/${monProjet()}/${x.outil}">Ouvrir l'outil « ${outil} » du site →</a></p>` : ""}
+        ${rv && rv.c ? `<div class="retour ${rv.v === "ok" ? "ok" : "rep"}"><b>Retour du professeur${rv.le ? ` · ${esc(fmtHeure(rv.le))}` : ""}</b>${esc(rv.c)}</div>` : ""}
+        ${mien ? `<label class="court">État</label>
+        <div class="seg" role="group" aria-label="État du document">${STATUTS.map((t, i) => `<button type="button" data-s="${i}" class="${s === i ? "on" : ""}" aria-pressed="${s === i}">${t}</button>`).join("")}</div>
+        <label class="court" for="l-${x.id}">Lien vers mon document (Drive, ENT…)</label>
+        <div class="rang" style="flex-wrap:nowrap"><input type="url" id="l-${x.id}" data-champ="lien" placeholder="https://…" value="${esc(e.lien || "")}" inputmode="url"><a class="btn petit ouvrir" target="_blank" rel="noopener" href="${urlSure(e.lien) ? esc(e.lien.trim()) : "#"}" ${urlSure(e.lien) ? "" : "hidden"}>Ouvrir ↗</a></div>
+        <label class="court" for="n-${x.id}">Mes remarques (questions pour la revue, ce qui reste à faire…)</label>
+        <textarea id="n-${x.id}" data-champ="note" rows="2">${esc(e.note || "")}</textarea>` : ""}
+      </div></details>`;
+  }
+
+  // ----- semaines du planning -----
+  function semaines(p) {
+    const { J: JALONS, PER: PERIODES } = calDe(p);
+    const debut = lundi(PERIODES[0].debut), fin = lundi(JALONS[JALONS.length - 1].date);
+    const L = [];
+    for (let d = debut; d <= fin; d = ajJ(d, 7)) {
+      const vac = VACANCES.some(([a, b]) => { const j = [0, 1, 2, 3, 4].filter((k) => { const x = ajJ(d, k); return x >= a && x <= b; }).length; return j >= 3; });
+      L.push({ d, vac, jal: JALONS.filter((j) => lundi(j.date) === d) });
+    }
+    return L;
+  }
+  function planningDefaut(p) {
+    const L = [{ id: "prelim", g: "prelim", txt: p.prelim_txt || "Étude préliminaire : besoin, architecture, bilan de puissance", h: 0, d: null, n: 0 }];
+    p.u61.forEach((gr) => gr.taches.forEach((t, i) => L.push({ id: `u61-${gr.t.replace(/\W/g, "")}-${i}`, g: "u61", t: gr.t, txt: t.txt, h: t.h, d: null, n: 0 })));
+    L.push({ id: "appro", g: "appro", txt: p.appro_txt || "Commande et approvisionnement du matériel (fret maritime : 6 à 8 semaines)", h: 0, d: null, n: 0 });
+    p.u62.forEach((gr) => gr.taches.forEach((t, i) => L.push({ id: `u62-${gr.t.replace(/\W/g, "")}-${i}`, g: "u62", t: gr.t, txt: t.txt, h: t.h, ...(t.duree ? { duree: t.duree } : {}), d: null, n: 0 })));
+    return { lignes: L, perso: 0 };
+  }
+  function repartir(pl, W, p) {
+    const { J: JALONS, PER: PERIODES } = calDe(p);
+    const idx = (date) => W.findIndex((w) => w.d === lundi(date));
+    const per = (id) => PERIODES.find((x) => x.id === id);
+    const place = (lignes, idp) => {
+      const pr = per(idp); if (!pr) return;
+      const a = Math.max(0, idx(pr.debut)), b = idx(pr.fin) >= 0 ? idx(pr.fin) : W.length - 1;
+      const dispo = []; for (let k = a; k <= b; k++) if (!W[k].vac) dispo.push(k);
+      if (!dispo.length) return;
+      const tot = lignes.reduce((s, l) => s + (l.h || 1), 0); let cum = 0;
+      lignes.forEach((l) => {
+        const i0 = Math.min(dispo.length - 1, Math.floor((cum / tot) * dispo.length)); cum += l.h || 1;
+        const i1 = Math.max(i0, Math.min(dispo.length - 1, Math.ceil((cum / tot) * dispo.length) - 1));
+        l.d = dispo[i0]; l.n = dispo[i1] - dispo[i0] + 1;
+      });
+    };
+    const g = (k) => pl.lignes.filter((l) => l.g === k);
+    place(g("prelim"), "prelim"); place(g("u61"), "u61"); place(g("u62"), "u62");
+    const r2 = JALONS.find((j) => j.id === "R2"); const ap = g("appro")[0];
+    if (ap) { ap.d = Math.max(0, idx(r2 ? r2.date : PERIODES[1].debut)); ap.n = (p && p.appro_n) || 8; }
+  }
+
+  // ----- onglet « Planning » -----
+  function ongletPlanning(p, c, mien) {
+    const W = semaines(p);
+    if (mien && !ETAT.planning) ETAT.planning = planningDefaut(p);
+    const pl = mien ? ETAT.planning : planningDefaut(p);
+    const opts = (val) => `<option value="">—</option>` + W.map((w, i) => `<option value="${i}" ${val === i ? "selected" : ""}>${fmtJour(w.d)}${w.vac ? " (vac.)" : ""}</option>`).join("");
+    const mois = []; W.forEach((w, i) => { const m = w.d.slice(0, 7); if (!mois.length || mois[mois.length - 1].m !== m) mois.push({ m, n: 1, i }); else mois[mois.length - 1].n++; });
+    const nomMois = (m) => new Date(m + "-15T12:00:00Z").toLocaleDateString("fr-FR", { month: "short", year: "2-digit", timeZone: "UTC" });
+    const hU = (g) => pl.lignes.filter((l) => l.g === g).reduce((s, l) => s + (Number(l.h) || 0), 0);
+    const ligneG = (l) => `<tr class="g-${l.g}"><td class="tache" title="${esc(l.txt)}">${l.t ? `<span class="pl-g">${esc(l.t)}</span> ` : ""}${esc(tron(l.txt, 70))}${l.h ? ` <b>${l.h} h</b>` : l.duree ? ` <b>${esc(l.duree)}</b>` : ""}</td>${W.map((w, i) => `<td class="${w.vac ? "vac" : ""} ${l.d != null && i >= l.d && i < l.d + l.n ? "b" : ""}"></td>`).join("")}</tr>`;
+    c.innerHTML = `${mien ? "" : avisLecture("Tu consultes le planning type de ce projet.")}
+      <p>Le planning fait partie du <b>dossier 1</b> (réalisation par anticipation) : tu y places chaque tâche de tes contrats U61 et U62, la commande du matériel (pense au délai du fret maritime) et les revues. Les semaines hachurées sont des vacances ; ◆ = revue de projet.</p>
+      <div class="rang no-print" style="margin:0 0 10px">${mien ? `<button class="btn petit" id="pl-auto">Proposer une répartition</button><button class="btn petit" id="pl-ajout">+ Ajouter une tâche</button><button class="btn petit" id="pl-raz">Repartir du planning vierge</button>` : ""}<button class="btn petit" onclick="print()">Imprimer</button>
+        <span class="discret">Heures au contrat : U61 ${hU("u61")} h · U62 ${hU("u62")} h</span></div>
+      <div class="gantt-defil"><table class="gantt"><thead>
+        <tr><th class="tache mois">Tâche</th>${mois.map((m) => `<th class="mois" colspan="${m.n}">${esc(nomMois(m.m))}</th>`).join("")}</tr>
+        <tr><th class="tache"></th>${W.map((w) => `<th title="Semaine du ${fmtJour(w.d)}">${w.d.slice(8, 10)}</th>`).join("")}</tr>
+        <tr><th class="tache">Revues</th>${W.map((w) => `<td class="jal ${w.vac ? "vac" : ""}" title="${esc(w.jal.map((j) => j.id + " — " + j.titre).join(" ; "))}">${w.jal.length ? "◆" : ""}</td>`).join("")}</tr>
+      </thead><tbody>${pl.lignes.map(ligneG).join("")}</tbody></table></div>
+      <div class="carte no-print"><h3>${mien ? "Placer les tâches" : "Tâches"}</h3><div class="pl-liste">${pl.lignes.map((l, k) => `<div class="pl-l" data-k="${k}">
+          <div>${l.t ? `<span class="pl-g">${esc(l.t)} · ${l.g.toUpperCase()}</span><br>` : `<span class="pl-g">${{ prelim: "ÉTUDE PRÉLIMINAIRE", appro: "APPROVISIONNEMENT", perso: "TÂCHE AJOUTÉE" }[l.g] || ""}</span><br>`}
+            ${l.g === "perso" && mien ? `<input type="text" data-pl="txt" value="${esc(l.txt)}" maxlength="160">` : esc(l.txt)}${l.h ? ` <b>${l.h} h</b>` : l.duree ? ` <b>${esc(l.duree)}</b>` : ""}</div>
+          <div class="pl-ctl"><label>Début <select data-pl="d" ${mien ? "" : "disabled"}>${opts(l.d)}</select></label>
+            <label>Durée <select data-pl="n" ${mien ? "" : "disabled"}>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16].map((n) => `<option value="${n}" ${l.n === n ? "selected" : ""}>${n ? n + " sem." : "—"}</option>`).join("")}</select></label>
+            ${l.g === "perso" && mien ? `<button class="suppr" data-pl-suppr title="Supprimer la tâche" aria-label="Supprimer la tâche">✕</button>` : ""}</div></div>`).join("")}</div></div>`;
+    if (!mien) return;
+    const refaire = () => ongletPlanning(p, c, mien);
+    c.querySelector("#pl-auto").onclick = () => { if (pl.lignes.some((l) => l.d != null) && !confirm("Remplacer les dates déjà placées par une répartition automatique (proportionnelle aux heures) ?")) return; repartir(pl, W, p); modif(refaire); };
+    c.querySelector("#pl-ajout").onclick = () => { pl.perso = (pl.perso || 0) + 1; pl.lignes.push({ id: "perso-" + Date.now(), g: "perso", txt: "Nouvelle tâche", h: 0, d: null, n: 1 }); modif(refaire); };
+    c.querySelector("#pl-raz").onclick = () => { if (!confirm("Effacer ton planning et repartir du planning vierge ?")) return; ETAT.planning = planningDefaut(p); modif(refaire); };
+    c.querySelectorAll(".pl-l").forEach((row) => {
+      const l = pl.lignes[Number(row.dataset.k)];
+      row.querySelectorAll("select[data-pl]").forEach((s) => (s.onchange = () => { const v = s.value === "" ? null : Number(s.value); if (s.dataset.pl === "d") { l.d = v; if (v != null && !l.n) l.n = 1; } else l.n = v || 0; modif(refaire); }));
+      const t = row.querySelector('input[data-pl="txt"]'); if (t) t.onchange = () => { l.txt = t.value.slice(0, 160) || "Tâche"; modif(refaire); };
+      const x = row.querySelector("[data-pl-suppr]"); if (x) x.onclick = () => { pl.lignes.splice(pl.lignes.indexOf(l), 1); modif(refaire); };
+    });
+  }
+
+  // ----- tableau éditable (protocole de mise en service, analyse des risques) -----
+  function tableEditable(c, o) {
+    // o : { lignes, cols:[{k, t, w, type:"texte"|"choix"|"calc", choix, calc}], groupe:k|null, ordre, mien, refaire, nouvelle(g) }
+    const groupes = o.groupe ? o.ordre.filter((g) => o.lignes.some((l) => l[o.groupe] === g)).concat([...new Set(o.lignes.map((l) => l[o.groupe]))].filter((g) => !o.ordre.includes(g))) : [null];
+    const cell = (l, col) => {
+      if (col.type === "calc") return `<td>${col.calc(l)}</td>`;
+      if (!o.mien) return `<td>${col.type === "choix" ? esc((col.choix.find((x) => x[0] === l[col.k]) || ["", ""])[1]) : esc(l[col.k])}${col.k === "critere" && l.ex ? ` <span class="ex">${esc(l.ex)}</span>` : ""}</td>`;
+      if (col.type === "choix") return `<td><select data-c="${col.k}" aria-label="${esc(col.t)}">${col.choix.map(([v, t]) => `<option value="${esc(v)}" ${String(l[col.k] ?? "") === v ? "selected" : ""}>${esc(t)}</option>`).join("")}</select></td>`;
+      return `<td><textarea data-c="${col.k}" rows="1" aria-label="${esc(col.t)}">${esc(l[col.k])}</textarea>${col.k === "critere" && l.ex ? `<span class="ex">${esc(l.ex)}</span>` : ""}</td>`;
+    };
+    c.innerHTML = `<div class="table-defil ed"><table><thead><tr>${o.cols.map((col) => `<th style="${col.w ? "min-width:" + col.w : ""}">${esc(col.t)}</th>`).join("")}${o.mien ? "<th></th>" : ""}</tr></thead><tbody>
+      ${groupes.map((g) => `${g ? `<tr class="phase-l"><td colspan="${o.cols.length + (o.mien ? 1 : 0)}">${esc(g)}${o.mien ? ` <button class="btn lien no-print" data-ajout="${esc(g)}">+ ajouter une ligne</button>` : ""}</td></tr>` : ""}
+        ${o.lignes.filter((l) => !g || l[o.groupe] === g).map((l) => `<tr data-id="${esc(l.id)}">${o.cols.map((col) => cell(l, col)).join("")}${o.mien ? `<td><button class="suppr no-print" data-suppr title="Supprimer la ligne" aria-label="Supprimer la ligne">✕</button></td>` : ""}</tr>`).join("")}`).join("")}
+      </tbody></table></div>${o.mien && !o.groupe ? `<p class="no-print"><button class="btn petit" data-ajout="">+ Ajouter une ligne</button></p>` : ""}`;
+    if (!o.mien) return;
+    const ligne = (el) => o.lignes.find((l) => l.id === el.closest("tr").dataset.id);
+    const ajuste = (t) => { t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 320) + "px"; };
+    c.querySelectorAll("textarea").forEach(ajuste);
+    c.querySelectorAll("[data-c]").forEach((el) => {
+      el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+        const l = ligne(el); if (!l) return; l[el.dataset.c] = el.value.slice(0, 1000);
+        if (el.tagName === "TEXTAREA") ajuste(el);
+        const calc = o.cols.find((x) => x.type === "calc");
+        modif(calc ? () => { const td = el.closest("tr").children[o.cols.indexOf(calc)]; if (td) td.innerHTML = calc.calc(l); } : null);
+      });
+    });
+    c.querySelectorAll("[data-suppr]").forEach((b) => (b.onclick = () => { const l = ligne(b); if (!l || !confirm("Supprimer cette ligne ?")) return; o.lignes.splice(o.lignes.indexOf(l), 1); modif(o.refaire); }));
+    c.querySelectorAll("[data-ajout]").forEach((b) => (b.onclick = () => { o.lignes.push(o.nouvelle(b.dataset.ajout)); modif(o.refaire); }));
+  }
+
+  // ----- onglet « Mise en service » -----
+  function mesDefaut(p) {
+    return { conditions: "", lignes: P.mes_communs.concat(p.essais).map((e, i) => ({ id: "m" + i, phase: e.phase, op: e.op, moyen: e.moyen, critere: e.critere, ex: e.ex || "", res: "", ok: "" })) };
+  }
+  function ongletMES(p, c, mien) {
+    if (mien && !ETAT.mes) ETAT.mes = mesDefaut(p);
+    const m = mien ? ETAT.mes : mesDefaut(p);
+    c.innerHTML = `${mien ? "" : avisLecture("Tu consultes le protocole type de ce projet.")}
+      <p>Ton <b>protocole de mise en service</b> (dossier 2) se prépare <b>par anticipation</b>, avant la réalisation : pour chaque essai, l'opération, l'appareil et le critère d'acceptation relié à une exigence du cahier des charges. Pendant la mise en service, tu notes les résultats : le tableau devient ton <b>rapport de mise en service</b>. Les lignes proposées sont un point de départ : complète, précise les valeurs, ajoute ce qui manque.</p>
+      <div class="rang no-print" style="margin:0 0 10px">${mien ? `<button class="btn petit" id="mes-raz">Repartir du protocole proposé</button>` : ""}<button class="btn petit" onclick="print()">Imprimer</button></div>
+      <div class="carte"><label class="court" for="mes-cond"><b>Conditions de la mise en service</b> — habilitations, consignation, appareils de mesure, personnes présentes</label>
+        ${mien ? `<textarea id="mes-cond" rows="3" placeholder="Ex. : chargé de consignation désigné, habilitations BR ; contrôleur d'installation CAT III ; essais en présence de l'enseignant…">${esc(m.conditions)}</textarea>` : `<p class="discret">—</p>`}</div>
+      <div id="mes-t"></div>`;
+    const refaire = () => ongletMES(p, c, mien);
+    tableEditable(c.querySelector("#mes-t"), { lignes: m.lignes, groupe: "phase", ordre: ORDRE_PHASES_MES, mien, refaire,
+      cols: [{ k: "op", t: "Opération / contrôle", w: "220px" }, { k: "moyen", t: "Appareil / moyen", w: "150px" }, { k: "critere", t: "Critère d'acceptation (exigence)", w: "180px" }, { k: "res", t: "Résultat / valeur relevée", w: "150px" },
+        { k: "ok", t: "Conforme", type: "choix", choix: [["", "—"], ["oui", "Oui"], ["non", "Non"]] }],
+      nouvelle: (g) => ({ id: "m" + Date.now(), phase: g || "Essais fonctionnels", op: "", moyen: "", critere: "", ex: "", res: "", ok: "" }) });
+    if (!mien) return;
+    const t = c.querySelector("#mes-cond"); t.oninput = () => { m.conditions = t.value.slice(0, 2000); modif(); };
+    c.querySelector("#mes-raz").onclick = () => { if (!confirm("Effacer ton protocole et repartir du protocole proposé ?")) return; ETAT.mes = mesDefaut(p); modif(refaire); };
+  }
+
+  // ----- onglet « Risques » -----
+  function risquesDefaut(p) { return { lignes: P.risques_communs.concat(p.risques).map((r, i) => ({ id: "r" + i, tache: r.tache, danger: r.danger, risque: r.risque, g: "", p: "", prevention: r.prevention, habil: r.habil })) }; }
+  function ongletRisques(p, c, mien) {
+    if (mien && !ETAT.risques) ETAT.risques = risquesDefaut(p);
+    const r = mien ? ETAT.risques : risquesDefaut(p);
+    const crit = (l) => { const g = Number(l.g), q = Number(l.p); if (!g || !q) return `<span class="discret">—</span>`; const v = g * q; return `<div class="crit-c ${v >= 9 ? "c3" : v >= 4 ? "c2" : "c1"}" title="Gravité × probabilité">${v}</div>`; };
+    const note = [["", "—"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]];
+    c.innerHTML = `${mien ? "" : avisLecture("Tu consultes l'analyse des risques type de ce projet.")}
+      <p>L'<b>analyse des risques</b> (dossier 3) prépare la réalisation : pour chaque phase, les dangers, les risques, leur cotation (gravité et probabilité de 1 à 4) et les mesures de prévention. Elle sert aussi à rédiger tes fiches de mise en sécurité (consignation, risques propres au projet).</p>
+      <div class="rang no-print" style="margin:0 0 10px">${mien ? `<button class="btn petit" id="ri-raz">Repartir de l'analyse proposée</button>` : ""}<button class="btn petit" onclick="print()">Imprimer</button>
+        <span class="discret">Criticité = gravité × probabilité : <span class="chip ok">1–3</span> <span class="chip warn">4–8</span> <span class="chip ko">9–16</span></span></div>
+      <div id="ri-t"></div>`;
+    const refaire = () => ongletRisques(p, c, mien);
+    tableEditable(c.querySelector("#ri-t"), { lignes: r.lignes, groupe: null, mien, refaire,
+      cols: [{ k: "tache", t: "Phase / tâche", w: "130px" }, { k: "danger", t: "Danger", w: "150px" }, { k: "risque", t: "Risque", w: "130px" }, { k: "g", t: "G", type: "choix", choix: note }, { k: "p", t: "P", type: "choix", choix: note },
+        { k: "c", t: "Criticité", type: "calc", calc: crit }, { k: "prevention", t: "Mesures de prévention", w: "210px" }, { k: "habil", t: "Habilitation / formation", w: "120px" }],
+      nouvelle: () => ({ id: "r" + Date.now(), tache: "", danger: "", risque: "", g: "", p: "", prevention: "", habil: "" }) });
+    if (!mien) return;
+    c.querySelector("#ri-raz").onclick = () => { if (!confirm("Effacer ton analyse et repartir de l'analyse proposée ?")) return; ETAT.risques = risquesDefaut(p); modif(refaire); };
+  }
+
+  // ----- onglet « Contrats et grilles » -----
+  function ongletGrilles(p, c, mien) {
+    const docs = docsDu(p), rv = RETOURS.docs || {};
+    const contrat = (L, comps) => `<div class="table-defil contrat"><table><thead><tr><th>Tâche</th><th>Activités</th><th class="num">Durée</th>${comps.map((x) => `<th class="num">${x}</th>`).join("")}</tr></thead><tbody>
+      ${L.map((g) => `<tr class="gt"><td>${esc(g.t)}</td><td colspan="${2 + comps.length}">${esc(g.titre)}</td></tr>${g.taches.map((t) => `<tr><td></td><td>${esc(t.txt)}${t.plus ? `<br><span class="discret">${esc(t.plus)}</span>` : ""}</td><td class="num">${t.duree ? esc(t.duree) : t.h + " h"}</td>${comps.map((x) => `<td class="x">${t.c.includes(x) ? "×" : ""}</td>`).join("")}</tr>`).join("")}`).join("")}
+      <tr class="gt"><td></td><td>Total</td><td class="num">${L.reduce((s, g) => s + g.taches.reduce((a, t) => a + t.h, 0), 0)} h${L.some((g) => g.taches.some((t) => t.duree)) ? " + 40 min" : ""}</td><td colspan="${comps.length}"></td></tr></tbody></table></div>`;
+    const ou = (k) => {
+      const D = docs.filter((d) => d.crit.includes(k));
+      const pret = D.filter((d) => (rv[d.id] || {}).v === "ok" || ((ETAT.docs[d.id] || {}).s === 2 && (rv[d.id] || {}).v !== "reprendre")).length;
+      const obs = P.observes[k];
+      return `${D.length ? `Prouvé par : ${D.map((d) => `<a href="#/p/${p.id}/dossiers" title="${esc(d.titre)}">${esc(tron(d.titre, 48))}</a>`).join(" · ")}` : ""}${obs ? `${D.length ? "<br>" : ""}Observé pendant la réalisation : ${esc(obs)}` : ""}${mien && D.length ? ` <span class="chip ${pret === D.length ? "ok" : pret ? "accent" : ""}">${pret}/${D.length} prêt${pret > 1 ? "s" : ""}</span>` : ""}`;
+    };
+    const grille = (u) => { const G = P.grilles[u]; return `<h2>Grille ${G.unite} — ${esc(G.titre)} <span class="discret">coefficient ${G.coef}</span></h2>
+      <div class="carte"><ul style="margin:0">${G.organisation.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+      ${G.competences.map((k) => `<div class="comp"><div class="comp-t"><span class="comp-id">${k.id}</span><span><b>${esc(k.lib)}</b><br><span class="discret">Évaluée par : ${esc(k.evalue)}</span></span><span class="comp-p">${k.poids} %</span></div>
+        ${k.criteres.map((x) => `<div class="crit-l"><span class="mono">${x.id}</span><span>${esc(x.txt)}${x.par ? ` <span class="discret">(${esc(x.par)})</span>` : ""}</span><span class="ou">${ou(x.id)}</span></div>`).join("")}</div>`).join("")}`; };
+    c.innerHTML = `${!mien ? `<p class="discret">Contrats de tâches et grilles du projet ${p.id}.</p>` : ""}
+      <div class="rang no-print" style="justify-content:flex-end;margin:-6px 0 10px"><button class="btn petit" onclick="print()">Imprimer</button></div>
+      <h2>Contrat de tâches individuelles U61 <span class="discret">conception — étude détaillée du projet</span></h2>${contrat(p.u61, ["C7", "C9", "C11"])}
+      <h2>Contrat de tâches individuelles U62 <span class="discret">réalisation — mise en service du projet</span></h2>${contrat(p.u62, ["C4", "C14", "C15", "C16"])}
+      <h2>Ressources à disposition</h2>
+      <div class="deux">${P.dossiers.map((d) => `<div class="carte"><h3>Dossier ${d.num} — ${esc(d.titre)}</h3><ul>${d.fourni.concat((p.fourni_plus || {})[d.id] || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")}
+        <div class="carte"><h3>Outils numériques</h3><ul>${P.outils_communs.concat(p.outils_plus || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div></div>
+      ${grille("u61")}${grille("u62")}
+      <h2>Niveaux de maîtrise</h2>
+      <div class="table-defil"><table><thead><tr><th>Niveau</th><th>Signification</th><th class="num">Poids</th></tr></thead><tbody>${P.grilles.niveaux.map((n) => `<tr><td class="mono">${n.code}</td><td><b>${esc(n.lib)}</b><br><span class="discret">${esc(n.desc)}</span></td><td class="num">${n.pct} %</td></tr>`).join("")}</tbody></table></div>
+      <p class="discret">Note d'une unité = somme, pour chaque compétence, de son poids × le pourcentage du niveau atteint, ramenée sur 20.</p>`;
+  }
+
+  // ---------------- divers ----------------
+  // Typographie française à l'affichage (comme dans les dossiers Word) : espaces insécables avant : ; ! ? », après «,
+  // entre un nombre et son unité, apostrophe typographique. Seul le texte affiché change : ni les champs de saisie, ni les données, ni le travail enregistré.
+  const NB = "\u00a0";
+  const typo = (s) => s
+    .replace(/'/g, "’")
+    .replace(/ ([:;!?»])/g, NB + "$1")
+    .replace(/« /g, "«" + NB)
+    .replace(/(\d) (?=\d{3}(?!\d))/g, "$1" + NB)
+    .replace(/(\d) (?=(%|[A-Za-zµΩ°][A-Za-z³²/·]{0,5})(?![A-Za-z]))/g, "$1" + NB)
+    .replace(/ (—|–) /g, NB + "$1 ")
+    .replace(/ ([=<>≤≥×±≈]) /g, NB + "$1" + NB);
+  const HORS_TYPO = "script,style,textarea,input,select,code,pre,svg,[contenteditable]";
+  function typoNoeud(n) {
+    if (n.nodeType === 3) {
+      const el = n.parentElement;
+      if (el && !el.closest(HORS_TYPO)) { const v = typo(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; }
+    } else if (n.nodeType === 1 && !n.closest(HORS_TYPO)) {
+      const w = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
+      const L = []; for (let t = w.nextNode(); t; t = w.nextNode()) L.push(t);
+      L.forEach(typoNoeud);
+    }
+  }
+  new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach(typoNoeud))).observe(document.body, { childList: true, subtree: true });
+  typoNoeud(document.body);
+  let tmr = null;
+  function toast(msg) { let t = document.querySelector(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); } t.textContent = msg; t.hidden = false; clearTimeout(tmr); tmr = setTimeout(() => (t.hidden = true), 5000); }
+  function etatSip() {
+    const el = document.getElementById("sip-etat"); if (!el) return;
+    if (!window.SIP || !SIP.session) { el.innerHTML = `<span class="sip ko">Hors site · travail gardé sur cet appareil</span>`; return; }
+    if (S && S.apercu) { el.innerHTML = `<span class="sip ap"><b>Aperçu professeur</b> · ${esc((SIP.niveau(S.niveau) || {}).court || S.niveau)} · rien n'est transmis · <a href="../index.html#/tableau">Tableau de bord</a></span>`; return; }
+    el.innerHTML = S ? `<span class="sip ok">Connecté(e) : <b>${esc(S.nom)}</b> · <a href="../index.html#/tableau">Mon espace</a></span>` : `<span class="sip ko">Non connecté(e) · <a href="../index.html#/connexion/BTS2-STI">Me connecter</a> (BTS 2 STI) · <a href="../index.html#/connexion/BTS2-ADM">ADM</a></span>`;
+  }
+  function route() {
+    const h = location.hash.replace(/^#\/?/, "");
+    const m = /^p\/([A-Z]\d{1,2}(?:-\d{1,2})?)(?:\/([a-z0-9]+))?/.exec(h);
+    if (m && projet(m[1])) vueProjet(projet(m[1]), m[2] || "projet"); else vueAccueil();
+    indicateur();
+  }
+  window.SIP_PROJETS_PAGE = { etat: () => ETAT, enregistrer };   // pour les tests
+  window.addEventListener("hashchange", route);
+  window.addEventListener("load", async () => {
+    lireSession();
+    etatSip();
+    await charger();
+    if (!location.hash && monProjet()) location.hash = "#/p/" + monProjet() + "/dossiers"; else route();
+  });
+})();
+</script>
+
+<!-- site SI Papara : connexion de l'étudiant et envoi du travail au professeur (ignoré si la page est ouverte seule) -->
+<script src="../config.js" onerror="void 0"></script>
+<script>
+  if (window.SIP_CONFIG && SIP_CONFIG.supabaseUrl && SIP_CONFIG.supabaseAnonKey)
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
+</script>
+<script src="../assets/backend.js" onerror="void 0"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 740" width="1200" height="740" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="f5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker>
+  </defs>
+  <rect width="1200" height="740" fill="#ffffff"/>
+
+  <!-- lagon -->
+  <path d="M0,0 H120 C95,120 140,240 112,370 C90,490 135,610 115,740 H0 z" fill="#DEEBF7"/>
+  <text x="48" y="380" font-size="22" font-weight="700" fill="#1F4E79" text-anchor="middle" transform="rotate(-90 48 380)">Lagon</text>
+
+  <!-- pompe de remplissage -->
+  <rect x="140" y="300" width="130" height="90" rx="8" fill="#ffffff" stroke="#1F3864" stroke-width="3"/>
+  <text x="205" y="333" font-size="18" font-weight="700" fill="#1F3864" text-anchor="middle">Pompe P1</text>
+  <text x="205" y="356" font-size="16" fill="#333" text-anchor="middle">4 kW</text>
+  <text x="205" y="377" font-size="14" fill="#333" text-anchor="middle">+ coffret local</text>
+  <line x1="110" y1="345" x2="140" y2="345" stroke="#2E75B6" stroke-width="8"/>
+
+  <!-- canalisation d'eau, compteur, vannes -->
+  <g stroke="#2E75B6" stroke-width="8" fill="none" stroke-linejoin="round">
+    <path d="M270,345 H360"/>
+    <path d="M410,345 H470 V180 H500"/>
+    <path d="M470,345 V560 H500"/>
+  </g>
+  <circle cx="385" cy="345" r="25" fill="#ffffff" stroke="#1F4E79" stroke-width="3"/>
+  <text x="385" y="351" font-size="15" font-weight="700" fill="#1F4E79" text-anchor="middle">m³</text>
+  <text x="385" y="300" font-size="16" fill="#1F4E79" text-anchor="middle">Compteur d'eau</text>
+  <text x="385" y="318" font-size="14" fill="#1F4E79" text-anchor="middle">sortie à impulsions</text>
+  <text x="438" y="462" font-size="15" fill="#1F4E79" text-anchor="end">vannes manuelles</text>
+  <text x="438" y="481" font-size="15" fill="#1F4E79" text-anchor="end">vers chaque bassin</text>
+
+  <!-- bassins -->
+  <g fill="#E2F0D9" stroke="#538135" stroke-width="3">
+    <rect x="500" y="80" width="200" height="200" rx="10"/><rect x="730" y="80" width="200" height="200" rx="10"/><rect x="960" y="80" width="200" height="200" rx="10"/>
+    <rect x="500" y="480" width="200" height="200" rx="10"/><rect x="730" y="480" width="200" height="200" rx="10"/><rect x="960" y="480" width="200" height="200" rx="10"/>
+  </g>
+  <g font-size="20" font-weight="700" fill="#385723" text-anchor="middle">
+    <text x="600" y="170">B1</text><text x="830" y="170">B2</text><text x="1060" y="170">B3</text>
+    <text x="600" y="570">B4</text><text x="830" y="570">B5</text><text x="1060" y="570">B6</text>
+  </g>
+  <g font-size="15" fill="#385723" text-anchor="middle">
+    <text x="600" y="194">500 m³</text><text x="830" y="194">500 m³</text><text x="1060" y="194">500 m³</text>
+    <text x="600" y="594">500 m³</text><text x="830" y="594">500 m³</text><text x="1060" y="594">500 m³</text>
+  </g>
+
+  <!-- collecteur d'air -->
+  <g stroke="#ED7D31" stroke-width="5" fill="none">
+    <path d="M420,640 H450 V380 H1170"/>
+    <path d="M600,380 V280"/><path d="M830,380 V280"/><path d="M1060,380 V280"/>
+    <path d="M600,380 V480"/><path d="M830,380 V480"/><path d="M1060,380 V480"/>
+  </g>
+  <rect x="632" y="394" width="166" height="48" rx="6" fill="#ffffff"/>
+  <text x="715" y="414" font-size="15" fill="#C55A11" text-anchor="middle">collecteur d'air</text>
+  <text x="715" y="434" font-size="15" fill="#C55A11" text-anchor="middle">diffuseurs à 1,5 m</text>
+
+  <!-- local technique -->
+  <rect x="150" y="560" width="270" height="150" rx="8" fill="#F7F7F7" stroke="#262626" stroke-width="3.5"/>
+  <text x="285" y="590" font-size="18" font-weight="700" fill="#262626" text-anchor="middle">Local technique</text>
+  <rect x="165" y="606" width="70" height="88" rx="4" fill="#DCE6F1" stroke="#1F3864" stroke-width="2"/>
+  <text x="200" y="655" font-size="17" font-weight="700" fill="#1F3864" text-anchor="middle">TD</text>
+  <circle cx="290" cy="650" r="30" fill="#ffffff" stroke="#C55A11" stroke-width="3"/><text x="290" y="657" font-size="17" font-weight="700" fill="#C55A11" text-anchor="middle">S1</text>
+  <circle cx="370" cy="650" r="30" fill="#ffffff" stroke="#C55A11" stroke-width="3"/><text x="370" y="657" font-size="17" font-weight="700" fill="#C55A11" text-anchor="middle">S2</text>
+  <text x="330" y="702" font-size="13" fill="#404040" text-anchor="middle">surpresseurs 7,5 kW</text>
+  <!-- arrivée EDT -->
+  <line x1="462" y1="690" x2="424" y2="690" stroke="#1F3864" stroke-width="5" marker-end="url(#f5)"/>
+  <text x="468" y="696" font-size="14" fill="#1F3864">arrivée EDT</text>
+  <!-- câble de la pompe posé au sol -->
+  <path d="M175,560 C160,500 215,450 205,392" fill="none" stroke="#1F3864" stroke-width="3.5" stroke-dasharray="10 7"/>
+  <text x="150" y="470" font-size="15" fill="#1F3864" text-anchor="end">câble 60 m,</text>
+  <text x="150" y="488" font-size="15" fill="#1F3864" text-anchor="end">posé au sol</text>
+
+  <!-- légende -->
+  <g font-size="15" fill="#333">
+    <line x1="150" y1="40" x2="200" y2="40" stroke="#2E75B6" stroke-width="8"/><text x="210" y="46">Eau du lagon</text>
+    <line x1="150" y1="70" x2="200" y2="70" stroke="#ED7D31" stroke-width="5"/><text x="210" y="76">Air</text>
+    <line x1="320" y1="70" x2="370" y2="70" stroke="#1F3864" stroke-width="3.5" stroke-dasharray="10 7"/><text x="380" y="76">Électricité</text>
+  </g>
+  <text x="1160" y="730" font-size="14" fill="#7F7F7F" text-anchor="end">Plan sans échelle · Taravao</text>
+</svg>

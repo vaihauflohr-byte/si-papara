@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 740" width="1200" height="740" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="f4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker>
+  </defs>
+  <rect width="1200" height="740" fill="#ffffff"/>
+  <!-- terrain -->
+  <rect x="30" y="30" width="1140" height="640" fill="none" stroke="#7F7F7F" stroke-width="3" stroke-dasharray="10 7"/>
+
+  <!-- salle de brassage -->
+  <rect x="60" y="60" width="440" height="270" fill="#F7F7F7" stroke="#262626" stroke-width="3.5"/>
+  <text x="280" y="95" font-size="22" font-weight="700" fill="#262626" text-anchor="middle">Salle de brassage</text>
+  <g fill="#ffffff" stroke="#595959" stroke-width="2.5">
+    <circle cx="150" cy="170" r="38"/><circle cx="250" cy="170" r="38"/><circle cx="350" cy="170" r="38"/>
+  </g>
+  <text x="250" y="124" font-size="15" fill="#404040" text-anchor="middle">cuves (la cuve-filtre au centre)</text>
+  <rect x="72" y="250" width="160" height="62" rx="6" fill="#DCE6F1" stroke="#1F3864" stroke-width="2"/>
+  <text x="152" y="276" font-size="15" font-weight="700" fill="#1F3864" text-anchor="middle">Armoire de report</text>
+  <text x="152" y="296" font-size="15" fill="#1F3864" text-anchor="middle">de la chaudière</text>
+  <rect x="400" y="262" width="88" height="50" rx="4" fill="#DCE6F1" stroke="#1F3864" stroke-width="2"/>
+  <text x="444" y="284" font-size="14" font-weight="700" fill="#1F3864" text-anchor="middle">Coffret</text>
+  <text x="444" y="302" font-size="14" fill="#1F3864" text-anchor="middle">de la vis</text>
+  <rect x="440" y="70" width="44" height="60" fill="#1F3864"/>
+  <text x="462" y="150" font-size="16" font-weight="700" fill="#1F3864" text-anchor="middle">TGBT</text>
+
+  <!-- chaufferie -->
+  <rect x="500" y="60" width="200" height="190" fill="#FBE5D6" stroke="#262626" stroke-width="3.5"/>
+  <text x="600" y="95" font-size="21" font-weight="700" fill="#843C0C" text-anchor="middle">Chaufferie</text>
+  <rect x="535" y="120" width="130" height="90" rx="8" fill="#ffffff" stroke="#843C0C" stroke-width="2.5"/>
+  <text x="600" y="157" font-size="16" font-weight="700" fill="#843C0C" text-anchor="middle">Chaudière gaz</text>
+  <text x="600" y="181" font-size="16" fill="#843C0C" text-anchor="middle">150 kW</text>
+
+  <!-- bureau -->
+  <rect x="860" y="60" width="280" height="170" fill="#F7F7F7" stroke="#262626" stroke-width="3.5"/>
+  <text x="1000" y="125" font-size="22" font-weight="700" fill="#262626" text-anchor="middle">Bureau</text>
+  <text x="1000" y="155" font-size="16" fill="#404040" text-anchor="middle">Wi-Fi, PC</text>
+  <!-- atelier de maintenance -->
+  <rect x="860" y="250" width="280" height="200" fill="#F7F7F7" stroke="#262626" stroke-width="3.5"/>
+  <text x="1000" y="282" font-size="19" font-weight="700" fill="#262626" text-anchor="middle">Atelier de maintenance</text>
+  <rect x="880" y="300" width="110" height="80" rx="6" fill="#FFF2CC" stroke="#BF9000" stroke-width="2.5"/>
+  <text x="935" y="332" font-size="14" font-weight="700" fill="#7F6000" text-anchor="middle">Poste de</text>
+  <text x="935" y="350" font-size="14" font-weight="700" fill="#7F6000" text-anchor="middle">lissage</text>
+  <text x="935" y="368" font-size="13" fill="#7F6000" text-anchor="middle">(acétone)</text>
+  <rect x="1010" y="300" width="115" height="80" rx="6" fill="#ffffff" stroke="#595959" stroke-width="2"/>
+  <text x="1067" y="332" font-size="14" fill="#404040" text-anchor="middle">Établi et</text>
+  <text x="1067" y="350" font-size="14" fill="#404040" text-anchor="middle">poste à souder</text>
+  <rect x="1030" y="392" width="40" height="40" rx="4" fill="#C00000"/>
+  <text x="1020" y="420" font-size="13" fill="#C00000" text-anchor="end">bidon 20 L</text>
+
+  <!-- silo et vis -->
+  <line x1="250" y1="208" x2="250" y2="330" stroke="#7F6000" stroke-width="10"/>
+  <line x1="250" y1="330" x2="250" y2="420" stroke="#7F6000" stroke-width="10"/>
+  <text x="262" y="385" font-size="16" fill="#7F6000">vis de transfert 4 kW</text>
+  <circle cx="250" cy="480" r="62" fill="#EADBC8" stroke="#7F6000" stroke-width="3.5"/>
+  <text x="250" y="476" font-size="17" font-weight="700" fill="#7F6000" text-anchor="middle">Silo à drêche</text>
+  <text x="250" y="498" font-size="16" fill="#7F6000" text-anchor="middle">1,5 m³</text>
+  <text x="250" y="566" font-size="15" fill="#404040" text-anchor="middle">trappe manuelle en bas, échelle</text>
+  <!-- cote coffret - vis -->
+  <polyline points="444,315 444,350 262,350" fill="none" stroke="#333" stroke-width="2" stroke-dasharray="5 5"/>
+  <text x="360" y="342" font-size="15" fill="#333" text-anchor="middle">15 m</text>
+
+  <!-- cour -->
+  <text x="610" y="470" font-size="21" fill="#7F7F7F" text-anchor="middle">Cour</text>
+  <text x="610" y="496" font-size="16" fill="#7F7F7F" text-anchor="middle">camions de malt, éleveurs, salariés</text>
+
+  <!-- distance chaufferie - bureau -->
+  <line x1="705" y1="155" x2="855" y2="155" stroke="#333" stroke-width="2" marker-start="url(#f4)" marker-end="url(#f4)"/>
+  <text x="780" y="145" font-size="16" fill="#333" text-anchor="middle">20 m</text>
+
+  <!-- entrée et barrière -->
+  <rect x="520" y="662" width="190" height="16" fill="#ffffff"/>
+  <line x1="530" y1="650" x2="690" y2="650" stroke="#C00000" stroke-width="7"/>
+  <rect x="690" y="632" width="34" height="36" fill="#404040"/>
+  <text x="615" y="636" font-size="16" font-weight="700" fill="#C00000" text-anchor="middle">Barrière levante</text>
+  <text x="615" y="700" font-size="16" fill="#404040" text-anchor="middle">Entrée depuis la route</text>
+  <polyline points="735,650 1155,650 1155,150 1145,150" fill="none" stroke="#333" stroke-width="2" stroke-dasharray="5 5"/>
+  <text x="950" y="640" font-size="15" fill="#333" text-anchor="middle">35 m jusqu'au bureau</text>
+  <text x="40" y="726" font-size="14" fill="#7F7F7F">Plan sans échelle · Paea</text>
+</svg>

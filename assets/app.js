@@ -190,7 +190,7 @@
       $app.innerHTML = `<h1>${salut(s)}</h1>
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
       <div id="appli-bandeau"></div>
-      ${/^BTS2/.test(s.niveau) ? tuileE4(hist) : ""}
+      ${/^BTS2/.test(s.niveau) ? tuileProjet() + tuileE4(hist) : ""}
       ${grille}
       ${blocsModules(modules, hist)}
       ${derniers}
@@ -202,6 +202,29 @@
     };
     if (SIP.appli) SIP.appli.bandeau(document.getElementById("appli-bandeau"));
     if (s.niveau === "TSI") afficherMesSignalements();
+  }
+
+  // BTS 2 : le projet U61/U62 (entrainements/bts-projets.html) — le titre du projet s'affiche quand il est attribué ou choisi
+  function tuileProjet() {
+    setTimeout(majTuileProjet, 0);
+    return `<a class="carte bac-hero" id="tuile-projet" href="entrainements/bts-projets.html">
+        <div><div class="eyebrow">BTS Électrotechnique · épreuve E6 (U61, U62)</div><div class="bac-titre">Mon projet <span>dossiers 1 · 2 · 3</span></div>
+        <p class="discret" style="margin:0" id="tuile-projet-txt">Le cahier des charges de ton client, puis tes dossiers : conception, réalisation par anticipation (planning, mise en service, risques), réalisation.</p></div>
+        <div class="bac-d"><span class="btn">Ouvrir →</span></div>
+      </a>`;
+  }
+  async function majTuileProjet() {
+    if (!SIP.api.projetEtat) return;
+    let r; try { r = await SIP.api.projetEtat(); } catch (e) { return; }   // base pas encore à jour (supabase/projets.sql) ou hors ligne : tuile générique
+    const pid = (r && (r.projet || (r.etat && r.etat.projet))) || null; if (!pid) return;
+    const charge = (src) => new Promise((ok) => { const sc = document.createElement("script"); sc.src = src; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });
+    if (!window.SIP_PROJETS) { await charge("contenu/projets-bts2.js"); await charge("contenu/projets-entrainement.js"); }
+    const p = window.SIP_PROJETS && window.SIP_PROJETS.projets.find((x) => x.id === pid);
+    const el = document.getElementById("tuile-projet-txt"); if (!el || !p) return;
+    const conf = r.projet ? "" : ` <span class="discret">(à confirmer par le professeur)</span>`;
+    el.innerHTML = p.type === "entrainement"
+      ? `<b>${esc(pid)} · ${esc(p.partie)}</b> — entraînement, cas ${esc(p.cas)} : ${esc(p.court)}${conf}`
+      : `<b>${esc(pid)} · ${esc(p.court)}</b> — ${esc(p.client)} · ${esc(p.lieu)}${conf}`;
   }
 
   // BTS 2 : l'entraînement à l'épreuve E4 (sujets d'annales, auto-évaluation N0–N3) en tête du tableau de bord

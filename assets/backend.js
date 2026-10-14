@@ -129,6 +129,17 @@ window.SIP = window.SIP || {};
         return (db.signalements || []).filter((x) => x.eleve_id === v).sort((a, b) => b.cree_le.localeCompare(a.cree_le)).slice(0, 50)
           .map((x) => ({ id: x.id, source: x.source, notion: x.notion, motif: x.motif, statut: x.statut, valide_serie: x.valide_serie, cree_le: x.cree_le, traite_le: x.traite_le, question: String(x.question || "").slice(0, 140) }));
       },
+      // ----- projets BTS 2 (supabase/projets.sql) -----
+      async projetEtat() {
+        const db = load(); const v = moi(); const r = (db.projets || []).find((x) => x.eleve_id === v);
+        return r ? { projet: r.projet || null, etat: r.etat || null, retours: r.retours || null, maj_eleve: r.maj_eleve || null } : { projet: null, etat: null, retours: null, maj_eleve: null };
+      },
+      async projetEnregistrer(etat) {
+        const db = load(); const v = moi(); db.projets = db.projets || [];
+        let r = db.projets.find((x) => x.eleve_id === v);
+        if (!r) { r = { eleve_id: v, projet: null, etat: {}, retours: {}, evaluation: {}, maj_eleve: null, maj_prof: null }; db.projets.push(r); }
+        r.etat = etat; r.maj_eleve = new Date().toISOString(); save(db); return r.maj_eleve;
+      },
       // ----- prof -----
       async profConnexion(email, mdp) { if (mdp !== "demo") throw new Error("En mode démo, le mot de passe prof est : demo"); sessionStorage.setItem("sip_prof", "1"); },
       async profSession() { try { return sessionStorage.getItem("sip_prof") === "1"; } catch (e) { return false; } },
@@ -139,6 +150,13 @@ window.SIP = window.SIP || {};
         return { eleves: db.eleves.map(({ pin, ...r }) => r), entrainements: db.entrainements, fiches_suivi: db.fiches_suivi, lectures: db.lectures.filter((l) => l.jour >= depuis) };
       },
       async profSignalements() { const db = load(); return (db.signalements || []).slice().sort((a, b) => b.cree_le.localeCompare(a.cree_le)).slice(0, 300); },
+      async profProjets() { const db = load(); return (db.projets || []).map((r) => Object.assign({}, r)); },
+      async profProjetMaj(eleve_id, champs) {
+        const db = load(); db.projets = db.projets || [];
+        let r = db.projets.find((x) => x.eleve_id === eleve_id);
+        if (!r) { r = { eleve_id, projet: null, etat: {}, retours: {}, evaluation: {}, maj_eleve: null, maj_prof: null }; db.projets.push(r); }
+        Object.assign(r, champs, { maj_prof: new Date().toISOString() }); save(db);
+      },
       async traiterSignalement(id, statut) {
         const db = load(); const x = (db.signalements || []).find((r) => r.id === id);
         if (x) { x.statut = statut; x.traite_le = statut === "nouveau" ? null : new Date().toISOString(); }
@@ -207,6 +225,8 @@ window.SIP = window.SIP || {};
         p_jeton: jeton(), p_source: x.source, p_notion: x.notion, p_module: x.module, p_ref: x.ref, p_question: x.question, p_figure: x.figure,
         p_reponse: x.reponse, p_attendu: x.attendu, p_correction: x.correction, p_motif: x.motif, p_commentaire: x.commentaire, p_fait_le: p.fait_le || null }); },
       mesSignalements: () => rpc("mes_signalements", { p_jeton: jeton() }),
+      projetEtat: () => rpc("projet_mon_etat", { p_jeton: jeton() }),
+      projetEnregistrer: (etat) => rpc("projet_enregistrer", { p_jeton: jeton(), p_etat: etat }),
       // ----- prof -----
       async profConnexion(email, mdp) {
         const { error } = await sb.auth.signInWithPassword({ email, password: mdp });
@@ -241,6 +261,15 @@ window.SIP = window.SIP || {};
         const { error } = await sb.from("signalements").update({ statut, traite_le: statut === "nouveau" ? null : new Date().toISOString() }).eq("id", id);
         if (error) throw new Error(error.message);
       },
+      async profProjets() {
+        const { data, error } = await sb.from("projets_eleves").select("*");
+        if (error) throw new Error(error.message);
+        return data;
+      },
+      async profProjetMaj(eleve_id, champs) {
+        const { error } = await sb.from("projets_eleves").upsert(Object.assign({ eleve_id }, champs, { maj_prof: new Date().toISOString() }), { onConflict: "eleve_id" });
+        if (error) throw new Error(error.message);
+      },
       validerSignalement: (id, note) => rpc("valider_signalement", { p_id: id, p_note: note }),
       creerEleve: (niveau, nom, pin) => rpc("creer_eleve", { p_niveau: niveau, p_nom: nom, p_pin: pin }),
       changerPin: (id, pin) => rpc("changer_pin", { p_eleve: id, p_pin: pin }),
@@ -258,7 +287,8 @@ window.SIP = window.SIP || {};
     const ko = async () => { const e = new Error("Pas de réseau (HORS_LIGNE)"); e.reseau = true; throw e; };
     const api = { mode: "hors-ligne" };
     ["connexion", "etat", "enregistrer", "adopter", "lire", "signaler", "mesSignalements", "profConnexion", "profDonnees", "profSignalements",
-      "traiterSignalement", "validerSignalement", "creerEleve", "changerPin", "basculerActif", "supprimerEleve", "profDeconnexion"].forEach((f) => (api[f] = ko));
+      "traiterSignalement", "validerSignalement", "creerEleve", "changerPin", "basculerActif", "supprimerEleve", "profDeconnexion",
+      "projetEtat", "projetEnregistrer", "profProjets", "profProjetMaj"].forEach((f) => (api[f] = ko));
     api.profSession = async () => false;
     api.profJeton = async () => null;
     api.profStatut = async () => "inconnu";
@@ -343,7 +373,7 @@ window.SIP = window.SIP || {};
 
   const vers = (f) => (...a) => (SIP.apercu.actif() ? locale : principal)[f](...a);
   SIP.api = Object.assign({}, principal, { etat: vers("etat"), enregistrer: vers("enregistrer"), adopter: vers("adopter"), lire: vers("lire"),
-    signaler: vers("signaler"), mesSignalements: vers("mesSignalements") });
+    signaler: vers("signaler"), mesSignalements: vers("mesSignalements"), projetEtat: vers("projetEtat"), projetEnregistrer: vers("projetEnregistrer") });
 
   // ---------- Écritures élève avec file d'attente hors-ligne ----------
   async function envoyer(op) {

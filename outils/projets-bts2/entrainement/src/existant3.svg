@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 740" width="1200" height="740" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="f3" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="18" markerHeight="18" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1F3864"/></marker>
+    <marker id="f3e" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="26" markerHeight="26" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E75B6"/></marker>
+  </defs>
+  <rect width="1200" height="740" fill="#ffffff"/>
+  <rect x="10" y="10" width="1180" height="720" fill="#FBF8EF" stroke="#C9BFA3" stroke-width="2"/>
+
+  <!-- réserve d'eau -->
+  <rect x="40" y="250" width="190" height="300" fill="#ffffff" stroke="#1F4E79" stroke-width="3"/>
+  <rect x="43" y="330" width="184" height="217" fill="#DEEBF7"/>
+  <text x="135" y="290" font-size="20" font-weight="700" fill="#1F4E79" text-anchor="middle">Réserve</text>
+  <text x="135" y="314" font-size="20" font-weight="700" fill="#1F4E79" text-anchor="middle">200 m³</text>
+  <text x="135" y="580" font-size="16" fill="#333" text-anchor="middle">remplie par le réseau</text>
+  <text x="135" y="600" font-size="16" fill="#333" text-anchor="middle">de la ville (flotteur)</text>
+
+  <!-- tuyauteries d'eau -->
+  <g stroke="#2E75B6" stroke-width="9" fill="none" stroke-linejoin="round">
+    <path d="M230,500 H374"/>
+    <path d="M300,500 V300 H391"/>
+    <path d="M498,500 H640 V300"/>
+    <path d="M463,300 H640"/>
+    <path d="M640,400 H760"/>
+    <path d="M920,400 H1150" marker-end="url(#f3e)"/>
+  </g>
+
+  <!-- pompes -->
+  <circle cx="436" cy="500" r="62" fill="#ffffff" stroke="#1F3864" stroke-width="3.5"/>
+  <text x="436" y="510" font-size="28" font-weight="700" fill="#1F3864" text-anchor="middle">P1</text>
+  <text x="436" y="595" font-size="18" font-weight="700" fill="#1F3864" text-anchor="middle">Pompe principale</text>
+  <text x="436" y="617" font-size="17" fill="#333" text-anchor="middle">moteur 37 kW, étoile-triangle</text>
+  <circle cx="427" cy="300" r="36" fill="#ffffff" stroke="#1F3864" stroke-width="3"/>
+  <text x="427" y="308" font-size="22" font-weight="700" fill="#1F3864" text-anchor="middle">P2</text>
+  <text x="475" y="262" font-size="17" font-weight="700" fill="#1F3864">Pompe de maintien</text>
+  <text x="475" y="284" font-size="16" fill="#333">« jockey », 2,2 kW</text>
+  <!-- clapets -->
+  <g fill="#ffffff" stroke="#1F3864" stroke-width="2.5">
+    <path d="M556,488 L556,512 L576,500 z"/><line x1="578" y1="486" x2="578" y2="514"/>
+    <path d="M590,288 L590,312 L610,300 z"/><line x1="612" y1="286" x2="612" y2="314"/>
+  </g>
+
+  <!-- pressostats -->
+  <g>
+    <line x1="640" y1="300" x2="640" y2="190" stroke="#2E75B6" stroke-width="4"/>
+    <line x1="600" y1="190" x2="720" y2="190" stroke="#2E75B6" stroke-width="4"/>
+    <circle cx="600" cy="170" r="20" fill="#ffffff" stroke="#1F3864" stroke-width="2.5"/><text x="600" y="176" font-size="15" font-weight="700" text-anchor="middle" fill="#1F3864">PS1</text>
+    <circle cx="660" cy="170" r="20" fill="#ffffff" stroke="#1F3864" stroke-width="2.5"/><text x="660" y="176" font-size="15" font-weight="700" text-anchor="middle" fill="#1F3864">PS2</text>
+    <circle cx="720" cy="170" r="20" fill="#ffffff" stroke="#1F3864" stroke-width="2.5"/><text x="720" y="176" font-size="15" font-weight="700" text-anchor="middle" fill="#1F3864">PS3</text>
+  </g>
+  <!-- liaisons des pressostats vers l'armoire -->
+  <path d="M740,170 H880" stroke="#1F3864" stroke-width="2.5" fill="none" stroke-dasharray="8 6"/>
+
+  <!-- alimentation des moteurs depuis l'armoire -->
+  <g stroke="#1F3864" stroke-width="3.5" fill="none">
+    <path d="M880,100 H427 V264"/>
+    <path d="M880,120 H340 V470 H382"/>
+  </g>
+
+  <!-- poste de contrôle -->
+  <rect x="760" y="340" width="160" height="120" rx="8" fill="#ffffff" stroke="#1F3864" stroke-width="3"/>
+  <text x="840" y="372" font-size="18" font-weight="700" fill="#1F3864" text-anchor="middle">Poste de</text>
+  <text x="840" y="394" font-size="18" font-weight="700" fill="#1F3864" text-anchor="middle">contrôle</text>
+  <text x="840" y="420" font-size="14" fill="#333" text-anchor="middle">soupape d'alarme</text>
+  <text x="840" y="440" font-size="14" fill="#333" text-anchor="middle">pressostat d'alarme</text>
+  <line x1="840" y1="460" x2="840" y2="520" stroke="#2E75B6" stroke-width="4"/>
+  <circle cx="840" cy="540" r="20" fill="#FFF2CC" stroke="#BF9000" stroke-width="2.5"/>
+  <text x="870" y="546" font-size="16" fill="#7F6000">cloche hydraulique (dehors)</text>
+
+  <!-- réseau sprinkler -->
+  <text x="1035" y="370" font-size="18" font-weight="700" fill="#1F4E79" text-anchor="middle">Réseau sprinkler</text>
+  <text x="1035" y="436" font-size="16" fill="#1F4E79" text-anchor="middle">sous toute la toiture</text>
+  <g fill="#1F4E79"><circle cx="975" cy="400" r="7"/><circle cx="1035" cy="400" r="7"/><circle cx="1095" cy="400" r="7"/></g>
+
+  <!-- armoire de commande -->
+  <rect x="880" y="70" width="290" height="200" rx="8" fill="#ffffff" stroke="#1F3864" stroke-width="3"/>
+  <path d="M888,70 H1162 A8,8 0 0 1 1170,78 V110 H880 V78 A8,8 0 0 1 888,70 z" fill="#1F3864"/>
+  <text x="1025" y="98" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">Armoire de commande</text>
+  <text x="896" y="140" font-size="16" fill="#333">P1 : étoile-triangle</text>
+  <text x="896" y="164" font-size="16" fill="#333">P2 : démarrage direct</text>
+  <text x="896" y="188" font-size="16" fill="#333">6 voyants</text>
+  <text x="896" y="212" font-size="16" fill="#333">bornier « poste de garde »</text>
+  <text x="896" y="252" font-size="14" fill="#6B6150">1998</text>
+  <!-- alimentation de l'armoire -->
+  <line x1="1025" y1="22" x2="1025" y2="68" stroke="#1F3864" stroke-width="5" marker-end="url(#f3)"/>
+  <text x="1013" y="44" font-size="15" fill="#1F3864" text-anchor="end">alimentation depuis le TGBT de l'entrepôt</text>
+  <!-- reports -->
+  <path d="M1100,270 V310 H1185" stroke="#C00000" stroke-width="3" fill="none" stroke-dasharray="8 6"/>
+  <text x="1090" y="300" font-size="15" fill="#C00000" text-anchor="end">reports vers le poste de garde (120 m)</text>
+
+  <!-- légende -->
+  <g font-size="16" fill="#333">
+    <line x1="40" y1="660" x2="100" y2="660" stroke="#2E75B6" stroke-width="9"/><text x="110" y="666">Eau</text>
+    <line x1="190" y1="660" x2="250" y2="660" stroke="#1F3864" stroke-width="3.5"/><text x="260" y="666">Puissance</text>
+    <line x1="390" y1="660" x2="450" y2="660" stroke="#1F3864" stroke-width="2.5" stroke-dasharray="8 6"/><text x="460" y="666">Commande</text>
+    <text x="40" y="700">PS1 : pressostat de la jockey · PS2, PS3 : démarrage de P1</text>
+  </g>
+  <g>
+    <rect x="740" y="625" width="430" height="85" fill="#ffffff" stroke="#6B6150" stroke-width="2"/>
+    <text x="955" y="653" text-anchor="middle" font-size="18" font-weight="700" fill="#3B3426">ENTREPÔTS MAHANA — LOCAL POMPE</text>
+    <text x="755" y="680" font-size="16" fill="#3B3426">Schéma de principe · installateur sprinkler</text>
+    <text x="755" y="701" font-size="16" fill="#3B3426">Novembre 1998 · sans échelle</text>
+  </g>
+</svg>
