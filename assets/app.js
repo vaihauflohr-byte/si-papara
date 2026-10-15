@@ -209,7 +209,7 @@
     setTimeout(majTuileProjet, 0);
     return `<a class="carte bac-hero" id="tuile-projet" href="entrainements/bts-projets.html">
         <div><div class="eyebrow">BTS Électrotechnique · épreuve E6 (U61, U62)</div><div class="bac-titre">Mon projet <span>dossiers 1 · 2 · 3</span></div>
-        <p class="discret" style="margin:0" id="tuile-projet-txt">Le cahier des charges de ton client, puis tes dossiers : conception, réalisation par anticipation (planning, mise en service, risques), réalisation.</p></div>
+        <p class="discret" style="margin:0" id="tuile-projet-txt">Le cahier des charges de ton client, puis tes dossiers : conception, réalisation par anticipation (planning, mise en service, risques), réalisation. Ton espace de dépôt de fichiers est dans la page du projet.</p></div>
         <div class="bac-d"><span class="btn">Ouvrir →</span></div>
       </a>`;
   }
@@ -223,8 +223,8 @@
     const el = document.getElementById("tuile-projet-txt"); if (!el || !p) return;
     const conf = r.projet ? "" : ` <span class="discret">(à confirmer par le professeur)</span>`;
     el.innerHTML = p.type === "entrainement"
-      ? `<b>${esc(pid)} · ${esc(p.partie)}</b> — entraînement, cas ${esc(p.cas)} : ${esc(p.court)}${conf}`
-      : `<b>${esc(pid)} · ${esc(p.court)}</b> — ${esc(p.client)} · ${esc(p.lieu)}${conf}`;
+      ? `<b>${esc(pid)} · ${esc(p.partie)}</b> — entraînement, cas ${esc(p.cas)} : ${esc(p.court)}${conf}<br>Étapes du parcours, dossiers et espace de dépôt de tes fichiers.`
+      : `<b>${esc(pid)} · ${esc(p.court)}</b> — ${esc(p.client)} · ${esc(p.lieu)}${conf}<br>Dossiers 1, 2, 3 et espace de dépôt de tes fichiers.`;
   }
 
   // BTS 2 : l'entraînement à l'épreuve E4 (sujets d'annales, auto-évaluation N0–N3) en tête du tableau de bord

@@ -51,6 +51,25 @@ window.SIP = window.SIP || {};
     clear() { try { localStorage.removeItem(CLE_SESSION); } catch (e) {} }
   };
 
+  // ---------- Espace de dépôt (fichiers des dossiers 1, 2, 3) : mêmes limites que supabase/projets.sql ----------
+  const LIMITES_DEPOT = { fichier: 25 * 1048576, eleve: 75 * 1048576, nombre: 300 };
+  SIP.LIMITES_DEPOT = LIMITES_DEPOT;
+  const EXT_INTERDITES = /\.(exe|msi|bat|cmd|com|scr|ps1|vbs|jar|dll|apk)$/i;
+  const nomDepot = (n) => String(n || "").replace(/[\u0000-\u001f/\\]+/g, " ").trim().slice(0, 160);
+  const depotPublic = (r) => ({ id: r.id, dossier: r.dossier, doc: r.doc, nom: r.nom, type: r.type, taille: r.taille, depose_le: r.depose_le, vu_le: r.vu_le });
+  function controleDepot(niveau, fichier, nom, dossier, doc, deja) {   // mêmes refus que depot_preparer
+    if (!/^BTS2/.test(niveau || "")) throw new Error("DEPOT_RESERVE_BTS2");
+    if (!["d1", "d2", "d3"].includes(dossier)) throw new Error("DEPOT_DOSSIER");
+    if (doc && !/^[a-z0-9][a-z0-9-]{0,39}$/.test(doc)) throw new Error("DEPOT_DOCUMENT");
+    if (!nomDepot(nom)) throw new Error("DEPOT_NOM");
+    if (!fichier || !fichier.size) throw new Error("DEPOT_VIDE");
+    if (fichier.size > LIMITES_DEPOT.fichier) throw new Error("DEPOT_TROP_GROS");
+    if (EXT_INTERDITES.test(nomDepot(nom))) throw new Error("DEPOT_TYPE");
+    if (deja.length >= LIMITES_DEPOT.nombre) throw new Error("DEPOT_NOMBRE");
+    if (deja.reduce((t, x) => t + x.taille, 0) + fichier.size > LIMITES_DEPOT.eleve) throw new Error("DEPOT_QUOTA");
+  }
+  const lireDataUrl = (f) => new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => ko(r.error); r.readAsDataURL(f); });
+
   // ---------- File d'attente hors-ligne ----------
   const CLE_FILE = "sip_file_attente";
   const lireFile = () => { try { return JSON.parse(localStorage.getItem(CLE_FILE)) || []; } catch (e) { return []; } };
@@ -74,6 +93,16 @@ window.SIP = window.SIP || {};
     const save = (db) => { try { localStorage.setItem(CLE, JSON.stringify(db)); } catch (e) {} };
     const moi = () => { const s = SIP.session.get(); if (!s) throw new Error("SESSION_EXPIREE"); return s.eleve_id; };
     const uid = () => "e-" + Math.random().toString(36).slice(2, 10);
+    // dépôts de la démo : le contenu des fichiers de 1,5 Mo au plus est gardé dans ce navigateur
+    const cleFichier = (id) => CLE + ":fichier:" + id;
+    const uuid = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : "f-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+    function blobDemo(r) {
+      let d = null; try { d = localStorage.getItem(cleFichier(r.id)); } catch (e) {}
+      if (!d) throw new Error("DEMO_NON_GARDE");
+      const i = d.indexOf(","), bin = atob(d.slice(i + 1)), u8 = new Uint8Array(bin.length);
+      for (let k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k);
+      return new Blob([u8], { type: r.type || "application/octet-stream" });
+    }
 
     return {
       mode: "demo",
@@ -140,6 +169,45 @@ window.SIP = window.SIP || {};
         if (!r) { r = { eleve_id: v, projet: null, etat: {}, retours: {}, evaluation: {}, maj_eleve: null, maj_prof: null }; db.projets.push(r); }
         r.etat = etat; r.maj_eleve = new Date().toISOString(); save(db); return r.maj_eleve;
       },
+      // ----- espace de dépôt -----
+      async depotListe() {
+        const db = load(); const v = moi(); const T = (db.depots || []).filter((x) => x.eleve_id === v && x.depose_le), L = T.filter((x) => !x.retire_le);
+        return { fichiers: L.map(depotPublic), utilise: T.reduce((t, x) => t + x.taille, 0), limites: Object.assign({}, LIMITES_DEPOT) };   // retirés compris, comme la base
+      },
+      async depotEnvoyer(fichier, nom, dossier, doc) {
+        const db = load(); const v = moi(); const e = db.eleves.find((x) => x.id === v);
+        controleDepot(e && e.niveau, fichier, nom, dossier, doc, (db.depots || []).filter((x) => x.eleve_id === v));
+        const id = uuid(); let garde = false;
+        if (fichier.size <= 1.5 * 1048576) { try { localStorage.setItem(cleFichier(id), await lireDataUrl(fichier)); garde = true; } catch (x) {} }
+        const pr = (db.projets || []).find((x) => x.eleve_id === v);
+        const r = { id, eleve_id: v, dossier, doc: doc || null, nom: nomDepot(nom), type: fichier.type || null, taille: fichier.size, chemin: v + "/" + dossier + "/" + id,
+          projet: pr ? pr.projet || (pr.etat || {}).projet || null : null, depose_le: new Date().toISOString(), retire_le: null, vu_le: null, garde };
+        const db2 = load(); db2.depots = db2.depots || []; db2.depots.push(r); save(db2);   // relu : la lecture du fichier a pu prendre du temps
+        return depotPublic(r);
+      },
+      async depotOuvrir(id) {
+        const db = load(); const v = moi(); const r = (db.depots || []).find((x) => x.id === id && x.eleve_id === v && !x.retire_le);
+        if (!r) throw new Error("DEPOT_INCONNU");
+        return { url: URL.createObjectURL(blobDemo(r)), nom: r.nom, type: r.type };
+      },
+      async depotRetirer(id) {
+        const db = load(); const v = moi(); const r = (db.depots || []).find((x) => x.id === id && x.eleve_id === v && x.depose_le && !x.retire_le);
+        if (!r) throw new Error("DEPOT_INCONNU");
+        r.retire_le = new Date().toISOString(); save(db);
+      },
+      async profDepots() { const db = load(); return (db.depots || []).filter((x) => x.depose_le).map((x) => Object.assign({}, x)); },
+      async profDepotUrl(r) { return URL.createObjectURL(blobDemo(r)); },
+      async profDepotBlob(r) { return blobDemo(r); },
+      async profDepotVu(ids) {
+        const db = load(); const t = new Date().toISOString();
+        (db.depots || []).forEach((x) => { if (ids.includes(x.id)) x.vu_le = t; }); save(db); return t;
+      },
+      async profDepotSupprimer(rows) {
+        const db = load(); const ids = rows.map((x) => x.id);
+        ids.forEach((id) => { try { localStorage.removeItem(cleFichier(id)); } catch (x) {} });
+        db.depots = (db.depots || []).filter((x) => !ids.includes(x.id)); save(db);
+        return { supprimes: ids, restants: [] };
+      },
       // ----- prof -----
       async profConnexion(email, mdp) { if (mdp !== "demo") throw new Error("En mode démo, le mot de passe prof est : demo"); sessionStorage.setItem("sip_prof", "1"); },
       async profSession() { try { return sessionStorage.getItem("sip_prof") === "1"; } catch (e) { return false; } },
@@ -181,6 +249,8 @@ window.SIP = window.SIP || {};
       async basculerActif(id, actif) { const db = load(); const e = db.eleves.find((x) => x.id === id); if (e) e.actif = actif; save(db); },
       async supprimerEleve(id) {
         const db = load();
+        (db.depots || []).filter((r) => r.eleve_id === id).forEach((r) => { try { localStorage.removeItem(cleFichier(r.id)); } catch (x) {} });
+        db.depots = (db.depots || []).filter((r) => r.eleve_id !== id);
         ["entrainements", "fiches_suivi", "lectures"].forEach((t) => (db[t] = db[t].filter((r) => r.eleve_id !== id)));
         db.eleves = db.eleves.filter((e) => e.id !== id); save(db);
       }
@@ -227,6 +297,31 @@ window.SIP = window.SIP || {};
       mesSignalements: () => rpc("mes_signalements", { p_jeton: jeton() }),
       projetEtat: () => rpc("projet_mon_etat", { p_jeton: jeton() }),
       projetEnregistrer: (etat) => rpc("projet_enregistrer", { p_jeton: jeton(), p_etat: etat }),
+      // ----- espace de dépôt : ticket (depot_preparer), envoi direct au stockage, confirmation -----
+      depotListe: () => rpc("depot_liste", { p_jeton: jeton() }),
+      async depotEnvoyer(fichier, nom, dossier, doc) {
+        const j = jeton();
+        const t = await rpc("depot_preparer", { p_jeton: j, p_dossier: dossier, p_doc: doc || null, p_nom: nom, p_type: fichier.type || null, p_taille: fichier.size });
+        const { error } = await sb.storage.from("depots").upload(t.chemin, fichier, { contentType: fichier.type || "application/octet-stream", upsert: false });
+        if (error) { try { await rpc("depot_annuler", { p_jeton: j, p_id: t.id }); } catch (x) {} throw erreurStockage(error); }
+        let c = null;   // le fichier est arrivé : confirmer (nouvel essai si le réseau coupe à ce moment-là)
+        for (let k = 0; ; k++) {
+          try { c = await rpc("depot_confirmer", { p_jeton: j, p_id: t.id }); break; }
+          catch (e) {
+            if (/DEPOT_NON_RECU/.test(e.message || "")) { try { await rpc("depot_annuler", { p_jeton: j, p_id: t.id }); } catch (x) {} throw e; }
+            if (!e.reseau || k >= 2) throw e;
+            await new Promise((ok) => setTimeout(ok, 800 * (k + 1)));
+          }
+        }
+        return { id: t.id, dossier, doc: doc || null, nom: t.nom, type: fichier.type || null, taille: Number((c && c.taille) || fichier.size), depose_le: (c && c.depose_le) || new Date().toISOString(), vu_le: null };
+      },
+      async depotOuvrir(id, o) {
+        const r = await rpc("depot_lien", { p_jeton: jeton(), p_id: id });
+        const { data, error } = await sb.storage.from("depots").createSignedUrl(r.chemin, 120);
+        if (error) throw erreurStockage(error);
+        return { url: lienNomme(data.signedUrl, o && o.telecharger ? r.nom : null), nom: r.nom, type: r.type };
+      },
+      depotRetirer: (id) => rpc("depot_retirer", { p_jeton: jeton(), p_id: id }),
       // ----- prof -----
       async profConnexion(email, mdp) {
         const { error } = await sb.auth.signInWithPassword({ email, password: mdp });
@@ -270,12 +365,54 @@ window.SIP = window.SIP || {};
         const { error } = await sb.from("projets_eleves").upsert(Object.assign({ eleve_id }, champs, { maj_prof: new Date().toISOString() }), { onConflict: "eleve_id" });
         if (error) throw new Error(error.message);
       },
+      async profDepots() { return tout("depots", (q) => q.not("depose_le", "is", null).order("depose_le")); },
+      async profDepotUrl(r, o) {
+        const { data, error } = await sb.storage.from("depots").createSignedUrl(r.chemin, 300);
+        if (error) throw erreurStockage(error);
+        return lienNomme(data.signedUrl, o && o.telecharger ? r.nom : null);
+      },
+      async profDepotBlob(r) { const { data, error } = await sb.storage.from("depots").download(r.chemin); if (error) throw erreurStockage(error); return data; },
+      async profDepotVu(ids) {
+        const t = new Date().toISOString();
+        const { error } = await sb.from("depots").update({ vu_le: t }).in("id", ids);
+        if (error) throw new Error(error.message);
+        return t;
+      },
+      // supprimer : d'abord le stockage, puis seulement les lignes dont le fichier est vraiment parti (ou n'existait plus)
+      async profDepotSupprimer(rows) {
+        if (!rows.length) return { supprimes: [], restants: [] };
+        const { data, error: e1 } = await sb.storage.from("depots").remove(rows.map((x) => x.chemin));
+        if (e1) throw erreurStockage(e1);
+        const partis = new Set((data || []).map((x) => x.name)), restants = [];
+        for (const r of rows) if (!partis.has(r.chemin)) {   // pas supprimé : absent du stockage (on peut effacer la ligne) ou refusé (on la garde)
+          const { error } = await sb.storage.from("depots").createSignedUrl(r.chemin, 10);
+          if (!(error && /not found/i.test(error.message || ""))) restants.push(r);
+        }
+        const ids = rows.filter((r) => !restants.includes(r)).map((r) => r.id);
+        if (ids.length) { const { error } = await sb.from("depots").delete().in("id", ids); if (error) throw new Error(error.message); }
+        return { supprimes: ids, restants: restants.map((r) => r.nom) };
+      },
       validerSignalement: (id, note) => rpc("valider_signalement", { p_id: id, p_note: note }),
       creerEleve: (niveau, nom, pin) => rpc("creer_eleve", { p_niveau: niveau, p_nom: nom, p_pin: pin }),
       changerPin: (id, pin) => rpc("changer_pin", { p_eleve: id, p_pin: pin }),
       async basculerActif(id, actif) { const { error } = await sb.from("eleves").update({ actif }).eq("id", id); if (error) throw new Error(error.message); },
-      async supprimerEleve(id) { const { error } = await sb.from("eleves").delete().eq("id", id); if (error) throw new Error(error.message); }
+      async supprimerEleve(id) {
+        try {   // ses fichiers déposés d'abord (la table « depots » suit l'élève, pas le stockage)
+          const { data } = await sb.from("depots").select("chemin").eq("eleve_id", id);
+          if (data && data.length) await sb.storage.from("depots").remove(data.map((x) => x.chemin));
+        } catch (x) {}
+        const { error } = await sb.from("eleves").delete().eq("id", id); if (error) throw new Error(error.message);
+      }
     };
+  }
+  // lien signé + nom du fichier téléchargé (encodé une seule fois : l'option « download » de supabase-js l'encode deux fois)
+  const lienNomme = (u, nom) => (nom ? u + (u.includes("?") ? "&" : "?") + "download=" + encodeURIComponent(nom) : u);
+  // erreur du stockage Supabase → code compris par les pages
+  function erreurStockage(err) {
+    const m = String((err && (err.message || err.error)) || err || "");
+    const code = /row-level security|unauthorized|403|not allowed/i.test(m) ? "DEPOT_REFUSE" : /exceed|too large|413|maximum allowed size/i.test(m) ? "DEPOT_TROP_GROS"
+      : /bucket not found/i.test(m) ? "DEPOT_ABSENT" : /object not found|not found/i.test(m) ? "DEPOT_INTROUVABLE" : m;
+    const e = new Error(code); e.reseau = /failed to fetch|network|load failed/i.test(m); return e;
   }
 
   // =====================================================================
@@ -288,7 +425,8 @@ window.SIP = window.SIP || {};
     const api = { mode: "hors-ligne" };
     ["connexion", "etat", "enregistrer", "adopter", "lire", "signaler", "mesSignalements", "profConnexion", "profDonnees", "profSignalements",
       "traiterSignalement", "validerSignalement", "creerEleve", "changerPin", "basculerActif", "supprimerEleve", "profDeconnexion",
-      "projetEtat", "projetEnregistrer", "profProjets", "profProjetMaj"].forEach((f) => (api[f] = ko));
+      "projetEtat", "projetEnregistrer", "profProjets", "profProjetMaj", "depotListe", "depotEnvoyer", "depotOuvrir", "depotRetirer",
+      "profDepots", "profDepotUrl", "profDepotBlob", "profDepotVu", "profDepotSupprimer"].forEach((f) => (api[f] = ko));
     api.profSession = async () => false;
     api.profJeton = async () => null;
     api.profStatut = async () => "inconnu";
@@ -373,7 +511,8 @@ window.SIP = window.SIP || {};
 
   const vers = (f) => (...a) => (SIP.apercu.actif() ? locale : principal)[f](...a);
   SIP.api = Object.assign({}, principal, { etat: vers("etat"), enregistrer: vers("enregistrer"), adopter: vers("adopter"), lire: vers("lire"),
-    signaler: vers("signaler"), mesSignalements: vers("mesSignalements"), projetEtat: vers("projetEtat"), projetEnregistrer: vers("projetEnregistrer") });
+    signaler: vers("signaler"), mesSignalements: vers("mesSignalements"), projetEtat: vers("projetEtat"), projetEnregistrer: vers("projetEnregistrer"),
+    depotListe: vers("depotListe"), depotEnvoyer: vers("depotEnvoyer"), depotOuvrir: vers("depotOuvrir"), depotRetirer: vers("depotRetirer") });
 
   // ---------- Écritures élève avec file d'attente hors-ligne ----------
   async function envoyer(op) {

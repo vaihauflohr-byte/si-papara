@@ -282,7 +282,7 @@ function ficheEtudiant() {
     out.push(para([t("Dossier " + l.dossier.slice(1) + (l.option ? " · facultatif" : "") + " · critères : ", { bold: true, color: C.bleu2, size: 18 }), t(l.crit.join(", "), { size: 18 })]));
     l.contenu.forEach((x) => out.push(puce(x)));
   });
-  out.push(para("Range chaque livrable dans ton dossier (Drive, ENT…), indique son état et colle son lien sur la page de l'étape, sur le site. Ton professeur le valide ou te demande de le reprendre.", { run: { italics: true, color: C.gris, size: 18 } }));
+  out.push(para("Dépose chaque livrable sur le site, dans ta page Projets BTS 2 (onglet « Mon dépôt » ou fiche du livrable), et indique son état. Ton professeur le valide ou te demande de le reprendre.", { run: { italics: true, color: C.gris, size: 18 } }));
 
   out.push(new Paragraph({ heading: HeadingLevel.HEADING_2, pageBreakBefore: true, children: [t("Trame du rapport de relevé et de diagnostic")] }));
   P1.trame_releve.forEach((x) => out.push(numero(x, "num-releve")));

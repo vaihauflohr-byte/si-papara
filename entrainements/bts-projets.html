@@ -99,20 +99,67 @@ label.court{font-size:.82rem;color:var(--ink-2);display:block;margin:6px 0 3px}
 .barre{height:9px;background:var(--rule-2);border-radius:999px;overflow:hidden;display:flex}
 .barre i{display:block;height:100%}
 .barre i.v{background:var(--good)}.barre i.p{background:var(--accent)}.barre i.c{background:color-mix(in srgb,var(--accent) 35%,transparent)}
-.grille-projets{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.grille-projets{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
 .grille-groupes{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));margin-bottom:8px}
-.cg{background:var(--paper);border:1px solid var(--rule);border-top:4px solid var(--accent);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:6px}
-.cg .roles{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}
-.cg .roles a{display:flex;flex-direction:column;gap:1px;padding:8px 10px;border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink)}
-.cg .roles a:hover{border-color:var(--accent)}
-.cg .roles a.mien{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
-.cg .r-n{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.03em;color:var(--ink-3)}
-.cg .roles a.mien .r-n{color:var(--accent)}
+.cg{background:var(--paper);border:1px solid var(--rule);border-top:4px solid var(--c,var(--accent));border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:4px}
+.cg-t{display:flex;flex-direction:column;gap:2px;margin:6px 2px 2px}
+.cg .roles{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.cg .roles li{margin:0}
+.cg .roles a{display:flex;flex-direction:column;gap:3px;padding:6px 6px 8px;border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink);height:100%}
+.cg .roles a:hover{border-color:var(--c,var(--accent))}
+.cg .roles a.mien{border-color:var(--c,var(--accent));box-shadow:0 0 0 2px var(--c,var(--accent))}
+.cg .roles a .ill{margin:0 0 3px}
+.cg .roles b{font-size:.86rem;line-height:1.25;padding:0 2px}
+.cg .r-n{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.03em;color:var(--ink-3);padding:0 2px}
+.cg .roles a.mien .r-n{color:var(--c,var(--accent));font-weight:600}
+.lieu{display:inline-flex;align-items:center;gap:4px}
+.lieu .ico{width:15px;height:15px}
+/* illustrations des cartes (contenu/illustrations-projets.js) : couleur du domaine --c, encre, papier, eau, jaune, vert */
+:root{--i-bt:#1d3f7a;--i-pv:#b35a07;--i-ssi:#b42318;--i-auto:#0f6b5c;--i-mot:#1f6aa8;--i-mc:#5b4b8a;--i-cine:#9a3412;--i-atel:#146c43;--ill-eau:#2e75b6;--ill-jaune:#e3a008;--ill-vert:#3f8f4f;--ill-sable:#efe3c4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--i-bt:#8fb0ee;--i-pv:#f0a35e;--i-ssi:#ff8f84;--i-auto:#5fc7b4;--i-mot:#7fb6ea;--i-mc:#b6a6e8;--i-cine:#f4a37a;--i-atel:#6ccb97;--ill-eau:#6aa7e0;--ill-jaune:#f2c14e;--ill-vert:#7cc68a;--ill-sable:#4a4230}}
+:root[data-theme="dark"]{--i-bt:#8fb0ee;--i-pv:#f0a35e;--i-ssi:#ff8f84;--i-auto:#5fc7b4;--i-mot:#7fb6ea;--i-mc:#b6a6e8;--i-cine:#f4a37a;--i-atel:#6ccb97;--ill-eau:#6aa7e0;--ill-jaune:#f2c14e;--ill-vert:#7cc68a;--ill-sable:#4a4230}
+.ill svg{display:block;width:100%;height:auto}
+.ill svg *{vector-effect:non-scaling-stroke}
+.ill .fd{fill:color-mix(in srgb,var(--c) 8%,var(--paper))}
+.ill .mt{fill:color-mix(in srgb,var(--c) 15%,var(--paper))}
+.ill .sl{fill:none;stroke:color-mix(in srgb,var(--c) 35%,var(--paper));stroke-width:2}
+.ill .t,.ill .tf,.ill .tk,.ill .k,.ill .jt,.ill .et,.ill .vt,.ill .interdit,.ill .interdit-barre,.ill .bulle{stroke-linecap:round;stroke-linejoin:round}
+.ill .t{fill:none;stroke:var(--c);stroke-width:2.2}
+.ill .tf{fill:color-mix(in srgb,var(--c) 22%,var(--paper));stroke:var(--c);stroke-width:2.2}
+.ill .tk{fill:var(--paper);stroke:var(--ink);stroke-width:1.8}
+.ill .k{fill:none;stroke:var(--ink);stroke-width:1.8}
+.ill .tronc{stroke-width:2.6}
+.ill .fin{stroke-width:1.4}
+.ill .pointille{stroke-dasharray:3 3}
+.ill .pl{fill:var(--c)}
+.ill .tw{fill:var(--paper)}
+.ill .txt{font-family:var(--f-body,system-ui,sans-serif);font-weight:700;stroke:none}
+.ill .mono{font-family:var(--f-mono,ui-monospace,monospace)}
+.ill .j{fill:var(--ill-jaune)}
+.ill .jt{fill:none;stroke:var(--ill-jaune);stroke-width:2}
+.ill .lum{fill:var(--ill-jaune);opacity:.28}
+.ill .e{fill:color-mix(in srgb,var(--ill-eau) 32%,var(--paper))}
+.ill .et{fill:none;stroke:var(--ill-eau);stroke-width:2}
+.ill .e.et{fill:color-mix(in srgb,var(--ill-eau) 32%,var(--paper))}
+.ill .tuy{stroke-width:3.4}
+.ill .bulle{fill:var(--paper);stroke:var(--ill-eau);stroke-width:1.3}
+.ill .v{fill:var(--ill-vert)}
+.ill .vt{fill:none;stroke:var(--ill-vert);stroke-width:2.2}
+.ill .r{fill:var(--bad)}
+.ill .interdit{fill:var(--paper);stroke:var(--bad);stroke-width:2.4}
+.ill .interdit-barre{stroke:var(--bad);stroke-width:2.4}
+.ill .sable{fill:var(--ill-sable)}
+.ill .vapeur{opacity:.7}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
 .synoptique{background:#fff;border:1px solid var(--rule);border-radius:var(--r);padding:8px;margin:6px 0 14px}
 .synoptique svg{display:block;width:100%;height:auto}
 tr.moi td{background:var(--accent-soft)}
-.cp{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:6px;text-decoration:none;color:var(--ink)}
-.cp:hover{border-color:var(--accent)}
+.cp{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:10px 10px 12px;display:flex;flex-direction:column;gap:5px;text-decoration:none;color:var(--ink)}
+.cp:hover{border-color:var(--c,var(--accent))}
+.cp .ill{margin:0 0 4px}
+.cp .cp-num{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 2px}
+.cp .cp-t,.cp .cp-l{padding:0 2px}
+.cp .cp-num .chip{font-family:var(--f-body);background:color-mix(in srgb,var(--c) 13%,var(--paper));color:var(--c)}
 .cp.mien{border:2px solid var(--accent)}
 .cp-num{font-family:var(--f-mono);font-size:.78rem;color:var(--ink-3)}
 .cp-t{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:1.12rem;line-height:1.05}
@@ -131,7 +178,10 @@ a.ouvrir{white-space:nowrap}
 .parcours li{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:3px;font-size:.9rem;line-height:1.3}
 .parcours li.ouverte{border-color:var(--accent);box-shadow:inset 0 3px 0 var(--accent)}
 .parcours li:not(.ouverte){color:var(--ink-2)}
-.parcours .pn{font:700 1.5rem/1 var(--f-disp);color:var(--accent)}
+.parcours .pn{font:700 1.5rem/1 var(--f-disp);color:var(--accent);display:flex;align-items:center;justify-content:space-between;gap:6px}
+.parcours .pn .ico{width:22px;height:22px}
+.hero-ill{float:right;width:min(38%,190px);margin:0 0 6px 12px}
+@media (max-width:640px){.hero-ill{display:none}}
 .parcours li:not(.ouverte) .pn{color:var(--ink-3)}
 .parcours .chip{align-self:flex-start;margin-top:auto}
 .prog-l.a-venir{color:var(--ink-3)}
@@ -249,8 +299,29 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
 .contrat td:first-child{white-space:nowrap;font-family:var(--f-mono);font-size:.8rem}
 .contrat .gt td{background:var(--paper-2);font-weight:600}
 .contrat td.x{text-align:center;font-weight:700;color:var(--accent)}
+/* espace de dépôt */
+.dep-doc{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;margin:0 0 10px}
+.dep-doc-t{display:flex;gap:6px 8px;flex-wrap:wrap;align-items:baseline;margin:0 0 8px}
+.bloc-dep{border:1.5px dashed var(--rule);border-radius:var(--r);padding:8px 10px;transition:border-color .15s,background .15s}
+.bloc-dep.survol{border-color:var(--accent);background:var(--accent-soft)}
+.doc-corps .bloc-dep{margin-top:2px}
+.dep-liste{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:8px}
+.dep-liste li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center;font-size:.88rem}
+.dep-v{font:600 .72rem var(--f-mono);color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 6px;text-align:center;min-width:34px}
+.dep-nom{font-weight:600;overflow-wrap:anywhere}
+.dep-meta{grid-column:2;font-size:.8rem}
+.dep-act{grid-column:3;grid-row:1 / span 2;display:flex;gap:8px;align-items:center}
+.dep-vu{color:var(--good)}
+.dep-vide{margin:0 0 6px}
+.dep-pied{display:flex;gap:6px 10px;flex-wrap:wrap;align-items:center}
+.dep-envoi{font-size:.84rem;color:var(--accent);font-weight:600}
+@media (hover:none){.dep-glisser{display:none}}
+.quota{display:grid;grid-template-columns:auto minmax(100px,1fr) auto;gap:10px;align-items:center;font-size:.86rem}
+.barre i.r{background:var(--bad)}
 .print-tete{display:none}
 @media (max-width:640px){
+  .dep-liste li{grid-template-columns:auto minmax(0,1fr)}
+  .dep-act{grid-column:1 / -1;grid-row:auto}
   main{padding:12px 12px 70px}.carte{padding:13px}
   .onglets{top:58px}
   .doc summary{grid-template-columns:1fr}
@@ -282,6 +353,7 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
 <script src="../contenu/projets-bts2.js"></script>
 <script src="../contenu/projets-entrainement.js" onerror="void 0"></script>
 <script src="../contenu/projets-reglages.js" onerror="void 0"></script>
+<script src="../contenu/illustrations-projets.js" onerror="void 0"></script>
 <script>
 /* =====================================================================
    Projets BTS 2 — page des étudiants.
@@ -289,6 +361,8 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
    dossiers 1, 2 et 3 : conception, puis réalisation par anticipation (planning,
    protocole de mise en service, analyse des risques). Son travail est gardé sur
    l'appareil et envoyé au professeur (supabase/projets.sql) s'il est connecté.
+   Espace de dépôt (onglet « Mon dépôt », fiches des documents) : ses fichiers, rangés
+   dans les dossiers 1, 2, 3, envoyés au stockage privé « depots » avec un ticket.
    ===================================================================== */
 (function () {
   "use strict";
@@ -332,6 +406,20 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
   const SECT_COURT = { "Production centralisée et/ou décentralisée d'énergie électrique": "Production d'énergie", "Réseaux de transport, de distribution d'énergie électrique et de communication": "Réseaux et communication",
     "Infrastructures": "Infrastructures", "Bâtiments (résidentiel, tertiaire et industriel)": "Bâtiments", "Industrie": "Industrie", "Équipements électriques des véhicules": "Véhicules" };
   const urlSure = (u) => /^https?:\/\/[^\s"'<>]+$/i.test(String(u || "").trim());
+  // illustrations des cartes (contenu/illustrations-projets.js) : facultatives, la page marche sans
+  const ILL = window.SIP_ILLUS || null;
+  const coulCas = (id) => (ILL && ILL.couleurs.cas[id] ? `var(--i-${ILL.couleurs.cas[id]})` : "var(--accent)");
+  const coulSup = (id) => (ILL && ILL.couleurs.supports[id] ? `var(--i-${ILL.couleurs.supports[id]})` : "var(--accent)");
+  const illus = (groupe, id, cls) => (ILL && ILL[groupe] && ILL[groupe][id] ? `<span class="ill ${cls || ""}">${ILL[groupe][id]}</span>` : "");
+  const icone = (k) => (ILL && ILL.icones[k]) || "";
+  // « Zone industrielle de Faa'a (Tahiti) » → « Faa'a » ; « Haapiti, Moorea » → « Moorea »
+  const lieuCourt = (l) => {
+    const ch = String(l || "").split(" — ")[0].split(", ");
+    const net = (x) => x.replace(/\s*\([^)]*\)/g, "").replace(/^(zone (industrielle|portuaire) de (la |l')?|front de mer de |plateau de |port de )/i, "").trim();
+    let r = net(ch[ch.length - 1]);
+    if (!/^[A-ZÀ-Ý]/.test(r)) r = net(ch[0]);
+    return r;
+  };
   const tron = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
   function docsDu(p) {
@@ -410,6 +498,176 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
   }
   function indicateur(etat) { document.querySelectorAll(".sauve").forEach((el) => { const [c, t] = texteSauve(etat); el.className = "sauve " + c; el.textContent = t; }); }
 
+  // ---------------- Espace de dépôt : les fichiers des dossiers 1, 2, 3 (supabase/projets.sql, stockage privé « depots ») ----------------
+  // DEP.etat : "attente" | "ok" | "local" (non connecté) | "absent" (pas encore activé) | "expire" | "hors-ligne" | "reserve" (pas BTS 2)
+  let DEP = { etat: "attente", fichiers: [], utilise: 0, limites: { fichier: 25 * 1048576, eleve: 75 * 1048576, nombre: 300 } };
+  const TITRES_DOCS = {};
+  P.docs_communs.forEach((d) => (TITRES_DOCS[d.id] = d.titre));
+  ETAPES.forEach((e) => e.livrables.forEach((l) => (TITRES_DOCS[l.id] = `${l.titre} (étape ${e.n})`)));
+  const depotPossible = () => DEP.etat === "ok";
+  async function chargerDepots() {
+    if (!S) { DEP.etat = "local"; return; }
+    if (!estBTS2) { DEP.etat = "reserve"; return; }
+    if (!window.SIP || !SIP.api || !SIP.api.depotListe) { DEP.etat = "absent"; return; }
+    try { const r = await SIP.api.depotListe(); DEP = { etat: "ok", fichiers: (r && r.fichiers) || [], utilise: Number((r && r.utilise) || 0), limites: Object.assign({}, DEP.limites, (r && r.limites) || {}) }; }
+    catch (e) {
+      const m = String((e && e.message) || "");
+      DEP.etat = m === "SESSION_EXPIREE" ? "expire" : /depot_liste|does not exist|schema cache|PGRST202|404|Could not find/i.test(m) ? "absent" : "hors-ligne";
+    }
+  }
+  const fmtTaille = (o) => (!o || o <= 0 ? "0 Mo" : o >= 1048576 ? (o / 1048576).toFixed(o >= 10485760 ? 0 : 1).replace(".", ",") + " Mo" : Math.max(1, Math.round(o / 1024)) + " ko");
+  const quandDepot = (iso) => fmtHeure(iso).replace(/ (\d)/, " à $1");
+  const extDe = (nom) => ((String(nom).match(/\.([a-z0-9]{1,5})$/i) || [])[1] || "pièce").toUpperCase();
+  const idsAttendus = () => { const p = monProjet() && projet(monProjet()); return new Set(p ? docsDu(p).map((d) => d.id) : []); };
+  const fichiersDoc = (dossier, doc) => DEP.fichiers.filter((f) => f.dossier === dossier && f.doc === doc);
+  const autresPieces = (dossier) => { const A = idsAttendus(); return DEP.fichiers.filter((f) => f.dossier === dossier && (!f.doc || !A.has(f.doc))); };
+  const compteDossier = (d) => { const n = DEP.fichiers.filter((f) => f.dossier === d).length; return n ? `${n} fichier${n > 1 ? "s" : ""} déposé${n > 1 ? "s" : ""}` : "aucun fichier"; };
+  function quotaHtml() {
+    const L = DEP.limites, pc = Math.min(100, (100 * DEP.utilise) / L.eleve);
+    return `<span>Espace utilisé</span><div class="barre" role="img" aria-label="${fmtTaille(DEP.utilise)} utilisés sur ${fmtTaille(L.eleve)}"><i class="${pc > 90 ? "r" : "p"}" style="width:${pc}%"></i></div><span class="discret">${fmtTaille(DEP.utilise)} sur ${fmtTaille(L.eleve)}</span>`;
+  }
+  function texteDepot() {
+    if (DEP.etat === "local") return `<b>Connecte-toi pour déposer tes fichiers.</b> Le dépôt les transmet à ton professeur : <a href="../index.html#/connexion/BTS2-STI">BTS 2 STI</a> · <a href="../index.html#/connexion/BTS2-ADM">BTS 2 ADM</a>.`;
+    if (DEP.etat === "reserve") return "L'espace de dépôt est réservé aux étudiants de BTS 2.";
+    if (DEP.etat === "absent") return "<b>L'espace de dépôt n'est pas encore activé sur le site.</b> Ton professeur doit relancer le fichier supabase/projets.sql dans Supabase. En attendant, colle le lien de tes documents (Drive, ENT…) dans chaque fiche.";
+    if (DEP.etat === "expire") return `<b>Connexion expirée.</b> <a href="../index.html#/connexion/BTS2-STI">Reconnecte-toi</a> pour déposer tes fichiers.`;
+    return `<b>Pas de réseau :</b> l'espace de dépôt n'a pas pu être chargé. <button type="button" class="btn petit" data-dep="reessayer">Réessayer</button>`;
+  }
+  const MSG_DEPOT = {
+    DEPOT_TROP_GROS: () => `fichier trop gros (${fmtTaille(DEP.limites.fichier)} au plus) : exporte-le en PDF ou réduis ses images`,
+    DEPOT_QUOTA: () => `ton espace est plein (${fmtTaille(DEP.limites.eleve)}) : demande à ton professeur de supprimer les fichiers que tu as retirés ou d'anciennes versions`,
+    DEPOT_NOMBRE: () => `trop de fichiers (${DEP.limites.nombre} au plus) : demande à ton professeur de supprimer d'anciennes versions`,
+    DEPOT_NON_RECU: () => "le fichier n'est pas arrivé jusqu'au stockage : réessaie",
+    DEPOT_TYPE: () => "type de fichier refusé (programme exécutable)",
+    DEPOT_RYTHME: () => "trop d'envois en une heure : réessaie un peu plus tard",
+    DEPOT_RESERVE_BTS2: () => "espace réservé aux étudiants de BTS 2",
+    DEPOT_VIDE: () => "fichier vide",
+    DEPOT_NOM: () => "nom de fichier invalide",
+    DEPOT_REFUSE: () => "envoi refusé par le stockage : réessaie, et préviens ton professeur si ça recommence",
+    DEPOT_ABSENT: () => "espace de dépôt pas encore activé (supabase/projets.sql)",
+    DEPOT_INCONNU: () => "fichier introuvable (déjà retiré ?)",
+    DEPOT_INTROUVABLE: () => "fichier introuvable dans le stockage : préviens ton professeur",
+    DEMO_NON_GARDE: () => "en démonstration, seuls les fichiers de 1,5 Mo au plus sont gardés dans le navigateur",
+    SESSION_EXPIREE: () => "connexion expirée : reconnecte-toi sur le site",
+  };
+  const messageDepot = (e) => { const m = String((e && e.message) || e || ""); const k = Object.keys(MSG_DEPOT).find((x) => m.includes(x)); return k ? MSG_DEPOT[k]() : window.SIP && SIP.estReseau && SIP.estReseau(e) ? "pas de réseau, réessaie" : m || "erreur inconnue"; };
+  const ligneFichier = (f, label, avecDoc) => `<li><span class="dep-v">${esc(label)}</span> <span class="dep-nom">${esc(f.nom)}</span>
+      <span class="dep-act"><button type="button" class="btn petit" data-dep="ouvrir" data-id="${f.id}">Ouvrir</button><button type="button" class="btn petit lien" data-dep="retirer" data-id="${f.id}">Retirer</button></span>
+      <span class="discret dep-meta">${fmtTaille(f.taille)} · déposé le ${esc(quandDepot(f.depose_le))}${avecDoc && f.doc && TITRES_DOCS[f.doc] ? ` · ${esc(TITRES_DOCS[f.doc])}` : ""}${f.vu_le ? ` · <span class="dep-vu">vu par ton professeur</span>` : ""}</span></li>`;
+  function contenuBloc(dossier, doc) {   // doc "" : les autres pièces du dossier
+    const L = doc ? fichiersDoc(dossier, doc) : autresPieces(dossier);
+    const liste = L.length ? `<ul class="dep-liste">${L.slice().reverse().map((f, i) => ligneFichier(f, doc ? "v" + (L.length - i) : extDe(f.nom), !doc)).join("")}</ul>`
+      : `<p class="discret dep-vide">${doc ? "Aucun fichier déposé pour ce document." : "Aucune autre pièce."}</p>`;
+    return `${liste}<div class="dep-pied"><button type="button" class="btn petit" data-dep="choisir" data-dossier="${dossier}" data-doc="${esc(doc)}">${doc ? (L.length ? "Déposer une nouvelle version" : "Déposer le fichier") : "Déposer une pièce"}</button><span class="discret dep-glisser">ou glisse le fichier ici</span><span class="dep-envoi" aria-live="polite"></span></div>`;
+  }
+  const blocDepot = (dossier, doc) => (depotPossible() ? `<div class="bloc-dep" data-bloc-dep data-dossier="${dossier}" data-doc="${esc(doc)}">${contenuBloc(dossier, doc)}</div>` : "");
+  function majBlocs() {
+    document.querySelectorAll("[data-bloc-dep]").forEach((b) => (b.innerHTML = contenuBloc(b.dataset.dossier, b.dataset.doc)));
+    document.querySelectorAll("[data-dep-nb]").forEach((c) => { const n = fichiersDoc(c.dataset.depDossier, c.dataset.depNb).length; c.textContent = `${n} fichier${n > 1 ? "s" : ""}`; c.hidden = !n; });
+    document.querySelectorAll("[data-dep-quota]").forEach((q) => (q.innerHTML = quotaHtml()));
+    document.querySelectorAll("[data-dep-compte]").forEach((x) => (x.textContent = compteDossier(x.dataset.depCompte)));
+  }
+  // photos de plus de 2 Mo : réduites à 2400 px (JPEG), si le résultat est plus léger
+  async function reduireImage(f) {
+    if (!/^image\/(jpeg|webp)$/.test(f.type) || f.size <= 2 * 1048576 || !window.createImageBitmap) return f;
+    try {
+      const img = await createImageBitmap(f), k = Math.min(1, 2400 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      const b = await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.85));
+      return b && b.size < f.size ? new File([b], f.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" }) : f;
+    } catch (e) { return f; }
+  }
+  function etatEnvoi(dossier, doc, txt) { document.querySelectorAll(`[data-bloc-dep][data-dossier="${dossier}"][data-doc="${doc}"] .dep-envoi`).forEach((x) => (x.textContent = txt)); }
+  let envoiEnCours = false;
+  async function deposer(F, dossier, doc) {
+    if (!depotPossible()) return toast("Dépôt impossible pour l'instant.");
+    if (envoiEnCours) return toast("Un envoi est déjà en cours : attends qu'il se termine.");
+    envoiEnCours = true; let n = 0;
+    try {
+      for (const f0 of F) {
+        try {
+          const f = await reduireImage(f0);
+          if (f.size > DEP.limites.fichier) { toast(`${f0.name} : ${MSG_DEPOT.DEPOT_TROP_GROS()}.`); continue; }
+          if (DEP.utilise + f.size > DEP.limites.eleve) { toast(`${f0.name} : ${MSG_DEPOT.DEPOT_QUOTA()}.`); break; }
+          etatEnvoi(dossier, doc, `Envoi de ${f0.name} (${fmtTaille(f.size)})…`);
+          const r = await SIP.api.depotEnvoyer(f, f.name || f0.name, dossier, doc || null);
+          DEP.fichiers.push(r); DEP.utilise += r.taille; n++;
+          majBlocs();
+        } catch (e) { if ((e && e.message) === "SESSION_EXPIREE") DEP.etat = "expire"; toast(`${f0.name} : ${messageDepot(e)}.`); }
+      }
+    } finally { envoiEnCours = false; majBlocs(); }
+    if (n) toast(n > 1 ? `${n} fichiers déposés ✓ Ton professeur les voit dans ton dépôt.` : `${F.length === 1 ? F[0].name : "Fichier"} déposé ✓ Ton professeur le voit dans ton dépôt.`);
+  }
+  // ouvrir : PDF et images dans un nouvel onglet ; le reste est téléchargé sous son nom
+  const enLigne = (t) => /^(application\/pdf|image\/(png|jpeg|gif|webp)|text\/plain)$/.test(t || "");
+  async function ouvrirFichier(id) {
+    const f = DEP.fichiers.find((x) => x.id === id); if (!f) return;
+    const inline = enLigne(f.type), w = inline ? window.open("", "_blank") : null;
+    try {
+      const r = await SIP.api.depotOuvrir(id, { telecharger: !inline });
+      if (inline && w) { w.opener = null; w.location.href = r.url; return; }
+      const a = document.createElement("a"); a.href = r.url; a.download = r.nom || f.nom; a.rel = "noopener"; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 1000);
+    } catch (e) { if (w) w.close(); toast("Ouverture impossible : " + messageDepot(e) + "."); }
+  }
+  async function retirerFichier(id) {
+    const f = DEP.fichiers.find((x) => x.id === id); if (!f) return;
+    if (!confirm(`Retirer « ${f.nom} » de ton dépôt ? Il n'apparaîtra plus dans tes dossiers (ton professeur garde la trace du retrait).`)) return;
+    try { await SIP.api.depotRetirer(id); DEP.fichiers = DEP.fichiers.filter((x) => x.id !== id); majBlocs(); toast("Fichier retiré de ton dépôt."); }   // la place reste prise jusqu'à la suppression par le professeur
+    catch (e) { toast("Impossible de retirer le fichier : " + messageDepot(e) + "."); }
+  }
+  // un seul sélecteur de fichiers et des écouteurs posés une fois pour toute la page
+  const entreeFichiers = document.createElement("input");
+  entreeFichiers.type = "file"; entreeFichiers.multiple = true; entreeFichiers.hidden = true; entreeFichiers.id = "dep-fichiers";
+  document.body.appendChild(entreeFichiers);
+  let cibleDepot = null;
+  entreeFichiers.addEventListener("change", () => { const F = [...entreeFichiers.files]; entreeFichiers.value = ""; if (cibleDepot && F.length) deposer(F, cibleDepot.dossier, cibleDepot.doc); });
+  document.addEventListener("click", async (ev) => {
+    const b = ev.target.closest && ev.target.closest("[data-dep]"); if (!b) return;
+    const a = b.dataset.dep;
+    if (a === "choisir") { cibleDepot = { dossier: b.dataset.dossier, doc: b.dataset.doc || "" }; entreeFichiers.click(); }
+    else if (a === "ouvrir") ouvrirFichier(b.dataset.id);
+    else if (a === "retirer") retirerFichier(b.dataset.id);
+    else if (a === "reessayer") { b.disabled = true; await chargerDepots(); route(); }
+  });
+  const zoneDepot = (ev) => (ev.target && ev.target.closest ? ev.target.closest("[data-bloc-dep]") : null);
+  document.addEventListener("dragover", (ev) => { const z = zoneDepot(ev); if (z && depotPossible()) { ev.preventDefault(); z.classList.add("survol"); } });
+  document.addEventListener("dragleave", (ev) => { const z = zoneDepot(ev); if (z && !z.contains(ev.relatedTarget)) z.classList.remove("survol"); });
+  document.addEventListener("drop", (ev) => {
+    const z = zoneDepot(ev); if (!z || !depotPossible()) return;
+    ev.preventDefault(); z.classList.remove("survol");
+    const F = [...((ev.dataTransfer && ev.dataTransfer.files) || [])]; if (F.length) deposer(F, z.dataset.dossier, z.dataset.doc);
+  });
+
+  // ----- « Mon dépôt » : les trois dossiers, les documents attendus, les autres pièces -----
+  function ongletDepot(p, cc) {
+    const A = p ? docsDu(p) : [], rv = RETOURS.docs || {};
+    const verdict = (id) => (rv[id] && rv[id].v === "ok" ? `<span class="chip ok">Validé ✓</span>` : rv[id] && rv[id].v === "reprendre" ? `<span class="chip ko">À reprendre</span>` : "");
+    cc.innerHTML = `
+      <section class="carte info"><p style="margin:0 0 6px"><b>Ton espace de dépôt.</b> Dépose ici les fichiers de tes dossiers 1, 2 et 3, de préférence en PDF (Word, Excel, images, fichiers de simulation et programmes sont acceptés aussi). Chaque dépôt est daté et transmis à ton professeur. Pour corriger un document, dépose une nouvelle version : les précédentes restent visibles par ton professeur.</p>
+        <p class="discret" style="margin:0 0 8px">${fmtTaille(DEP.limites.fichier)} au plus par fichier · les photos de plus de 2 Mo sont réduites automatiquement · un fichier retiré n'apparaît plus dans ton dépôt, mais ton professeur le garde (et sa place reste comptée) jusqu'à ce qu'il le supprime.</p>
+        ${depotPossible() ? `<div class="quota" data-dep-quota>${quotaHtml()}</div>` : ""}</section>
+      ${depotPossible() ? "" : `<div class="carte alerte">${texteDepot()}</div>`}
+      ${P.dossiers.map((d) => { const docs = A.filter((x) => x.dossier === d.id);
+        return `<section class="dossier" style="--dc:${DCOUL[d.id]}"><div class="dossier-t"><h2>Dossier ${d.num} — ${esc(d.titre)}</h2>${depotPossible() ? `<span class="discret" data-dep-compte="${d.id}">${compteDossier(d.id)}</span>` : ""}</div>
+          <p class="discret">${esc(d.role)}</p>
+          ${docs.map((x) => `<div class="dep-doc" data-dep-doc="${x.id}"><div class="dep-doc-t"><b>${esc(x.titre)}</b>${x.etape && etapeDe(x.etape) ? `<span class="chip">étape ${etapeDe(x.etape).n}</span>` : ""}${x.option ? `<span class="chip">facultatif</span>` : ""}${verdict(x.id)}</div>${blocDepot(d.id, x.id)}</div>`).join("")}
+          <div class="dep-doc" data-dep-doc=""><div class="dep-doc-t"><b>Autres pièces du dossier ${d.num}</b><span class="discret">annexes, photos, fichiers de simulation ou de programmation…</span></div>${blocDepot(d.id, "")}</div></section>`;
+      }).join("")}`;
+  }
+  // #/depot : l'étudiant n'a pas encore de projet ni de partie
+  function vueDepotSeul() {
+    const mien = monProjet();
+    if (mien && projet(mien)) { location.replace("#/p/" + mien + "/depot"); return; }
+    app.innerHTML = `
+      <nav class="fil no-print"><a href="#/">← Tous les projets</a></nav>
+      <header class="tete-projet"><div class="eyebrow">BTS 2 · dossiers 1, 2 et 3</div><h1>Mon espace de dépôt</h1>
+        <p class="discret" style="margin:0">Tu n'as pas encore de projet ni de partie : tu peux déjà déposer des pièces. Les documents attendus apparaîtront quand ton professeur t'aura attribué ton projet.</p></header>
+      <div id="contenu"></div>`;
+    ongletDepot(null, document.getElementById("contenu"));
+    window.scrollTo(0, 0);
+  }
+
   // ---------------- Avancement ----------------
   function avancement(p) {
     const r = { d1: { n: 0, c: 0, p: 0, v: 0, r: 0 }, d2: { n: 0, c: 0, p: 0, v: 0, r: 0 }, d3: { n: 0, c: 0, p: 0, v: 0, r: 0 } };
@@ -443,9 +701,9 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
     const j = p && !estEnt(p) ? prochainJalon(p) : null;
     app.innerHTML = `
       ${p ? (estEnt(p) ? heroEntrainement(p) : heroMonProjet(p)) : ""}
-      ${!p && (estBTS2 || !S) ? `<div class="carte info">${S ? "" : "<b>Tu n'es pas connecté(e).</b> Tu peux lire les projets et travailler sur cet appareil ; pour transmettre ton travail au professeur, <a href=\"../index.html#/connexion/BTS2-STI\">connecte-toi</a> (BTS 2 STI ou ADM). "}${PARC ? "Ouvre ta partie dans le cas d'entraînement que ton professeur t'a donné, puis appuie sur <b>« C'est ma partie »</b>." : "Ouvre le projet que ton professeur t'a donné, puis appuie sur <b>« C'est mon projet »</b> pour commencer à construire tes dossiers."}</div>` : ""}
+      ${!p && (estBTS2 || !S) ? `<div class="carte info">${S ? "" : "<b>Tu n'es pas connecté(e).</b> Tu peux lire les projets et travailler sur cet appareil ; pour transmettre ton travail au professeur, <a href=\"../index.html#/connexion/BTS2-STI\">connecte-toi</a> (BTS 2 STI ou ADM). "}${PARC ? "Ouvre ta partie dans le cas d'entraînement que ton professeur t'a donné, puis appuie sur <b>« C'est ma partie »</b>." : "Ouvre le projet que ton professeur t'a donné, puis appuie sur <b>« C'est mon projet »</b> pour commencer à construire tes dossiers."}${S && estBTS2 ? ` Tu peux aussi déposer des fichiers dans <a href="#/depot">ton espace de dépôt</a>.` : ""}</div>` : ""}
       ${PARC ? `<h2>Parcours d'entraînement <span class="discret">d'ici décembre · le vrai projet découpé en étapes, une étape à la fois</span></h2>
-      <ol class="parcours">${ETAPES.map((e) => `<li class="${e.ouverte ? "ouverte" : ""}"><span class="pn">${e.n}</span><b>${esc(e.titre)}</b><span class="discret">${esc(e.quand)}</span>${e.ouverte ? `<span class="chip accent">en cours</span>` : `<span class="chip">à venir</span>`}</li>`).join("")}</ol>
+      <ol class="parcours">${ETAPES.map((e) => `<li class="${e.ouverte ? "ouverte" : ""}"><span class="pn">${e.n}${icone(e.id)}</span><b>${esc(e.titre)}</b><span class="discret">${esc(e.quand)}</span>${e.ouverte ? `<span class="chip accent">en cours</span>` : `<span class="chip">à venir</span>`}</li>`).join("")}</ol>
       <h2>Les cas d'entraînement <span class="discret">un cas par domaine · une partie par étudiant, calée sur son vrai projet</span></h2>
       <div class="grille-groupes">${CAS.map((c) => carteCas(c, mien)).join("")}</div>` : ""}
       <h2>${PARC ? "Banque de projets complets" : "Les 13 projets"} <span class="discret">un projet par étudiant · client polynésien et réalisation au labo</span></h2>
@@ -463,19 +721,20 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
   const BANQUE = P.projets.filter((x) => !estEnt(x));
   function carteCas(c, mien) {
     const parts = P.projets.filter((x) => estEnt(x) && x.cas === c.id);
-    return `<div class="cg">
-      <span class="cp-num">Cas ${c.id} · ${esc(c.domaine)}</span>
-      <span class="cp-t">${esc(c.court)}</span>
-      <span class="cp-l">${esc(c.client)} · ${esc(c.lieu)}</span>
-      <ul class="roles">${parts.map((r) => `<li><a href="#/p/${r.id}" class="${r.id === mien ? "mien" : ""}"><span class="r-n">${r.id}${r.id === mien ? " · MA PARTIE" : ""}</span><b>${esc(r.partie)}</b><span class="discret">prépare : ${esc(r.prepare)}</span></a></li>`).join("")}</ul></div>`;
+    return `<div class="cg" style="--c:${coulCas(c.id)}">
+      ${illus("cas", c.id)}
+      <div class="cg-t"><span class="cp-num">Cas ${c.id} · ${esc(c.domaine.split(/ : |, /)[0])}</span>
+        <span class="cp-t">${esc(c.court)}</span>
+        <span class="cp-l lieu">${icone("lieu")}${esc(c.client.split(" (")[0])} · ${esc(lieuCourt(c.lieu))}</span></div>
+      <ul class="roles">${parts.map((r) => `<li><a href="#/p/${r.id}" class="${r.id === mien ? "mien" : ""}" title="${esc("Prépare : " + r.prepare)}">${illus("parties", r.id)}<span class="r-n">${r.id}${r.id === mien ? " · MA PARTIE" : ""}</span><b>${esc(r.partie)}</b></a></li>`).join("")}</ul></div>`;
   }
   function heroEntrainement(p) {
     const c = casDe(p), e = etapeCourante();
     return `<section class="hero">
-      <div><div class="eyebrow">Mon entraînement · ${esc(p.id)} · cas ${esc(c.id)} : ${esc(c.domaine)}</div>
+      <div>${illus("parties", p.id, "hero-ill").replace('class="ill hero-ill"', `class="ill hero-ill" style="--c:${coulCas(c.id)}"`)}<div class="eyebrow">Mon entraînement · ${esc(p.id)} · cas ${esc(c.id)} : ${esc(c.domaine)}</div>
         <h1>${esc(p.partie)}</h1>
-        <p class="discret" style="margin:0 0 10px">${esc(c.court)} — ${esc(c.client)} · ${esc(c.lieu)}</p>
-        <div class="rang"><a class="btn plein" href="#/p/${p.id}/${e.id}">Étape ${e.n} : ${esc(e.court)} →</a><a class="btn" href="#/p/${p.id}/cas">Lire le dossier de visite</a></div>
+        <p class="discret" style="margin:0 0 10px">${esc(c.court)} — ${esc(c.client.split(" (")[0])} · ${esc(lieuCourt(c.lieu))}</p>
+        <div class="rang"><a class="btn plein" href="#/p/${p.id}/${e.id}">Étape ${e.n} : ${esc(e.court)} →</a><a class="btn" href="#/p/${p.id}/cas">Lire le dossier de visite</a><a class="btn" href="#/p/${p.id}/depot">Mon espace de dépôt</a></div>
         ${RETOURS.message ? `<div class="retour ok"><b>Message du professeur</b>${esc(RETOURS.message)}</div>` : ""}</div>
       <div class="prog">
         ${ETAPES.map((x) => { if (!x.ouverte) return `<div class="prog-l a-venir"><span>Étape ${x.n}</span><span class="discret">${esc(x.court)} · ${esc(x.quand)}</span><span></span></div>`;
@@ -485,19 +744,19 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
       </div></section>`;
   }
   function carteProjet(p, mien) {
-    return `<a class="cp ${mien ? "mien" : ""}" href="#/p/${p.id}">
-      <span class="cp-num">${p.id}${mien ? " · MON PROJET" : ""}</span>
+    return `<a class="cp ${mien ? "mien" : ""}" href="#/p/${p.id}" style="--c:${coulSup(p.support)}" title="${esc(p.client + " · " + p.lieu)}">
+      ${illus("projets", p.id)}
+      <span class="cp-num"><span>${p.id}${mien ? " · MON PROJET" : ""}</span><span class="chip accent">${esc(SUP[p.support].court)}</span></span>
       <span class="cp-t">${esc(p.court)}</span>
-      <span class="cp-l">${esc(p.client)} · ${esc(p.lieu)}</span>
-      <span class="rang"><span class="chip accent">${esc(SUP[p.support].court)}</span>${p.secteurs.map((s) => `<span class="chip">${esc(SECT_COURT[s] || s)}</span>`).join("")}</span></a>`;
+      <span class="cp-l lieu">${icone("lieu")}${esc(lieuCourt(p.lieu))}</span></a>`;
   }
   function heroMonProjet(p) {
     const a = avancement(p), j = prochainJalon(p);
     return `<section class="hero">
-      <div><div class="eyebrow">Mon projet · ${p.id} · ${esc(SUP[p.support].court)}</div>
+      <div>${illus("projets", p.id, "hero-ill").replace('class="ill hero-ill"', `class="ill hero-ill" style="--c:${coulSup(p.support)}"`)}<div class="eyebrow">Mon projet · ${p.id} · ${esc(SUP[p.support].court)}</div>
         <h1>${esc(p.court)}</h1>
-        <p class="discret" style="margin:0 0 10px">${esc(p.client)} · ${esc(p.lieu)}</p>
-        <div class="rang"><a class="btn plein" href="#/p/${p.id}/dossiers">Construire mes dossiers →</a><a class="btn" href="#/p/${p.id}">Lire le dossier projet</a></div>
+        <p class="discret" style="margin:0 0 10px">${esc(p.client.split(" (")[0])} · ${esc(lieuCourt(p.lieu))}</p>
+        <div class="rang"><a class="btn plein" href="#/p/${p.id}/dossiers">Construire mes dossiers →</a><a class="btn" href="#/p/${p.id}">Lire le dossier projet</a><a class="btn" href="#/p/${p.id}/depot">Mon espace de dépôt</a></div>
         ${RETOURS.message ? `<div class="retour ok"><b>Message du professeur</b>${esc(RETOURS.message)}</div>` : ""}</div>
       <div class="prog">
         ${["d1", "d2", "d3"].map((d, i) => `<div class="prog-l"><span>Dossier ${i + 1}</span>${barre(a[d])}<span class="discret">${a[d].v + a[d].p}/${a[d].n}</span></div>`).join("")}
@@ -511,8 +770,9 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
   const ONGLETS = [["projet", "Le projet"], ["dossiers", "Mes dossiers 1·2·3"], ["planning", "Planning"], ["mes", "Mise en service"], ["risques", "Risques"], ["grilles", "Contrats et grilles"]];
   function vueProjet(p, onglet) {
     if (estEnt(p)) return vueEntrainement(p, onglet);
-    if (!ONGLETS.some((o) => o[0] === onglet)) onglet = "projet";
     const mien = monProjet() === p.id;
+    const ongs = mien ? ONGLETS.concat([["depot", "Mon dépôt"]]) : ONGLETS;
+    if (!ongs.some((o) => o[0] === onglet)) onglet = "projet";
     const nom = S && !S.apercu ? S.nom : "";
     app.innerHTML = `
       <div class="print-tete"><img src="../assets/logo-papara.svg" alt="" onerror="this.remove()"><div><b>LPO Papara — BTS Électrotechnique — session ${esc(P.session)}</b><br>Projet ${p.id} · ${esc(p.titre)}${nom ? ` · ${esc(nom)}` : ""}</div></div>
@@ -524,13 +784,18 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
           ${mien ? (ATTRIBUE ? `<span class="chip ok">Mon projet</span>` : `<span class="chip warn" title="Ton professeur confirmera l'attribution dans son espace">Mon projet · à confirmer par le professeur</span>`) : choixLibre() && (estBTS2 || !S) ? `<button class="btn petit no-print" id="choisir">C'est mon projet</button>` : ""}
           ${mien ? `<span class="sauve"></span>` : ""}</div>
       </header>
-      <nav class="onglets no-print" aria-label="Parties du projet">${ONGLETS.map(([k, t]) => `<a href="#/p/${p.id}/${k}" class="${k === onglet ? "actif" : ""}" ${k === onglet ? 'aria-current="page"' : ""}>${t}</a>`).join("")}</nav>
+      <nav class="onglets no-print" aria-label="Parties du projet">${ongs.map(([k, t]) => `<a href="#/p/${p.id}/${k}" class="${k === onglet ? "actif" : ""}" ${k === onglet ? 'aria-current="page"' : ""}>${t}</a>`).join("")}</nav>
       <div id="contenu"></div>`;
     brancherChoix(p, onglet);
     const c = document.getElementById("contenu");
-    ({ projet: ongletProjet, dossiers: ongletDossiers, planning: ongletPlanning, mes: ongletMES, risques: ongletRisques, grilles: ongletGrilles }[onglet])(p, c, mien);
-    indicateur();
+    ({ projet: ongletProjet, dossiers: ongletDossiers, planning: ongletPlanning, mes: ongletMES, risques: ongletRisques, grilles: ongletGrilles, depot: ongletDepot }[onglet])(p, c, mien);
+    indicateur(); centrerOnglet();
     window.scrollTo(0, 0);
+  }
+  // sur téléphone, la barre d'onglets défile : on y amène l'onglet actif
+  function centrerOnglet() {
+    const nav = document.querySelector(".onglets"), a = nav && nav.querySelector("a.actif");
+    if (a && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = Math.max(0, a.offsetLeft - (nav.clientWidth - a.offsetWidth) / 2);
   }
   // « C'est mon projet » / « C'est ma partie » : l'étudiant déclare ce que son professeur lui a donné (l'attribution l'emporte ensuite)
   function brancherChoix(p, onglet) {
@@ -592,13 +857,13 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
   // ================= Parcours d'entraînement : une partie d'un cas =================
   function vueEntrainement(p, onglet) {
     const c = casDe(p);
-    const ong = [["parcours", "Mon parcours"], ["cas", "Le cas"]].concat(ouvertes().map((e) => [e.id, `Étape ${e.n} · ${e.court}`]));
-    if (!ong.some((o) => o[0] === onglet)) onglet = etapeCourante().id;
     const mien = monProjet() === p.id;
+    const ong = [["parcours", "Mon parcours"], ["cas", "Le cas"]].concat(ouvertes().map((e) => [e.id, `Étape ${e.n} · ${e.court}`]), mien ? [["depot", "Mon dépôt"]] : []);
+    if (!ong.some((o) => o[0] === onglet)) onglet = etapeCourante().id;
     const nom = S && !S.apercu ? S.nom : "";
     const e = etapeDe(onglet);
     app.innerHTML = `
-      <div class="print-tete"><img src="../assets/logo-papara.svg" alt="" onerror="this.remove()"><div><b>LPO Papara — BTS Électrotechnique — parcours d'entraînement aux projets</b><br>${e ? `Étape ${e.n} · ${esc(e.titre)}` : onglet === "cas" ? "Dossier de visite" : "Mon parcours"} · cas ${esc(c.id)}, partie ${esc(p.id)}${nom ? ` · ${esc(nom)}` : ""}</div></div>
+      <div class="print-tete"><img src="../assets/logo-papara.svg" alt="" onerror="this.remove()"><div><b>LPO Papara — BTS Électrotechnique — parcours d'entraînement aux projets</b><br>${e ? `Étape ${e.n} · ${esc(e.titre)}` : onglet === "cas" ? "Dossier de visite" : onglet === "depot" ? "Mon espace de dépôt" : "Mon parcours"} · cas ${esc(c.id)}, partie ${esc(p.id)}${nom ? ` · ${esc(nom)}` : ""}</div></div>
       <nav class="fil no-print"><a href="#/">← Tous les projets</a></nav>
       <header class="tete-projet">
         <div class="eyebrow">Entraînement · cas ${esc(c.id)} : ${esc(c.domaine)} · partie ${esc(p.id)}</div>
@@ -611,8 +876,8 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
       <div id="contenu"></div>`;
     brancherChoix(p, onglet);
     const cc = document.getElementById("contenu");
-    if (onglet === "cas") ongletCas(p, cc); else if (onglet === "parcours") ongletParcours(p, cc, mien); else ongletEtape(p, cc, e, mien);
-    indicateur();
+    if (onglet === "cas") ongletCas(p, cc); else if (onglet === "parcours") ongletParcours(p, cc, mien); else if (onglet === "depot") ongletDepot(p, cc); else ongletEtape(p, cc, e, mien);
+    indicateur(); centrerOnglet();
     window.scrollTo(0, 0);
   }
   const critChip = (k, plus) => `<span class="chip crit" title="${esc(k + " — " + (CRIT[k] ? CRIT[k].txt : ""))}">${k}${plus || ""}</span>`;
@@ -705,7 +970,7 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
       <div class="carte"><h3>Point d'avancement (si tu l'animes)</h3><ul>${det.reunion.odj.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><p class="discret" style="margin:0">${esc(det.reunion.cr)}</p></div>`
       : `<div class="carte"><p style="margin:0">Le contenu de cette étape sera publié quand la classe y arrivera.</p></div>`}
       <h2>Mes livrables</h2>
-      ${mien ? `<p class="discret">Pour chaque livrable : son état et le lien vers ton fichier (Drive, ENT…). Ton professeur le valide ou te demande de le reprendre.</p>` : ""}
+      ${mien ? `<p class="discret">Pour chaque livrable : son état, et ton fichier, déposé dans la fiche ou dans l'onglet « Mon dépôt » (ou son lien Drive, ENT…). Ton professeur le valide ou te demande de le reprendre.</p>` : ""}
       ${RETOURS.message && mien ? `<div class="retour ok"><b>Message du professeur${RETOURS.le ? ` · ${esc(fmtHeure(RETOURS.le))}` : ""}</b>${esc(RETOURS.message)}</div>` : ""}
       ${docs.map((x) => carteDoc(x, mien ? rv[x.id] : null, mien)).join("")}
       ${det ? `<h2>Me positionner <span class="discret">N1 à N4, comme dans les grilles du CCF</span></h2>
@@ -735,7 +1000,7 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
     const docs = docsDu(p), a = avancement(p), rv = RETOURS.docs || {};
     const html = [];
     if (!mien) html.push(avisLecture("Tu consultes la liste des documents de ce projet."));
-    else html.push(`<p>Tes trois dossiers se construisent tout au long du projet : <b>conception</b> pendant U61, <b>réalisation par anticipation</b> à la fin de U61 (tout ce qui prépare la réalisation : planning, modes opératoires, protocole de mise en service, autocontrôles, risques), puis <b>réalisation</b> pendant U62. Pour chaque document : son contenu attendu, les critères des grilles qu'il prouve, son état et le lien vers ton fichier (Drive, ENT…).</p>`);
+    else html.push(`<p>Tes trois dossiers se construisent tout au long du projet : <b>conception</b> pendant U61, <b>réalisation par anticipation</b> à la fin de U61 (tout ce qui prépare la réalisation : planning, modes opératoires, protocole de mise en service, autocontrôles, risques), puis <b>réalisation</b> pendant U62. Pour chaque document : son contenu attendu, les critères des grilles qu'il prouve, son état, et ton fichier, déposé dans la fiche ou dans l'onglet « Mon dépôt » (ou son lien Drive, ENT…).</p>`);
     if (RETOURS.message) html.push(`<div class="retour ok"><b>Message du professeur${RETOURS.le ? ` · ${esc(fmtHeure(RETOURS.le))}` : ""}</b>${esc(RETOURS.message)}</div>`);
     html.push(`<div class="resume-d">${P.dossiers.map((d) => `<div class="carte" style="--dc:${DCOUL[d.id]}"><div class="eyebrow">Dossier ${d.num}</div><b>${esc(d.titre)}</b>${barre(a[d.id])}<div class="discret" style="margin-top:6px">${a[d.id].v} validé${a[d.id].v > 1 ? "s" : ""} · ${a[d.id].p} prêt${a[d.id].p > 1 ? "s" : ""} · ${a[d.id].c} en cours${a[d.id].r ? ` · <span style="color:var(--bad)">${a[d.id].r} à reprendre</span>` : ""} · ${a[d.id].n} au total</div></div>`).join("")}</div>`);
     html.push(`<div class="filtres no-print"><button data-ph="" class="${filtrePhase ? "" : "actif"}">Toutes les phases</button>${Object.entries(PHASES).map(([k, t]) => `<button data-ph="${k}" class="${filtrePhase === k ? "actif" : ""}">${t}</button>`).join("")}</div>`);
@@ -780,7 +1045,7 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
     const outil = { planning: "Planning", mes: "Mise en service", risques: "Risques" }[x.outil];
     const etiquette = rv && rv.v === "ok" ? `<span class="chip ok">Validé ✓</span>` : rv && rv.v === "reprendre" ? `<span class="chip ko">À reprendre</span>` : mien ? `<span class="chip ${s === 2 ? "accent" : ""}">${STATUTS[s]}</span>` : "";
     return `<details class="doc ${cls}" data-doc="${x.id}">
-      <summary><div><div class="doc-t">${esc(x.titre)}</div><div class="doc-meta"><span class="chip ph-${x.phase}">${PHASES[x.phase]}</span>${x.option ? `<span class="chip">facultatif</span>` : ""}${x.crit.map((k) => `<span class="chip crit" title="${esc(k + " — " + (CRIT[k] ? CRIT[k].txt : ""))}">${k}</span>`).join("")}</div></div>${etiquette}</summary>
+      <summary><div><div class="doc-t">${esc(x.titre)}</div><div class="doc-meta"><span class="chip ph-${x.phase}">${PHASES[x.phase]}</span>${x.option ? `<span class="chip">facultatif</span>` : ""}${mien && depotPossible() ? (() => { const n = fichiersDoc(x.dossier, x.id).length; return `<span class="chip accent" data-dep-nb="${x.id}" data-dep-dossier="${x.dossier}" ${n ? "" : "hidden"}>${n} fichier${n > 1 ? "s" : ""}</span>`; })() : ""}${x.crit.map((k) => `<span class="chip crit" title="${esc(k + " — " + (CRIT[k] ? CRIT[k].txt : ""))}">${k}</span>`).join("")}</div></div>${etiquette}</summary>
       <div class="doc-corps">
         <label class="court">Ce que ce document doit contenir</label>
         <ul>${x.contenu.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
@@ -793,7 +1058,8 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
         <label class="court" for="l-${x.id}">Lien vers mon document (Drive, ENT…)</label>
         <div class="rang" style="flex-wrap:nowrap"><input type="url" id="l-${x.id}" data-champ="lien" placeholder="https://…" value="${esc(e.lien || "")}" inputmode="url"><a class="btn petit ouvrir" target="_blank" rel="noopener" href="${urlSure(e.lien) ? esc(e.lien.trim()) : "#"}" ${urlSure(e.lien) ? "" : "hidden"}>Ouvrir ↗</a></div>
         <label class="court" for="n-${x.id}">Mes remarques (questions pour la revue, ce qui reste à faire…)</label>
-        <textarea id="n-${x.id}" data-champ="note" rows="2">${esc(e.note || "")}</textarea>` : ""}
+        <textarea id="n-${x.id}" data-champ="note" rows="2">${esc(e.note || "")}</textarea>
+        ${depotPossible() ? `<label class="court">Mes fichiers déposés <span class="discret">(tout mon dépôt : onglet « Mon dépôt »)</span></label>${blocDepot(x.dossier, x.id)}` : ""}` : ""}
       </div></details>`;
   }
 
@@ -1013,16 +1279,17 @@ dl.qr dd{margin:2px 0 0;color:var(--ink-2);font-style:italic}
   }
   function route() {
     const h = location.hash.replace(/^#\/?/, "");
+    if (h === "depot") { vueDepotSeul(); indicateur(); return; }
     const m = /^p\/([A-Z]\d{1,2}(?:-\d{1,2})?)(?:\/([a-z0-9]+))?/.exec(h);
     if (m && projet(m[1])) vueProjet(projet(m[1]), m[2] || "projet"); else vueAccueil();
     indicateur();
   }
-  window.SIP_PROJETS_PAGE = { etat: () => ETAT, enregistrer };   // pour les tests
+  window.SIP_PROJETS_PAGE = { etat: () => ETAT, enregistrer, depots: () => DEP };   // pour les tests
   window.addEventListener("hashchange", route);
   window.addEventListener("load", async () => {
     lireSession();
     etatSip();
-    await charger();
+    await Promise.all([charger(), chargerDepots()]);
     if (!location.hash && monProjet()) location.hash = "#/p/" + monProjet() + "/dossiers"; else route();
   });
 })();
