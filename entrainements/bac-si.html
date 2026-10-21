@@ -20157,15 +20157,18 @@ function prepEtapes(D){
     const tot=8; blocs.forEach((b,i)=>{ b.n=Math.min(b.g.length,Math.floor(tot/blocs.length)+(i<tot%blocs.length?1:0)); });
     et.push({k,t:PREP_T[k],d:PREP_D[k],q:null,blocs:blocs.filter(b=>b.n>0)});
   });
+  /* DS blanc : « le défi » d'abord (question par question), « la revanche » à la fin (en conditions de DS) */
   const b=dsBlancDe(D.id);
-  if(b) et.push({k:4,t:"DS blanc",d:`${b.titre} · question par question, puis en conditions de DS (${b.duree_min} min)`,blanc:b});
+  if(b){ et.unshift({k:0,t:"Le défi",d:"le DS blanc, question par question, avant de t'entraîner : ta note ne bloque rien, elle te montre ce qui t'attend",blanc:b,defi:true});
+    et.push({k:4,t:"La revanche",d:`le DS blanc avec d'autres valeurs, en conditions de DS (${b.duree_min} min, chrono) : compare avec ton défi`,blanc:b,revanche:true}); }
   return et;
 }
 /* DS blanc déjà fait sur cet appareil (entrainements/ds-blanc.html garde ses essais par élève) */
-function dsbLocal(b){
+function dsbLocal(b,filtre){
   if(!b) return null;
-  try{ const s=window.SIP&&SIP.session&&SIP.session.get(), k="sip_dsb_v1:"+(s?(s.apercu?"apercu":(s.eleve_id||s.nom||"eleve")):"anonyme");
-    const d=(JSON.parse(localStorage.getItem(k)||"{}")[b.id]||{}).essais||[], faits=d.filter(e=>e.rendu&&typeof e.note==="number");
+  /* copies du DS blanc gardées sur cet appareil (ds-blanc.html) ; la connexion du site n'est pas encore lue au chargement : toutes les copies */
+  try{ const s=window.SIP&&SIP.session&&SIP.session.get(), cles=s?["sip_dsb_v1:"+(s.apercu?"apercu":(s.eleve_id||s.nom||"eleve"))]:Object.keys(localStorage).filter(k=>k.indexOf("sip_dsb_v1:")===0);
+    const d=[].concat(...cles.map(k=>(JSON.parse(localStorage.getItem(k)||"{}")[b.id]||{}).essais||[])), faits=d.filter(e=>e.rendu&&typeof e.note==="number"&&(!filtre||filtre(e)));
     return faits.length?{n:faits.length,best:Math.max(...faits.map(e=>e.note))}:null; }catch(e){ return null; }
 }
 const prepOuvert=()=>LS.get(PREP_OK,{});
@@ -20173,8 +20176,9 @@ const prepOuvert=()=>LS.get(PREP_OK,{});
 function prepEtat(D){
   const et=prepEtapes(D), ouv=prepOuvert()[D.id]||0; let prev=true;
   return et.map(e=>{
-    if(e.blanc){ const l=dsbLocal(e.blanc); return {...e,best:l?l.best:null,n:l?l.n:0,ok:!!l,open:prev||!!l||ouv>=4}; }
-    const b=best("prep-"+D.id,e.k), ok=b!=null&&b>=PREP_SEUIL, open=prev||ouv>=e.k; prev=ok;
+    if(e.defi){ const l=dsbLocal(e.blanc), ld=dsbLocal(e.blanc,x=>x.mode!=="ds"); prev=!!l||ouv>=1; return {...e,best:ld?ld.best:null,n:ld?ld.n:0,ok:!!l,open:true}; }
+    if(e.blanc){ const l=dsbLocal(e.blanc,x=>x.mode==="ds"); return {...e,best:l?l.best:null,n:l?l.n:0,ok:!!l,open:prev||!!l||ouv>=4}; }
+    const b=best("prep-"+D.id,e.k), ok=b!=null&&b>=PREP_SEUIL, open=prev||ouv>=e.k||b!=null; prev=ok;
     return {...e,best:b,ok,open};
   });
 }
@@ -20202,14 +20206,14 @@ function startPrep(id,k,force){
 }
 const fDS=s=>{ try{ return fD(D0(s)); }catch(e){ return s; } };
 const prepBtn=(D,x,primary)=>{
-  if(x.blanc) return x.open?`<a class="btn${x.ok?"":(primary?" primary":"")}" href="ds-blanc.html#${D.id}">${x.ok?`Refaire · meilleur ${nf(x.best,1)}/20`:"Faire le DS blanc →"}</a>`:`<span class="btn off" aria-disabled="true">après l'étape 3</span>`;
-  if(!x.open) return `<span class="btn off" aria-disabled="true">après l'étape ${x.k-1}</span>`;
+  if(x.blanc) return x.open?`<a class="btn${x.ok?"":(primary?" primary":"")}" href="ds-blanc.html#${D.id}/${x.defi?"defi":"revanche"}">${x.ok?(x.best!=null?`Refaire · meilleur ${nf(x.best,1)}/20`:"✓ Fait · refaire"):x.defi?"Relever le défi →":"Prendre ma revanche →"}</a>`:`<span class="btn off" aria-disabled="true">après l'étape 3</span>`;
+  if(!x.open) return `<span class="btn off" aria-disabled="true">${x.k===1&&dsBlancDe(D.id)?"après le défi":`après l'étape ${x.k-1}`}</span>`;
   return `<button class="btn${x.ok?"":(primary?" primary":"")}" type="button" data-prep="${D.id}:${x.k}">${x.ok?`Refaire · ${x.best}/20`:x.best!=null?`Reprendre · ${x.best}/20`:"Commencer"}</button>`;
 };
 function prepListe(D,E){
   const cur=E.find(x=>x.open&&!x.ok);
-  return `<ol class="prep">${E.map(x=>`<li class="${x.ok?"ok":x.open?(cur&&cur.k===x.k?"cur":""):"off"}"><span class="pn">${x.ok?"✓":x.open?x.k:"🔒"}</span>
-    <span class="pt"><b>${x.k<4?`Étape ${x.k} · `:""}${esc(x.t)}</b><span class="pd">${esc(x.d)}${x.q?` · ≈ ${x.q} questions`:""}</span></span>
+  return `<ol class="prep">${E.map(x=>`<li class="${x.ok?"ok":x.open?(cur&&cur.k===x.k?"cur":""):"off"}"><span class="pn">${x.ok?"✓":!x.open?"🔒":x.defi?"⚑":x.revanche?"★":x.k}</span>
+    <span class="pt"><b>${x.blanc?"":`Étape ${x.k} · `}${esc(x.t)}</b><span class="pd">${esc(x.d)}${x.q?` · ≈ ${x.q} questions`:""}</span></span>
     <span class="pa">${prepBtn(D,x,cur&&cur.k===x.k)}</span></li>`).join("")}</ol>`;
 }
 function prepBind(root){
@@ -20221,7 +20225,7 @@ function prepCard(){
   const E=prepEtat(D), faits=E.filter(x=>x.ok).length;
   return `<section class="card prepc" aria-labelledby="pp-t"><div class="eyebrow">Prochain DS · ${fDS(D.date)}</div><h2 id="pp-t">Préparer le ${esc(D.ds)}</h2>
     ${D.notions.length?`<p class="lbl2">${esc(D.notions.map(n=>n.lab).join(" · "))}</p>`:""}
-    <p>Trois étapes dans l'ordre, chacune validée à ${PREP_SEUIL}/20 ouvre la suivante${E.some(x=>x.blanc)?", puis le DS blanc":""}. Les valeurs changent à chaque essai ; recommence autant de fois qu'il faut, jusqu'à 6 h le jour du DS.</p>
+    <p>${E.some(x=>x.defi)?"D'abord le défi : le DS blanc question par question, pour voir le niveau du DS. Puis trois":"Trois"} étapes dans l'ordre, chacune validée à ${PREP_SEUIL}/20 ouvre la suivante${E.some(x=>x.revanche)?", puis la revanche en conditions de DS":""}. Les valeurs changent à chaque essai ; recommence autant de fois qu'il faut, jusqu'à 6 h le jour du DS.</p>
     ${prepListe(D,E)}
     <p class="fine">${faits} / ${E.length} étape${E.length>1?"s":""} validée${faits>1?"s":""} sur cet appareil${window.SIP&&SIP.session&&SIP.session.get()?" · le détail transmis au professeur est sur <a href=\"../index.html#/tableau\">ton espace</a>":""}.</p></section>`;
 }
@@ -20232,7 +20236,7 @@ function prepView(id){
   app.innerHTML=`<div class="crumb"><button class="btn" id="back" type="button">← Accueil</button><b>${passe?"Revoir":"Préparer"} le ${esc(D.ds)}</b><span class="soon">${fDS(D.date)}</span></div>
     <section class="card prepc"><div class="eyebrow">${passe?"DS passé":"Prochain DS"} · ${fDS(D.date)}</div><h2>${passe?"Revoir":"Préparer"} le ${esc(D.ds)}</h2>
     ${D.notions.length?`<p class="lbl2">${esc(D.notions.map(n=>n.lab).join(" · "))}</p>`:""}
-    <p>${passe?"Le DS est passé : refais les étapes pour revoir ce que tu n'as pas compris. Elles ne comptent plus pour la validation des notions. ":""}Trois étapes dans l'ordre : chacune, validée à ${PREP_SEUIL}/20, ouvre la suivante${E.some(x=>x.blanc)?", puis le DS blanc, question par question puis en conditions de DS":""}. On part de 20, −2 par erreur ; les valeurs changent à chaque essai.</p>
+    <p>${passe?"Le DS est passé : refais les étapes pour revoir ce que tu n'as pas compris. Elles ne comptent plus pour la validation des notions. ":""}${E.some(x=>x.defi)?"D'abord le défi : le DS blanc question par question ; après chaque question ratée, il te dit quelle étape la travaille. Puis trois":"Trois"} étapes dans l'ordre : chacune, validée à ${PREP_SEUIL}/20, ouvre la suivante${E.some(x=>x.revanche)?", puis la revanche, le DS blanc en conditions de DS":""}. On part de 20, −2 par erreur ; les valeurs changent à chaque essai.</p>
     ${prepListe(D,E)}
     <p class="fine">${faits} / ${E.length} validée${faits>1?"s":""} sur cet appareil.</p></section>
     ${D.notions.some(n=>MODULES[n.id]&&MODULES[n.id].fiche)?`<div class="sec-h"><h2>Fiches à relire</h2></div><div class="fiches">${D.notions.filter(n=>MODULES[n.id]&&MODULES[n.id].fiche).map(n=>ficheHTML(MODULES[n.id].fiche)+ficheLien(n.id)).join("")}</div>`:""}`;
@@ -20244,13 +20248,13 @@ function endPrep(){
   hook({type:"prep",ds:D.id,dsNom:D.ds,etape:k,titre:`${D.ds} · Étape ${k} : ${e.t}`,note,n:st.res.length,erreurs:errs.length,duree_s:Math.round((Date.now()-st.t0)/1000),details:detailsOf(st.res)});
   const E=prepEtat(D), suiv=E.find(x=>x.k===k+1);
   const cls=ok?"ok":note>=10?"mid":"ko";
-  const verdict=ok?(suiv?`Étape validée : ${suiv.blanc?"le DS blanc est ouvert":`l'étape ${k+1} est ouverte`}`:"Étape validée : tu es prêt pour le DS"):note>=10?`Pas encore : il faut ${PREP_SEUIL}/20. Recommence, les valeurs changent`:"Relis la fiche, puis recommence";
+  const verdict=ok?(suiv?`Étape validée : ${suiv.blanc?"la revanche est ouverte":`l'étape ${k+1} est ouverte`}`:"Étape validée : tu es prêt pour le DS"):note>=10?`Pas encore : il faut ${PREP_SEUIL}/20. Recommence, les valeurs changent`:"Relis la fiche, puis recommence";
   const errIds=[...new Set(errs.map(r=>r.q.nid))].filter(id=>MODULES[id]&&MODULES[id].fiche).slice(0,3);
   app.innerHTML=`<div class="bar"><span class="lv"><small>préparation du DS</small>${esc(D.ds)} · étape ${k} · ${esc(e.t)} · bilan</span></div>
   <div class="end">
     <div class="panel"><div class="eyebrow">Note finale</div><div class="bignote">${note}<small> / 20</small></div><div class="verdict ${cls}">${verdict}</div>
       <p>${st.res.length-errs.length} bonne${st.res.length-errs.length>1?"s":""} réponse${st.res.length-errs.length>1?"s":""} sur ${st.res.length}.</p>
-      <div class="actions">${ok&&suiv?(suiv.blanc?`<a class="btn primary" href="ds-blanc.html#${D.id}">DS blanc →</a>`:`<button class="btn primary" id="nxp" type="button">Étape ${k+1} : ${esc(suiv.t)} →</button>`):""}
+      <div class="actions">${ok&&suiv?(suiv.blanc?`<a class="btn primary" href="ds-blanc.html#${D.id}/revanche">La revanche →</a>`:`<button class="btn primary" id="nxp" type="button">Étape ${k+1} : ${esc(suiv.t)} →</button>`):""}
       <button class="btn${ok&&suiv?"":" primary"}" id="again" type="button">Recommencer (nouvelles valeurs)</button>
       <button class="btn" id="tout" type="button">Toutes les étapes</button>${window.SIP&&SIP.session&&SIP.session.get()?`<a class="btn" href="../index.html#/tableau">Mon espace</a>`:""}</div></div>
     <div class="panel">${errList(errs)}${errs.length?"":"<p>Passe à la suite, ou refais l'étape : les valeurs changent à chaque essai.</p>"}

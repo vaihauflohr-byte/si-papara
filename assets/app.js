@@ -282,8 +282,10 @@
           <span class="btn">S'entraîner →</span></div>
       </a>`;
   }
-  // La préparation d'un DS (contenu/prep-ds.js) : trois étapes verrouillées dans l'ordre, puis le DS blanc.
-  // L'état vient de l'historique transmis (modules prep-<ds>-<étape>) : meilleure note, validée à 16/20, ouverte.
+  // La préparation d'un DS (contenu/prep-ds.js) : quand le DS a un DS blanc, d'abord « le défi » (le DS blanc question par
+  // question : fait dès qu'une note est envoyée, quelle qu'elle soit), puis trois étapes verrouillées dans l'ordre (16/20),
+  // puis « la revanche » (le DS blanc en conditions de DS, autres valeurs). Une étape déjà commencée reste ouverte.
+  // L'état vient de l'historique transmis (modules prep-<ds>-<étape>, dsb-<ds>) : meilleure note, validée, ouverte.
   const PREP_SEUIL = 16, PREP_T = ["", "Les briques", "Les calculs", "Les chaînes"];
   const PREP_D = ["", "reconnaître, lire, nommer, calculer une grandeur simple", "appliquer une formule sur un mécanisme", "résoudre jusqu'au bout et conclure, comme au DS"];
   const dsKey = (ds) => String(ds || "").toLowerCase().replace(/\s+/g, "");
@@ -294,18 +296,35 @@
     const enLigne = lot.some((n) => n.enLigne) || !!(def && def.etapes && def.etapes.length);
     const meilleure = (a) => (a.length ? Math.max(...a.map((h) => sur20(h.score, h.score_max))) : null);
     const out = []; let prev = true;
+    const b = dsBlanc(ds), EB = b ? essaisDSB(hist, b) : [];
+    const revs = EB.filter(estRevanche), defis = EB.filter((h) => !estRevanche(h));
+    if (b) {
+      out.push({ k: 0, blanc: b, defi: true, t: "Le défi", d: `le DS blanc, question par question, avant de t'entraîner (${b.titre}) : ta note ne bloque rien, elle te montre ce qui t'attend`,
+        best: meilleure(defis), ok: EB.length > 0, okT: EB.some((h) => aTemps(h, lim)), n: defis.length, open: true, lien: b.page + "/defi" });
+      prev = EB.length > 0;
+    }
     if (enLigne) [1, 2, 3].forEach((k) => {
       const e = (def && def.etapes && def.etapes[k - 1]) || {}, E = essaisPrep(hist, id, k);
       const best = meilleure(E), bestT = meilleure(E.filter((h) => aTemps(h, lim)));
-      const ok = best !== null && best >= PREP_SEUIL, okT = bestT !== null && bestT >= PREP_SEUIL;
-      out.push({ k, t: e.t || PREP_T[k], d: e.d || PREP_D[k], q: e.q || null, best, ok, okT, n: E.length, open: prev, lien: `${PAGE_BAC}#prep=${id}:${k}${prev && k > 1 ? ":ok" : ""}` });
+      const ok = best !== null && best >= PREP_SEUIL, okT = bestT !== null && bestT >= PREP_SEUIL, open = prev || E.length > 0;
+      out.push({ k, t: e.t || PREP_T[k], d: e.d || PREP_D[k], q: e.q || null, best, ok, okT, n: E.length, open, lien: `${PAGE_BAC}#prep=${id}:${k}${open ? ":ok" : ""}` });
       prev = ok;
     });
-    const b = dsBlanc(ds);
-    if (b) { const E = essaisDSB(hist, b), best = meilleure(E); out.push({ k: out.length + 1, blanc: b, t: "DS blanc", d: `${b.titre} · question par question, puis en conditions de DS (${b.duree_min} min)`, best, ok: E.length > 0, okT: E.some((h) => aTemps(h, lim)), n: E.length, open: prev || E.length > 0, lien: b.page }); }
+    if (b) out.push({ k: 4, blanc: b, revanche: true, t: "La revanche", d: `le DS blanc avec d'autres valeurs, en conditions de DS (${b.duree_min} min, chrono) : compare avec ton défi`,
+      best: meilleure(revs), ok: revs.length > 0, okT: revs.some((h) => aTemps(h, lim)), n: revs.length, open: prev || revs.length > 0, lien: b.page + "/revanche" });
     return out;
   }
   const labCourt = (lab) => lab.split(/,| \(|:/)[0];
+  // essai du DS blanc en conditions de DS (titre sans « (question par question) » ni « (sans chrono) »)
+  const estRevanche = (h) => !/\((question par question|sans chrono)\)/.test(h.titre || "");
+  // progrès entre le défi et la revanche
+  function progres(E) {
+    const d = E.find((x) => x.defi), r = E.find((x) => x.revanche);
+    if (!d || d.best === null) return "";
+    if (!r || r.best === null) return `<p class="prep-progres">Défi : <b>${SIP.nb(d.best, 3)}/20</b>. Entraîne-toi, puis viens battre ce score à la revanche.</p>`;
+    const g = Math.round((r.best - d.best) * 100) / 100;
+    return `<p class="prep-progres">Défi : <b>${SIP.nb(d.best, 3)}/20</b> → revanche : <b>${SIP.nb(r.best, 3)}/20</b>${g > 0 ? ` <span class="gain">+${SIP.nb(g, 3)}</span>` : ""}</p>`;
+  }
   // Le prochain DS : ses étapes de préparation, dans l'ordre ; les fiches des notions à lire avant.
   function prochainDS(hist) {
     const B = SIP.BAC; if (!B) return "";
@@ -318,21 +337,25 @@
       const faites = E.filter((x) => x.ok).length, cur = E.find((x) => x.open && !x.ok);
       const fiches = lot.filter((n) => ficheBac(n.id)).map((n) => { const fn = noteFiche(hist, n.id), comprise = fn !== null && fn >= 16;
         return `<a class="btn sec${comprise ? " fait" : ""}" href="#/fiche/${n.id}" title="${esc(n.lab)}">${comprise ? "✓ " : ""}${esc(labCourt(n.lab))}${fn !== null && !comprise ? ` <small>${SIP.nb(fn, 3)}/20</small>` : ""}</a>`; }).join("");
+      const cours = lot.filter((n) => coursBac(n.id)).map((n) => `<a class="btn sec" href="#/cours/${n.id}" title="${esc(coursBac(n.id).titre)}">▶ ${esc(labCourt(n.lab))}</a>`).join("");
       const btn = (x) => {
-        if (!x.open) return `<span class="btn sec off">après l'étape ${x.k - 1}</span>`;
-        const lab = x.ok ? `✓ ${x.blanc ? "Fait" : "Validée"} <small>${SIP.nb(x.best, 3)}/20</small>` : x.best !== null ? `Reprendre <small>${SIP.nb(x.best, 3)}/20</small>` : x.blanc ? "Faire le DS blanc" : "Commencer";
+        if (!x.open) return `<span class="btn sec off">${x.k === 1 && E[0].defi ? "après le défi" : `après l'étape ${x.k - 1}`}</span>`;
+        const note = x.best !== null ? ` <small>${SIP.nb(x.best, 3)}/20</small>` : "";
+        const lab = x.ok ? `✓ ${x.blanc ? "Fait" : "Validée"}${note}` : x.best !== null ? `Reprendre${note}` : x.defi ? "Relever le défi" : x.revanche ? "Prendre ma revanche" : "Commencer";
         return `<a class="btn ${x.ok ? "sec fait" : cur && cur.k === x.k ? "" : "sec"}" href="${x.lien}">${lab}</a>`;
       };
       const lignes = E.map((x) => `<li class="prep-et ${x.ok ? "ok" : x.open ? (cur && cur.k === x.k ? "cur" : "") : "off"}${x.blanc ? " ds-blanc" : ""}">
-          <span class="prep-n" aria-hidden="true">${x.ok ? "✓" : x.open ? x.k : "🔒"}</span>
+          <span class="prep-n" aria-hidden="true">${x.ok ? "✓" : !x.open ? "🔒" : x.defi ? "⚑" : x.revanche ? "★" : x.k}</span>
           <span class="ds-nom"><b>${x.blanc ? "" : `Étape ${x.k} · `}${esc(x.t)}</b><span class="discret">${esc(x.d)}${x.q ? ` · ≈ ${x.q} questions` : ""}${x.n ? ` · ${pluriel(x.n, "essai")}` : ""}</span></span>
           <span class="ds-btns">${btn(x)}</span></li>`).join("");
       return `<section class="carte ds-hero ${faites === E.length ? "fait" : "a-faire"}">
         <div class="ds-tete"><div><div class="eyebrow">Prochain DS</div><div class="bac-titre">${esc(lot[0].ds || "DS")} <span>· ${esc(jour(lot[0].ds_date))}</span></div><div class="discret">${esc(lot.map((n) => n.lab).join(" · "))}</div></div>
           <div class="ds-compte"><div class="grand">${faites}<small> / ${E.length}</small></div><div class="discret">étape${faites > 1 ? "s" : ""} validée${faites > 1 ? "s" : ""}</div></div></div>
-        ${fiches ? `<div class="prep-fiches"><span class="discret">Lis d'abord les fiches :</span>${fiches}</div>` : ""}
+        ${cours ? `<div class="prep-fiches"><span class="discret">Le cours :</span>${cours}</div>` : ""}
+        ${fiches ? `<div class="prep-fiches"><span class="discret">${cours ? "Les fiches :" : "Lis d'abord les fiches :"}</span>${fiches}</div>` : ""}
         <ol class="ds-lot prep-liste">${lignes}</ol>
-        <p class="bac-regle">Dans l'ordre : chaque étape validée à ${PREP_SEUIL}/20 ouvre la suivante. On part de 20, −2 par erreur ; les valeurs changent à chaque essai. Essais illimités, avant 6 h le jour du DS.</p>
+        ${progres(E)}
+        <p class="bac-regle">${E[0].defi ? "Commence par le défi : le DS blanc question par question, pour voir le niveau du DS ; après chaque question ratée, le site te dit quelle étape la travaille. Puis les étapes dans l'ordre : chacune" : "Dans l'ordre : chaque étape"} validée à ${PREP_SEUIL}/20 ouvre la suivante (on part de 20, −2 par erreur ; les valeurs changent à chaque essai)${E[0].defi ? ". Enfin la revanche, en conditions de DS" : ""}. Essais illimités, avant 6 h le jour du DS.</p>
       </section>`;
     }
     const faites = lot.filter((n) => etatNotion(n, hist).valide).length;
@@ -371,7 +394,7 @@
       x.b ? `<a class="btn${grand ? "" : " sec"}" href="${x.b.page}">DS blanc · question par question${x.best !== null ? ` <small>meilleur ${SIP.nb(x.best, 3)}/20</small>` : ""}</a>` : "",
       x.prep ? `<a class="btn sec" href="${PAGE_BAC}#prep=${x.id}">Préparation en 3 étapes</a>` : "",
     ].join("");
-    const fiches = (x) => x.fiches.map((n) => `<a class="btn sec" href="#/fiche/${n.id}" title="${esc(n.lab)}">${esc(labCourt(n.lab))}</a>`).join("");
+    const fiches = (x) => x.fiches.map((n) => `${coursBac(n.id) ? `<a class="btn sec" href="#/cours/${n.id}" title="Cours · ${esc(n.lab)}">▶ ${esc(labCourt(n.lab))}</a>` : ""}<a class="btn sec" href="#/fiche/${n.id}" title="${esc(n.lab)}">${esc(labCourt(n.lab))}</a>`).join("");
     const [d, ...avant] = L;
     return `<section class="carte ds-passe" aria-label="DS passés">
         <div class="eyebrow">DS passé · ${esc(jour(d.date))}</div>
@@ -495,7 +518,7 @@
       <div class="print-tete"><img src="assets/logo-papara.svg" alt="" width="54" height="43"><div><div class="eyebrow">Lycée Tuianu Le Gayic · Papara · Terminale SI · fiche de révision${ds}</div><b>${esc(F.titre)}</b></div></div>
       <div class="fiche-bac-tete no-print">
         <div><div class="eyebrow">Fiche de révision${n ? ` · ${DOM_BAC[n.dom] || ""}` : ""}${ds}</div><h1>${esc(F.titre)}</h1>${F.sous ? `<p class="discret">${esc(F.sous)}</p>` : ""}</div>
-        <div class="fiche-bac-actions">${n && n.enLigne ? `<a class="btn" href="${PAGE_BAC}#n=${id}">S'entraîner sur cette notion →</a>` : ""}${anim && SIP.OBSERVE && SIP.OBSERVE.nb(id) ? `<button class="btn sec" type="button" id="go-obs">Observe et réponds <span class="discret">${SIP.OBSERVE.nb(id)} questions</span></button>` : anim ? `<button class="btn sec" type="button" id="go-obs">Comprendre en manipulant</button>` : ""}<button class="btn sec" type="button" id="imp">Imprimer</button></div>
+        <div class="fiche-bac-actions">${coursBac(id) ? `<a class="btn sec" href="#/cours/${id}">▶ Le cours</a>` : ""}${n && n.enLigne ? `<a class="btn" href="${PAGE_BAC}#n=${id}">S'entraîner sur cette notion →</a>` : ""}${anim && SIP.OBSERVE && SIP.OBSERVE.nb(id) ? `<button class="btn sec" type="button" id="go-obs">Observe et réponds <span class="discret">${SIP.OBSERVE.nb(id)} questions</span></button>` : anim ? `<button class="btn sec" type="button" id="go-obs">Comprendre en manipulant</button>` : ""}<button class="btn sec" type="button" id="imp">Imprimer</button></div>
       </div>
       <article class="fiche fiche-bac">${F.html}</article>
       ${anim ? `<details class="sequence anim-pli no-print" id="anim-pli"><summary><span>Comprendre en manipulant</span><span class="discret">${esc(anim.titre)}${SIP.OBSERVE && SIP.OBSERVE.nb(id) ? ` · observe et réponds (${SIP.OBSERVE.nb(id)} questions)` : ""}${SIP.MISSIONS && SIP.MISSIONS.nb(id) ? " · animation et missions à étoiles" : " · animation"}</span></summary>
@@ -534,6 +557,72 @@
       pli.addEventListener("toggle", () => { try { sessionStorage.setItem("sip-anim-ouverte", pli.open ? "1" : "0"); } catch (e) {} });
     }
   }
+  // Le cours d'une notion (contenu/cours-bac.js) : des écrans courts, à projeter en classe par le professeur
+  // (#/cours/<id>/projeter : un écran à la fois, en grand, flèches du clavier), puis à relire sur le téléphone.
+  const coursBac = (id) => (SIP.COURS_BAC && SIP.COURS_BAC[id]) || null;
+  let PROJ = null;                                 // écouteur clavier du mode projection, retiré en quittant
+  function ecranHTML(C, e, i, proj) {
+    const rep = e.r ? `<div class="cours-cherche"><button class="btn sec" type="button" data-rep="${i}">Voir la réponse</button><div class="cours-rep" hidden>${e.r}</div></div>` : "";
+    return `<section class="cours-ecran${e.cls ? " " + e.cls : ""}" id="e-${i}" data-i="${i}">
+      <div class="cours-num">${i + 1} / ${C.ecrans.length}</div>
+      ${e.t ? `<h2>${e.t}</h2>` : ""}
+      <div class="cours-corps">${e.html || ""}</div>
+      ${e.q ? `<div class="cours-q"><span class="eyebrow">Cherche avec moi</span><div>${e.q}</div>${rep}</div>` : ""}
+    </section>`;
+  }
+  function vueCours(id, mode) {
+    if (PROJ) { document.removeEventListener("keydown", PROJ); PROJ = null; }
+    document.body.classList.remove("projection");
+    const C = coursBac(id), connecte = !!SIP.session.get();
+    if (!C) { location.hash = connecte ? "#/tableau" : "#/"; return; }
+    const n = SIP.BAC ? SIP.BAC.notions.find((x) => x.id === id) : null, F = ficheBac(id);
+    const ds = n && n.ds ? ` · ${esc(n.ds)} le ${jourLong(n.ds_date)}` : "";
+    const proj = mode === "projeter";
+    const ecrans = C.ecrans.map((e, i) => ecranHTML(C, e, i, proj)).join("");
+    const liens = `${F ? `<a class="btn sec" href="#/fiche/${id}">La fiche</a>` : ""}${n && n.enLigne ? `<a class="btn" href="${PAGE_BAC}#n=${id}">S'entraîner →</a>` : ""}`;
+    if (proj) {
+      document.body.classList.add("projection");
+      $app.innerHTML = `<div class="proj">
+        <div class="proj-barre"><span class="proj-titre">${esc(C.titre)}</span><span class="proj-compte" id="proj-compte"></span>
+          <button class="btn sec" type="button" id="proj-prev" aria-label="Écran précédent">←</button><button class="btn sec" type="button" id="proj-next" aria-label="Écran suivant">→</button>
+          <a class="btn sec" href="#/cours/${id}" id="proj-quit">Quitter</a></div>
+        <div class="proj-zone">${ecrans}</div></div>`;
+      const S = [...$app.querySelectorAll(".cours-ecran")]; let k = 0;
+      try { k = Math.min(S.length - 1, Math.max(0, Number(sessionStorage.getItem("sip-cours-" + id) || 0))); } catch (err) { /* rien */ }
+      const montrer = (j) => {
+        k = Math.max(0, Math.min(S.length - 1, j));
+        S.forEach((sec, i) => { sec.hidden = i !== k; });
+        document.getElementById("proj-compte").textContent = `${k + 1} / ${S.length}`;
+        document.getElementById("proj-prev").disabled = k === 0; document.getElementById("proj-next").disabled = k === S.length - 1;
+        try { sessionStorage.setItem("sip-cours-" + id, String(k)); } catch (err) { /* rien */ }
+        window.scrollTo(0, 0);
+      };
+      montrer(k);
+      document.getElementById("proj-prev").onclick = () => montrer(k - 1);
+      document.getElementById("proj-next").onclick = () => montrer(k + 1);
+      PROJ = (ev) => {
+        if (ev.target.closest("input,textarea,select")) return;
+        if (ev.key === "ArrowRight" || ev.key === "PageDown" || ev.key === " ") { ev.preventDefault(); montrer(k + 1); }
+        else if (ev.key === "ArrowLeft" || ev.key === "PageUp") { ev.preventDefault(); montrer(k - 1); }
+        else if (ev.key === "Escape") location.hash = "#/cours/" + id;
+        else if (ev.key === "Enter") { const b = S[k].querySelector("[data-rep]:not([hidden])"); if (b) b.click(); }
+      };
+      document.addEventListener("keydown", PROJ);
+    } else {
+      $app.innerHTML = `<p class="no-print"><a href="${connecte ? "#/tableau" : "#/"}">← ${connecte ? "Tableau de bord" : "Accueil"}</a></p>
+        <div class="print-tete"><img src="assets/logo-papara.svg" alt="" width="54" height="43"><div><div class="eyebrow">Lycée Tuianu Le Gayic · Papara · Terminale SI · cours${ds}</div><b>${esc(C.titre)}</b></div></div>
+        <div class="fiche-bac-tete no-print">
+          <div><div class="eyebrow">Cours${n ? ` · ${DOM_BAC[n.dom] || ""}` : ""}${ds}</div><h1>${esc(C.titre)}</h1>${C.sous ? `<p class="discret">${esc(C.sous)}</p>` : ""}</div>
+          <div class="fiche-bac-actions"><a class="btn" href="#/cours/${id}/projeter">Projeter ▶</a>${liens}<button class="btn sec" type="button" id="imp">Imprimer</button></div>
+        </div>
+        ${C.objectifs ? `<div class="carte cours-obj"><div class="eyebrow">Ce que tu dois savoir faire au DS</div><ul>${C.objectifs.map((o) => `<li>${o}</li>`).join("")}</ul></div>` : ""}
+        <article class="cours">${ecrans}</article>
+        <div class="carte cours-fin"><b>Et maintenant ?</b> ${F ? `Relis <a href="#/fiche/${id}">la fiche</a> (une page, à garder), puis ` : "Puis "}${n && n.enLigne ? `<a href="${PAGE_BAC}#n=${id}">entraîne-toi</a> : les valeurs changent à chaque essai.` : "entraîne-toi."}</div>
+        <p class="pied no-print">${connecte ? `<a href="#/tableau">← Tableau de bord</a>` : `<a href="#/">← Accueil</a>`}</p>`;
+      document.getElementById("imp").onclick = () => window.print();
+    }
+    $app.querySelectorAll("[data-rep]").forEach((b) => (b.onclick = () => { b.hidden = true; b.nextElementSibling.hidden = false; }));
+  }
   function vueFichesBac() {
     const B = SIP.BAC, ids = SIP.FICHES_BAC ? Object.keys(SIP.FICHES_BAC) : [];
     const notions = B ? B.notions.filter((n) => ids.includes(n.id)).sort((a, b) => (a.ds_date || "9").localeCompare(b.ds_date || "9") || a.rang - b.rang) : [];
@@ -546,7 +635,7 @@
       ${bilanEtoiles()}
       ${groupes.map((g) => `<h2>${esc(g.ds || "Hors DS")} <span class="discret">${g.date ? jourLong(g.date) : ""}</span></h2>
         <div class="nb-liste">${g.l.map((n) => `<a class="nb-row fiche-ligne" href="#/fiche/${n.id}"><span class="nb-rk">${n.rang}</span>
-          <span class="nb-nm"><b>${esc(ficheBac(n.id).titre)}${SIP.ANIMS_BAC && SIP.ANIMS_BAC[n.id] ? `<span class="anim-badge">animation</span>` : ""}${SIP.OBSERVE && SIP.OBSERVE.nb(n.id) ? `<span class="anim-badge obs-badge" title="${SIP.OBSERVE.nb(n.id)} questions sur l'animation">observe</span>` : ""}${SIP.MISSIONS ? SIP.MISSIONS.etoilesHTML(n.id) : ""}</b><span class="discret">${esc(n.lab)} · ${DOM_BAC[n.dom] || ""}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("")}</div>`).join("")}
+          <span class="nb-nm"><b>${esc(ficheBac(n.id).titre)}${coursBac(n.id) ? `<a class="anim-badge cours-badge" href="#/cours/${n.id}">▶ cours</a>` : ""}${SIP.ANIMS_BAC && SIP.ANIMS_BAC[n.id] ? `<span class="anim-badge">animation</span>` : ""}${SIP.OBSERVE && SIP.OBSERVE.nb(n.id) ? `<span class="anim-badge obs-badge" title="${SIP.OBSERVE.nb(n.id)} questions sur l'animation">observe</span>` : ""}${SIP.MISSIONS ? SIP.MISSIONS.etoilesHTML(n.id) : ""}</b><span class="discret">${esc(n.lab)} · ${DOM_BAC[n.dom] || ""}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("")}</div>`).join("")}
       ${reste > 0 ? `<p class="discret" style="margin-top:18px">${pluriel(reste, "autre notion")} : fiche à venir, au fil du planning.</p>` : ""}`;
   }
   // étoiles des missions (gardées dans ce navigateur)
@@ -809,13 +898,15 @@
     VERIF_EN_COURS = null;
     if (ANIM_EN_COURS && ANIM_EN_COURS.arreter) { try { ANIM_EN_COURS.arreter(); } catch (e) { /* rien */ } }
     ANIM_EN_COURS = null;
+    if (PROJ) { document.removeEventListener("keydown", PROJ); PROJ = null; }
+    document.body.classList.remove("projection");
     entete(); banniere();
     const h = location.hash.replace(/^#\/?/, "").split("/");
     const s = SIP.session.get();
     window.scrollTo(0, 0);
     try {
       if (h[0] === "apercu") return await vueApercu(h[1]);
-      if (!s) { if (h[0] === "connexion") return vueConnexion(h[1]); if (h[0] === "fiche") return vueFicheBac(h[1]); return vueAccueil(); }
+      if (!s) { if (h[0] === "connexion") return vueConnexion(h[1]); if (h[0] === "fiche") return vueFicheBac(h[1]); if (h[0] === "cours") return vueCours(h[1], h[2]); return vueAccueil(); }
       switch (h[0]) {
         case "module": return vueModule(h[1]);
         case "fiches": return await vueFichesDuJour();
@@ -826,6 +917,7 @@
         case "tableau": return await vueTableau();
         case "methode": return vueMethode();
         case "fiche": return vueFicheBac(h[1]);
+        case "cours": return vueCours(h[1], h[2]);
         case "fiches-bac": return vueFichesBac();
         default: location.hash = "#/tableau";
       }

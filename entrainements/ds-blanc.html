@@ -232,6 +232,17 @@ ul.rn li.part .rn-b i{background:var(--warn)}ul.rn li.ko .rn-b i{background:var(
 .attente{color:var(--ink-3);font-style:italic}
 .btn.petit{min-height:34px;padding:4px 12px;font-size:.88rem;margin-top:4px}
 @media (max-width:560px){ul.rn li{grid-template-columns:minmax(0,1fr) auto}.rn-b{grid-column:1 / -1;grid-row:2}}
+/* programmes (DS 03 blanc) : bloc de code, lignes à compléter */
+pre.code{font-family:var(--f-mono);font-size:.84rem;line-height:1.45;background:var(--paper-2);border:1px solid var(--rule);border-radius:5px;padding:8px 10px;overflow-x:auto;text-align:left;white-space:pre;max-width:100%}
+.code .kw{color:var(--accent);font-weight:600}.code .cm{color:var(--ink-3)}.code .str{color:var(--good)}.code .bl{color:var(--bad);font-weight:600}
+.ch.code{grid-column:1 / -1;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.ch-ligne{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-family:var(--f-mono);font-size:.92rem}
+.ch-ligne code{white-space:pre;font-family:var(--f-mono)}
+.ch-ligne input{width:9em;font:inherit;font-family:var(--f-mono);font-size:16px;padding:6px 8px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink)}
+code.ligne{font-family:var(--f-mono);white-space:pre-wrap;background:var(--paper);border-radius:3px;padding:0 4px}
+.revoir{font-size:.9rem;margin:8px 0;padding:7px 11px;border-radius:5px;background:var(--accent-soft);border-left:3px solid var(--accent)}
+ol.plan{margin:6px 0 4px;padding-left:1.3em}ol.plan li{margin:.35em 0}
+.carte.defi{border-color:var(--accent);background:var(--accent-soft)}.carte.defi p{margin:.3em 0}
 @media print{.barre,.barre-bas,.haut,#sip-etat,.fin-copie,.fin-corr,.sig-place,.pas-nav,.pas-act,.rq-l{display:none!important}body{background:#fff}.feuille{border:0}}
 /* figures : mêmes classes que les DS papier et l'entraînement */
 .v-ink{stroke:var(--ink);stroke-width:1.6;fill:none}
@@ -1092,6 +1103,443 @@ if (typeof window !== "undefined"){
     figure: (P, c, q) => (q.trace ? ds02b_cone(P, c, { sol: true }) : ds02b_modele(P, c)) });
 }
 
+/* ===== DS n° 3 BLANC · « Programmer et coder l'information » : station d'alerte de crue de la Taharu'u =====
+   Mêmes types de questions, même barème et même format que le DS 03 (programme Python et algorigramme, codage et
+   trame, moment avec son signe en reprise), autre système et autres valeurs. Le sujet est un générateur :
+   ds03b_make(P) construit le sujet, le corrigé, le barème et la couche interactive du site pour un jeu de valeurs P.
+   Le premier essai d'un élève prend les valeurs ds03b_REF, les suivants des valeurs tirées par ds03b_tirage.
+   Les cases « code » attendent ce qui remplace les ____ d'une ligne de programme (moteur : type "code").
+   Chaque question indique l'étape de la préparation qui l'entraîne (etape) et ce qu'il faut y travailler (quoi). */
+
+const ds03b_REF = { a1: 2019, b1: 8, hx: 2347, ht: 1755, HA: 1800, HF: 1500, HP: 2500,
+  L5: [1734, 1812, 1906, 1788, 1851], cyc: 15, Tm: 5, motif: 0,
+  cy: [[1342, 1987], [1693, 2614], [1871, 2388], [1622, 2205], [1438, 1903]],
+  k1: 8, Hmax: 5, st: 5, th: 264, bat: 17, moy: 1654, pic: 2618, b2: 1, scen: 0,
+  V: 150, S: 0.50, h: 1.80, m: 310, a: 0.45, vent: "g" };
+
+/* nombre à s chiffres significatifs, virgule décimale ; entiers avec espace des milliers */
+function ds03b_n(x, s){
+  s = s || 3;
+  if (!isFinite(x)) return String(x);
+  if (x === 0) return "0";
+  const e = Math.floor(Math.log10(Math.abs(x)));
+  let d = Math.max(0, s - 1 - e), v = Math.abs(x).toFixed(d);
+  if (d > 0 && Math.floor(Math.log10(Number(v))) > e) v = Math.abs(x).toFixed(d - 1);
+  let [ip, fp] = v.split(".");
+  ip = ip.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return (x < 0 ? "−" : "") + ip + (fp ? "," + fp : "");
+}
+const ds03b_i = (x) => (x < 0 ? "−" : "") + String(Math.abs(x)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");   /* entier : 1 818 */
+const ds03b_d = (x, dec) => (x < 0 ? "−" : "") + Math.abs(x).toFixed(dec).replace(".", ",");                  /* donnée : 0,45 */
+const ds03b_m = (mm) => ds03b_d(mm / 1000, 3) + " m";                                                      /* 1800 → 1,800 m */
+const ds03b_hex = (o) => o.toString(16).toUpperCase().padStart(2, "0");
+const ds03b_r3 = (x) => Number(Number(x).toPrecision(3));
+/* décomposition d'un entier de 16 bits écrit en hexadécimal : 06 76 → 6 × 256 + 7 × 16 + 6 */
+function ds03b_dec16(v){
+  const hi = v >> 8, lo = v & 255, t = [];
+  if (hi) t.push(hi + " × 256");
+  if (lo >> 4) t.push((lo >> 4) + " × 16");
+  if (lo & 15) t.push(String(lo & 15));
+  return (t.join(" + ") || "0") + " = " + ds03b_i(v);
+}
+function ds03b_dec8(v){ return (v >> 4) + " × 16 + " + (v & 15) + " = " + v; }
+const ds03b_bin = (v) => v.toString(2).padStart(8, "0");
+
+/* motifs des cinq cycles de la question A.5 : catégorie de chaque cycle (le cycle 1, en exemple, est « bas ») */
+const ds03b_MOTIFS = [["bas", "pic", "moy", "entre", "bas"], ["bas", "entre", "pic", "entre", "bas"], ["bas", "moy", "entre", "bas", "entre"]];
+
+function ds03b_calc(P){
+  const q1 = Math.floor(P.a1 / P.b1), r1 = P.a1 % P.b1, t1 = P.ht >= P.HA;
+  const sums = []; P.L5.reduce((s, x) => { s += x; sums.push(s); return s; }, 0);
+  const tot = sums[4], ret = Math.floor(tot / 5);
+  const N = P.cyc * 60 / P.Tm;
+  let al = false;
+  const seq = P.cy.map(([mo, pi]) => { if (mo >= P.HA || pi >= P.HP) al = true; else if (mo < P.HF) al = false; return al; });
+  const n1 = Math.pow(2, P.k1), Nv = P.Hmax * 1000 + 1, bits = Math.ceil(Math.log2(Nv));
+  const etat = (P.scen === 2 ? 0 : 1) + (P.bat < 20 ? 2 : 0) + (P.b2 ? 4 : 0);
+  const octets = [P.st, P.th >> 8, P.th & 255, P.bat, P.moy >> 8, P.moy & 255, P.pic >> 8, P.pic & 255, etat];
+  const p = Math.round(0.0536 * P.V * P.V / 100) * 100, F = Math.round(p * P.S), sg = P.vent === "g" ? -1 : 1;
+  /* partie C : résultats à 3 chiffres significatifs, réutilisés dans la suite du calcul (égalités affichées justes) */
+  const MF = sg * F * P.h, Pd = Math.round(P.m * 9.81), Pd3 = ds03b_r3(Pd), MP = -sg * Pd3 * P.a;
+  const MF3 = ds03b_r3(MF), MP3 = ds03b_r3(MP), k = Math.abs(MP3) / Math.abs(MF3);
+  return { q1, r1, t1, sums, tot, ret, N, seq, n1, Nv, bits, etat, octets, p, F, sg, MF, Pd, Pd3, MP, MF3, MP3, k };
+}
+
+/* catégorie d'un couple (h_moy, h_pic) par rapport aux seuils, avec au moins 10 mm d'écart */
+function ds03b_cat(P, mo, pi){
+  if (Math.abs(mo - P.HA) < 10 || Math.abs(mo - P.HF) < 10 || Math.abs(pi - P.HP) < 10) return "limite";
+  if (pi >= P.HP && mo < P.HA) return "pic";
+  if (mo >= P.HA && pi < P.HP) return "moy";
+  if (mo < P.HF && pi < P.HP) return "bas";
+  if (mo >= P.HF && mo < P.HA && pi < P.HP) return "entre";
+  return "autre";
+}
+function ds03b_valide(P, c){
+  const cats = ds03b_MOTIFS[P.motif];
+  const scen = ["pic", "moy", "bas"][P.scen];
+  const hexes = [c.octets[4], c.octets[5], c.octets[6], c.octets[7]].map(ds03b_hex).join("");
+  return P.a1 % P.b1 !== 0 && c.tot % 5 !== 0 && Number.isInteger(c.N) && c.N >= 30 && c.N <= 1200
+    && P.cy.every((x, i) => ds03b_cat(P, x[0], x[1]) === cats[i] && x[1] > x[0])
+    && ds03b_cat(P, P.moy, P.pic) === scen && P.pic > P.moy && /[A-F]/.test(hexes)
+    && c.Nv > 256 && c.k >= 0.8 && c.k <= 2.4 && Math.abs(c.k - 1) >= 0.06 && Math.abs(c.k - 1.5) >= 0.08;
+}
+function ds03b_tirage(rand){
+  const pick = (a) => a[Math.floor(rand() * a.length)], ri = (a, b) => a + Math.floor(rand() * (b - a + 1));
+  const CYC = [[5, 2], [5, 3], [5, 5], [10, 2], [10, 4], [10, 5], [10, 6], [15, 3], [15, 5], [15, 6], [15, 10], [20, 4], [20, 5], [20, 6], [20, 10], [20, 12]];
+  for (let k = 0; k < 5000; k++){
+    const HA = pick([1600, 1700, 1800, 1900, 2000]), HF = HA - pick([200, 300, 400]), HP = HA + pick([500, 600, 700, 800]);
+    const gen = (cat) => {
+      if (cat === "bas"){ const mo = ri(HF - 350, HF - 20); return [mo, ri(mo + 150, Math.min(HP - 60, mo + 700))]; }
+      if (cat === "pic"){ const mo = ri(HF + 20, HA - 20); return [mo, ri(HP + 15, HP + 450)]; }
+      if (cat === "moy"){ const mo = ri(HA + 15, HA + 350); return [mo, ri(mo + 120, HP - 30)]; }
+      const mo = ri(HF + 20, HA - 20); return [mo, ri(mo + 120, HP - 30)];
+    };
+    const motif = ri(0, 2), cc = pick(CYC), scen = ri(0, 2);
+    let moy, pic;
+    if (scen === 0){ moy = ri(HF + 30, HA - 30); pic = ri(HP + 15, HP + 500); }
+    else if (scen === 1){ moy = ri(HA + 15, HA + 400); pic = ri(moy + 120, HP - 30); }
+    else { moy = ri(HF - 400, HF - 20); pic = ri(moy + 150, HP - 100); }
+    const P = { a1: ri(1000, 3000), b1: pick([3, 4, 6, 7, 8, 9]), hx: ri(1200, 2900), ht: pick([HA - ri(15, 90), HA, HA + ri(15, 90)]), HA, HF, HP,
+      L5: Array.from({ length: 5 }, () => ri(HA - 260, HA + 260)), cyc: cc[0], Tm: cc[1], motif, cy: ds03b_MOTIFS[motif].map(gen),
+      k1: pick([8, 10, 12]), Hmax: pick([3, 4, 5, 6, 8]), st: ri(1, 12), th: ri(225, 298), bat: rand() < 0.5 ? ri(6, 19) : ri(25, 98), moy, pic, b2: rand() < 0.4 ? 1 : 0, scen,
+      V: pick([120, 130, 140, 150, 160]), S: pick([0.40, 0.45, 0.50, 0.55, 0.60, 0.70, 0.80]), h: pick([1.40, 1.50, 1.60, 1.80, 2.00, 2.20]),
+      m: ri(18, 42) * 10, a: pick([0.30, 0.35, 0.40, 0.45, 0.50, 0.55]), vent: pick(["g", "d"]) };
+    if (ds03b_valide(P, ds03b_calc(P))) return P;
+  }
+  return JSON.parse(JSON.stringify(ds03b_REF));
+}
+
+/* ---------- figures ---------- */
+const ds03b_c = (s) => `<code style="font-family:var(--f-mono);font-size:.92em">${esc(s)}</code>`;
+function ds03b_prog(src, first){
+  const h = code(src), inner = h.slice('<pre class="code">'.length, -"</pre>".length);
+  const out = inner.split("\n").map((l, i) => `<span style="color:var(--ink-3)">${String(first + i).padStart(2, " ")}</span>  ${l}`).join("\n");
+  return `<pre class="code" style="margin:0;font-size:8.5pt;line-height:1.38;padding:5px 9px">${out}</pre>`;
+}
+function ds03b_src(P){
+  const A = [
+    `H_ALERTE = ${P.HA}     # ${ds03b_d(P.HA / 1000, 3)} m`,
+    `H_FIN = ${P.HF}        # ${ds03b_d(P.HF / 1000, 3)} m`,
+    `H_PIC = ${P.HP}        # ${ds03b_d(P.HP / 1000, 3)} m`,
+    "",
+    "def moyenne(valeurs):",
+    "    somme = 0",
+    "    for h in valeurs:",
+    "        somme = somme + h",
+    "    return somme // len(valeurs)",
+    "",
+    "def maximum(valeurs):",
+    "    hmax = valeurs[0]",
+    "    for h in valeurs:",
+    "        if h ___ hmax:",
+    "            hmax = ___",
+    "    return hmax"].join("\n");
+  const B = [
+    "def gerer_alerte(h_moy, h_pic, alerte):",
+    "    if h_moy >= H_ALERTE ___ h_pic >= H_PIC:",
+    "        alerte = True",
+    "    elif ___:",
+    "        alerte = ___",
+    "    return alerte",
+    "",
+    "alerte = False",
+    "while True:",
+    "    hauteurs = []",
+    "    for i in range(___):",
+    "        hauteurs.append(lire_hauteur())",
+    `        attendre(${P.Tm})`,
+    "    h_moy = moyenne(hauteurs)",
+    "    h_pic = maximum(hauteurs)",
+    "    alerte = gerer_alerte(h_moy, h_pic, alerte)",
+    "    envoyer(trame(h_moy, h_pic, alerte))"].join("\n");
+  return { A, B };
+}
+
+/* Figure 1 : la rivière sous le pont (coupe), le capteur et un panneau lumineux */
+function ds03b_site(){
+  let s = `<path d="M0 62 L50 62 L85 166 L215 166 L250 62 L300 62 L300 196 L0 196 Z" class="v-block" style="fill-opacity:.5"/>`;
+  s += `<path d="M70 122 L230 122 L215 166 L85 166 Z" style="fill:var(--accent-soft);stroke:none"/>`;
+  s += `<path d="M70 122 Q80 118 90 122 T110 122 T130 122 T150 122 T170 122 T190 122 T210 122 T230 122" class="v-thin"/>`;
+  s += T(108, 158, "Taharu'u", "v-cap", "middle");
+  /* tablier du pont et pile */
+  s += `<rect x="18" y="48" width="264" height="12" class="v-box"/>` + T(118, 44, "route de ceinture (pont)", "v-cap", "middle");
+  /* capteur à ultrasons sous le tablier */
+  s += `<rect x="168" y="60" width="18" height="9" rx="1" class="v-box"/>`;
+  [0, 1, 2].forEach((i) => { const y = 76 + 7 * i; s += `<path d="M${170 - 2 * i} ${y} Q177 ${y + 4} ${184 + 2 * i} ${y}" class="v-thin"/>`; });
+  s += `<line x1="177" y1="70" x2="177" y2="121" class="v-dash"/>`;
+  s += L(168, 66, 158, 78, "v-thin") + multi(156, 86, ["capteur à", "ultrasons"], "v-sm", "end", 11);
+  /* hauteur d'eau */
+  s += `<line x1="200" y1="165" x2="200" y2="123" class="v-cote" marker-start="url(#m-d)" marker-end="url(#m-d)"/>` + T(196, 140, "hauteur d'eau", "v-sm", "end") + T(196, 152, "mesurée", "v-sm", "end");
+  /* boîtier, antenne, panneau photovoltaïque sur le parapet */
+  s += `<rect x="206" y="32" width="18" height="16" rx="2" class="v-box"/>` + L(220, 32, 220, 18, "v-thin") + `<circle cx="220" cy="16" r="2.2" class="v-pt"/>`;
+  s += `<path d="M206 30 L190 22 L192 18 L208 26 Z" class="v-block"/>`;
+  s += `<path d="M226 12 A7 7 0 0 1 226 22 M230 9 A11 11 0 0 1 230 25" class="v-thin"/>` + multi(236, 24, ["vers la", "passerelle", "(mairie)"], "v-ster", "start", 9);
+  /* panneau lumineux d'alerte au bord de la route */
+  s += L(44, 48, 44, 22, "v-ink") + `<rect x="24" y="6" width="40" height="16" rx="2" class="v-box"/>` + T(44, 18, "CRUE", "v-smb", "middle");
+  s += multi(70, 8, ["panneau lumineux", "d'alerte"], "v-sm", "start", 11);
+  return `<svg viewBox="0 0 300 200" role="img" aria-label="Coupe de la rivière sous le pont : capteur à ultrasons fixé sous le pont, qui mesure la hauteur d'eau ; boîtier, antenne et panneau photovoltaïque sur le parapet ; panneau lumineux d'alerte au bord de la route">${s}</svg>`;
+}
+
+/* Figure 4 : algorigramme de gerer_alerte */
+function ds03b_algo(P){
+  const term = (cx, y, w, t) => `<rect x="${cx - w / 2}" y="${y}" width="${w}" height="24" rx="12" class="v-box"/>` + T(cx, y + 16, esc(t), "v-smb", "middle");
+  const diam = (cx, cy, hw, hh, lines) => `<path d="M${cx} ${cy - hh} L${cx + hw} ${cy} L${cx} ${cy + hh} L${cx - hw} ${cy} Z" class="v-box"/>` + multi(cx, cy - (lines.length - 1) * 6.5 + 4, lines, "v-smb", "middle", 13);
+  const act = (x, y, t) => `<rect x="${x}" y="${y}" width="92" height="28" class="v-box"/>` + T(x + 46, y + 18, esc(t), "v-smb", "middle");
+  const mm = (x) => ds03b_d(x / 1000, 3) + " m";
+  let s = term(150, 2, 150, "Début gerer_alerte") + L(150, 26, 150, 34, "v-thin", "k");
+  s += diam(150, 62, 125, 28, [`h_moy ≥ ${mm(P.HA)}`, `ou h_pic ≥ ${mm(P.HP)} ?`]);
+  s += L(275, 62, 298, 62, "v-thin", "k") + T(286, 55, "oui", "v-cap", "middle") + act(300, 48, "alerte ← Vrai");
+  s += L(150, 90, 150, 100, "v-thin", "k") + T(158, 98, "non", "v-cap");
+  s += diam(150, 122, 100, 22, [`h_moy < ${mm(P.HF)} ?`]);
+  s += L(250, 122, 298, 122, "v-thin", "k") + T(274, 115, "oui", "v-cap", "middle") + act(300, 108, "alerte ← Faux");
+  s += L(150, 144, 150, 166, "v-thin") + T(158, 158, "non", "v-cap");
+  s += `<polyline points="392,62 397,62 397,166 150,166" class="v-thin"/>` + L(346, 136, 346, 166, "v-thin");
+  s += L(150, 166, 150, 176, "v-thin", "k") + term(150, 178, 170, "Fin : renvoyer alerte");
+  return svg(206, s, `Algorigramme de gerer_alerte : si la hauteur moyenne atteint ${mm(P.HA)} ou si la hauteur maximale atteint ${mm(P.HP)}, alerte vraie ; sinon, si la hauteur moyenne est inférieure à ${mm(P.HF)}, alerte fausse ; sinon alerte inchangée`);
+}
+
+/* Figure 6 : panneau sur son socle lesté, modèle plan ; vent de la gauche (A à droite) ou de la droite (A à gauche) */
+function ds03b_support(P){
+  const g = P.vent === "g", X = (x) => (g ? x : 300 - x), A = (a) => (g ? a : a === "start" ? "end" : a === "end" ? "start" : a);
+  const f1 = (v) => (+v).toFixed(1);
+  let s = ground(18, 284, 168);
+  /* vent */
+  [36, 50, 64].forEach((y) => { s += L(X(26), y, X(72), y, "v-f", "f"); });
+  s += T(X(48), 26, "vent", "v-cap", "middle");
+  /* socle lesté, poteau, panneau */
+  s += `<rect x="${f1(Math.min(X(110), X(190)))}" y="146" width="80" height="22" class="v-block"/>`;
+  s += `<rect x="${f1(X(150) - 2.5)}" y="66" width="5" height="80" class="v-block"/>`;
+  s += `<rect x="${f1(Math.min(X(122), X(178)))}" y="32" width="56" height="36" rx="2" class="v-box"/>` + T(X(150), 64, "CRUE", "v-ster", "middle");
+  /* action du vent F en C (centre du panneau) */
+  s += L(X(84), 50, X(146), 50, "v-t", "c") + T(X(94), 42, "F", "v-lab c", A("start")) + pt(X(150), 50, "C", g ? 6 : -14, -6);
+  /* poids P en G */
+  s += gSym(X(150), 118) + T(X(162), 114, "G", "v-lab", A("start")) + L(X(150), 126, X(150), 160, "v-f", "f") + T(X(158), 152, "P", "v-lab", A("start"));
+  /* arête de basculement A */
+  s += pt(X(190), 168, "A", g ? 6 : -15, -5);
+  /* cotes */
+  s += `<line x1="${X(236)}" y1="168" x2="${X(236)}" y2="50" class="v-cote" marker-start="url(#m-d)" marker-end="url(#m-d)"/>` + L(X(154), 50, X(242), 50, "v-dash") + T(X(240), 112, `h = ${ds03b_d(P.h, 2)} m`, "v-cap", A("start"));
+  s += L(X(190), 172, X(190), 196, "v-dash") + L(X(150), 176, X(150), 196, "v-dash") + `<line x1="${X(150)}" y1="192" x2="${X(190)}" y2="192" class="v-cote" marker-start="url(#m-d)" marker-end="url(#m-d)"/>` + T(X(170), 205, `a = ${ds03b_d(P.a, 2)} m`, "v-cap", "middle");
+  return `<svg viewBox="0 2 300 208" role="img" aria-label="Panneau lumineux sur un socle lesté posé au sol : action du vent F appliquée en C, au centre du panneau, à la hauteur h ; poids P appliqué en G, à la distance a du bord A du socle, autour duquel il peut basculer ; le vent souffle de la ${g ? "gauche vers la droite" : "droite vers la gauche"}">${s}</svg>`;
+}
+
+/* tableau à largeurs de colonnes imposées (police 9 pt) */
+function ds03b_tab(cols, head, rows, caption){
+  return `<figure><div class="table-defil"><table class="t" style="width:100%;font-size:9pt">`
+    + `<thead><tr>${head.map((h, i) => `<th style="width:${cols[i]}">${h}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c, i) => `<td${i ? "" : ' style="text-align:center"'}>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`
+    + (caption ? `<figcaption>${caption}</figcaption>` : "") + `</figure>`;
+}
+const ds03b_mono = 'style="text-align:center;font-family:var(--f-mono)"';
+function ds03b_trame(c){
+  return `<div class="table-defil"><table class="t" style="width:100%"><tbody><tr><th>Rang</th>${c.octets.map((o, i) => `<td ${ds03b_mono}>${i}</td>`).join("")}</tr>`
+    + `<tr><th>Octet</th>${c.octets.map((o) => `<td ${ds03b_mono}><b>${ds03b_hex(o)}</b></td>`).join("")}</tr></tbody></table></div>`;
+}
+
+function ds03b_make(P){
+  const c = ds03b_calc(P), n = ds03b_n, I = ds03b_i, d = ds03b_d, M = ds03b_m, C = ds03b_c, H = ds03b_hex;
+  const nb = (id, lab, unite, val, extra) => Object.assign({ id, type: "nombre", lab, unite, val }, extra || {});
+  const cd = (id, lab, pre, post, acc, extra) => Object.assign({ id, type: "code", lab, pre, post, acc }, extra || {});
+  const TF = (id, lab, v) => ({ id, type: "choix", lab, options: ["True", "False"], bonne: v ? 0 : 1 });
+  const src = ds03b_src(P), Q = [];
+  const fl = (x) => d(x, 3);                                         /* 1818 mm → 1,818 */
+  const hm = c.ret / 1000;
+
+  /* ---------------- Partie A ---------------- */
+  Q.push({ n: "A.1", pts: 1.5, notion: "info-programmation", etape: 1, quoi: "lire une ligne de programme : //, %, unités, booléens",
+    q: `<p>Donner les valeurs affichées par l'instruction ${C(`print(${P.a1} // ${P.b1}, ${P.a1} % ${P.b1})`)}. Donner la valeur renvoyée par ${C("lire_hauteur()")} lorsque la hauteur d'eau vaut ${M(P.hx)}, puis la valeur de l'expression ${C("h_moy >= H_ALERTE")} lorsque ${C("h_moy")} vaut ${P.ht} (figure 3).</p>`,
+    rep: `<p>${C(`${P.a1} // ${P.b1}`)} = <b>${c.q1}</b> (quotient entier) et ${C(`${P.a1} % ${P.b1}`)} = <b>${c.r1}</b> (reste) : ${F(`${I(P.a1)} = ${P.b1} × ${c.q1} + ${c.r1}`)}.</p><p>${C("lire_hauteur()")} renvoie la hauteur en millimètres, sous la forme d'un entier : <b>${P.hx}</b> pour ${M(P.hx)}.</p><p>Pour ${C("h_moy")} = ${P.ht} : ${P.ht} ≥ ${P.HA} est ${c.t1 ? "vrai" : "faux"}${P.ht === P.HA ? " (égalité : >= est vrai)" : ""}, l'expression vaut <b>${c.t1 ? "True" : "False"}</b>.</p>`,
+    ind: [
+      { t: `${c.q1} et ${c.r1} (quotient et reste de la division entière)`, p: 0.5, champs: ["q1", "r1"], partiel: true },
+      { t: `lire_hauteur() renvoie ${P.hx} (millimètres)`, p: 0.5, champs: ["lire"] },
+      { t: `h_moy >= H_ALERTE vaut ${c.t1 ? "True" : "False"} pour ${P.ht}`, p: 0.5, champs: ["t1"] }],
+    champs: [nb("q1", `${P.a1} // ${P.b1}`, "", c.q1, { abs: 0 }), nb("r1", `${P.a1} % ${P.b1}`, "", c.r1, { abs: 0 }),
+      nb("lire", `lire_hauteur() pour ${M(P.hx)}`, "", P.hx, { abs: 0 }), TF("t1", `h_moy >= H_ALERTE pour h_moy = ${P.ht} :`, c.t1)],
+    err: `donner ${d(P.a1 / P.b1, 2)} pour ${P.a1} // ${P.b1} (la division entière garde le quotient) ; écrire ${d(P.hx / 1000, 3)} au lieu de ${P.hx} (les hauteurs sont en millimètres)${P.ht === P.HA ? " ; répondre False alors que >= est vrai en cas d'égalité" : ""}.` });
+
+  Q.push({ n: "A.2", pts: 2, notion: "info-programmation", etape: 2, quoi: "faire tourner une boucle à la main",
+    q: `<p>Lors d'un essai, la fonction ${C("moyenne")} est appelée avec la liste ${C("[" + P.L5.join(", ") + "]")}. Donner les valeurs successives de ${C("somme")} (lignes 7 et 8), la valeur renvoyée à la ligne 9 et la hauteur moyenne correspondante, en m (figure 3).</p>`,
+    rep: `<p>${C("somme")} vaut 0 avant la boucle, puis successivement <b>${c.sums.map(I).join(" ; ")}</b>.</p><p>Valeur renvoyée : ${F(`${I(c.tot)} // 5 = ${I(c.ret)}`)}, quotient entier (${I(c.tot)} = 5 × ${I(c.ret)} + ${c.tot % 5}), soit une hauteur moyenne de <b>${fl(hm)} m</b> (${I(c.ret)} mm).</p>`,
+    ind: [
+      { t: `Valeurs successives de somme : ${c.sums.map(I).join(" ; ")}`, p: 1, champs: ["s1", "s2", "s3", "s4", "s5"], partiel: true },
+      { t: `Valeur renvoyée : ${I(c.ret)} (quotient entier par len(valeurs) = 5)`, p: 0.5, champs: ["ret"] },
+      { t: `Hauteur moyenne : ${fl(hm)} m`, p: 0.5, champs: ["hm"] }],
+    champs: [1, 2, 3, 4, 5].map((k) => nb("s" + k, `somme après ${k} passage${k > 1 ? "s" : ""}`, "", c.sums[k - 1], { abs: 0 }))
+      .concat([nb("ret", "Valeur renvoyée (ligne 9)", "", c.ret, { abs: 0 }), nb("hm", "Hauteur moyenne", "m", hm, { abs: 0.005 })]),
+    err: `diviser par ${c.N} au lieu de len(valeurs) = 5 ; donner ${d(c.tot / 5, 1)} (la division entière garde le quotient) ; oublier que les hauteurs sont en millimètres.` });
+
+  Q.push({ n: "A.3", pts: 2, notion: "info-programmation", etape: 3, quoi: "compléter les trous d'un programme",
+    q: `<p>La fonction ${C("maximum")} (lignes 11 à 16) doit renvoyer la plus grande valeur de la liste ${C("valeurs")}. Compléter les lignes 14 et 15. Calculer ensuite le nombre de hauteurs relevées au cours d'un cycle, puis compléter la ligne 27 (figure 3).</p>`,
+    rep: `<p>Ligne 14 : ${C("if h > hmax:")} (${C(">=")} accepté) ; ligne 15 : ${C("hmax = h")}. La variable ${C("hmax")} part de la première valeur de la liste et chaque valeur plus grande la remplace : à la fin de la boucle, elle contient la plus grande hauteur du cycle.</p><p>Un cycle dure ${F(`${P.cyc} × 60 = ${I(P.cyc * 60)} s`)}, avec une mesure toutes les ${P.Tm} s (ligne 29) : ${FRAC(I(P.cyc * 60), String(P.Tm))}${F(" = " + c.N)} hauteurs relevées. Ligne 27 : ${C(`for i in range(${c.N}):`)}, car ${C(`range(${c.N})`)} donne i = 0 à ${c.N - 1}, soit ${c.N} passages.</p>`,
+    ind: [
+      { t: "Ligne 14 : h > hmax (ou h >= hmax)", p: 0.5, champs: ["l14"] },
+      { t: "Ligne 15 : hmax = h", p: 0.5, champs: ["l15"] },
+      { t: `${I(P.cyc * 60)} s par cycle, une mesure toutes les ${P.Tm} s : ${c.N} mesures`, p: 0.5, champs: ["nbm"] },
+      { t: `Ligne 27 : range(${c.N})`, p: 0.5, champs: ["l27"] }],
+    champs: [cd("l14", "Ligne 14", "if h ", " hmax:", [">", ">="]), cd("l15", "Ligne 15", "hmax = ", "", ["h"]),
+      nb("nbm", "Nombre de hauteurs relevées par cycle", "", c.N, { abs: 0 }), cd("l27", "Ligne 27", "for i in range(", "):", [String(c.N), "0," + c.N])],
+    err: `inverser la comparaison (la fonction renverrait le minimum) ; écrire hmax = valeurs ; écrire range(${P.cyc}) ou range(${c.N + 1}).` });
+
+  Q.push({ n: "A.4", pts: 1.5, notion: "info-programmation", etape: 3, quoi: "traduire un algorigramme en Python",
+    q: `<p>À partir de l'algorigramme de la figure 4, compléter les lignes 18, 20 et 21 de la fonction ${C("gerer_alerte")} (figure 3).</p>`,
+    rep: `<p>Ligne 18 : ${C("if h_moy >= H_ALERTE or h_pic >= H_PIC:")} : une seule des deux conditions suffit à déclencher l'alerte.<br>Ligne 20 : ${C("elif h_moy < H_FIN:")} (ou ${C(`h_moy < ${P.HF}`)}) : les hauteurs sont en millimètres, ${M(P.HF)} correspond donc à ${P.HF}.<br>Ligne 21 : ${C("alerte = False")}.</p>`,
+    ind: [
+      { t: "Ligne 18 : or", p: 0.5, champs: ["l18"] },
+      { t: `Ligne 20 : h_moy < H_FIN (ou h_moy < ${P.HF})`, p: 0.5, champs: ["l20"] },
+      { t: "Ligne 21 : alerte = False", p: 0.5, champs: ["l21"] }],
+    champs: [cd("l18", "Ligne 18", "if h_moy >= H_ALERTE ", " h_pic >= H_PIC:", ["or"]),
+      cd("l20", "Ligne 20", "elif ", ":", ["h_moy<H_FIN", "h_moy<" + P.HF, "H_FIN>h_moy", P.HF + ">h_moy", "(h_moy<H_FIN)", "(h_moy<" + P.HF + ")", "(H_FIN>h_moy)", "(" + P.HF + ">h_moy)",
+        "h_moy<=" + (P.HF - 1), "not h_moy>=H_FIN", "not(h_moy>=H_FIN)", "not h_moy>=" + P.HF, "not(h_moy>=" + P.HF + ")"]),
+      cd("l21", "Ligne 21", "alerte = ", "", ["False"])],
+    err: `and au lieu de or ; h_moy < ${d(P.HF / 1000, 1)} (oubli des millimètres) ; écrire false sans majuscule (Python écrit True et False).` });
+
+  const cyRows = P.cy.map((x, i) => `<tr><td ${ds03b_mono}>${i + 1}</td><td ${ds03b_mono}>${I(x[0])}</td><td ${ds03b_mono}>${I(x[1])}</td><td ${ds03b_mono}>${i ? "?" : "False"}</td></tr>`).join("");
+  const cyTab = `<div class="table-defil"><table class="t"><thead><tr><th>Cycle</th><th>h_moy (mm)</th><th>h_pic (mm)</th><th>alerte renvoyée</th></tr></thead><tbody>${cyRows}</tbody></table></div>`;
+  const pourquoi = (x, avant, apres) => {
+    const [mo, pi] = x;
+    if (mo >= P.HA) return `h_moy : ${I(mo)} ≥ ${I(P.HA)}`;
+    if (pi >= P.HP) return `h_pic : ${I(pi)} ≥ ${I(P.HP)}, bien que h_moy &lt; ${I(P.HA)}`;
+    if (mo < P.HF) return `aucune condition d'alerte (${I(mo)} &lt; ${I(P.HA)}, ${I(pi)} &lt; ${I(P.HP)}) et h_moy : ${I(mo)} &lt; ${I(P.HF)}`;
+    return `pas d'alerte (${I(mo)} &lt; ${I(P.HA)} et ${I(pi)} &lt; ${I(P.HP)}) et ${I(mo)} n'est pas inférieur à ${I(P.HF)} : alerte garde sa valeur, ${avant ? "True" : "False"}`;
+  };
+  const kEntre = P.cy.map((x, i) => i).filter((i) => i > 0 && ds03b_MOTIFS[P.motif][i] === "entre");
+  Q.push({ n: "A.5", pts: 2, notion: "info-programmation", etape: 3, quoi: "suivre l'état d'une variable d'un cycle à l'autre",
+    q: `<p>Au début d'un épisode de fortes pluies, l'alerte est inactive (${C("alerte = False")}). Le tableau donne ${C("h_moy")} et ${C("h_pic")} pour cinq cycles successifs. Donner, pour les cycles 2 à 5, la valeur de ${C("alerte")} renvoyée par ${C("gerer_alerte")} (figure 4), en justifiant chaque réponse. Le cycle 1 est donné en exemple : ${I(P.cy[0][0])} &lt; ${I(P.HA)} et ${I(P.cy[0][1])} &lt; ${I(P.HP)}, pas d'alerte ; puis ${I(P.cy[0][0])} &lt; ${I(P.HF)} : ${C("alerte = False")}.</p>${cyTab}`,
+    rep: `<p>${P.cy.slice(1).map((x, j) => `Cycle ${j + 2} : <b>${c.seq[j + 1] ? "True" : "False"}</b> (${pourquoi(x, c.seq[j], c.seq[j + 1])}).`).join("<br>")}</p><p>Au${kEntre.length > 1 ? "x" : ""} cycle${kEntre.length > 1 ? "s" : ""} ${kEntre.map((i) => i + 1).join(" et ")}, la hauteur moyenne est entre ${M(P.HF)} et ${M(P.HA)} et h_pic reste sous ${M(P.HP)} : la variable ${C("alerte")} n'est pas modifiée, elle garde la valeur du cycle précédent. C'est ce qui évite que l'alerte s'allume et s'éteigne sans arrêt quand la rivière est proche du seuil.</p>`,
+    ind: [2, 3, 4, 5].map((k) => ({ t: `Cycle ${k} : ${c.seq[k - 1] ? "True" : "False"}`, p: 0.375, champs: ["c" + k] }))
+      .concat([{ t: `Justifications : comparaison aux seuils pour chaque cycle ; au${kEntre.length > 1 ? "x" : ""} cycle${kEntre.length > 1 ? "s" : ""} ${kEntre.map((i) => i + 1).join(" et ")}, aucune condition n'est vraie, alerte garde sa valeur`, p: 0.5 }]),
+    champs: [2, 3, 4, 5].map((k) => TF("c" + k, `Cycle ${k} (h_moy = ${I(P.cy[k - 1][0])}, h_pic = ${I(P.cy[k - 1][1])}) : alerte =`, c.seq[k - 1])),
+    texte: "Justification de chaque réponse : quelle condition est vraie, ou pourquoi alerte ne change pas.",
+    err: `répondre False quand aucune condition n'est vraie, en oubliant que la variable alerte garde sa valeur ; ne tester que la hauteur moyenne et oublier h_pic.` });
+
+  /* ---------------- Partie B ---------------- */
+  const o = c.octets, th = (o[1] << 8) | o[2];
+  Q.push({ n: "B.1", pts: 2, notion: "info-codage", etape: 2, quoi: "nombre de valeurs, nombre de bits, octets",
+    q: `<p>Donner le nombre de valeurs différentes et la plus grande valeur d'un entier non signé codé sur ${P.k1} bits, puis sur 16 bits. À partir de l'exigence Id 2 (figure 2), déterminer le nombre de valeurs à coder et le nombre minimal de bits nécessaires pour coder la hauteur d'eau, puis justifier qu'elle soit codée sur deux octets.</p>`,
+    rep: `<p>${P.k1} bits : ${F(`2<sup>${P.k1}</sup> = ${I(c.n1)}`)} valeurs, de 0 à <b>${I(c.n1 - 1)}</b>. 16 bits : ${F("2<sup>16</sup> = 65 536")} valeurs, de 0 à <b>65 535</b>.</p><p>Exigence Id 2 : hauteurs de 0 à ${d(P.Hmax, 3)} m au millimètre, soit des entiers de 0 à ${I(P.Hmax * 1000)} : <b>${I(c.Nv)} valeurs</b>. ${F(`2<sup>${c.bits - 1}</sup> = ${I(Math.pow(2, c.bits - 1))} &lt; ${I(c.Nv)} ≤ 2<sup>${c.bits}</sup> = ${I(Math.pow(2, c.bits))}`)} : il faut au minimum <b>${c.bits} bits</b>.</p><p>Un octet compte 8 bits : ${c.bits} bits ne tiennent pas dans un octet, et la trame est faite d'octets entiers : la hauteur est codée sur 2 octets (16 bits).</p>`,
+    ind: [
+      { t: `${P.k1} bits : ${I(c.n1)} valeurs, de 0 à ${I(c.n1 - 1)}`, p: 0.5, champs: ["n1", "m1"], partiel: true },
+      { t: "16 bits : 65 536 valeurs, de 0 à 65 535", p: 0.5, champs: ["n16", "m16"], partiel: true },
+      { t: `${I(c.Nv)} valeurs, ${c.bits} bits minimum`, p: 0.75, champs: ["nv", "bits"], partiel: true },
+      { t: `2 octets : ${c.bits} bits > 8 bits d'un octet, et la trame est faite d'octets entiers`, p: 0.25 }],
+    champs: [nb("n1", `Nombre de valeurs sur ${P.k1} bits`, "", c.n1, { abs: 0 }), nb("m1", `Plus grande valeur sur ${P.k1} bits`, "", c.n1 - 1, { abs: 0 }),
+      nb("n16", "Nombre de valeurs sur 16 bits", "", 65536, { abs: 0 }), nb("m16", "Plus grande valeur sur 16 bits", "", 65535, { abs: 0 }),
+      nb("nv", "Nombre de valeurs à coder (exigence Id 2)", "", c.Nv, { abs: 0 }), nb("bits", "Nombre minimal de bits", "bits", c.bits, { abs: 0 })],
+    texte: "Pourquoi deux octets.",
+    err: `oublier la résolution de 1 mm (${P.Hmax + 1} valeurs) ; oublier la valeur 0 (${I(c.Nv - 1)} valeurs) ; confondre le nombre de valeurs et la plus grande valeur (${I(c.n1)} et ${I(c.n1 - 1)}).` });
+
+  const trameQ = `<p>Trame reçue par le serveur (octets en hexadécimal) :</p>${ds03b_trame(c)}<p class="discret">Exemple : température de l'eau, octets ${H(o[1])} ${H(o[2])} → ${ds03b_dec16(th)} → θ = ${d(th / 10, 1)} °C.</p>`;
+  Q.push({ n: "B.2", pts: 3, notion: "info-codage", etape: 2, quoi: "décoder une trame (hexadécimal, deux octets)",
+    q: `<p>${P.scen === 2 ? "À la fin d'une crue" : "Pendant une crue"}, le serveur a reçu la trame ci-dessous. À l'aide de la figure 5, décoder la charge de la batterie, la hauteur moyenne et la hauteur maximale : valeur décimale, puis valeur physique avec son unité.</p>${trameQ}`,
+    rep: `<p>Batterie : ${F(`${H(o[3])} = ${ds03b_dec8(o[3])}`)}, soit <b>${o[3]} %</b>.<br>Hauteur moyenne : ${F(`${H(o[4])} ${H(o[5])} = ${ds03b_dec16(P.moy)}`)}, soit <b>h<sub>moy</sub> = ${M(P.moy)}</b>.<br>Hauteur maximale : ${F(`${H(o[6])} ${H(o[7])} = ${ds03b_dec16(P.pic)}`)}, soit <b>h<sub>pic</sub> = ${M(P.pic)}</b>.</p><p>Les entiers de 16 bits sont transmis octet de poids fort en premier : l'octet de rang ${4} (${H(o[4])}) compte ${H(o[4])} × 256.</p>`,
+    ind: [
+      { t: `Batterie : ${H(o[3])} → ${o[3]} %`, p: 1, champs: ["bat"] },
+      { t: `Hauteur moyenne : ${H(o[4])} ${H(o[5])} → ${I(P.moy)} → ${fl(P.moy / 1000)} m`, p: 1, champs: ["moyd", "moym"], partiel: true },
+      { t: `Hauteur maximale : ${H(o[6])} ${H(o[7])} → ${I(P.pic)} → ${fl(P.pic / 1000)} m`, p: 1, champs: ["picd", "picm"], partiel: true }],
+    champs: [nb("bat", "Charge de la batterie", "%", o[3], { abs: 0 }), nb("moyd", "h_moy, valeur décimale", "", P.moy, { abs: 0 }), nb("moym", "h_moy", "m", P.moy / 1000, { abs: 0.005 }),
+      nb("picd", "h_pic, valeur décimale", "", P.pic, { abs: 0 }), nb("picm", "h_pic", "m", P.pic / 1000, { abs: 0.005 })],
+    err: `${/[A-F]/.test(H(o[3])) || o[3] < 10 ? "" : `lire l'octet ${H(o[3])} comme un nombre décimal (en hexadécimal, ${H(o[3])} vaut ${o[3]}) ; `}additionner les deux octets (${H(o[4])} ${H(o[5])} lu comme ${o[4]} + ${o[5]}) au lieu de ${o[4]} × 256 + ${o[5]} ; lire les deux octets dans le mauvais ordre ; oublier que les hauteurs sont en millimètres ; prendre A = 11 ou D = 14.` });
+
+  const sc = P.scen, bit = (k) => (c.etat >> k) & 1;
+  const raisons = [`la hauteur moyenne atteint le seuil d'alerte (${M(P.HA)})`, `la hauteur maximale atteint son seuil (${M(P.HP)}), même si la hauteur moyenne reste sous le seuil d'alerte`, `la hauteur moyenne est redescendue sous le seuil de fin d'alerte (${M(P.HF)})`, "il n'est pas cohérent : l'alerte devrait être dans l'autre état"];
+  const bonneR = sc === 0 ? 1 : sc === 1 ? 0 : 2;
+  const coh = sc === 0 ? `h<sub>moy</sub> = ${M(P.moy)} &lt; ${M(P.HA)}, mais h<sub>pic</sub> = ${M(P.pic)} ≥ ${M(P.HP)} : l'exigence Id 1 impose l'alerte, ce que signale bien le bit 0`
+    : sc === 1 ? `h<sub>moy</sub> = ${M(P.moy)} ≥ ${M(P.HA)} : l'exigence Id 1 impose l'alerte, ce que signale bien le bit 0 (h<sub>pic</sub> = ${M(P.pic)} reste sous ${M(P.HP)})`
+    : `h<sub>moy</sub> = ${M(P.moy)} &lt; ${M(P.HF)} et h<sub>pic</sub> = ${M(P.pic)} &lt; ${M(P.HP)} : l'exigence Id 1 impose de lever l'alerte, ce que signale bien le bit 0 à 0`;
+  Q.push({ n: "B.3", pts: 2, notion: "info-codage", etape: 3, quoi: "octet d'état bit par bit, puis cohérence avec une exigence",
+    q: `<p>Écrire en binaire l'octet d'état de la trame de la question B.2 (rang 8 : <b>${H(o[8])}</b>). En déduire les informations signalées par la station, puis vérifier, à l'aide de l'exigence Id 1 (figure 2), que l'état de l'alerte transmis est cohérent avec les hauteurs décodées à la question B.2 (figure 5).</p>`,
+    rep: `<p>Octet d'état : ${H(o[8])} = <b>${ds03b_bin(o[8]).replace(/(\d{4})(\d{4})/, "$1 $2")}</b> : bit 0 = ${bit(0)}, l'alerte crue est ${bit(0) ? "active" : "inactive"} ; bit 1 = ${bit(1)}, la batterie ${bit(1) ? "est faible" : "n'est pas faible"} (${o[3]} % ${bit(1) ? "&lt;" : "≥"} 20 %) ; bit 2 = ${bit(2)}, la porte du boîtier est ${bit(2) ? "ouverte" : "fermée"}.</p><p>Cohérence : ${coh}.</p>`,
+    ind: [
+      { t: `Octet d'état en binaire : ${ds03b_bin(o[8]).replace(/(\d{4})(\d{4})/, "$1 $2")}`, p: 0.5, champs: ["bin"] },
+      { t: `Informations : alerte ${bit(0) ? "active" : "inactive"}, batterie ${bit(1) ? "faible" : "normale"}, porte ${bit(2) ? "ouverte" : "fermée"}`, p: 0.75, champs: ["ia", "ib", "ip"], partiel: true },
+      { t: "Raison de l'état de l'alerte", p: 0.25, champs: ["coh"] },
+      { t: `Cohérence justifiée avec les hauteurs et les seuils de l'exigence Id 1 (${sc === 0 ? "h_pic ≥ " + fl(P.HP / 1000) + " m" : sc === 1 ? "h_moy ≥ " + fl(P.HA / 1000) + " m" : "h_moy < " + fl(P.HF / 1000) + " m"})`, p: 0.5 }],
+    champs: [cd("bin", "Octet d'état en binaire (8 bits)", "", "", [ds03b_bin(o[8])], { compact: true, binaire: true }),
+      { id: "ia", type: "choix", lab: "Bit 0 : l'alerte crue est…", options: ["active", "inactive"], bonne: bit(0) ? 0 : 1 },
+      { id: "ib", type: "choix", lab: "Bit 1 : la batterie est…", options: ["faible", "normale"], bonne: bit(1) ? 0 : 1 },
+      { id: "ip", type: "choix", lab: "Bit 2 : la porte du boîtier est…", options: ["ouverte", "fermée"], bonne: bit(2) ? 0 : 1 },
+      { id: "coh", type: "choix", lab: "L'état de l'alerte transmis est cohérent parce que…", options: raisons, bonne: bonneR }],
+    texte: "Vérification de la cohérence avec l'exigence Id 1 : compare les hauteurs décodées aux seuils.",
+    err: "numéroter les bits à partir de la gauche ; écrire moins de 8 bits ; ne regarder que la hauteur moyenne et oublier la hauteur maximale." });
+
+  /* ---------------- Partie C ---------------- */
+  const n3 = (x) => n(ds03b_r3(x));                                   /* résultat à 3 chiffres significatifs : 3 041 → 3 040 */
+  const g = P.vent === "g", MFt = n3(c.MF3), MPt = n3(c.MP3), kTxt = n(c.k), Pt = n3(c.Pd3), MF15 = n3(1.5 * Math.abs(c.MF3));
+  const concl = c.k >= 1.5 ? 0 : c.k >= 1 ? 1 : 2;
+  const conclTxt = concl === 0 ? `${kTxt} ≥ 1,5 : le panneau ne bascule pas, avec le coefficient de sécurité exigé ; l'exigence Id 3 est respectée`
+    : concl === 1 ? `${kTxt} &gt; 1 : le panneau ne bascule pas ; mais ${kTxt} &lt; 1,5 : le coefficient de sécurité exigé n'est pas atteint, l'exigence Id 3 n'est pas respectée. Il faudrait ${F(`|M<sub>A</sub>(P)| ≥ 1,5 × ${n3(Math.abs(c.MF3))} = ${MF15} N·m`)} : alourdir le socle ou l'élargir (a plus grand)`
+    : `${kTxt} &lt; 1 : le moment du vent l'emporte sur celui du poids, le panneau bascule ; l'exigence Id 3 n'est pas respectée. Il faudrait ${F(`|M<sub>A</sub>(P)| ≥ 1,5 × ${n3(Math.abs(c.MF3))} = ${MF15} N·m`)} : alourdir nettement le socle ou l'élargir (a plus grand)`;
+  const optsC = ["respectée : le panneau ne bascule pas, avec le coefficient de sécurité exigé", "non respectée : le panneau ne bascule pas, mais le coefficient de sécurité est inférieur à 1,5", "non respectée : le panneau bascule"];
+  Q.push({ n: "C.1", pts: 4, notion: "meca-actions", etape: 2, quoi: "force de pression, moment avec son signe, coefficient de sécurité",
+    q: `<p>Le sens trigonométrique (sens inverse des aiguilles d'une montre) est positif. Calculer l'intensité de la force F, puis son moment par rapport au point A, avec son signe. Calculer le poids P de l'ensemble, puis son moment par rapport au point A, avec son signe. Calculer le coefficient de sécurité au basculement, puis conclure quant au respect de l'exigence Id 3 (figure 6).</p>`,
+    rep: `<p>${F(`F = p·S = ${I(c.p)} × ${d(P.S, 2)} = ${I(c.F)} N`)}. F est horizontale et A est au niveau du sol : son bras de levier par rapport à A est h. Le vent pousse de la ${g ? "gauche vers la droite" : "droite vers la gauche"} : F tend à faire basculer le panneau autour de A dans le sens ${g ? "horaire" : "trigonométrique"} : ${F(`M<sub>A</sub>(F) = ${g ? "−" : "+"}F·h = ${g ? "−" : "+"}${I(c.F)} × ${d(P.h, 2)} = ${g ? "" : "+"}${MFt} N·m`)}.</p><p>${F(`P = m·g = ${P.m} × 9,81 = ${Pt} N`)}. Son bras de levier par rapport à A est a ; il ramène le socle sur le sol, dans le sens ${g ? "trigonométrique" : "horaire"} : ${F(`M<sub>A</sub>(P) = ${g ? "+" : "−"}P·a = ${g ? "+" : "−"}${Pt} × ${d(P.a, 2)} = ${g ? "+" : ""}${MPt} N·m`)}.</p><p>Coefficient de sécurité : ${F("k = ")}${FRAC(n3(Math.abs(c.MP3)), n3(Math.abs(c.MF3)))}${F(" = " + kTxt)}. ${conclTxt}.</p>`,
+    ind: [
+      { t: `F = p·S = ${I(c.F)} N`, p: 0.5, champs: ["F"] },
+      { t: `M_A(F) = ${g ? "−" : "+"}F·h = ${MFt} N·m (bras de levier h, signe ${g ? "−" : "+"})`, p: 1, champs: ["MF"] },
+      { t: `P = m·g = ${Pt} N`, p: 0.5, champs: ["Pw"] },
+      { t: `M_A(P) = ${g ? "+" : "−"}P·a = ${MPt} N·m (bras de levier a, signe ${g ? "+" : "−"})`, p: 1, champs: ["MP"] },
+      { t: `Coefficient de sécurité : ${kTxt}`, p: 0.5, champs: ["k"] },
+      { t: "Exigence Id 3 : " + optsC[concl].split(" :")[0], p: 0.25, champs: ["concl"] },
+      { t: `Conclusion rédigée : ${kTxt} comparé à 1,5${concl ? " (et à 1)" : ""}`, p: 0.25 }],
+    champs: [nb("F", "F", "N", c.F), nb("MF", "M<sub>A</sub>(F)", "N·m", c.MF3), nb("Pw", "P", "N", c.Pd3), nb("MP", "M<sub>A</sub>(P)", "N·m", c.MP3),
+      nb("k", "Coefficient de sécurité", "", c.k), { id: "concl", type: "choix", lab: "L'exigence Id 3 est…", options: optsC, bonne: concl }],
+    texte: "Conclusion sur l'exigence Id 3.",
+    err: "prendre a comme bras de levier de F ; calculer un moment avec la masse en kg au lieu du poids en N ; oublier les signes, ou les choisir sans regarder le sens dans lequel chaque action fait tourner autour de A ; conclure « respectée » dès que le coefficient dépasse 1." });
+
+  Q.forEach((q) => { q.ind.forEach((i) => { if (!i.h) i.h = esc(i.t).replace(/M_A/g, "M<sub>A</sub>"); }); q.bareme = q.ind.map((i) => [i.h, i.p]); });
+
+  const DS = {
+    n: 3, libelle: "DS 03 blanc", eyebrow: "Terminale SI · DS blanc · entraînement au DS 03", semaine: "Semaine 3", duree: "1 h",
+    titre: "Station d'alerte de crue de la Taharu'u",
+    theme: "Programmer et coder l'information",
+    notions: ["info-programmation", "info-codage", "meca-actions"],
+    consignes: "Calculatrice autorisée en mode examen. Les parties A, B et C sont indépendantes.",
+    consignesEcran: "Calculatrice autorisée. Les parties A, B et C sont indépendantes. Tape tes résultats dans les cases. Pour compléter une ligne de programme, tape seulement ce qui remplace les ____ (Python : True et False avec une majuscule). Rédige tes justifications dans les zones de texte, comme sur ta copie.",
+    presentation: `<figure>${ds03b_site().replace("<svg ", '<svg style="max-width:120mm" ')}<figcaption>Figure 1 – La station sous le pont et un panneau lumineux d'alerte (coupe, échelle non respectée)</figcaption></figure>`
+      + `<p>À Papara, la rivière Taharu'u peut monter très vite pendant les fortes pluies. La commune a installé sous le pont de la route de ceinture une station d'alerte de crue (figure 1). Un capteur à ultrasons, fixé sous le pont, mesure la hauteur d'eau de la rivière ; une sonde mesure la température de l'eau. Quand la rivière monte trop, la station déclenche une alerte « crue » : les panneaux lumineux placés au bord de la route s'allument et les pompiers sont prévenus.</p>
+<p>Les capteurs sont reliés à un microcontrôleur programmé en Python. Toutes les ${P.cyc} minutes, celui-ci envoie par radio (liaison LoRa) une trame de 9 octets à une passerelle installée à la mairie, qui la transmet au serveur de la commune ; le serveur enregistre les octets reçus, notés en hexadécimal, puis les décode. Un panneau photovoltaïque et une batterie rendent la station autonome. Un extrait du cahier des charges est donné en figure 2.</p>`
+      + ds03b_tab(["7%", "27%", "66%"], ["Id", "Exigence", "Critère"], [
+          ["1", "Alerter en cas de crue", `Déclencher l'alerte si la hauteur d'eau moyenne sur un cycle de ${P.cyc}&nbsp;min atteint ${M(P.HA)} ou si la hauteur d'eau maximale du cycle atteint ${M(P.HP)} ; l'arrêter (alerte = False) lorsque la hauteur moyenne redescend sous ${M(P.HF)}`],
+          ["2", "Mesurer la hauteur d'eau", `De 0 à ${d(P.Hmax, 3)}&nbsp;m, au millimètre près (résolution 1&nbsp;mm)`],
+          ["3", "Résister au vent", `Pas de basculement des panneaux lumineux par un vent de ${P.V}&nbsp;km/h, coefficient de sécurité d'au moins 1,5`]
+        ], "Figure 2 – Extrait du cahier des charges de la station"),
+    parties: [
+      { titre: "Partie A · Programme de surveillance de la rivière",
+        objectif: "L'objectif de cette partie est de compléter et de vérifier le programme de surveillance de la rivière (exigence Id 1).",
+        intro: `<p>Le programme du microcontrôleur est donné en figure 3. La fonction ${C("lire_hauteur()")} renvoie la hauteur d'eau mesurée sous la forme d'un entier, en millimètres (par exemple 1625 pour 1,625&nbsp;m) ; ${C("attendre(t)")} suspend le programme pendant t secondes ; ${C("trame(…)")} construit la trame de 9 octets étudiée dans la partie B et ${C("envoyer(…)")} l'émet. Au cours de chaque cycle de ${P.cyc}&nbsp;min, le programme relève une hauteur toutes les ${P.Tm}&nbsp;s, puis calcule la hauteur moyenne ${C("h_moy")} et la hauteur maximale ${C("h_pic")}, plus grande hauteur relevée pendant le cycle. La variable ${C("alerte")} vaut ${C("True")} lorsque l'alerte est active ; la fonction ${C("gerer_alerte")} est décrite par l'algorigramme de la figure 4.</p>`
+          + `<figure><div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4mm;align-items:flex-start">${ds03b_prog(src.A, 1)}${ds03b_prog(src.B, 17)}</div><figcaption>Figure 3 – Programme du microcontrôleur (extrait) ; les trous ____ sont à compléter</figcaption></figure>`
+          + fig(ds03b_algo(P), "Figure 4 – Algorigramme de la fonction gerer_alerte", "small").replace("<svg ", '<svg style="max-width:90mm" '),
+        questions: Q.slice(0, 5) },
+      { titre: "Partie B · Codage des mesures et trame",
+        objectif: "L'objectif de cette partie est d'étudier le codage des mesures dans la trame.",
+        intro: `<p>La trame construite par ${C("trame(…)")} a le format de la figure 5 ; les entiers de 16 bits sont transmis octet de poids fort en premier. Chiffres hexadécimaux : A = 10, B = 11, C = 12, D = 13, E = 14, F = 15.</p>`
+          + ds03b_tab(["14%", "30%", "56%"], ["Rang(s)", "Grandeur", "Codage"], [
+              ["0", "Numéro de la station", "entier non signé, 8 bits"],
+              ["1 et 2", "Température de l'eau θ", "entier signé, 16 bits, en dixièmes de °C"],
+              ["3", "Charge de la batterie", "entier non signé, 8 bits, en %"],
+              ["4 et 5", "Hauteur moyenne h_moy", "entier non signé, 16 bits, en mm"],
+              ["6 et 7", "Hauteur maximale h_pic", "entier non signé, 16 bits, en mm"],
+              ["8", "Octet d'état", "bit 0 (poids faible) : alerte crue active ; bit 1 : batterie faible (charge inférieure à 20 %) ; bit 2 : porte du boîtier ouverte ; bits 3 à 7 : toujours à 0"]
+            ], "Figure 5 – Format de la trame (un bit d'état vaut 1 lorsque l'information correspondante est vraie)"),
+        questions: Q.slice(5, 8) },
+      { titre: "Partie C · Tenue au vent des panneaux lumineux (reprise)",
+        objectif: "L'objectif de cette partie est de vérifier la tenue au vent des panneaux lumineux (exigence Id 3).",
+        intro: `<figure>${ds03b_support(P).replace("<svg ", '<svg style="max-width:85mm" ')}<figcaption>Figure 6 – Panneau lumineux sur son socle lesté : modèle plan (échelle non respectée)</figcaption></figure>`
+          + `<p>Chaque panneau lumineux est fixé en haut d'un poteau, sur un socle lesté (alourdi par des blocs de béton) simplement posé au bord de la route. Par un vent de ${P.V}&nbsp;km/h, soufflant de la ${g ? "gauche vers la droite" : "droite vers la gauche"} de la figure 6, l'ensemble tend à basculer autour du bord A du socle. Modèle plan retenu :</p><p>– action du vent sur le panneau : force horizontale ${F("F")} appliquée en C, au centre du panneau, à h = ${d(P.h, 2)}&nbsp;m au-dessus du sol, d'intensité F = p·S avec p = ${I(c.p)}&nbsp;Pa (pression du vent à ${P.V}&nbsp;km/h) et S = ${d(P.S, 2)}&nbsp;m² (surface du panneau) ;<br>– ensemble (socle, lest, poteau et panneau) : masse m = ${P.m}&nbsp;kg, centre de gravité G sur l'axe du poteau, à la distance a = ${d(P.a, 2)}&nbsp;m du bord A ; g = 9,81&nbsp;m/s² ;<br>– coefficient de sécurité au basculement : ${F("k = ")}${FRAC("|M<sub>A</sub>(P)|", "|M<sub>A</sub>(F)|")}, moments par rapport au bord A ; résultats à 3 chiffres significatifs.</p>`,
+        questions: Q.slice(8) }
+    ]
+  };
+  return { DS, c, P };
+}
+
+var DS = ds03b_make(ds03b_REF).DS;
+if (typeof window !== "undefined"){
+  window.DSB_SUJETS = window.DSB_SUJETS || [];
+  window.DSB_SUJETS.push({ id: "ds03", ds: "DS 03", module: "dsb-ds03", titre: "Station d'alerte de crue de la Taharu'u", duree_min: 60,
+    notions: ["info-programmation", "info-codage", "meca-actions"],
+    REF: ds03b_REF, make: ds03b_make, tirage: ds03b_tirage, prep: "ds03",
+    /* figure jointe à un signalement : le panneau (partie C), l'algorigramme (partie A), sinon rien */
+    figure: (P, c, q) => (/^C/.test(q.n) ? ds03b_support(P) : /^A/.test(q.n) ? ds03b_algo(P) : null) });
+}
+
 })();
 </script>
 <script>window.DSB_FICHES = ["meca-actions", "meca-statique", "meca-frottement", "info-programmation", "info-codage", "meca-cinematique", "meca-transmission", "phy-newton", "ener-puissance", "ener-rendement", "phy-thermo", "ana-exigences", "ana-structure", "ener-stockage", "ener-moteur", "phy-energie-meca", "simu-modele", "ana-ecarts", "phy-mesure", "info-numerisation", "meca-rdm", "ener-thermique", "meca-liaisons", "phy-ondes", "info-transmission", "meca-dynamique", "phy-gravitation", "auto-schema-bloc", "auto-performances", "auto-correcteur", "ener-circuits", "ana-comportement", "meca-fluides", "ener-sources", "innov-conception", "dd-environnement", "ener-convertisseur", "phy-electricite", "phy-optique", "info-logique"];</script>
@@ -1152,8 +1600,31 @@ if (typeof window !== "undefined"){
     if (/^k/i.test(reste) && unite && /^N/.test(unite)) v *= 1000;           /* « 1,82 kN » pour un champ en N */
     return v;
   }
+  /* ligne de programme (champ "code") : on compare ce qui remplace les ____, espaces autour des opérateurs ignorés ;
+     si l'élève a recopié toute la ligne, le début (pre) et la fin (post) imprimés sont retirés. Majuscules comptées (Python). */
+  function normCode(s, ch) {
+    let t = String(s == null ? "" : s).replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[−–—]/g, "-").replace(/≥/g, ">=").replace(/≤/g, "<=").replace(/≠/g, "!=").trim();
+    if (ch && ch.compact) return t.replace(/\s+/g, "");
+    return t.replace(/\s+/g, " ").replace(/ ?([<>=!+\-*/%(),:\[\]]) ?/g, "$1").trim();
+  }
+  function reponseCode(ch, brut) {
+    let t = normCode(brut, ch);
+    const pre = normCode(ch.pre || "", ch), post = normCode(ch.post || "", ch);
+    if (pre && t.startsWith(pre) && t.length > pre.length) t = t.slice(pre.length).trim();
+    if (post && t.endsWith(post) && t.length > post.length) t = t.slice(0, -post.length).trim();
+    return t;
+  }
   function verdict(ch, brut) {
     if (ch.type === "choix") return brut == null || brut === "" ? { vide: true } : { ok: Number(brut) === ch.bonne };
+    if (ch.type === "code") {
+      if (brut == null || String(brut).trim() === "") return { vide: true, ok: false };
+      const t = reponseCode(ch, brut), acc = ch.acc.map((a) => normCode(a, ch));
+      if (acc.includes(t)) return { ok: true };
+      const r = { ok: false };
+      if (acc.some((a) => a.toLowerCase() === t.toLowerCase())) r.casse = true;
+      else if (ch.binaire && /^[01]+$/.test(t) && t.length < 8 && acc.some((a) => a.replace(/^0+/, "") === t.replace(/^0+/, ""))) r.court = true;
+      return r;
+    }
     const v = lire(brut, ch.unite);
     if (!isFinite(v)) return { vide: brut == null || String(brut).trim() === "", ok: false, illisible: brut != null && String(brut).trim() !== "" };
     const a = ch.val;
@@ -1332,7 +1803,7 @@ if (typeof window !== "undefined"){
   function aller(h) { if (location.hash === h) afficher(); else location.hash = h; }
 
   function vueListe() {
-    const cartes = SUJETS.map((S) => {
+    const cartes = SUJETS.slice().reverse().map((S) => {                /* le plus récent (le prochain DS) en premier */
       const d = dossier(S.id), faits = d.essais.filter((e) => e.rendu), c = enCours(d), j = dateDS(S);
       const meilleur = faits.length ? Math.max(...faits.map((e) => e.note || 0)) : null;
       return `<a class="carte dsb-carte" href="#${S.id}">
@@ -1348,20 +1819,30 @@ if (typeof window !== "undefined"){
       ${cartes || `<p class="discret">Aucun DS blanc pour l'instant.</p>`}`;
   }
 
-  function vueSujet(S, qn) {
+  /* voulu : « pas » (le défi, lien #ds03/defi) ou « ds » (la revanche, lien #ds03/revanche), depuis la carte « Prochain DS » */
+  function vueSujet(S, qn, voulu) {
     const d = dossier(S.id), c = enCours(d), j = dateDS(S);
     if (c) return c.mode === "pas" ? vuePas(S, c, qn) : vueCopie(S, c);
     const faits = d.essais.filter((e) => e.rendu).sort((a, b) => b.n - a.n);
     /* conseil : d'abord question par question, puis en conditions de DS */
-    const dejaPas = faits.some((e) => e.mode === "pas"), conseil = dejaPas ? "ds" : "pas";
+    const dejaPas = faits.some((e) => e.mode === "pas"), conseil = voulu || (dejaPas ? "ds" : "pas");
+    const etiq = voulu === "pas" ? "le défi" : voulu === "ds" ? "la revanche" : dejaPas ? "conseillé maintenant" : "conseillé pour commencer";
     const mode = (m, titre, txt) => `<button class="mode${m === conseil ? " conseil" : ""}" type="button" data-go="${m}">
-        <span class="mode-t">${titre}${m === conseil ? `<span class="etiquette ok">${dejaPas ? "conseillé maintenant" : "conseillé pour commencer"}</span>` : ""}</span>
+        <span class="mode-t">${titre}${m === conseil ? `<span class="etiquette ok">${etiq}</span>` : ""}</span>
         <span class="mode-d">${txt}</span></button>`;
+    const bestDe = (f) => { const l = faits.filter(f); return l.length ? Math.max(...l.map((e) => e.note || 0)) : null; };
+    const bDefi = bestDe((e) => e.mode !== "ds"), bRev = bestDe((e) => e.mode === "ds");
+    const bandeau = voulu === "pas"
+      ? `<div class="carte defi"><div class="eyebrow">Le défi</div><p><b>Fais ce DS blanc avant de t'entraîner</b>, question par question : tu vois tout de suite ce qui t'attend au ${esc(S.ds)} et ce que tu sais déjà faire. Ta note ne bloque rien : le défi est fait dès que tu l'as terminé, même avec une note basse.</p><p>Après chaque question ratée, le site te dit <b>quelle étape de la préparation</b> la travaille et quelle fiche relire. Puis viens prendre ta revanche, avec d'autres valeurs, en conditions de DS.</p></div>`
+      : voulu === "ds"
+      ? `<div class="carte defi"><div class="eyebrow">La revanche</div><p><b>Le même type de sujet, avec d'autres valeurs, en conditions de DS</b> : ${S.duree_min} min de chrono, la correction à la fin.${bDefi != null ? ` Au défi, tu avais <b>${note20(bDefi)} / 20</b>.` : ""}${bRev != null ? ` Ta meilleure revanche : <b>${note20(bRev)} / 20</b>.` : ""}</p><p class="discret">Prends le temps de t'installer : une fois commencé, le chrono continue, même si tu fermes la page.</p></div>`
+      : "";
     $app.innerHTML = `<p class="haut"><a href="#">← DS blancs</a> · <a href="${RACINE}index.html#/tableau">Tableau de bord</a></p>
       <div id="sip-etat">${etat()}</div>
       <div class="eyebrow">Entraînement au ${esc(S.ds)}${j ? " du " + esc(j) : ""}</div>
       <h1>${esc(S.ds)} blanc <span class="sous">${esc(S.titre)}</span></h1>
       <div class="badges">${S.notions.map((n) => `<span>${esc(nomNotion(n))}</span>`).join("")}</div>
+      ${bandeau}
       <div class="carte intro">
         <p><b>Même format que le ${esc(S.ds)}</b> : ${S.duree_min} min, noté sur 20, parties indépendantes, document réponse. Calculatrice autorisée.</p>
         <ul>
@@ -1403,6 +1884,7 @@ if (typeof window !== "undefined"){
 
   /* ---------- la copie ---------- */
   function champHTML(ch, val) {
+    if (ch.type === "code") return `<label class="ch code"><span class="ch-l">${ch.lab}</span><span class="ch-ligne">${ch.pre ? `<code>${esc(ch.pre)}</code>` : ""}<input type="text" class="mono" data-ch="${ch.id}" value="${esc(val || "")}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${ch.binaire ? "8 bits" : "____"}">${ch.post ? `<code>${esc(ch.post)}</code>` : ""}</span></label>`;
     if (ch.type === "choix") return `<label class="ch choix"><span class="ch-l">${ch.lab}</span><select data-ch="${ch.id}"><option value="">— choisir —</option>${ch.options.map((o, i) => `<option value="${i}"${String(val) === String(i) ? " selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`;
     /* le clavier numérique de l'iPhone n'a pas de signe moins : bouton ± à côté de chaque case (sur toutes, pour ne rien souffler) */
     return `<label class="ch"><span class="ch-l">${ch.lab}${ch.lab ? " =" : ""}</span><span class="ch-g"><span class="ch-in"><button type="button" class="pm" data-pm="${ch.id}" aria-label="Changer le signe" title="Changer le signe">±</button><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" data-ch="${ch.id}" value="${esc(val || "")}" placeholder="valeur"></span><span class="ch-u">${esc(ch.unite || "")}</span></span></label>`;
@@ -1481,7 +1963,7 @@ if (typeof window !== "undefined"){
           <dl class="right"><div class="cell"><dt>Durée</dt><dd>${esc(D.duree)}</dd></div><div class="cell"><dt>Barème</dt><dd>/20</dd></div>
             <div class="cell"><dt>Essai</dt><dd>n° ${essai.n}</dd></div><div class="cell"><dt>Mode</dt><dd>${essai.mode === "ds" ? "chrono" : "libre"}</dd></div></dl></div>
         <div class="notions"><b>Notions évaluées</b>${D.notions.map((n) => `<span>${esc(nomNotion(n))}</span>`).join("")}</div>
-        <p class="consignes">Calculatrice autorisée. Les parties A et B sont indépendantes. Tape tes résultats numériques dans les cases, avec l'unité indiquée ; rédige tes justifications et tes conclusions dans les zones de texte, comme sur ta copie. Le document réponse DR1 se remplit à l'écran (questions A.1 et B.3).</p>
+        <p class="consignes">${D.consignesEcran || "Calculatrice autorisée. Les parties A et B sont indépendantes. Tape tes résultats numériques dans les cases, avec l'unité indiquée ; rédige tes justifications et tes conclusions dans les zones de texte, comme sur ta copie. Le document réponse DR1 se remplit à l'écran (questions A.1 et B.3)."}</p>
         <h2 class="part">Présentation du système</h2><div class="pres">${D.presentation}</div>
         ${parties}
         <div class="fin-copie"><button class="btn" id="rendre2" type="button">Rendre ma copie</button></div>
@@ -1642,8 +2124,16 @@ if (typeof window !== "undefined"){
   function repChamp(ch, brut) {
     const r = verdict(ch, brut);
     if (ch.type === "choix") return `<li class="${r.vide ? "vide" : r.ok ? "ok" : "ko"}"><span>${ch.lab}</span> <b>${r.vide ? "sans réponse" : esc(ch.options[Number(brut)])}</b>${r.ok ? " ✓" : ` <span class="att">attendu : ${esc(ch.options[ch.bonne])}</span>`}</li>`;
-    const att = `${nb(ch.val, ch.val !== 0 && Math.abs(ch.val) >= 1000 ? 4 : 3)}${ch.unite ? " " + esc(ch.unite) : ""}`;
-    return `<li class="${r.vide ? "vide" : r.ok ? "ok" : "ko"}"><span>${ch.lab}${ch.lab ? " =" : ""}</span> <b>${r.vide ? "sans réponse" : r.illisible ? esc(brut) + " (illisible)" : nb(r.v, 4) + (ch.unite ? " " + esc(ch.unite) : "")}</b>${r.ok ? " ✓" : ` <span class="att">attendu : ${att}${r.signe ? " · erreur de signe" : r.unite ? " · erreur d'unité (×1 000 ?)" : ""}</span>`}</li>`;
+    if (ch.type === "code") {
+      const ligne = (x) => `<code class="ligne">${esc(ch.pre || "")}<b>${esc(x)}</b>${esc(ch.post || "")}</code>`;
+      const bt = r.vide ? "" : String(brut).trim(), entiere = !r.vide && reponseCode(ch, bt) !== normCode(bt, ch);   /* ligne recopiée en entier : affichée telle quelle */
+      return `<li class="${r.vide ? "vide" : r.ok ? "ok" : "ko"}"><span>${ch.lab} :</span> ${r.vide ? "<b>sans réponse</b>" : entiere ? `<code class="ligne"><b>${esc(bt)}</b></code>` : ligne(bt)}${r.ok ? " ✓" : ` <span class="att">attendu : ${ligne(ch.acc[0])}${r.casse ? " · attention aux majuscules : Python écrit True, False, et les noms exactement comme dans le programme" : r.court ? " · un octet s'écrit avec ses 8 bits" : ""}</span>`}</li>`;
+    }
+    /* entiers (cases « abs: 0 », valeurs entières) écrits en entier : 65 536, pas 65 540 */
+    const ent = (x) => (x < 0 ? "−" : "") + String(Math.abs(x)).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0");
+    const fmt = (x, s) => (Number.isInteger(x) && Math.abs(x) < 1e7 ? ent(x) : nb(x, s));
+    const att = `${fmt(ch.val, ch.val !== 0 && Math.abs(ch.val) >= 1000 ? 4 : 3)}${ch.unite ? " " + esc(ch.unite) : ""}`;
+    return `<li class="${r.vide ? "vide" : r.ok ? "ok" : "ko"}"><span>${ch.lab}${ch.lab ? " =" : ""}</span> <b>${r.vide ? "sans réponse" : r.illisible ? esc(brut) + " (illisible)" : fmt(r.v, 4) + (ch.unite ? " " + esc(ch.unite) : "")}</b>${r.ok ? " ✓" : ` <span class="att">attendu : ${att}${r.signe ? " · erreur de signe" : r.unite ? " · erreur d'unité (×1 000 ?)" : ""}</span>`}</li>`;
   }
   function bilanCorr(S, essai) {
     const B = S.BILAN, b = (essai.rep && essai.rep.bilan) || { coches: {}, lignes: {} };
@@ -1679,6 +2169,15 @@ if (typeof window !== "undefined"){
     if (ia.etat === "encours") return "";                      /* resté « en cours » sans appel : relancé, ou cases à cocher */
     return `<div class="ia-note ko"><p>${esc(messageIA(ia.erreur))}</p><button type="button" class="btn sec petit" data-ia="${esc(q.n)}">Réessayer avec l'IA</button></div>`;
   }
+  /* question pas entièrement réussie : l'étape de la préparation qui l'entraîne (S.prep, q.etape) et la fiche */
+  const PREP_NOM = ["", "Les briques", "Les calculs", "Les chaînes"];
+  const lienEtape = (S, k) => `bac-si.html#prep=${encodeURIComponent(S.prep)}:${k}`;
+  const lienFiche = (id) => ((window.DSB_FICHES || []).includes(id) ? `${RACINE}index.html#/fiche/${encodeURIComponent(id)}` : null);
+  function revoirHTML(S, q, r) {
+    if (!S.prep || !q.etape || r.total >= q.pts - 1e-9) return "";
+    const f = lienFiche(q.notion);
+    return `<p class="revoir"><b>Pour progresser :</b> ${esc(q.quoi || "")} · <a href="${lienEtape(S, q.etape)}">étape ${q.etape} de la préparation (${PREP_NOM[q.etape]})</a>${f ? ` · <a href="${f}">fiche ${esc(nomNotion(q.notion))}</a>` : ""}</p>`;
+  }
   function questionCorr(S, essai, I, q, r, pas) {
     const v = (essai.rep && essai.rep.v) || {}, t = ((essai.rep && essai.rep.t) || {})[q.n] || "";
     const champs = q.champs.filter((c) => c.type !== "bilan"), attente = r.redige && iaLit(S, essai, q);
@@ -1703,6 +2202,7 @@ if (typeof window !== "undefined"){
       <table class="bareme"><thead><tr><th>Élément du barème</th><th>Qui note</th><th class="num">Points</th></tr></thead><tbody>${lignes}</tbody></table>
       ${blocIA(S, q, r, essai)}
       ${q.err ? `<p class="err"><b>Erreurs fréquentes :</b> ${q.err}</p>` : ""}
+      ${revoirHTML(S, q, r)}
       <div class="sig-place" data-sig="${esc(q.n)}"></div>
     </section>`;
   }
@@ -1725,7 +2225,7 @@ if (typeof window !== "undefined"){
           : I.questions.some((q) => iaAttendue(q, essai))
           ? "<b>Ta copie est corrigée.</b> Les résultats chiffrés et le DR sont notés par le site, tes rédactions par une IA à partir du corrigé. Lis chaque correction ; si l'IA n'a pas pu lire une réponse, coche toi-même ce qu'elle contient. Puis envoie ta note."
           : "<b>À toi de finir la correction.</b> Pour chaque question, compare ta réponse rédigée au corrigé et coche les éléments du barème qui y sont vraiment. Les résultats chiffrés et le DR sont déjà notés par le site. Puis envoie ta note."}</div></div>
-      <div id="recap">${recapHTML(R)}</div>
+      <div id="recap">${recapHTML(R, S)}</div>
       <div class="feuille corr">
         <h2 class="part">Présentation du système</h2><details class="enonce"><summary>Revoir la présentation et les documents</summary><div class="pres">${D.presentation}</div></details>
         ${parties}
@@ -1740,7 +2240,7 @@ if (typeof window !== "undefined"){
       const parts = [`${note20(a4)} ${mot(a4)} vérifié${a4 >= 2 ? "s" : ""} par le site`].concat(i4 ? [`${note20(i4)} par l'IA`] : [], m4 || !i4 ? [`${note20(m4)} ${mot(m4)} que tu t'attribues avec le corrigé`] : []);
       document.getElementById("note-detail").textContent = "dont " + (parts.length > 1 ? parts.slice(0, -1).join(", ") + " et " + parts[parts.length - 1] : parts[0]);
       R2.parQ.forEach((x) => { const el = $app.querySelector(`[data-pq="${CSS.escape(x.q.n)}"]`); if (el) el.textContent = pts(x.r.total).replace(/ pts?$/, ""); });
-      const rc = document.getElementById("recap"); if (rc) rc.innerHTML = recapHTML(R2);
+      const rc = document.getElementById("recap"); if (rc) rc.innerHTML = recapHTML(R2, S);
       return R2;
     };
     majNote();
@@ -1799,14 +2299,14 @@ if (typeof window !== "undefined"){
         question: (`${D.libelle} · Q ${q.n} (essai n° ${essai.n}${essai.mode === "pas" ? ", question par question" : ""})\n` + texteBrut(q.q)).slice(0, 3900),
         figure: S.figure ? S.figure(I.P, I.c, q) : null,
         reponse: q.champs.filter((c) => c.type !== "bilan").map((c) => `${texteBrut(c.lab)} = ${v[c.id] == null ? "—" : c.type === "choix" ? (c.options[Number(v[c.id])] || "—") : v[c.id]}`).concat(t ? [`rédigé : « ${t} »`] : []).join(" · ").slice(0, 290) || null,
-        attendu: q.champs.filter((c) => c.type === "nombre").map((c) => `${texteBrut(c.lab)} = ${nb(c.val)} ${c.unite || ""}`.trim()).join(" · ").slice(0, 290) || null,
+        attendu: q.champs.filter((c) => c.type === "nombre").map((c) => `${texteBrut(c.lab)} = ${Number.isInteger(c.val) ? c.val : nb(c.val)} ${c.unite || ""}`.trim()).join(" · ").slice(0, 290) || null,
         correction: (texteBrut(q.rep).slice(0, 3900 - avisIA.length) + avisIA).slice(0, 3900)
       }, { lienConnexion: RACINE + "index.html#/connexion/TSI", surEnvoi: () => SIP.signaler.marquer(b) });
     });
   }
 
   /* bilan d'un essai : points par question (un clic mène à sa correction) et par notion (fiche à revoir) */
-  function recapHTML(R) {
+  function recapHTML(R, S) {
     const qs = R.parQ.map(({ q, r }) => `<button type="button" class="rq ${etatQ(r, q)}" data-voir="${esc(q.n)}" aria-label="Question ${esc(q.n)} : ${pts(r.total)} sur ${pts(q.pts)}"><b>${esc(q.n)}</b><span>${note20(r.total)}<small> / ${note20(q.pts)}</small></span></button>`).join("");
     const N = [];
     R.parQ.forEach(({ q, r }) => { let x = N.find((y) => y.id === q.notion); if (!x) N.push((x = { id: q.notion, p: 0, max: 0, qs: [] })); x.p += r.total; x.max += q.pts; x.qs.push(q.n); });
@@ -1817,8 +2317,17 @@ if (typeof window !== "undefined"){
         <span class="rn-b" aria-hidden="true"><i style="width:${Math.round(f * 100)}%"></i></span><span class="rn-p">${note20(x.p)} / ${note20(x.max)}</span>
         ${cls !== "ok" && fiches.includes(x.id) ? `<a class="rn-f" href="${RACINE}index.html#/fiche/${encodeURIComponent(x.id)}">Revoir la fiche</a>` : ""}</li>`;
     }).join("");
+    let plan = "";
+    if (S && S.prep) {
+      const parE = {};
+      R.parQ.forEach(({ q, r }) => { if (q.etape && r.total < q.pts - 1e-9) (parE[q.etape] = parE[q.etape] || []).push(q); });
+      const ks = Object.keys(parE).map(Number).sort();
+      plan = ks.length ? `<div class="eyebrow rn-t">Ton plan pour progresser</div><ol class="plan">${ks.map((k) => `<li><a href="${lienEtape(S, k)}"><b>Étape ${k} · ${PREP_NOM[k]}</b></a> <span class="discret">${parE[k].map((q) => esc(q.n)).join(", ")}</span><br><span class="discret">${esc([...new Set(parE[k].map((q) => q.quoi))].join(" ; "))}</span></li>`).join("")}</ol>
+        <p class="discret">Chaque étape s'ouvre quand la précédente est validée à 16/20. Puis reviens prendre ta revanche : même type de sujet, autres valeurs.</p>`
+        : `<div class="eyebrow rn-t">Ton plan pour progresser</div><p>Toutes les questions sont réussies : refais-le en conditions de DS, avec d'autres valeurs.</p>`;
+    }
     return `<div class="carte recap"><div class="eyebrow">Tes points, question par question</div><div class="rq-l">${qs}</div>
-      <div class="eyebrow rn-t">Par notion</div><ul class="rn">${lignes}</ul></div>`;
+      <div class="eyebrow rn-t">Par notion</div><ul class="rn">${lignes}</ul>${plan}</div>`;
   }
 
   async function envoyer(S, essai, apres) {
@@ -1837,7 +2346,7 @@ if (typeof window !== "undefined"){
       const manque = parIA ? man.filter((l) => l.ia.v !== "present" && l.ia.r).map((l) => l.ia.r).join(" ") : "";
       const redac = q.texte ? ` · rédigé : ${t.trim() ? "« " + t.trim().slice(0, 240) + " »" : "rien"} · ${parIA ? `vérifié par l'IA ${coch}${manque ? " : " + manque : ""}` : `auto-évaluation ${coch}`}` : "";
       return { q: `${q.n} · ${texteBrut(q.q).slice(0, 110)}`, rep: (vals.join(" · ") + redac).slice(0, 700),
-        attendu: q.champs.filter((c) => c.type === "nombre").map((c) => `${nb(c.val)} ${c.unite || ""}`.trim()).join(" · ") || "voir le corrigé",
+        attendu: q.champs.filter((c) => c.type === "nombre").map((c) => `${Number.isInteger(c.val) ? c.val : nb(c.val)} ${c.unite || ""}`.trim()).join(" · ") || "voir le corrigé",
         pts: Math.round(r.total * 100) / 100, bareme: q.pts, erreurs: r.total < q.pts - 1e-9 ? 1 : 0, notion: q.notion };
     });
     const titre = `${I.DS.libelle} · ${I.DS.titre} · essai n° ${essai.n}${essai.mode === "ds" ? "" : ` (${nomMode(essai.mode)})`}`;
@@ -1874,7 +2383,7 @@ if (typeof window !== "undefined"){
     const S = id && sujet(id);
     if (!S) return vueListe();
     if (vue === "correction" && n) return vueCorrection(S, Number(n));
-    return vueSujet(S, vue === "q" ? n : null);
+    return vueSujet(S, vue === "q" ? n : null, vue === "defi" ? "pas" : vue === "revanche" ? "ds" : null);
   }
   window.addEventListener("hashchange", afficher);
   window.addEventListener("pageshow", (e) => { if (e.persisted) afficher(); });

@@ -9,5 +9,13 @@ SIP.DS_BLANCS = [
   "titre": "Monte-charge d'un faré sur les hauteurs",
   "duree_min": 60,
   "page": "entrainements/ds-blanc.html#ds02"
+ },
+ {
+  "id": "ds03",
+  "ds": "DS 03",
+  "module": "dsb-ds03",
+  "titre": "Station d'alerte de crue de la Taharu'u",
+  "duree_min": 60,
+  "page": "entrainements/ds-blanc.html#ds03"
  }
 ];

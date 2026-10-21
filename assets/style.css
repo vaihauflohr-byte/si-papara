@@ -562,6 +562,9 @@ details.rapides .rapides-in details.sequence { box-shadow: none; }
 .prep-n { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .95rem; background: var(--paper); border: 1.5px solid var(--rule); color: var(--ink-2); }
 .prep-et.ok .prep-n { background: var(--good); border-color: var(--good); color: #fff; }
 .prep-et.cur .prep-n { background: var(--accent); border-color: var(--accent); color: #fff; }
+.prep-progres { margin: 10px 0 0; font-size: .95rem; }
+.prep-progres b { font-family: var(--f-mono, ui-monospace, monospace); }
+.prep-progres .gain { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--good-soft); color: var(--good); font-weight: 700; }
 @media (max-width: 640px) { .prep-liste li.prep-et { grid-template-columns: 30px minmax(0, 1fr); } .prep-liste li.prep-et .ds-btns { grid-column: 2; } }
 .ds-btns { display: flex; gap: 8px; flex-shrink: 0; }
 .ds-btns .btn { padding: 8px 14px; white-space: nowrap; }
@@ -647,3 +650,47 @@ details.sequence.anim-pli > .anim { border: 0; margin: 0; }
 .ds-avant li{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--rule-2,var(--rule))}
 .ds-avant li:first-child{border-top:0}
 .ds-avant .ds-btns{display:flex;flex-wrap:wrap;gap:6px}
+
+/* ---------- le cours d'une notion (#/cours/<id>) : écrans courts ; mode projection en classe ---------- */
+.cours-obj ul { margin: .3em 0 0; padding-left: 1.2em; } .cours-obj li { margin: .2em 0; }
+.cours-ecran { background: var(--paper); border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: var(--r); padding: 14px 18px 16px; margin: 0 0 12px; position: relative; }
+.cours-ecran h2 { margin: 0 0 8px; padding-right: 60px; font-family: var(--f-disp); text-transform: uppercase; letter-spacing: .02em; font-size: 1.25rem; line-height: 1.1; }
+.cours-num { position: absolute; top: 10px; right: 14px; font-family: var(--f-mono); font-size: .8rem; color: var(--ink-3); }
+.cours-corps p { margin: .4em 0; } .cours-corps ul, .cours-corps ol { margin: .3em 0; padding-left: 1.2em; } .cours-corps li { margin: .25em 0; }
+.cours-corps .gros { font-size: 1.25em; font-weight: 600; } .cours-corps .accent { color: var(--accent); }
+.cours-corps .formule { font-size: 1.1em; }
+.cours-corps figure { margin: 10px auto; max-width: 520px; text-align: center; } .cours-corps figure svg { width: 100%; height: auto; display: block; }
+.cours-corps figcaption { font-size: .85rem; color: var(--ink-3); margin-top: 4px; }
+.cours-corps pre.code { font-family: var(--f-mono); font-size: .9rem; line-height: 1.45; background: var(--paper-2); border: 1px solid var(--rule); border-radius: 5px; padding: 8px 12px; overflow-x: auto; white-space: pre; margin: 6px 0; }
+.cours-corps code { font-family: var(--f-mono); font-size: .92em; background: var(--paper-2); border-radius: 3px; padding: 0 4px; }
+.cours-corps .kw { color: var(--accent); font-weight: 600; } .cours-corps .cm { color: var(--ink-3); }
+.cours-corps table { border-collapse: collapse; margin: 8px auto; font-size: .95em; } .cours-corps th, .cours-corps td { border: 1px solid var(--rule); padding: 4px 10px; text-align: center; }
+.cours-corps th { background: var(--paper-2); font-family: var(--f-disp); text-transform: uppercase; letter-spacing: .04em; font-size: .78rem; }
+.cours-corps td.g { text-align: left; }
+.cours-corps .deux { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; } @media (max-width: 640px) { .cours-corps .deux { grid-template-columns: 1fr; } }
+.cours-corps .piege { background: var(--warn-soft); border-left: 3px solid var(--warn); padding: 6px 10px; border-radius: 3px; margin: 6px 0; }
+.cours-corps .retenir { background: var(--good-soft); border-left: 3px solid var(--good); padding: 8px 12px; border-radius: 3px; margin: 8px 0; font-weight: 600; }
+.cours-q { margin-top: 12px; padding: 10px 14px; background: var(--accent-soft); border-radius: 6px; }
+.cours-q > div { margin-top: 4px; } .cours-q .eyebrow { color: var(--accent); }
+.cours-cherche { margin-top: 8px; } .cours-rep { margin-top: 8px; padding: 8px 12px; background: var(--paper); border-radius: 5px; border: 1px solid var(--rule); }
+.cours-rep p { margin: .3em 0; }
+.cours-fin { margin-top: 14px; }
+.anim-badge.cours-badge { text-decoration: none; }
+/* projection : plein écran, grands caractères, un écran à la fois */
+body.projection { background: var(--paper); }
+body.projection header.haut, body.projection #banniere, body.projection .sip-toast { display: none !important; }
+body.projection main, body.projection #app { max-width: none; padding: 0; margin: 0; }
+.proj { min-height: 100vh; display: flex; flex-direction: column; }
+.proj-barre { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--rule); font-size: .95rem; position: sticky; top: 0; background: var(--paper); z-index: 5; }
+.proj-titre { font-family: var(--f-disp); text-transform: uppercase; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proj-compte { font-family: var(--f-mono); color: var(--ink-3); }
+.proj-barre .btn { min-height: 36px; padding: 4px 14px; }
+.proj-zone { flex: 1; padding: 16px clamp(16px, 5vw, 80px) 40px; font-size: clamp(1.1rem, 2.1vw, 1.75rem); line-height: 1.5; }
+.proj-zone .cours-ecran { border: 0; border-left: 0; padding: 0; margin: 0; background: transparent; max-width: 1200px; margin: 0 auto; }
+.proj-zone .cours-ecran h2 { font-size: clamp(1.6rem, 3.6vw, 3rem); margin-bottom: 18px; padding-right: 0; }
+.proj-zone .cours-num { display: none; }
+.proj-zone .cours-corps figure { max-width: min(760px, 60vw); } .proj-zone .cours-corps .deux figure { max-width: 100%; }
+.proj-zone .cours-corps pre.code { font-size: .85em; }
+.proj-zone .cours-q { margin-top: 24px; padding: 16px 22px; }
+.proj-zone .btn { font-size: 1rem; }
+@media print { .cours-ecran { break-inside: avoid; } .cours-q .btn { display: none; } .cours-rep[hidden] { display: block !important; } .proj-barre { display: none; } }
