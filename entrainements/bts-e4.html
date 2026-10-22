@@ -63,6 +63,7 @@ main{max-width:1280px;margin:0 auto;padding:18px 16px 70px}
 .carte{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:18px 20px}
 .carte+.carte{margin-top:14px}
 .grille2{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.grille2>.carte{margin-top:0}
 .chip{display:inline-block;font-size:.78rem;padding:2px 9px;border-radius:999px;background:var(--paper-2);border:1px solid var(--rule);color:var(--ink-2);margin:2px 3px 2px 0;white-space:nowrap}
 .chip.dispo{background:var(--good-soft);color:var(--good);border-color:transparent}
 .chip.attente{background:var(--warn-soft);color:var(--warn);border-color:transparent}
@@ -193,6 +194,43 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
 .lien-sujet:hover h3{color:var(--accent)}
 .pied{margin-top:40px;color:var(--ink-3);font-size:.82rem}
 @media (max-width:980px){.nav-q{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}.docs-outils{flex-wrap:nowrap;overflow-x:auto;gap:4px}.docs-outils select{max-width:120px}}
+/* séries par notion (e4/series.js) */
+.serie-hero{border-left:4px solid var(--accent)}
+.jouer.sans-doc{grid-template-columns:1fr;max-width:900px}
+.docs-html{flex:1;overflow:auto;padding:12px 14px;background:var(--paper);font-size:.9rem}
+.docs-html .doc-titre{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:1rem;margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid var(--line-strong)}
+.docs-html p{margin:.45em 0}.docs-html ul{margin:.3em 0;padding-left:1.3em}
+.t-doc{border-collapse:collapse;width:auto;min-width:60%;font-size:.84rem;margin:8px 0}
+.t-doc th,.t-doc td{border:1px solid var(--rule);padding:4px 6px;text-align:center;vertical-align:middle}
+.t-doc th{background:var(--paper-2);color:var(--ink-2);font-family:var(--f-body);font-weight:600;text-transform:none;letter-spacing:0;font-size:.8rem}
+.t-doc td:first-child{text-align:left}
+.t-doc tbody tr:hover td{background:var(--accent-soft)}
+.t-doc.t-serre{font-size:.78rem}.t-doc.t-serre th,.t-doc.t-serre td{padding:2px 4px;font-family:var(--f-mono)}
+.t-doc.t-ligne td{font-family:var(--f-mono);min-width:2.6em}
+.data-serie{margin:8px 0;overflow-x:auto}.data-serie table{width:auto}
+.doc-rappel{margin:6px 0}
+.suite-q{font-size:.82rem;color:var(--accent);font-weight:600;margin-bottom:4px}
+.chip.niv1{background:var(--good-soft);color:var(--good);border-color:transparent}.chip.niv2{background:var(--accent-soft);color:var(--accent);border-color:transparent}.chip.niv3{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.choix-serie{display:grid;gap:8px;margin:12px 0}
+.choix-serie .ch{appearance:none;display:flex;gap:10px;align-items:flex-start;text-align:left;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:inherit;padding:9px 12px;border-radius:var(--r);cursor:pointer}
+.choix-serie .ch:hover:not(:disabled){border-color:var(--accent)}
+.choix-serie .ch .k{font-family:var(--f-mono);font-weight:500;color:var(--ink-3);min-width:1.2em}
+.choix-serie .ch.ok{border-color:var(--good);background:var(--good-soft)}.choix-serie .ch.ko{border-color:var(--bad);background:var(--bad-soft)}
+.choix-serie .ch:disabled{cursor:default}
+.warn-serie{color:var(--bad);font-size:.9rem;margin-top:6px}
+.verdict-serie{font-weight:600;padding:8px 12px;border-radius:var(--r);margin-bottom:6px}
+.verdict-serie.ok{background:var(--good-soft);color:var(--good)}.verdict-serie.ko{background:var(--bad-soft);color:var(--bad)}
+.pts-serie{display:flex;gap:4px;flex-wrap:wrap}
+.pts-serie i{width:14px;height:8px;border-radius:2px;background:var(--rule)}
+.pts-serie i.ok{background:var(--good)}.pts-serie i.ko{background:var(--bad)}.pts-serie i.cour{background:var(--accent)}
+.note-serie{font-family:var(--f-mono);font-size:.95rem;padding:4px 10px;border-radius:4px;background:var(--paper-2);border:1px solid var(--rule)}
+.score .grand.n3{color:var(--good)}.score .grand.n2{color:var(--accent)}.score .grand.n1{color:var(--warn)}
+.fiche-serie{margin:6px 0 0;padding-left:1.2em}.fiche-serie li{margin:.35em 0}
+.bilan-grille{display:grid;grid-template-columns:minmax(280px,1fr) minmax(300px,1.3fr);gap:14px;align-items:start}
+.jouer>*{min-width:0}
+@media (max-width:760px){.bilan-grille{grid-template-columns:1fr}.champ{grid-template-columns:1fr}.champ .saisie{min-width:0}.champ input[type=text]{width:auto;flex:1;min-width:0}.formule{white-space:normal}.t-series th:nth-child(3),.t-series td:nth-child(3),.t-series td .discret{display:none}.t-series td:nth-child(2){width:28%}}
+.t-notions td.act,.t-runs td.act{white-space:nowrap}
+@media (max-width:760px){.t-notions th:nth-child(2),.t-notions td:nth-child(2),.t-notions th:nth-child(4),.t-notions td:nth-child(4),.t-runs th:nth-child(2),.t-runs td:nth-child(2){display:none}.t-notions td.act,.t-runs td.act{white-space:normal}.t-notions td.act .btn,.t-runs td.act .btn{display:block;margin:0 0 4px;text-align:center}.t-runs th,.t-runs td{padding:6px 4px}.t-runs th{font-size:.7rem;letter-spacing:.02em}}
 @media print{.haut,.docs,.flottant,.actions,.nav-q{display:none!important}.jouer{display:block}}
 </style>
 </head>
@@ -205,7 +243,15 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
 <button class="btn plein flottant" id="btn-docs" hidden>📄 Documents</button>
 
 <script src="e4/carte.js"></script>
+<script src="e4/sujets/2026-marilyn.js"></script>
+<script src="e4/sujets/2025-beauval.js"></script>
+<script src="e4/sujets/2024-stratus.js"></script>
 <script src="e4/sujets/2023nc-microcentrale.js"></script>
+<script src="e4/sujets/2023-cogeneration.js"></script>
+<script src="e4/sujets/2022nc-telesiege.js"></script>
+<script src="e4/sujets/2022-aerosol.js"></script>
+<script src="e4/banque.js"></script>
+<script src="e4/series.js"></script>
 <script>
 /* =====================================================================
    Entraînement E4 — moteur de la page.
@@ -248,7 +294,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
   // ---------- analyse des réponses ----------
   function parseNombre(s) {
     if (s == null) return NaN;
-    let t = String(s).trim().replace(/[\s  ]/g, "").replace(/,/g, ".").replace(/[×x*]10\^?\(?(-?\d+)\)?/i, "e$1").replace(/\^/g, "");
+    let t = String(s).trim().replace(/[\s  ]/g, "").replace(/[−–—]/g, "-").replace(/,/g, ".").replace(/[×x*]10\^?\(?(-?\d+)\)?/i, "e$1").replace(/\^/g, "");
     t = t.replace(/[^0-9eE.+-]/g, "");
     return t === "" ? NaN : parseFloat(t);
   }
@@ -256,12 +302,13 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
     if (ch.type === "choix") return val != null && Number(val) === ch.attendu;
     if (ch.type === "point") {
       if (!val || !Number.isFinite(val.x) || !Number.isFinite(val.y)) return false;
-      const t = ch.tol || {}, ecart = (v, a, tol) => t.log ? (v > 0 && a > 0 && Math.abs(Math.log10(v) - Math.log10(a)) <= (tol ?? 0.1)) : Math.abs(v - a) / Math.abs(a || 1) <= (tol ?? 10) / 100;
-      return ecart(val.x, ch.attendu.x, t.x) && ecart(val.y, ch.attendu.y, t.y);
+      // tol.x / tol.y : écart relatif en % (ou en décades si log) ; tol.absX / tol.absY : écart absolu (indispensable pour une valeur attendue nulle)
+      const t = ch.tol || {}, ecart = (v, a, tol, abs) => abs != null ? Math.abs(v - a) <= abs : t.log ? (v > 0 && a > 0 && Math.abs(Math.log10(v) - Math.log10(a)) <= (tol ?? 0.1)) : Math.abs(v - a) / Math.abs(a || 1) <= (tol ?? 10) / 100;
+      return ecart(val.x, ch.attendu.x, t.x, t.absX) && ecart(val.y, ch.attendu.y, t.y, t.absY);
     }
     const v = parseNombre(val); if (!Number.isFinite(v)) return false;
-    if (ch.abs !== undefined) return Math.abs(v - ch.attendu) <= ch.abs + 1e-9;
-    return Math.abs(v - ch.attendu) / Math.abs(ch.attendu) <= (ch.tol || 2) / 100 + 1e-9;
+    // alt : autres valeurs défendables (donnée arrondie de l'énoncé, valeur du corrigé officiel), même tolérance
+    return [ch.attendu].concat(ch.alt || []).some((a) => ch.abs !== undefined ? Math.abs(v - a) <= ch.abs + 1e-9 : Math.abs(v - a) / Math.abs(a) <= (ch.tol || 2) / 100 + 1e-9);
   }
   function niveauDe(q, coches) {
     const n = coches.filter(Boolean).length, s = q.seuils || [1, null, q.indicateurs.length];
@@ -309,6 +356,8 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
     document.getElementById("btn-docs").hidden = true;
     const h = location.hash.replace(/^#\/?/, ""), p = h.split("/");
     window.scrollTo(0, 0);
+    if (E4.stopSeries) E4.stopSeries();
+    if (E4.routeSeries && ["series", "serie", "express", "bilan-serie"].includes(p[0])) return E4.routeSeries(app, p);
     if (p[0] === "sujet" && p[1]) return vueSujet(p[1]);
     if (p[0] === "jouer" && p[1] && p[2]) return vueJouer(parcoursSujet(p[1], p[2]));
     if (p[0] === "notion" && p[1]) return vueJouer(parcoursNotion(p[1]));
@@ -329,9 +378,13 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
       <div class="etapes">
         <div class="etape"><div class="num">1</div><h3>Lis les documents</h3><p class="discret">Les documents du sujet sont à côté des questions. Chaque question te dit lesquels ouvrir ; un bouton « Où chercher ? » te montre la page exacte si tu bloques.</p></div>
         <div class="etape"><div class="num">2</div><h3>Réponds sur ta copie</h3><p class="discret">Rédige comme à l'examen (relation, unités, calcul), puis saisis tes résultats : les valeurs numériques et les choix sont vérifiés automatiquement.</p></div>
-        <div class="etape"><div class="num">3</div><h3>Évalue-toi avec la grille officielle</h3><p class="discret">Le corrigé s'affiche avec les indicateurs du barème : coche ceux que tu as réellement produits → niveau N0 à N3, comme le correcteur. Le bilan montre tes notions solides et fragiles.</p></div>
+        <div class="etape"><div class="num">3</div><h3>Évalue-toi avec la grille du barème</h3><p class="discret">Le corrigé s'affiche avec les indicateurs du barème (officiel, ou reconstitué quand il n'est pas publié) : coche ceux que tu as réellement produits → niveau N0 à N3, comme le correcteur. Le bilan montre tes notions solides et fragiles.</p></div>
       </div>
-      ${runs.length ? `<h2>Mes entraînements</h2><div class="carte" style="padding:8px 14px"><table><thead><tr><th>Parcours</th><th>Mode</th><th>Avancement</th><th class="num">Note indicative</th><th></th></tr></thead><tbody>${runs.slice(0, 12).map(ligneRun).join("")}</tbody></table></div>` : ""}
+      ${E4.BANQUE ? `<div class="carte serie-hero" style="margin-top:14px"><div class="eyebrow">Banque de questions · ${Object.keys(E4.BANQUE).length} notions · ${Object.keys(E4.BANQUE).reduce((a, k) => a + E4.nbGenerateurs(k), 0)} types de questions</div>
+        <h3 style="margin-top:4px">Avant les sujets complets : les séries par notion</h3>
+        <p class="discret" style="margin:4px 0 0;max-width:860px">Les questions types des sujets 2022-2026, avec de nouvelles valeurs à chaque essai et les extraits de dossiers ressources où chercher les données. Note sur 20, résultat transmis au professeur. L'épreuve express (12 questions, temps limité) t'entraîne à gérer ton temps.</p>
+        <div class="actions"><a class="btn plein" href="#/series">Séries par notion</a><a class="btn" href="#/express">Épreuve express · temps limité</a></div></div>` : ""}
+      ${runs.length ? `<h2>Mes entraînements</h2><div class="carte" style="padding:8px 14px"><table class="t-runs"><thead><tr><th>Parcours</th><th>Mode</th><th>Avancement</th><th class="num">Note indicative</th><th></th></tr></thead><tbody>${runs.slice(0, 12).map(ligneRun).join("")}</tbody></table></div>` : ""}
       <h2>Les sujets</h2>
       <div class="grille2">${CARTE.map((c) => {
         const s = dispo[c.id];
@@ -345,15 +398,15 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
       <h2>Carte des notions de l'épreuve <span class="discret" style="font-family:var(--f-body);font-weight:400;text-transform:none;font-size:.88rem">${TOTAL_CARTE} questions des ${CARTE.length} sujets 2022–2026, classées par notion</span></h2>
       <div class="carte">
         <p class="discret" style="margin-top:0">Les six premières notions font près des deux tiers des questions. Une notion est « disponible » dès qu'un sujet transcrit la contient : l'entraînement par notion enchaîne alors ses questions, documents compris.</p>
-        <table><thead><tr><th>Notion</th><th style="width:34%">Part des questions</th><th class="num">Questions</th><th class="num">Sujets</th><th></th></tr></thead><tbody>
+        <table class="t-notions"><thead><tr><th>Notion</th><th style="width:34%">Part des questions</th><th class="num">Questions</th><th class="num">Sujets</th><th></th></tr></thead><tbody>
         ${NOTIONS.map((n) => { const ns = CARTE.filter((c) => c.notions[n.id]).length, k = nbParNotionDispo[n.id] || 0;
           return `<tr><td><b>${esc(n.nom)}</b><br><span class="discret">${esc(n.desc)}</span></td>
             <td><div class="barre" title="${n.nb} questions sur ${TOTAL_CARTE}"><span style="width:${Math.round(100 * n.nb / max)}%"></span></div><span class="discret">${Math.round(100 * n.nb / TOTAL_CARTE)} %</span></td>
             <td class="num">${n.nb}</td><td class="num">${ns} / ${CARTE.length}</td>
-            <td>${k ? `<a class="btn petit" href="#/notion/${n.id}">S'entraîner · ${k} q.</a>` : `<span class="discret">à venir</span>`}</td></tr>`; }).join("")}
+            <td class="act">${E4.BANQUE && E4.BANQUE[n.id] ? `<a class="btn petit plein" href="#/serie/${n.id}">Série</a> ` : ""}${k ? `<a class="btn petit" href="#/notion/${n.id}">Annales · ${k} q.</a>` : `<span class="discret">annales à venir</span>`}</td></tr>`; }).join("")}
         </tbody></table>
       </div>
-      <p class="pied">Sujets officiels de l'épreuve E4 du BTS Électrotechnique (référentiel 2020), sessions 2022 à 2026. Grille d'indicateurs et niveaux N0–N3 : barème officiel de correction. La note sur 20 est indicative : elle pondère chaque question par son nombre d'indicateurs.</p>`;
+      <p class="pied">Sujets officiels de l'épreuve E4 du BTS Électrotechnique (référentiel 2020), sessions 2022 à 2026. Grille d'indicateurs et niveaux N0–N3 : barème officiel de correction quand il est publié (2022, 2023) ; sinon grille reconstituée sur le même modèle. La note sur 20 est indicative : elle pondère chaque question par son nombre d'indicateurs.</p>`;
   }
   function ligneRun(r) {
     const prc = r.parcours.startsWith("notion:") ? parcoursNotion(r.parcours.slice(7)) : parcoursSujet(r.parcours.split(":")[0], r.parcours.split(":")[1]);
@@ -364,7 +417,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
     const bilan = prc.notion ? "#/bilan/notion/" + prc.notion.id : "#/bilan/" + prc.sujet.id + "/" + prc.mode;
     return `<tr><td><b>${esc(prc.titre)}</b><br><span class="discret">${esc(prc.sous)}</span></td><td>${prc.mode === "blanc" ? "Sujet blanc" : "Guidé"}</td>
       <td>${faits.length} / ${prc.items.length} évaluées${r.fini ? " · terminé" : ""}</td><td class="num">${note == null ? "—" : nb(note, 3) + " / 20"}</td>
-      <td style="white-space:nowrap">${r.fini ? `<a class="btn petit" href="${bilan}">Bilan</a>` : `<a class="btn petit plein" href="${lien}">Reprendre</a>`}</td></tr>`;
+      <td class="act">${r.fini ? `<a class="btn petit" href="${bilan}">Bilan</a>` : `<a class="btn petit plein" href="${lien}">Reprendre</a>`}</td></tr>`;
   }
 
   // ---------- présentation d'un sujet ----------
@@ -446,7 +499,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
   };
   const COULEURS = ["#1d4ed8", "#c2410c", "#15803d"];
   function Atelier(hote, it, r, ro, corrige, sauver) {
-    const q = it.q, s = it.s, D = q.dessin, taille = s.taille || [910, 1287];
+    const q = it.q, s = it.s, D = q.dessin, taille = D.taille || s.taille || [910, 1287];   // D.taille : page au format paysage
     const [cx, cy, cw, ch] = D.cadre || [0, 0, taille[0], taille[1]];
     const src = s.dossier + D.doc + "-" + D.page + ".jpg", srcCorr = corrige && D.corrige ? s.dossier + D.corrige : null;
     const outils = D.outils !== false;
@@ -461,7 +514,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
     const palette = Object.entries(SYMBOLES).map(([k, v]) => `<option value="${k}">${esc(v.nom)}</option>`).join("");
     hote.innerHTML = `<div class="atelier">
       <div class="atelier-outils">${ro ? (srcCorr ? `<label>Superposer le corrigé <input type="range" min="0" max="100" value="0" data-opacite></label><span class="discret">0 % = ton tracé, 100 % = le corrigé</span>` : `<span class="discret">Ton document réponse (lecture seule).</span>`)
-        : `${pts.length ? `<button class="btn petit" data-outil="point">✚ Placer un point</button>` : ""}${outils ? `<button class="btn petit" data-outil="crayon">✎ Crayon</button><button class="btn petit" data-outil="ligne">╱ Ligne</button><button class="btn petit" data-outil="fleche">→ Flèche</button><button class="btn petit" data-outil="texte">T Texte</button><button class="btn petit" data-outil="symbole">⎔ Symbole</button><select data-symbole hidden>${palette}</select><span class="atelier-couleurs">${COULEURS.map((c) => `<button data-couleur="${c}" style="background:${c}" title="couleur"></button>`).join("")}</span><span class="sep"></span><button class="btn petit" data-outil="gomme">⌫ Gomme</button><button class="btn petit" data-annuler title="Annuler le dernier tracé">↶</button><button class="btn petit" data-vider>Tout effacer</button>` : ""}`}</div>
+        : `${pts.length === 1 ? `<button class="btn petit" data-outil="point">✚ Placer un point</button>` : pts.map((c) => `<button class="btn petit" data-outil="point" data-pt="${esc(c.id)}">✚ ${esc(c.label)}</button>`).join("")}${outils ? `<button class="btn petit" data-outil="crayon">✎ Crayon</button><button class="btn petit" data-outil="ligne">╱ Ligne</button><button class="btn petit" data-outil="fleche">→ Flèche</button><button class="btn petit" data-outil="texte">T Texte</button><button class="btn petit" data-outil="symbole">⎔ Symbole</button><select data-symbole hidden>${palette}</select><span class="atelier-couleurs">${COULEURS.map((c) => `<button data-couleur="${c}" style="background:${c}" title="couleur"></button>`).join("")}</span><span class="sep"></span><button class="btn petit" data-outil="gomme">⌫ Gomme</button><button class="btn petit" data-annuler title="Annuler le dernier tracé">↶</button><button class="btn petit" data-vider>Tout effacer</button>` : ""}`}</div>
       <div class="atelier-zone"><svg viewBox="${cx} ${cy} ${cw} ${ch}" class="${ro ? "" : "dessinable"}" xmlns="http://www.w3.org/2000/svg">
         <defs>${COULEURS.map((c, i) => `<marker id="fl-${i}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="${c}"/></marker>`).join("")}</defs>
         <image href="${src}" x="0" y="0" width="${taille[0]}" height="${taille[1]}"/>
@@ -469,12 +522,12 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
         <g class="calque"></g><g class="pts"></g><g class="temp"></g></svg>
         <div class="atelier-cases"></div></div>
       ${pts.length || cases.length ? `<div class="atelier-lecture" data-lecture></div>` : ""}
-      ${!ro && (outils || pts.length) ? `<div class="atelier-aide">${pts.length ? "Clique sur le graphique pour placer le point (tu peux le déplacer). " : ""}${outils ? "Crayon, lignes, flèches, texte et symboles se dessinent directement sur le document ; la gomme retire un tracé." : ""}</div>` : ""}
+      ${!ro && (outils || pts.length) ? `<div class="atelier-aide">${pts.length > 1 ? "Choisis le point, puis clique sur le graphique pour le placer (tu peux le déplacer). " : pts.length ? "Clique sur le graphique pour placer le point (tu peux le déplacer). " : ""}${outils ? "Crayon, lignes, flèches, texte et symboles se dessinent directement sur le document ; la gomme retire un tracé." : ""}</div>` : ""}
     </div>`;
     const svg = hote.querySelector("svg"), calque = svg.querySelector(".calque"), gpts = svg.querySelector(".pts"), temp = svg.querySelector(".temp"), zc = hote.querySelector(".atelier-cases"), lecture = hote.querySelector("[data-lecture]");
     const pc = (x, y, w, h) => `left:${(100 * (x - cx)) / cw}%;top:${(100 * (y - cy)) / ch}%;width:${(100 * w) / cw}%;height:${(100 * h) / ch}%`;
     // cases posées sur le document
-    zc.innerHTML = cases.map((c) => { const v = r.valeurs[c.id], etat = corrige ? (champJuste(c, v) ? "ok" : "ko") : "";
+    zc.innerHTML = cases.map((c) => { const v = r.valeurs[c.id], etat = corrige && c.attendu !== undefined ? (champJuste(c, v) ? "ok" : "ko") : "";
       if (c.type === "choix") return `<select data-case name="${c.id}" class="${etat}" style="${pc(...c.pos)}" ${ro ? "disabled" : ""} title="${esc(c.label)}"><option value="">…</option>${c.options.map((o, i) => `<option value="${i}" ${v != null && Number(v) === i ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
       return `<input data-case type="text" name="${c.id}" class="${etat}${c.attendu === undefined ? " texte-libre" : ""}" style="${pc(...c.pos)}" value="${esc(v ?? "")}" ${ro ? "readonly" : ""} title="${esc(c.label)}" placeholder="${esc(c.unite || "")}">`; }).join("");
     zc.querySelectorAll("[data-case]").forEach((el) => el.addEventListener("change", () => { const v = el.value; if (v === "") delete r.valeurs[el.name]; else r.valeurs[el.name] = el.tagName === "SELECT" ? Number(v) : v; sauver(); majLecture(); }));
@@ -494,15 +547,15 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
         const lu = v ? `${n[0]} ≈ <span class="mono">${fmt(v.x)} ${esc(u[0])}</span> · ${n[1]} ≈ <span class="mono">${fmt(v.y)} ${esc(u[1])}</span>` : "<i>pas encore placé</i>";
         const verdict = corrige ? (champJuste(c, v) ? ` <b class="n3">✓ bien placé</b>` : ` <b class="n0">✗ attendu : ${n[0]} = ${fmt(c.attendu.x)} ${esc(u[0])}, ${n[1]} = ${fmt(c.attendu.y)} ${esc(u[1])}</b>`) : "";
         return `<div><b>${esc(c.label)}</b> : ${lu}${verdict}</div>`; });
-      const lc = corrige ? cases.map((c) => { const v = r.valeurs[c.id], ok = champJuste(c, v); const att = c.type === "choix" ? c.options[c.attendu] : c.attendu; return `<div>${esc(c.label)} : ${ok ? `<b class="n3">✓</b>` : `<b class="n0">✗</b> attendu <b>${esc(att)}${c.unite ? " " + esc(c.unite) : ""}</b>`}</div>`; }) : [];
+      const lc = corrige ? cases.map((c) => { if (c.attendu === undefined) return `<div>${esc(c.label)} : <i>réponse rédigée, à comparer au corrigé</i></div>`; const v = r.valeurs[c.id], ok = champJuste(c, v); const att = c.type === "choix" ? c.options[c.attendu] : c.attendu + (c.alt && c.alt.length ? " (ou " + c.alt.join(" ou ") + ")" : ""); return `<div>${esc(c.label)} : ${ok ? `<b class="n3">✓</b>` : `<b class="n0">✗</b> attendu <b>${esc(att)}${c.unite ? " " + esc(c.unite) : ""}</b>`}</div>`; }) : [];
       lecture.innerHTML = lp.concat(lc).join(""); };
     dessinerCalque(); dessinerPts(); majLecture();
     const op = hote.querySelector("[data-opacite]"); if (op) op.addEventListener("input", () => { svg.querySelector(".corr").setAttribute("opacity", op.value / 100); });
     if (ro) return;
     // ---- outils ----
-    const majOutils = () => { hote.querySelectorAll("[data-outil]").forEach((b) => b.classList.toggle("actif", b.dataset.outil === outil)); hote.querySelectorAll("[data-couleur]").forEach((b) => b.classList.toggle("actif", b.dataset.couleur === couleur));
+    const majOutils = () => { hote.querySelectorAll("[data-outil]").forEach((b) => b.classList.toggle("actif", b.dataset.outil === outil && (!b.dataset.pt || b.dataset.pt === ptCourant))); hote.querySelectorAll("[data-couleur]").forEach((b) => b.classList.toggle("actif", b.dataset.couleur === couleur));
       const sel = hote.querySelector("[data-symbole]"); if (sel) sel.hidden = outil !== "symbole"; svg.style.cursor = outil === "gomme" ? "not-allowed" : outil === "texte" ? "text" : "crosshair"; };
-    hote.querySelectorAll("[data-outil]").forEach((b) => b.addEventListener("click", () => { outil = b.dataset.outil; majOutils(); }));
+    hote.querySelectorAll("[data-outil]").forEach((b) => b.addEventListener("click", () => { outil = b.dataset.outil; if (b.dataset.pt) ptCourant = b.dataset.pt; majOutils(); }));
     hote.querySelectorAll("[data-couleur]").forEach((b) => b.addEventListener("click", () => { couleur = b.dataset.couleur; majOutils(); }));
     const sel = hote.querySelector("[data-symbole]"); if (sel) sel.addEventListener("change", () => (symbole = sel.value));
     const ba = hote.querySelector("[data-annuler]"); if (ba) ba.addEventListener("click", () => { elems.pop(); dessinerCalque(); sauver(); });
@@ -518,7 +571,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
       if (ev.button !== 0 || saisieTexte) return; const p = P(ev); if (!p) return; ev.preventDefault(); svg.setPointerCapture(ev.pointerId);
       if (outil === "point" && ptCourant) {
         const proche = pts.find((c) => r.valeurs[c.id] && dist(versPix(r.valeurs[c.id]), p) < seuil * 1.5); if (proche) ptCourant = proche.id;
-        r.valeurs[ptCourant] = versData(p[0], p[1]); encours = { t: "pt" }; dessinerPts(); majLecture(); sauver();
+        r.valeurs[ptCourant] = versData(p[0], p[1]); encours = { t: "pt" }; dessinerPts(); majLecture(); majOutils(); sauver();
       } else if (outil === "crayon") encours = { t: "c", p: [p], k: couleur };
       else if (outil === "ligne" || outil === "fleche") encours = { t: outil === "ligne" ? "l" : "f", a: p, b: p, k: couleur };
       else if (outil === "symbole") { elems.push({ t: "s", id: symbole, p, k: couleur, r: 0 }); dessinerCalque(); sauver(); }
@@ -534,7 +587,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
       if (encours.t === "c") { if (dist(encours.p[encours.p.length - 1], p) > 1.5) encours.p.push(p); } else encours.b = p;
       temp.innerHTML = svgElem(encours, "tmp"); });
     const finTrace = (ev) => { if (!encours) return; const e = encours; encours = null; temp.innerHTML = "";
-      if (e.t === "pt") { sauver(); return; }
+      if (e.t === "pt") { const suivant = pts.find((c) => !r.valeurs[c.id]); if (suivant) { ptCourant = suivant.id; majOutils(); } sauver(); return; }
       if (e.t === "c" ? e.p.length > 1 : dist(e.a, e.b) > 2) { elems.push(e); dessinerCalque(); sauver(); } };
     svg.addEventListener("pointerup", finTrace); svg.addEventListener("pointercancel", finTrace);
     svg.addEventListener("keydown", (ev) => { if ((ev.ctrlKey || ev.metaKey) && ev.key === "z") { elems.pop(); dessinerCalque(); sauver(); } });
@@ -622,7 +675,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
           return `<div class="champ ${etat}"><span class="lab">${ch.label}</span><span></span><div class="choix">${ch.options.map((o, i) => `<label><input type="radio" name="${ch.id}" value="${i}" ${v != null && Number(v) === i ? "checked" : ""} ${ro ? "disabled" : ""}> <span>${esc(o)}</span></label>`).join("")}</div>
             ${corrige ? `<div class="verdict">${etat === "ok" ? "✓ Bonne réponse" : "✗ Réponse attendue : <b>" + esc(ch.options[ch.attendu]) + "</b>"}</div>` : ""}</div>`;
         return `<div class="champ ${etat}"><span class="lab">${ch.label}</span><span class="saisie"><input type="text" inputmode="decimal" autocomplete="off" name="${ch.id}" value="${esc(v ?? "")}" ${ro ? "readonly" : ""} placeholder="valeur"><span class="unite">${esc(ch.unite || "")}</span></span>
-            ${corrige ? `<div class="verdict">${etat === "ok" ? "✓ Juste" : "✗ Attendu : <b>" + nb(ch.attendu, 4) + " " + esc(ch.unite || "") + "</b>" + (ch.abs !== undefined ? "" : " (± " + (ch.tol || 2) + " %)")}</div>` : ""}</div>`;
+            ${corrige ? `<div class="verdict">${etat === "ok" ? "✓ Juste" : "✗ Attendu : <b>" + nb(ch.attendu, 4) + " " + esc(ch.unite || "") + "</b>" + (ch.alt && ch.alt.length ? " (ou " + ch.alt.map((x) => nb(x, 4)).join(" ou ") + ")" : "") + (ch.abs !== undefined ? "" : " (± " + (ch.tol || 2) + " %)")}</div>` : ""}</div>`;
       }).join("");
       travail.innerHTML = `
         <div class="carte">
@@ -669,7 +722,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
       const q = it.q, zone = document.getElementById("correction");
       if (!r.coches) r.coches = q.indicateurs.map(() => false);
       // indicateurs automatiques
-      const auto = {}; Object.entries(q.auto || {}).forEach(([ch, idx]) => { const c = (q.champs || []).find((x) => x.id === ch); if (c) { const ok = champJuste(c, r.valeurs[ch]); (Array.isArray(idx) ? idx : [idx]).forEach((i) => { auto[i] = auto[i] === undefined ? ok : auto[i] && ok; }); } });
+      const auto = {}; Object.entries(q.auto || {}).forEach(([ch, idx]) => { const c = (q.champs || []).find((x) => x.id === ch); if (c && (c.type === "point" || c.attendu !== undefined)) { const ok = champJuste(c, r.valeurs[ch]); (Array.isArray(idx) ? idx : [idx]).forEach((i) => { auto[i] = auto[i] === undefined ? ok : auto[i] && ok; }); } });
       Object.entries(auto).forEach(([idx, ok]) => (r.coches[idx] = ok));
       const valide = r.niveau != null;
       const dessinerGrille = () => {
@@ -680,7 +733,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
           <div class="corrige">${q.corrige}</div>
           ${q.ou && !r.indice ? `<div class="indice"><b>Où était la réponse ?</b> ${q.ou}</div>` : ""}
           <div class="grille">
-            <div class="tete"><div><h3 style="margin:0">Grille d'évaluation · barème officiel</h3><span class="discret">Coche <b>honnêtement</b> ce que tu as écrit sur ta copie. Les indicateurs liés à un résultat saisi sont cochés automatiquement.</span></div>
+            <div class="tete"><div><h3 style="margin:0">Grille d'évaluation · ${it.s.bareme === "reconstitue" ? "reconstituée (pas de barème officiel publié pour ce sujet)" : "barème officiel"}</h3><span class="discret">Coche <b>honnêtement</b> ce que tu as écrit sur ta copie. Les indicateurs liés à un résultat saisi sont cochés automatiquement.</span></div>
               <div class="niveau n${n}">N${n} <small>${NIVEAUX[n]} · ${cnt} / ${q.indicateurs.length} indicateur${cnt > 1 ? "s" : ""}</small></div></div>
             ${q.indicateurs.map((txt, i) => `<label class="${auto[i] !== undefined ? "auto" : ""}"><input type="checkbox" data-i="${i}" ${r.coches[i] ? "checked" : ""} ${auto[i] !== undefined || valide ? "disabled" : ""}> <span>${txt}</span>${auto[i] !== undefined ? `<span class="tag ${auto[i] ? "ok" : "ko"}">${auto[i] ? "vérifié ✓" : "faux ✗"}</span>` : ""}</label>`).join("")}
             <p class="discret" style="margin:8px 0 0">Seuils : ${["N1", "N2", "N3"].map((k, i) => (q.seuils || [])[i] != null ? k + " dès " + q.seuils[i] : null).filter(Boolean).join(" · ")} indicateur(s).</p>
@@ -777,5 +830,6 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
     document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
 </script>
 <script src="../assets/backend.js" onerror="void 0"></script>
+<script src="../assets/signaler.js" onerror="void 0"></script>
 </body>
 </html>
