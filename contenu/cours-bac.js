@@ -4,7 +4,7 @@
    à la fois, flèches du clavier), puis que l'élève relit sur son téléphone. Chaque écran : un titre,
    une idée, souvent un dessin ; « Cherche avec moi » = une question posée à la classe, réponse masquée.
    Écrits d'après les compétences du programme de SI (lire, compléter et traduire un programme ; coder
-   l'information ; modéliser une action mécanique par une force et un moment).
+   l'information). Les autres DS : contenu/cours-dsXX.js, avec les outils SIP.COURS_OUTILS d'ici.
    Conventions : virgule décimale, fractions écrites en entier (jamais ÷), moments avec leur signe
    (sens trigonométrique positif), résultats à 3 chiffres significatifs.
    Pour ajouter un cours : une entrée de plus dans SIP.COURS_BAC, avec l'id de la notion (contenu/bac-si.js).
@@ -100,51 +100,6 @@ window.SIP = window.SIP || {};
       s += T(x + 20, 49, b[i], ' text-anchor="middle" font-size="20" font-weight="700"') + T(x + 20, 16, "bit " + (7 - i), ' text-anchor="middle" font-size="10" fill="var(--ink-3)"'); }
     s += T(30 + 7 * 44 + 20, 82, "alerte", ' text-anchor="middle" font-size="11" fill="var(--accent)" font-weight="600"') + T(30 + 6 * 44 + 20, 82, "batterie", ' text-anchor="middle" font-size="11" fill="var(--accent)" font-weight="600"') + T(30 + 5 * 44 + 20, 82, "capteur", ' text-anchor="middle" font-size="11" fill="var(--ink-3)"'); return s; })(),
     "L'octet d'état 0000 0011 : le bit 0, à droite, vaut 1 (alerte) ; le bit 1 vaut 1 (batterie faible) ; le bit 2 vaut 0");
-
-  // ------------------------------------------------------------ figures moment
-  const figPorte = svg(420, 150, `
-    <rect x="30" y="20" width="14" height="110" fill="currentColor" opacity=".15"/>${L(30, 20, 30, 130, ' stroke-width="2"')}
-    <rect x="44" y="60" width="250" height="14" fill="none" stroke="currentColor" stroke-width="1.6"/>
-    <circle cx="44" cy="67" r="4" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.6"/>${T(36, 90, "O", ' font-weight="600"')}
-    ${AR(280, 20, 280, 55)}${T(286, 36, "F", ' font-weight="700" fill="var(--accent)" font-size="16"')}
-    ${AR(110, 20, 110, 55, "var(--warn)")}${T(116, 36, "F", ' font-weight="700" fill="var(--warn)" font-size="16"')}
-    ${T(330, 70, "facile", ' font-size="12" fill="var(--accent)"')}${T(330, 86, "d grand", ' font-size="11" fill="var(--ink-3)"')}
-    ${T(60, 118, "dur : d petit", ' font-size="12" fill="var(--warn)"')}
-    ${L(44, 100, 280, 100, ' stroke-width="1" stroke-dasharray="4 3"')}${T(160, 114, "d = 2,5 m", ' text-anchor="middle" font-size="11"')}
-    ${T(220, 145, "même force F, effet de rotation différent", ' text-anchor="middle" font-size="12"')}`,
-    "Une porte vue de dessus, charnière en O : la même force F pousse loin de la charnière, c'est facile, ou près de la charnière, c'est dur");
-  const figBras = svg(420, 180, `
-    <circle cx="70" cy="130" r="4" fill="currentColor"/>${T(56, 154, "O", ' font-weight="600" font-size="15"')}
-    ${L(70, 130, 300, 130, ' stroke-width="5" stroke-linecap="round"')}
-    <circle cx="300" cy="130" r="3" fill="currentColor"/>${T(304, 152, "A", ' font-weight="600" font-size="15"')}
-    ${AR(300, 130, 236, 66)}${T(240, 58, "F", ' font-weight="700" fill="var(--accent)" font-size="17"')}
-    ${L(300, 130, 170, 0, ' stroke-width="1" stroke-dasharray="5 3"')}${T(40, 26, "droite d'action de F", ' font-size="11" fill="var(--ink-3)"')}
-    ${L(70, 130, 185, 15, ' stroke-width="1.2"')}
-    <path d="M191 21 L197 15 L191 9" fill="none" stroke="currentColor" stroke-width="1" transform="rotate(45 185 15)"/>
-    ${T(112, 68, "d", ' font-size="18" font-style="italic" font-weight="600"')}
-    ${T(210, 174, "d : de O jusqu'à la droite d'action, à angle droit", ' text-anchor="middle" font-size="12"')}`,
-    "Bras de levier : la distance d va du point O jusqu'à la droite d'action de la force, perpendiculairement, et non le long de la barre");
-  const figSigne = svg(420, 150, `
-    <circle cx="110" cy="80" r="4" fill="currentColor"/>${T(104, 104, "O", ' font-weight="600"')}
-    ${ARC(110, 80, 46, -60, 240)}${T(110, 24, "+", ' text-anchor="middle" font-size="22" font-weight="700" fill="var(--accent)"')}
-    ${T(110, 140, "sens trigonométrique", ' text-anchor="middle" font-size="11"')}${T(110, 148, "", "")}
-    <circle cx="310" cy="80" r="4" fill="currentColor"/>${T(304, 104, "O", ' font-weight="600"')}
-    ${ARC(310, 80, 46, 240, -60, "var(--warn)")}${T(310, 24, "−", ' text-anchor="middle" font-size="22" font-weight="700" fill="var(--warn)"')}
-    ${T(310, 140, "sens des aiguilles d'une montre", ' text-anchor="middle" font-size="11"')}`,
-    "Signe d'un moment : positif quand la force fait tourner dans le sens trigonométrique, inverse des aiguilles d'une montre ; négatif dans le sens des aiguilles");
-  const figSupport = svg(420, 240, `
-    ${sol(40, 400, 200)}
-    <rect x="150" y="170" width="150" height="30" fill="currentColor" opacity=".18"/>${L(150, 170, 300, 170, ' stroke-width="1.4"')}${L(150, 170, 150, 200, ' stroke-width="1.4"')}${L(300, 170, 300, 200, ' stroke-width="1.4"')}
-    <rect x="221" y="40" width="8" height="130" fill="currentColor" opacity=".35"/>
-    ${L(225, 40, 225, 30, ' stroke-width="1.4"')}${L(200, 28, 250, 28, ' stroke-width="1.4"')}<circle cx="196" cy="28" r="5" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="254" cy="28" r="5" fill="none" stroke="currentColor" stroke-width="1.4"/>
-    ${AR(120, 60, 215, 60)}${T(130, 52, "F", ' font-weight="700" fill="var(--accent)" font-size="17"')}<circle cx="225" cy="60" r="3" fill="currentColor"/>${T(232, 56, "C", ' font-weight="600"')}
-    <circle cx="225" cy="150" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M225 143 A7 7 0 0 1 232 150 L225 150 Z M225 157 A7 7 0 0 1 218 150 L225 150 Z" fill="currentColor"/>${T(236, 146, "G", ' font-weight="600"')}
-    ${AR(225, 158, 225, 222, "var(--warn)")}${T(232, 218, "P", ' font-weight="700" fill="var(--warn)" font-size="17"')}
-    <circle cx="300" cy="200" r="4" fill="currentColor"/>${T(306, 222, "A", ' font-weight="600" font-size="15"')}
-    ${L(330, 200, 330, 60, ' stroke-width="1"')}${L(230, 60, 336, 60, ' stroke-width="1" stroke-dasharray="4 3"')}${T(338, 134, "h = 2,20 m", ' font-size="12"')}
-    ${L(225, 206, 225, 236, ' stroke-width="1" stroke-dasharray="4 3"')}${L(300, 206, 300, 236, ' stroke-width="1" stroke-dasharray="4 3"')}${L(225, 232, 300, 232, ' stroke-width="1"')}${T(262, 228, "a = 0,55 m", ' text-anchor="middle" font-size="11"')}
-    ${T(60, 100, "vent", ' font-size="12" fill="var(--ink-3)"')}`,
-    "Support lesté posé sur le toit : le vent pousse avec la force F en C à la hauteur h, le poids P agit en G à la distance a de l'arête A, autour de laquelle le support peut basculer");
 
   const C = {};
 
@@ -277,43 +232,9 @@ window.SIP = window.SIP || {};
     ]
   };
 
-  // =============================================================== meca-actions (reprise : le moment)
-  C["meca-actions"] = {
-    titre: "Le moment d'une force", sous: "Reprise pour le DS 03 : une force, son bras de levier, le signe du moment, et une conclusion sur une exigence.",
-    objectifs: ["Calculer une force de pression F = p·S et un poids P = m·g.", "Calculer le moment d'une force par rapport à un point : bras de levier perpendiculaire, unité N·m, signe.",
-      "Comparer deux moments pour conclure : basculement, coefficient de sécurité, exigence respectée ou non."],
-    ecrans: [
-      { t: "Pourquoi un moment ?", html: `<p>Pousse une porte près de la charnière : dur. Pousse-la loin : facile. La <b>même force</b> ne produit pas le même <b>effet de rotation</b>. Cet effet, c'est le <b>moment</b>.</p>
-        ${figPorte}
-        <p>Une force fait <b>avancer</b> (translation) ; un moment fait <b>tourner</b> (rotation) autour d'un point.</p>` },
-      { t: "D'abord, la force", html: `<p>Une action mécanique se modélise par une <b>force</b> : un <b>point d'application</b> (où elle pousse), une <b>direction</b> (la ligne sur laquelle elle pousse, qu'on appelle sa droite d'action), un <b>sens</b> (vers où), et une <b>valeur</b> en newtons (N), qu'on appelle sa norme.</p>
-        <ul><li>Le <b>poids</b> : en G, vertical, vers le bas, <b>P = m·g</b> avec g = 9,81 N/kg. 228 kg → P = 228 × 9,81 = 2 240 N.</li>
-        <li>Le <b>vent</b> ou l'eau sur une surface : <b>F = p·S</b>, p la pression en Pa (N/m²), S la surface en m². 1 100 Pa sur 0,30 m² → F = 330 N.</li></ul>
-        <div class="piege">Un moment se calcule avec une force en <b>newtons</b>, jamais avec une masse en kg.</div>`,
-        q: "Un panneau de 0,50 m² reçoit un vent de pression 1 200 Pa ; il pèse 310 kg avec son socle. F ? P ?", r: `<p>F = 1 200 × 0,50 = <b>600 N</b>. P = 310 × 9,81 = 3 041 N ≈ <b>3 040 N</b> (3 chiffres significatifs).</p>` },
-      { t: "Le moment : force × bras de levier", html: `${F("M<sub>O</sub>(F) = ± F × d &nbsp;&nbsp;&nbsp; en N·m")}
-        ${figBras}
-        <p><b>d</b> est le <b>bras de levier</b> : la distance du point O à la droite d'action de la force, mesurée <b>à angle droit</b>. Pas la distance de O au point d'application, sauf si la force est perpendiculaire à OA.</p>`,
-        q: "Une force horizontale de 330 N est appliquée à 2,20 m au-dessus du sol. Quel est son bras de levier par rapport à un point A posé au sol ? Son moment, sans le signe ?", r: `<p>La force est horizontale, A est au sol : d = la hauteur, <b>2,20 m</b>. |M| = 330 × 2,20 = <b>726 N·m</b>.</p>` },
-      { t: "Le signe : dans quel sens ça tourne ?", html: `${figSigne}
-        <p>On compte le moment <b>positif</b> quand la force fait tourner autour de O dans le <b>sens trigonométrique</b> (inverse des aiguilles d'une montre), <b>négatif</b> dans le sens des aiguilles.</p>
-        <div class="retenir">Méthode : pose un doigt sur O, pousse dans le sens de la force, regarde dans quel sens ça tourne. Le signe fait partie de la réponse : « −726 N·m » est juste, « 726 N·m » ne l'est pas.</div>` },
-      { t: "Quand le moment est nul", html: `<ul><li>La droite d'action <b>passe par O</b> : d = 0, pas d'effet de rotation (une force qui tire le long d'une barre articulée en O).</li>
-        <li>Une force <b>appliquée en O</b> : même chose.</li></ul>
-        <p>Au DS, on calcule souvent les moments autour du point A, l'arête où le support s'appuie sur le sol : l'action du sol passe par A, son moment est nul, et on n'a pas besoin de la connaître.</p>` },
-      { t: "Exemple : le support de la station météo", html: `${figSupport}
-        <p>Le vent pousse en C (F = 330 N, h = 2,20 m) ; le poids P = 2 240 N agit en G, à a = 0,55 m de l'arête A autour de laquelle le support peut basculer.</p>`,
-        q: "Calcule M<sub>A</sub>(F) et M<sub>A</sub>(P), avec leur signe.", r: `<p>F fait tourner le support autour de A dans le sens des aiguilles d'une montre : <b>M<sub>A</sub>(F) = −330 × 2,20 = −726 N·m</b>.<br>P le plaque au sol, sens trigonométrique : <b>M<sub>A</sub>(P) = +2 240 × 0,55 = +1 230 N·m</b>.</p>` },
-      { t: "Conclure : le coefficient de sécurité", html: `<p>Le support ne bascule pas si le moment du poids l'emporte sur celui du vent. L'exigence demande une marge : un <b>coefficient de sécurité</b> d'au moins 1,5.</p>
-        ${F("k = " + fr("|M<sub>A</sub>(P)|", "|M<sub>A</sub>(F)|") + " = " + fr("1 230", "726") + " = 1,69")}
-        <p>1,69 ≥ 1,5 : <b>l'exigence est respectée</b>. Autre façon : 1,5 × 726 = 1 089 N·m ≤ 1 230 N·m.</p><p class="discret">On calcule avec les résultats arrondis à 3 chiffres (1 230, pas 1 232) : c'est ce que fait le corrigé. Avec 1 232 on trouve 1,70 : même conclusion.</p>
-        <div class="piege">k entre 1 et 1,5 : ça ne bascule pas, mais l'exigence n'est <b>pas</b> respectée. k &lt; 1 : ça bascule.</div>`,
-        q: "Avec le panneau de 600 N de vent à 1,80 m et 3 040 N de poids à 0,45 m de A : k ? Conclusion ?", r: `<p>|M<sub>A</sub>(F)| = 600 × 1,80 = 1 080 N·m ; |M<sub>A</sub>(P)| = 3 040 × 0,45 = 1 370 N·m ; k = ${fr("1 370", "1 080")} = <b>1,27</b>. Il ne bascule pas, mais 1,27 &lt; 1,5 : <b>exigence non respectée</b>. Il faut alourdir le socle ou l'élargir (a plus grand).</p>` },
-      { t: "Les pièges qui coûtent des points", html: `<ul><li>Prendre la mauvaise distance comme bras de levier (a au lieu de h pour le vent).</li><li>Oublier de convertir : mm → m, kg → N.</li><li>Oublier le signe, ou le choisir sans regarder le sens de rotation.</li>
-        <li>Conclure « respectée » dès que k &gt; 1, sans comparer à 1,5.</li><li>Écrire un moment en N au lieu de N·m.</li></ul>
-        <div class="retenir">À toi : la fiche, puis la série « moments ». Au DS : F, son moment avec le signe, P, son moment avec le signe, k, la phrase.</div>` }
-    ]
-  };
+  // meca-actions (le moment, repris en DS 03) : cours complet dans contenu/cours-ds02.js
 
   SIP.COURS_BAC = Object.assign(SIP.COURS_BAC || {}, C);
+  // outils partagés avec les autres fichiers de cours (contenu/cours-dsXX.js)
+  SIP.COURS_OUTILS = { fr, esc, code, c, F, svg, T, L, AR, ARC, sol };
 })(window.SIP);

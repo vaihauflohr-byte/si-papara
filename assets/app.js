@@ -341,7 +341,7 @@
       const btn = (x) => {
         if (!x.open) return `<span class="btn sec off">${x.k === 1 && E[0].defi ? "après le défi" : `après l'étape ${x.k - 1}`}</span>`;
         const note = x.best !== null ? ` <small>${SIP.nb(x.best, 3)}/20</small>` : "";
-        const lab = x.ok ? `✓ ${x.blanc ? "Fait" : "Validée"}${note}` : x.best !== null ? `Reprendre${note}` : x.defi ? "Relever le défi" : x.revanche ? "Prendre ma revanche" : "Commencer";
+        const lab = x.ok ? (x.blanc ? `↺ Refaire${x.best !== null ? ` <small>meilleur ${SIP.nb(x.best, 3)}/20</small>` : ""}` : `✓ Validée${note}`) : x.best !== null ? `Reprendre${note}` : x.defi ? "Relever le défi" : x.revanche ? "Prendre ma revanche" : "Commencer";
         return `<a class="btn ${x.ok ? "sec fait" : cur && cur.k === x.k ? "" : "sec"}" href="${x.lien}">${lab}</a>`;
       };
       const lignes = E.map((x) => `<li class="prep-et ${x.ok ? "ok" : x.open ? (cur && cur.k === x.k ? "cur" : "") : "off"}${x.blanc ? " ds-blanc" : ""}">
@@ -489,6 +489,9 @@
       ${SIP.MISSIONS && SIP.MISSIONS.total().possibles ? (() => { const t = SIP.MISSIONS.total(); return `<a class="carte tuile" href="#/fiches-bac">
         <div class="discret">Missions des fiches</div><div class="grand">${t.gagnees}<small> / ${t.possibles} ★</small></div>
         <div class="discret">Manipule les animations et gagne tes étoiles.</div></a>`; })() : ""}
+      ${SIP.COURS_BAC && Object.keys(SIP.COURS_BAC).length ? `<a class="carte tuile" href="#/cours">
+        <div class="discret">Les cours</div><div class="grand">${Object.keys(SIP.COURS_BAC).length}<small> cours</small></div>
+        <div class="discret">Ceux du prof, à relire écran par écran.</div></a>` : ""}
       ${nbFiches ? `<a class="carte tuile" href="#/methode">
         <div class="discret">Réussir l'écrit</div><div class="grand">${nbFiches}<small> fiches</small></div>
         <div class="discret">Calculer, conclure, gérer ton temps.</div></a>` : ""}
@@ -570,9 +573,22 @@
       ${e.q ? `<div class="cours-q"><span class="eyebrow">Cherche avec moi</span><div>${e.q}</div>${rep}</div>` : ""}
     </section>`;
   }
+  function vueListeCours() {
+    const B = SIP.BAC, ids = SIP.COURS_BAC ? Object.keys(SIP.COURS_BAC) : [], connecte = !!SIP.session.get();
+    const notions = B ? B.notions.filter((n) => ids.includes(n.id)).sort((a, b) => (a.ds_date || "9").localeCompare(b.ds_date || "9") || a.rang - b.rang) : [];
+    const groupes = [];
+    notions.forEach((n) => { const g = groupes.find((x) => x.ds === n.ds); g ? g.l.push(n) : groupes.push({ ds: n.ds, date: n.ds_date, l: [n] }); });
+    $app.innerHTML = `<p class="no-print"><a href="${connecte ? "#/tableau" : "#/"}">← ${connecte ? "Tableau de bord" : "Accueil"}</a></p>
+      <h1>Les cours</h1>
+      <p class="discret">Les cours présentés en classe, écran par écran : relis-les avant la fiche et la série. Chaque cours commence par « pourquoi », avance une idée à la fois, et finit par les pièges qui coûtent des points au DS.</p>
+      ${groupes.map((g) => `<h2>${esc(g.ds || "Hors DS")} <span class="discret">${g.date ? jourLong(g.date) : ""}</span></h2>
+        <div class="nb-liste">${g.l.map((n) => { const C = coursBac(n.id); return `<a class="nb-row fiche-ligne" href="#/cours/${n.id}"><span class="nb-rk">▶</span>
+          <span class="nb-nm"><b>${esc(C.titre)}</b><span class="discret">${esc(C.sous || n.lab)} · ${C.ecrans.length} écrans</span></span><span class="nb-go" aria-hidden="true">→</span></a>`; }).join("")}</div>`).join("")}`;
+  }
   function vueCours(id, mode) {
     if (PROJ) { document.removeEventListener("keydown", PROJ); PROJ = null; }
     document.body.classList.remove("projection");
+    if (!id) return vueListeCours();
     const C = coursBac(id), connecte = !!SIP.session.get();
     if (!C) { location.hash = connecte ? "#/tableau" : "#/"; return; }
     const n = SIP.BAC ? SIP.BAC.notions.find((x) => x.id === id) : null, F = ficheBac(id);
@@ -618,7 +634,7 @@
         ${C.objectifs ? `<div class="carte cours-obj"><div class="eyebrow">Ce que tu dois savoir faire au DS</div><ul>${C.objectifs.map((o) => `<li>${o}</li>`).join("")}</ul></div>` : ""}
         <article class="cours">${ecrans}</article>
         <div class="carte cours-fin"><b>Et maintenant ?</b> ${F ? `Relis <a href="#/fiche/${id}">la fiche</a> (une page, à garder), puis ` : "Puis "}${n && n.enLigne ? `<a href="${PAGE_BAC}#n=${id}">entraîne-toi</a> : les valeurs changent à chaque essai.` : "entraîne-toi."}</div>
-        <p class="pied no-print">${connecte ? `<a href="#/tableau">← Tableau de bord</a>` : `<a href="#/">← Accueil</a>`}</p>`;
+        <p class="pied no-print">${connecte ? `<a href="#/tableau">← Tableau de bord</a> · ` : `<a href="#/">← Accueil</a> · `}<a href="#/cours">Tous les cours</a></p>`;
       document.getElementById("imp").onclick = () => window.print();
     }
     $app.querySelectorAll("[data-rep]").forEach((b) => (b.onclick = () => { b.hidden = true; b.nextElementSibling.hidden = false; }));

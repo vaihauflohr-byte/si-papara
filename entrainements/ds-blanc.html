@@ -243,7 +243,9 @@ code.ligne{font-family:var(--f-mono);white-space:pre-wrap;background:var(--paper
 .revoir{font-size:.9rem;margin:8px 0;padding:7px 11px;border-radius:5px;background:var(--accent-soft);border-left:3px solid var(--accent)}
 ol.plan{margin:6px 0 4px;padding-left:1.3em}ol.plan li{margin:.35em 0}
 .carte.defi{border-color:var(--accent);background:var(--accent-soft)}.carte.defi p{margin:.3em 0}
-@media print{.barre,.barre-bas,.haut,#sip-etat,.fin-copie,.fin-corr,.sig-place,.pas-nav,.pas-act,.rq-l{display:none!important}body{background:#fff}.feuille{border:0}}
+.recommencer{margin:-6px 0 10px;font-size:.88rem}
+.recommencer .lien{font:inherit;font-weight:600;color:var(--accent);background:none;border:0;padding:4px 0;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+@media print{.recommencer,.barre,.barre-bas,.haut,#sip-etat,.fin-copie,.fin-corr,.sig-place,.pas-nav,.pas-act,.rq-l{display:none!important}body{background:#fff}.feuille{border:0}}
 /* figures : mêmes classes que les DS papier et l'entraînement */
 .v-ink{stroke:var(--ink);stroke-width:1.6;fill:none}
 .v-thin{stroke:var(--ink);stroke-width:1.1;fill:none}
@@ -1663,7 +1665,7 @@ if (typeof window !== "undefined"){
     return cache[k];
   }
   const sujet = (id) => SUJETS.find((s) => s.id === id);
-  const enCours = (d) => d.essais.find((e) => !e.rendu);
+  const enCours = (d) => d.essais.find((e) => !e.rendu && !e.abandon);    /* une copie abandonnée (« Recommencer ») ne compte plus */
 
   /* ---------- notation ----------
      Éléments rédigés du barème : verdict de l'IA s'il existe (présent 1, en partie ½, absent 0),
@@ -1957,6 +1959,7 @@ if (typeof window !== "undefined"){
         <span class="avance" id="avance"></span>
         <button class="btn" id="rendre" type="button">Rendre<span class="long"> ma copie</span></button></div>
       <div id="sip-etat">${etat()}</div>
+      ${boutonRecommencer()}
       <article class="feuille">
         <div class="cart"><div class="logo"><img src="${RACINE}assets/logo-papara.svg" alt="Lycée Tuianu Le Gayic, Papara" width="76" height="76"></div>
           <div class="left"><div class="eyebrow">${esc(D.eyebrow || "")}</div><h1>${esc(D.libelle || "")}<small>${esc(D.titre)}</small></h1><div class="eyebrow">${esc(D.theme || "")}</div></div>
@@ -1992,8 +1995,22 @@ if (typeof window !== "undefined"){
         [["Rendre ma copie", () => rendre(S, essai, false)], ["Continuer", null]]);
     };
     document.getElementById("rendre").onclick = demander; document.getElementById("rendre2").onclick = demander;
+    document.getElementById("recommencer").onclick = () => recommencer(S, essai);
   }
 
+  /* « Recommencer à zéro » : la copie en cours est abandonnée (gardée sur l'appareil, jamais envoyée), puis on
+     revient au choix du mode ; le nouvel essai a de nouvelles valeurs (son numéro suit celui de la copie abandonnée). */
+  const boutonRecommencer = () => `<p class="recommencer"><button type="button" class="lien" id="recommencer">↺ Recommencer à zéro</button> <span class="discret">nouvelles valeurs ; cette copie est effacée</span></p>`;
+  function recommencer(S, essai) {
+    const faites = essai.mode === "pas" ? Object.keys(essai.verif || {}).length : 0;
+    boite(`<h2>Recommencer à zéro ?</h2><p>Ta copie en cours est effacée${essai.mode === "ds" ? " et le chrono repart à 0" : ""} : rien n'est envoyé à ton professeur${faites ? (faites > 1 ? ` (même les ${faites} questions déjà vérifiées)` : " (même la question déjà vérifiée)") : ""}. Tu choisis ensuite comment le refaire, avec de nouvelles valeurs.</p>`,
+      [["Recommencer", () => {
+        stopMinuteur(); vider();
+        const d = dossier(S.id), e = d.essais.find((x) => x.n === essai.n);
+        if (e) { e.abandon = true; e.fin = Date.now(); garder(S.id, d); }
+        window.scrollTo(0, 0); aller("#" + S.id);
+      }], ["Continuer ma copie", null]]);
+  }
   function rendre(S, essai, tempsEcoule) {
     stopMinuteur(); vider();
     const d = dossier(S.id), e = d.essais.find((x) => x.n === essai.n) || essai;
@@ -2047,6 +2064,7 @@ if (typeof window !== "undefined"){
         <span class="avance" id="avance" title="Questions vérifiées">${Q.filter((x) => essai.verif[x.n]).length} / ${Q.length}</span>
         <button class="btn" id="terminer" type="button">Terminer</button></div>
       <div id="sip-etat">${etat()}</div>
+      ${boutonRecommencer()}
       <nav class="pas-nav" aria-label="Questions du sujet">${pastilles}</nav>
       <p class="pas-score" id="pas-score"></p>
       <article class="feuille pas">
@@ -2111,6 +2129,7 @@ if (typeof window !== "undefined"){
       const b = document.getElementById("suivante"); if (b) b.onclick = () => aller(`#${S.id}/q/${encodeURIComponent(suiv.n)}`);
       const f = document.getElementById("bilan"); if (f) f.onclick = () => rendre(S, essai, false);
     }
+    document.getElementById("recommencer").onclick = () => recommencer(S, essai);
     document.getElementById("terminer").onclick = () => {
       const reste = Q.filter((x) => !essai.verif[x.n]).map((x) => x.n);
       if (!reste.length) return rendre(S, essai, false);
