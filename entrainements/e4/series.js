@@ -25,7 +25,7 @@
   const E4 = window.E4 || {};
   const B = E4.BANQUE || {};
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const txt = (h) => String(h ?? "").replace(/<span class="frac"><span>(.*?)<\/span><span>(.*?)<\/span><\/span>/g, "($1)/($2)").replace(/<sup>(.*?)<\/sup>/g, "^$1").replace(/<sub>(.*?)<\/sub>/g, "$1").replace(/<br\s*\/?>/g, " ").replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+  const txt = (h) => String(h ?? "").replace(/<span class="frac"><span>(.*?)<\/span><span>(.*?)<\/span><\/span>/g, "($1)/($2)").replace(/<sup>(.*?)<\/sup>/g, "^$1").replace(/<sub>(.*?)<\/sub>/g, "$1").replace(/<br\s*\/?>/g, " ").replace(/<\/?[a-zA-Z][^>]*>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
   const nf = (x, d = 2) => Number(x).toLocaleString("fr-FR", { maximumFractionDigits: d });
   const NIV = { 1: "Relever, appliquer", 2: "Calculer", 3: "Enchaîner, conclure" };
   const notion = (id) => (E4.NOTIONS || []).find((n) => n.id === id) || { id, nom: id, nb: 0 };
@@ -36,6 +36,10 @@
   const mmss = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
   const court = (nom) => { const t = nom.includes("·") ? nom.split("·").slice(1).join("·").trim() : nom; return t.length > 38 ? t.slice(0, 36) + "…" : t; };
   const minutes = (m) => (m < 1 ? "moins d'1 min" : Math.round(m) + " min");
+  /* figure de la question (banque : q.fig, SVG) ; sur téléphone, on la touche pour l'agrandir */
+  const figHTML = (q) => (q.fig ? `<figure class="figbox" title="Touche la figure pour l'agrandir">${q.fig}</figure><p class="fig-aide">Touche la figure pour l'agrandir, puis fais-la glisser.</p>` : "");
+  const figTexte = (q) => { const m = /aria-label="([^"]*)"/.exec(q.fig || ""); return m ? txt(m[1].replace(/&quot;/g, '"')) : ""; };
+  document.addEventListener("click", (e) => { const f = e.target.closest && e.target.closest(".figbox"); if (f) f.classList.toggle("zoom"); });
 
   let st = null, tmr = null;
   E4.stopSeries = () => { clearInterval(tmr); tmr = null; const b = document.getElementById("btn-docs"); if (b) b.hidden = true; };
@@ -150,7 +154,7 @@
       : `<div class="champ"><span class="lab">Ta réponse</span><span class="saisie"><input type="text" id="s-val" inputmode="decimal" autocomplete="off" aria-label="Ta réponse"><span class="unite">${esc(q.unit || "")}</span></span></div>`;
     trav.innerHTML = `<div class="carte">
         <div class="q-tete"><span class="q-num">Q${st.i + 1}</span>${q.type === "redac" ? `<span class="chip redac">✎ Rédaction</span>` : `<span class="chip niv${q.lv}">Niveau ${q.lv} · ${NIV[q.lv]}</span>`}${st.id === "express" ? `<span class="chip">${esc(notion(q.nid).nom)}</span>` : ""}<span class="discret">repère ≈ ${minutes(E4.repereMinutes(q))}</span></div>
-        ${prec}${q.ctx ? `<div class="contexte">${q.ctx}</div>` : ""}${q.data ? `<div class="data-serie">${q.data}</div>` : ""}
+        ${prec}${q.ctx ? `<div class="contexte">${q.ctx}</div>` : ""}${q.rappel ? `<div class="rappel-q">${q.rappel}</div>` : ""}${figHTML(q)}${q.data ? `<div class="data-serie">${q.data}</div>` : ""}
         ${q.docs && q.docs.length ? `<p class="discret doc-rappel">📄 Données à chercher dans : ${q.docs.map((d) => `<b>${esc(d.nom)}</b>`).join(" · ")}</p>` : ""}
         <p class="q-enonce">${q.q}</p>
         ${saisie}
@@ -230,7 +234,7 @@
   }
   async function corrigerIA(q, t) {
     const d = await SIP.ia.corriger({
-      question: ("BTS Électrotechnique (2e année), épreuve E4, conception – étude préliminaire. " + txt((q.ctx || "") + " " + (q.data || "") + " Question : " + q.q)).slice(0, 2400),
+      question: ("BTS Électrotechnique (2e année), épreuve E4, conception – étude préliminaire. " + txt((q.ctx || "") + " " + (q.rappel ? q.rappel + " " : "") + (figTexte(q) ? "Figure : " + figTexte(q) + " " : "") + (q.data || "") + " Question : " + q.q)).slice(0, 2400),
       corrige: txt(q.expl).slice(0, 3900),
       elements: q.el.map((e, i) => ({ i, t: txt(e).slice(0, 290), p: 1 })),
       reponse: t.slice(0, 2000) });
@@ -286,7 +290,7 @@
     b.addEventListener("click", () => {
       const r = st.rep[st.i] && st.qs[st.i] === q ? st.rep[st.i] : null;
       SIP.signaler.ouvrir({ source: "serie", notion: q.nid, module: st.id === "express" ? "e4-express" : "e4-serie-" + st.id, ref: q.g + (q.gl > 1 ? "." + q.gj : ""),
-        question: txt((q.ctx ? q.ctx + " · " : "") + (q.data ? txt(q.data) + " · " : "") + q.q).slice(0, 1500), figure: null,
+        question: txt((q.ctx ? q.ctx + " · " : "") + (q.data ? txt(q.data) + " · " : "") + q.q).slice(0, 1500), figure: q.fig || null,
         reponse: r ? String(r.rep).slice(0, 1500) : null, attendu: attenduDe(q).slice(0, 1500), correction: txt(q.expl).slice(0, 1500) },
         { lienConnexion: "../index.html#/connexion/BTS2-STI", surEnvoi: () => SIP.signaler.marquer(b) });
     });
@@ -348,7 +352,7 @@
             : `<div class="carte"><h3>Par notion</h3><table><tbody>${Object.entries(parNotion).map(([id, p]) => `<tr><td>${esc(notion(id).nom)}</td><td class="num" style="white-space:nowrap">${nf(p.ok, 1)} / ${p.n}</td><td>${p.ok < p.n - 1e-9 ? `<a class="btn petit" href="#/serie/${id}">Série</a>` : "✓"}</td></tr>`).join("")}</tbody></table></div>`}
       </div>
       <h2>${erreurs.length ? "Questions à revoir" : "Aucune erreur"}</h2>
-      ${erreurs.length ? erreurs.map((x) => `<details class="section"><summary>Q${x.k + 1} · ${x.q.type === "redac" ? "✎ " : ""}${esc(txt(x.q.q).slice(0, 140))}${x.r.horsTemps ? " · <i>non traitée</i>" : x.q.type === "redac" ? ` · ${nf(fracDe(x.r) * x.q.el.length, 1)} / ${x.q.el.length} élément${x.q.el.length > 1 ? "s" : ""}` : ""}</summary><div>${x.q.ctx ? `<div class="contexte">${x.q.ctx}</div>` : ""}${revoir(x)}</div></details>`).join("") : `<p class="discret">Bravo. Refais une série dans quelques jours : les valeurs et les questions changent.</p>`}`;
+      ${erreurs.length ? erreurs.map((x) => `<details class="section"><summary>Q${x.k + 1} · ${x.q.type === "redac" ? "✎ " : ""}${esc(txt(x.q.q).slice(0, 140))}${x.r.horsTemps ? " · <i>non traitée</i>" : x.q.type === "redac" ? ` · ${nf(fracDe(x.r) * x.q.el.length, 1)} / ${x.q.el.length} élément${x.q.el.length > 1 ? "s" : ""}` : ""}</summary><div>${x.q.ctx ? `<div class="contexte">${x.q.ctx}</div>` : ""}${x.q.rappel ? `<div class="rappel-q">${x.q.rappel}</div>` : ""}${figHTML(x.q)}${revoir(x)}</div></details>`).join("") : `<p class="discret">Bravo. Refais une série dans quelques jours : les valeurs et les questions changent.</p>`}`;
     document.getElementById("b-encore").addEventListener("click", () => { const id = st.id; st = null; location.hash = id === "express" ? "#/express" : "#/serie/" + id; });
   }
   async function transmettre() {
