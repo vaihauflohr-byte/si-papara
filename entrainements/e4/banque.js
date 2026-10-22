@@ -1401,17 +1401,444 @@ B["variateurs"] = { gens: { 1: [va[1], va[2]], 2: [va[0]], 3: [] }, count: { 1: 
 }
 
 /* =====================================================================
+   QUESTIONS DE RÉDACTION (justifier, expliquer, argumenter, conclure)
+   Comme dans les sujets E4 : l'étudiant rédige, puis sa réponse est vérifiée
+   par l'IA du site (fonction « corriger », Claude) à partir du corrigé et des
+   éléments du barème ; sans IA (hors connexion, quota), il coche lui-même,
+   avec le corrigé, les éléments que sa réponse contient.
+   Format : { type: "redac", lv, min (temps de référence), ctx, q,
+              el: [éléments du barème, observables dans la réponse], expl, ou }
+   Chaque notion : B[n].redac (liste de générateurs), B[n].count.r (nombre par série).
+   ===================================================================== */
+{
+const rd = (o) => Object.assign({ type: "redac", lv: 2, min: 4 }, o);
+const pc = (x, d = 1) => nf(x, d) + " %";
+
+/* ---------- protections et sécurité ---------- */
+const prR = [
+  /* PEN jamais coupé : disjoncteur tripolaire */
+  () => { const dep = rnd(["d'une pompe de relevage triphasée", "d'un tableau divisionnaire d'atelier", "d'une armoire de climatisation", "d'un compresseur d'air"]);
+    return rd({ lv: 2, min: 3,
+      ctx: `L'installation est en schéma de liaison à la terre <b>TN-C</b>. Le départ ${dep} est réalisé avec trois conducteurs de phase et un conducteur PEN.`,
+      q: "Justifier le nombre de pôles du disjoncteur qui protège ce départ.",
+      el: ["En TN-C, le neutre et le conducteur de protection sont confondus en un seul conducteur, le PEN",
+        "Le PEN ne doit jamais être coupé : il relie les masses au neutre et assure la protection des personnes contre les contacts indirects",
+        "Conclusion : disjoncteur tripolaire (3 pôles), qui ne coupe que les trois phases"],
+      ou: "Fiche de la notion : le rôle du conducteur PEN en schéma TN-C.",
+      expl: `<p>En <b>TN-C</b>, le neutre et le conducteur de protection sont confondus : c'est le <b>PEN</b>. Il relie les masses au point neutre du transformateur ; s'il était coupé, un défaut d'isolement ne provoquerait plus de courant de défaut franc et les masses pourraient rester à un potentiel dangereux. Le PEN n'est donc <b>jamais coupé</b> (ni sectionné).</p><p>${R("Disjoncteur tripolaire (3P)")} : il coupe les trois phases seulement.</p>` }); },
+  /* longueur maximale dépassée : conclusion et solutions */
+  () => { const S = rnd([70, 95, 120, 150]), Im = rnd([1600, 2000, 2500, 3200]), Lm = D.F25[S][D.IM.indexOf(Im)], L = arr(Lm * rnd([1.15, 1.3, 1.45]), 10);
+    return rd({ lv: 3, min: 5,
+      ctx: `Un départ en schéma TN-S est protégé par un disjoncteur industriel dont le seuil magnétique est réglé à I<sub>m</sub> = ${nf(Im)} A. Le câble en cuivre (phases ${S} mm², PE de même section) mesure L = ${L} m. Le calcul donne une longueur maximale protégée contre les contacts indirects L<sub>max</sub> = ${Lm} m (temps de coupure maximal 0,4 s).`,
+      q: "La protection des personnes est-elle assurée ? Proposer deux solutions différentes pour y remédier, en expliquant pourquoi chacune est efficace.",
+      el: [`Conclusion justifiée : L = ${L} m est supérieure à Lmax = ${Lm} m, le courant de défaut est trop faible pour faire déclencher le magnétique en moins de 0,4 s : la protection des personnes n'est pas assurée`,
+        "Une première solution correcte avec sa raison : abaisser Im (Id ≥ Im devient vrai), augmenter la section des phases et/ou du PE (Id augmente), installer un DDR (il détecte un faible courant de défaut) ou une liaison équipotentielle supplémentaire (elle limite la tension de contact)",
+        "Une seconde solution correcte, différente de la première, avec sa raison"],
+      ou: "Compare L et Lmax, puis repense à la relation Lmax = 0,8 · U0 · Sph / (ρ · (1 + m) · Im) : quelles grandeurs peut-on changer ?",
+      expl: `<p><b>Conclusion.</b> L = ${L} m &gt; L<sub>max</sub> = ${Lm} m : au bout du câble, l'impédance de la boucle de défaut est trop grande, le courant de défaut I<sub>d</sub> reste inférieur à I<sub>m</sub> = ${nf(Im)} A et le disjoncteur ne coupe pas en moins de 0,4 s. ${R("La protection des personnes n'est pas assurée.")}</p>
+        <p><b>Solutions</b> (deux suffisent), d'après ${F(`L<sub>max</sub> = ${FRAC("0,8 · U<sub>0</sub> · S<sub>ph</sub>", "ρ · (1 + m) · I<sub>m</sub>")}`)} :</p>
+        <ul><li><b>abaisser le seuil magnétique</b> I<sub>m</sub> (réglage du déclencheur électronique) : L<sub>max</sub> augmente, I<sub>d</sub> ≥ I<sub>m</sub> devient vrai ;</li>
+        <li><b>augmenter la section</b> des conducteurs (phases et/ou PE) : la résistance de la boucle diminue, I<sub>d</sub> augmente ;</li>
+        <li><b>installer un dispositif différentiel (DDR)</b> : il détecte le courant de défaut, même faible, et coupe ;</li>
+        <li>réaliser une <b>liaison équipotentielle supplémentaire</b> entre les masses et les éléments conducteurs : elle limite la tension de contact.</li></ul>` }); },
+  () => { const a = rnd([400, 630, 800, 1000]), b = rnd([63, 100, 125, 160]), ch = rnd(["l'éclairage de l'atelier", "une ligne de production", "les prises de courant des bureaux", "un groupe de pompes"]);
+    return rd({ lv: 2, min: 4,
+      ctx: `Le disjoncteur général Q1 (I<sub>n</sub> = ${a} A) alimente plusieurs départs, dont le départ protégé par Q2 (I<sub>n</sub> = ${b} A) qui alimente ${ch}. Le CCTP impose la sélectivité totale entre Q1 et Q2.`,
+      q: "Expliquer ce qu'est la sélectivité entre Q1 et Q2, comment on l'obtient, et pourquoi le CCTP l'impose.",
+      el: ["Lors d'un défaut (surcharge ou court-circuit) en aval de Q2, seul Q2 déclenche, Q1 reste fermé",
+        "Intérêt : continuité de service, les autres départs alimentés par Q1 restent sous tension, seul le départ en défaut est coupé",
+        "Moyen : seuils et/ou temporisation du disjoncteur amont plus élevés que ceux de l'aval, vérifiés avec les courbes ou les tables de sélectivité du constructeur"],
+      expl: `<p>Il y a <b>sélectivité</b> entre Q1 (amont) et Q2 (aval) si, lors d'un défaut en aval de Q2 (surcharge ou court-circuit), <b>seul Q2 déclenche</b> : Q1 reste fermé.</p><p>Intérêt : ${R("la continuité de service")} ; seul le départ en défaut est mis hors tension, tous les autres départs de Q1 restent alimentés (un défaut sur ${ch} n'arrête pas tout le site).</p><p>On l'obtient avec des réglages (I<sub>r</sub>, I<sub>m</sub>) et/ou une temporisation du disjoncteur amont plus élevés que ceux de l'aval ; elle se vérifie sur les courbes de déclenchement ou dans les tables de sélectivité du constructeur.</p>` }); },
+  () => { const icc = rnd([22, 28, 32]), icu0 = rnd([36, 50, 70]), icuk = rnd([10, 15, 16]), lim = Math.min(icu0, rnd([36, 40, 50])), k = ri(11, 18);
+    return rd({ lv: 2, min: 4,
+      ctx: `Au TGBT, le courant de court-circuit présumé vaut I<sub>cc</sub> = ${icc} kA. Le disjoncteur d'arrivée Q0 a un pouvoir de coupure de ${icu0} kA. Le départ Q${k}, placé juste en aval, n'a qu'un pouvoir de coupure de ${icuk} kA, mais les tables du constructeur garantissent la filiation Q0 / Q${k} jusqu'à ${lim} kA.`,
+      q: `Expliquer en quoi consiste la filiation et pourquoi elle permet d'installer Q${k}. Préciser son principal avantage.`,
+      el: [`Le disjoncteur amont Q0, limiteur, s'ouvre et limite le courant de court-circuit : il aide Q${k} à couper un courant supérieur à son propre pouvoir de coupure`,
+        `L'association n'est valable que si elle est garantie par les tables de filiation du constructeur : ici jusqu'à ${lim} kA, supérieur aux ${icc} kA présumés`,
+        "Avantage : installer en aval un disjoncteur de pouvoir de coupure plus faible, donc moins cher (et plus compact)"],
+      expl: `<p>La <b>filiation</b> (ou coordination) consiste à utiliser le <b>pouvoir de limitation du disjoncteur amont</b> Q0 : lors d'un court-circuit, Q0 s'ouvre lui aussi très vite et limite le courant ; le disjoncteur aval Q${k} peut alors couper un courant présumé (${icc} kA) supérieur à son propre pouvoir de coupure (${icuk} kA).</p><p>Elle n'est admise que si l'association est <b>garantie par les tables du constructeur</b> : ici jusqu'à ${lim} kA ≥ ${icc} kA, donc Q${k} convient.</p><p>Avantage : ${R("des disjoncteurs aval de pouvoir de coupure plus faible, donc moins chers")}. En contrepartie, la sélectivité n'est en général que partielle.</p>` }); }
+];
+
+/* ---------- bilan de puissances ---------- */
+const biR = [
+  /* rôle de Ku et Ks */
+  () => { const lieu = rnd(["du tableau d'un atelier de production", "de l'alimentation de secours d'un télésiège", "du TGBT d'un parc animalier", "d'un tableau de pompes"]);
+    return rd({ lv: 2, min: 3,
+      ctx: `Le bilan de puissance ${lieu} (document réponse) fait intervenir des coefficients d'utilisation K<sub>u</sub> et de simultanéité K<sub>s</sub>.`,
+      q: "Expliquer le rôle de ces deux coefficients et l'intérêt de les appliquer.",
+      el: ["Ku (coefficient d'utilisation) : un récepteur fonctionne rarement à sa puissance nominale ; on retient Ku × Pn (par exemple 0,75 pour un moteur)",
+        "Ks (coefficient de simultanéité) : tous les récepteurs d'un groupe ne fonctionnent pas en même temps ; on l'applique à la somme des puissances du groupe",
+        "Intérêt : estimer la puissance réellement appelée et ne pas surdimensionner le transformateur, les câbles et les protections"],
+      expl: `<p><b>K<sub>u</sub></b>, coefficient d'utilisation : un récepteur fonctionne rarement à pleine charge (un moteur à 75 % de sa puissance, par exemple) ; la puissance retenue est K<sub>u</sub> × P<sub>n</sub>.</p><p><b>K<sub>s</sub></b>, coefficient de simultanéité : tous les récepteurs d'un groupe ne fonctionnent pas en même temps ; on multiplie la somme de leurs puissances par K<sub>s</sub> (≤ 1).</p><p>Intérêt : ${R("obtenir la puissance réellement appelée (puissance foisonnée)")}, et dimensionner au plus juste le transformateur, les canalisations et les protections, sans surcoût.</p>` }); },
+  /* taux de charge et CCTP */
+  () => { const Sn = rnd([630, 800, 1000, 1250]), lim = rnd([75, 80, 85]), T0 = lim + rnd([4, 7, 11]), S = Math.round(Sn * T0 / 100), T = S / Sn * 100, Sx = sup(D.SN, S / (lim / 100)), T2 = S / Sx * 100;
+    return rd({ lv: 3, min: 4,
+      ctx: `Après l'extension, le transformateur existant (S<sub>n</sub> = ${nf(Sn)} kVA) alimentera une puissance apparente foisonnée S = ${nf(S)} kVA. Le CCTP impose un taux de charge des transformateurs inférieur à ${lim} %. Puissances normalisées : ${D.SN.filter((v) => v >= 400).map((v) => nf(v)).join(" · ")} kVA.`,
+      q: "Conclure sur la possibilité de conserver le transformateur existant. Justifier, puis proposer une solution argumentée.",
+      el: [`Calcul du taux de charge : S / Sn = ${nf(S)} / ${nf(Sn)} ≈ ${pc(T)}`,
+        `Comparaison : ${pc(T)} > ${lim} %, le CCTP n'est pas respecté, le transformateur existant ne peut pas être conservé tel quel`,
+        `Solution argumentée : un transformateur plus puissant (${nf(Sx)} kVA donne un taux de charge ≈ ${pc(T2)}, inférieur à ${lim} %), ou un second transformateur qui reprend une partie des départs, ou diminuer S (compensation de l'énergie réactive, délestage)`],
+      expl: `<p>${F(`T<sub>ch</sub> = ${FRAC("S", "S<sub>n</sub>")}`)} = ${FRAC(nf(S), nf(Sn))} = ${pc(T)}.</p><p>${pc(T)} &gt; ${lim} % : ${R("le transformateur existant ne respecte pas le CCTP")}.</p><p>Solutions : la première puissance normalisée qui convient est ${nf(Sx)} kVA (${FRAC(nf(S), nf(Sx))} = ${pc(T2)} &lt; ${lim} %) ; on peut aussi ajouter un second transformateur qui reprend une partie des départs, ou réduire la puissance apparente appelée (compensation de l'énergie réactive : S diminue quand Q diminue ; délestage de récepteurs non prioritaires).</p>` }); },
+  () => { const S1 = ri(8, 30) * 5, S2 = ri(8, 30) * 5, c1 = rnd([0.93, 0.95, 0.98]), c2 = rnd([0.65, 0.7, 0.75]);
+    const P = S1 * c1 + S2 * c2, Q = S1 * Math.sqrt(1 - c1 * c1) + S2 * Math.sqrt(1 - c2 * c2), S = Math.hypot(P, Q);
+    return rd({ lv: 3, min: 5,
+      ctx: `Un tableau alimente deux départs : D1 (S<sub>1</sub> = ${S1} kVA, cos φ<sub>1</sub> = ${nf(c1, 2)}) et D2 (S<sub>2</sub> = ${S2} kVA, cos φ<sub>2</sub> = ${nf(c2, 2)}). Un camarade écrit : S = S<sub>1</sub> + S<sub>2</sub> = ${S1 + S2} kVA.`,
+      q: "Expliquer pourquoi ce calcul est faux, puis calculer la puissance apparente totale S par la bonne méthode.",
+      el: ["Les puissances apparentes ne s'additionnent pas quand les facteurs de puissance sont différents (courants déphasés différemment)",
+        "Méthode de Boucherot : on additionne les puissances actives (P = S cos φ) et, séparément, les puissances réactives (Q = S sin φ)",
+        `Calcul : P ≈ ${n3(P)} kW, Q ≈ ${n3(Q)} kvar, S = √(P² + Q²) ≈ ${n3(S)} kVA, inférieur à ${S1 + S2} kVA`],
+      expl: `<p>Les puissances apparentes ne s'ajoutent que si les cos φ sont égaux ; ici les deux courants sont déphasés différemment. On applique le <b>théorème de Boucherot</b> : les puissances actives s'ajoutent entre elles, les puissances réactives aussi.</p><p>P = ${S1} × ${nf(c1, 2)} + ${S2} × ${nf(c2, 2)} = ${n3(P)} kW ; Q = ${S1} × ${nf(Math.sqrt(1 - c1 * c1), 3)} + ${S2} × ${nf(Math.sqrt(1 - c2 * c2), 3)} = ${n3(Q)} kvar.</p><p>${F("S = √(P² + Q²)")} = ${R(`${n3(S)} kVA`)} (et non ${S1 + S2} kVA).</p>` }); }
+];
+
+/* ---------- mécanique des fluides ---------- */
+const flR = [
+  /* causes de pertes de charge */
+  () => { const ctxt = rnd(["la cascade d'un parc animalier (60 m de canalisation, filtres, vannes)", "le transfert d'un liquide entre deux cuves (coudes, vannes, clapet)", "le remplissage d'un réservoir en hauteur (longue canalisation, coudes)"]);
+    return rd({ lv: 2, min: 3,
+      ctx: `La pompe qui alimente ${ctxt} doit fournir une hauteur manométrique supérieure à la seule différence d'altitude à remonter : elle doit aussi compenser les pertes de charge du circuit.`,
+      q: "Citer une cause de pertes de charge régulières et une cause de pertes de charge singulières dans ce circuit, puis indiquer comment on peut réduire ces pertes.",
+      el: ["Pertes régulières : frottement du fluide sur les parois tout au long des canalisations (d'autant plus grandes que la conduite est longue, rugueuse ou de petit diamètre)",
+        "Pertes singulières : les accidents du circuit (coudes, vannes, clapets, filtres, rétrécissements, tés…)",
+        "Une façon de les réduire : augmenter le diamètre (vitesse plus faible), raccourcir le circuit, supprimer des coudes ou des singularités, entretenir les filtres"],
+      expl: `<p>Les pertes de charge sont de l'énergie perdue par le fluide (transformée en chaleur) :</p><ul><li><b>pertes régulières</b> : frottement du fluide sur les parois tout au long des canalisations ; elles augmentent avec la longueur, la rugosité et la vitesse (donc quand le diamètre diminue) ;</li><li><b>pertes singulières</b> : coudes, vannes, clapets, filtres, rétrécissements, tés…</li></ul><p>Pour les réduire : ${R("augmenter le diamètre des canalisations (vitesse plus faible), raccourcir le tracé, limiter les coudes et singularités, entretenir les filtres")}.</p>` }); },
+  () => { const Q = rnd([36, 54, 72, 108]), dp = rnd([1.2, 1.5, 2.1]), pdc = rnd([0.3, 0.4, 0.6]), P1 = Q / 3600 * dp * 1e5, P2 = Q / 3600 * (dp + pdc) * 1e5;
+    return rd({ lv: 3, min: 4,
+      ctx: `Sans tenir compte des pertes de charge, une pompe doit créer Δp = ${nf(dp, 1)} bar pour un débit Q = ${Q} m³/h, soit une puissance hydraulique P<sub>h</sub> = ${n3(P1 / 1000)} kW. Les pertes de charge du circuit sont estimées à ${nf(pdc, 1)} bar.`,
+      q: "La puissance hydraulique réelle que doit fournir la pompe est-elle supérieure ou inférieure à cette valeur ? Justifier et l'estimer.",
+      el: ["Réponse : la puissance hydraulique réelle est supérieure à la valeur calculée sans pertes",
+        `Justification : la pompe doit aussi compenser les pertes de charge, Δp réel = ${nf(dp, 1)} + ${nf(pdc, 1)} = ${nf(dp + pdc, 1)} bar`,
+        `Estimation : Ph = Q × Δp = (${Q} / 3 600) × ${nf(dp + pdc, 1)} × 10⁵ ≈ ${n3(P2 / 1000)} kW`],
+      expl: `<p>La pompe doit fournir la différence de pression utile <b>et</b> compenser les pertes de charge : Δp<sub>réel</sub> = ${nf(dp, 1)} + ${nf(pdc, 1)} = ${nf(dp + pdc, 1)} bar.</p><p>${F("P<sub>h</sub> = Q × Δp")} = ${FRAC(Q, "3 600")} × ${nf(dp + pdc, 1)} × 10<sup>5</sup> = ${n3(P2)} W ≈ ${R(`${n3(P2 / 1000)} kW`)}, ${R("supérieure")} aux ${n3(P1 / 1000)} kW calculés sans pertes.</p>` }); },
+  /* variateur sur pompe : lois de similitude */
+  () => { const k = rnd([0.7, 0.8, 0.9]), P = rnd([4.2, 6.1, 9.4, 12.5]);
+    return rd({ lv: 3, min: 5,
+      ctx: `Une pompe centrifuge absorbe ${nf(P, 1)} kW à pleine vitesse. La nuit, le débit demandé est réduit : on hésite entre fermer partiellement une vanne et réduire la vitesse avec un variateur, à ${Math.round(k * 100)} % de la vitesse nominale. Lois de similitude des pompes centrifuges : Q ∝ n, H ∝ n², P ∝ n³.`,
+      q: "Expliquer pourquoi le variateur permet une économie d'énergie importante, en l'estimant pour cette réduction de vitesse.",
+      el: [`Le débit est proportionnel à la vitesse : à ${Math.round(k * 100)} % de la vitesse, le débit est à ${Math.round(k * 100)} %`,
+        `La puissance varie comme le cube de la vitesse : P / Pn = ${nf(k, 1)}³ ≈ ${nf(k ** 3, 2)}, soit environ ${Math.round(k ** 3 * 100)} % de la puissance absorbée à pleine vitesse (≈ ${n3(P * k ** 3)} kW)`,
+        "Avec une vanne, la pompe tourne toujours à pleine vitesse et l'énergie est perdue dans la vanne (pertes de charge) : le variateur évite ce gaspillage"],
+      expl: `<p>Avec un variateur, la vitesse n diminue : le débit suit n (${Math.round(k * 100)} %), la hauteur suit n² et la puissance suit n³ : ${F(`${FRAC("P", "P<sub>n</sub>")} = (${FRAC("n", "n<sub>n</sub>")})³`)} = ${nf(k, 1)}³ = ${nf(k ** 3, 3)}.</p><p>La pompe n'absorbe plus qu'environ ${R(`${Math.round(k ** 3 * 100)} % de sa puissance à pleine vitesse`)} : ≈ ${n3(P * k ** 3)} kW au lieu de ${nf(P, 1)} kW.</p><p>Avec une vanne, la pompe reste à pleine vitesse : l'énergie en trop est dissipée dans la vanne, sous forme de pertes de charge.</p>` }); }
+];
+
+/* ---------- économie, normes ---------- */
+const ecR = [
+  /* choix entre deux solutions (retour sur investissement) */
+  () => { const att = rnd([3, 4, 5]); let A, B, ok = false, g = 0;
+    while (!ok && g++ < 50) { A = { i: ri(4, 12) * 5000, e: ri(6, 20) * 1000 }; B = { i: ri(10, 30) * 5000, e: ri(10, 40) * 1000 }; A.r = A.i / A.e; B.r = B.i / B.e; ok = Math.abs(A.r - att) > 0.3 && Math.abs(B.r - att) > 0.3 && Math.abs(A.r - B.r) > 0.4 && (A.r < att || B.r < att) && A.e !== B.e; }
+    const okA = A.r < att, okB = B.r < att, choix = okA && okB ? (A.e >= B.e ? "A" : "B") : okA ? "A" : "B";
+    return rd({ lv: 3, min: 5,
+      ctx: `Pour réduire la facture d'énergie d'un site, deux solutions sont proposées. Solution A : investissement ${nf(A.i)} € HT, économie ${nf(A.e)} € par an. Solution B : investissement ${nf(B.i)} € HT, économie ${nf(B.e)} € par an. L'entreprise n'accepte qu'un retour sur investissement (RSI) inférieur à ${att} ans ; parmi les solutions acceptables, elle préfère la plus grande économie annuelle.`,
+      q: "Indiquer, en argumentant, la solution préconisée.",
+      el: [`Calcul des RSI : A = ${nf(A.i)} / ${nf(A.e)} ≈ ${nf(A.r, 1)} ans et B = ${nf(B.i)} / ${nf(B.e)} ≈ ${nf(B.r, 1)} ans`,
+        `Comparaison au critère de ${att} ans : ${okA ? "A acceptable" : "A refusée"}, ${okB ? "B acceptable" : "B refusée"}`,
+        `Conclusion argumentée : solution ${choix}${okA && okB ? " (les deux sont acceptables, elle apporte la plus grande économie annuelle)" : " (seule solution qui respecte le critère de RSI)"}`],
+      expl: `<p>${F(`RSI = ${FRAC("investissement", "économie annuelle")}`)} : A → ${FRAC(nf(A.i), nf(A.e))} = ${nf(A.r, 2)} ans ; B → ${FRAC(nf(B.i), nf(B.e))} = ${nf(B.r, 2)} ans.</p><p>Critère : RSI &lt; ${att} ans → A ${okA ? "acceptable" : "refusée"}, B ${okB ? "acceptable" : "refusée"}.</p><p>${R(`Solution ${choix} préconisée`)}${okA && okB ? ` : les deux respectent le critère, ${choix} apporte la plus grande économie annuelle (${nf((choix === "A" ? A : B).e)} € par an).` : " : c'est la seule qui respecte le critère de retour sur investissement."}</p>` }); },
+  /* textes réglementaires */
+  () => { const cas = rnd(["simple", "boucle"]), Sn = rnd([630, 800, 1000]);
+    const ctx = cas === "simple"
+      ? `Une usine est raccordée au réseau public HTA 20 kV par un poste de livraison qui comporte un seul transformateur HTA/BT de ${nf(Sn)} kVA ; toute la distribution interne de l'usine est en basse tension.`
+      : `Un site industriel est raccordé au réseau public HTA 20 kV par un poste de livraison ; depuis ce poste, un réseau HTA privé en boucle alimente trois postes de transformation HTA/BT répartis sur le site ; chacun alimente des tableaux basse tension.`;
+    return rd({ lv: 2, min: 4, ctx,
+      q: "Indiquer, en justifiant, les normes d'installation qui s'appliquent à ce site : NF C 13-100, NF C 13-200, NF C 15-100.",
+      el: cas === "simple"
+        ? ["NF C 13-100 pour le poste de livraison HTA raccordé au réseau public de distribution", "NF C 15-100 pour toute l'installation basse tension, en aval du transformateur", "NF C 13-200 ne s'applique pas : il n'y a pas d'installation HTA privée en aval du poste de livraison"]
+        : ["NF C 13-100 pour le poste de livraison HTA raccordé au réseau public de distribution", "NF C 13-200 pour l'installation HTA privée en aval du poste de livraison (la boucle et les trois postes de transformation)", "NF C 15-100 pour les installations basse tension, en aval des transformateurs"],
+      expl: cas === "simple"
+        ? `<p><b>NF C 13-100</b> : postes de livraison raccordés au réseau public HTA → le poste de l'usine.</p><p><b>NF C 15-100</b> : installations basse tension → toute la distribution BT en aval du transformateur.</p><p><b>NF C 13-200</b> (installations HTA privées) ne s'applique pas : il n'y a pas de réseau HTA privé en aval du poste.</p><p>${R("NF C 13-100 et NF C 15-100")}.</p>`
+        : `<p><b>NF C 13-100</b> : le poste de livraison raccordé au réseau public HTA.</p><p><b>NF C 13-200</b> : l'installation HTA privée en aval du poste de livraison (boucle HTA interne et postes de transformation).</p><p><b>NF C 15-100</b> : les installations BT en aval des transformateurs.</p><p>${R("Les trois normes s'appliquent, chacune sur sa partie.")}</p>` }); },
+  /* option EJP : intérêt économique et écologique */
+  () => { const E = rnd([90, 105, 120]), V = Math.round(E * 1000 / rnd([3.6, 3.8, 4]) / 100) * 100, eco = rnd([9000, 12000, 15000]), tr = E * 0.07, tg = V * 2.64 / 1000;
+    return rd({ lv: 3, min: 5,
+      ctx: `Le passage à l'option tarifaire EJP permettrait d'économiser ${nf(eco)} € par an : pendant les 22 jours de pointe, les ${E} MWh habituellement pris au réseau seraient produits par les groupes électrogènes, qui brûleraient ${nf(V)} L de gazole. Facteur d'émission du réseau : 0,070 t de CO₂ par MWh ; gazole : 2,64 kg de CO₂ par litre.`,
+      q: "Comparer l'intérêt économique et l'impact environnemental de ce changement d'option, puis conclure sur son opportunité.",
+      el: [`Intérêt économique : une économie de ${nf(eco)} € par an`,
+        `Impact environnemental chiffré : réseau ${E} × 0,070 ≈ ${n3(tr)} t de CO₂, contre ${nf(V)} × 2,64 kg ≈ ${n3(tg)} t avec les groupes, soit beaucoup plus d'émissions`,
+        "Conclusion argumentée : le changement est intéressant financièrement mais pas écologiquement (il augmente fortement les émissions de CO₂)"],
+      expl: `<p><b>Économie</b> : ${R(`${nf(eco)} € par an`)} sur la facture.</p><p><b>Environnement</b> : sur le réseau (électricité française très décarbonée), ${E} MWh × 0,070 t/MWh = ${n3(tr)} t de CO₂ ; avec les groupes, ${nf(V)} L × 2,64 kg/L = ${n3(tg)} t de CO₂, soit environ ${Math.round(tg / tr)} fois plus.</p><p>${R("Opportun économiquement, défavorable écologiquement")} : si l'entreprise vise la réduction de ses émissions, l'option EJP n'est pas à retenir.</p>` }); }
+];
+
+/* ---------- régulation, automatisme, communication ---------- */
+const reR = [
+  /* signal 4-20 mA */
+  () => { const d = rnd([25, 35, 60, 80]), cap = rnd(["capteur de pression", "capteur de niveau", "capteur de position de la tige du vérin", "transmetteur de température"]);
+    return rd({ lv: 2, min: 3,
+      ctx: `Le ${cap} est situé à ${d} m de l'automate. Le CCTP impose un fonctionnement sécurisé : une coupure du câble de liaison doit être détectée. Deux sorties sont disponibles : 0-10 V ou 4-20 mA.`,
+      q: "Justifier le choix du signal à utiliser.",
+      el: ["Choix : le signal 4-20 mA",
+        "Un signal en courant n'est pas affecté par la chute de tension dans un câble long et il est peu sensible aux parasites",
+        "Le zéro décalé (4 mA pour le bas de l'échelle) permet de détecter une rupture du câble : un courant nul signale le défaut, alors qu'en 0-10 V une tension nulle est une mesure possible"],
+      expl: `<p>${R("Signal 4-20 mA")} :</p><ul><li>c'est un <b>courant</b> : il est le même tout le long de la boucle, la chute de tension dans ${d} m de câble ne fausse pas la mesure, et il est peu sensible aux perturbations électromagnétiques ;</li><li>le <b>zéro est décalé</b> : le bas de l'échelle correspond à 4 mA ; un courant nul (ou inférieur à 4 mA) ne peut donc pas être une mesure, il signale une <b>rupture du câble</b> ou une panne du capteur. En 0-10 V, 0 V est une mesure possible : la coupure ne serait pas détectée.</li></ul>` }); },
+  /* action intégrale */
+  () => { const [sys, de] = rnd([["la position de la tige du vérin", "de la position de la tige du vérin"], ["la pression du circuit d'eau", "de la pression du circuit d'eau"], ["la température de la cuve", "de la température de la cuve"], ["le niveau du bassin", "du niveau du bassin"]]);
+    return rd({ lv: 2, min: 4,
+      ctx: `La régulation ${de} utilise un correcteur PI (proportionnel et intégral). Avec un correcteur proportionnel seul, la mesure se stabilisait un peu en dessous de la consigne.`,
+      q: "Expliquer le rôle de l'action intégrale de ce correcteur, et la précaution à prendre pour la régler.",
+      el: ["L'action intégrale annule l'erreur statique : en régime permanent, la mesure rejoint la consigne",
+        "Elle agit tant qu'il reste une erreur : elle cumule (intègre) l'erreur au cours du temps et augmente la commande jusqu'à ce que l'erreur soit nulle",
+        "Précaution : ne pas la régler trop forte, sinon la stabilisation est plus lente, avec des dépassements ou des oscillations"],
+      expl: `<p>Avec un correcteur P seul, il reste une <b>erreur statique</b> : il faut une erreur non nulle pour produire une commande. L'<b>action intégrale</b> cumule l'erreur dans le temps : tant que la mesure n'atteint pas la consigne, la commande continue d'augmenter.</p><p>${R("Elle annule l'erreur statique")} : en régime permanent, ${sys} est exactement à la consigne, malgré les perturbations.</p><p>Précaution : réglée trop fort, elle rend la réponse oscillante (dépassements) et plus longue à se stabiliser ; on l'augmente progressivement.</p>` }); },
+  () => { const pmin = rnd([2.5, 3, 4, 5]), dp = rnd([0.5, 1, 1.5]), pmax = pmin + dp;
+    return rd({ lv: 2, min: 4,
+      ctx: `Un surpresseur maintient la pression d'un réseau d'eau avec une régulation tout ou rien à hystérésis : la pompe démarre quand la pression descend sous P<sub>min</sub> = ${nf(pmin, 1)} bar et s'arrête quand elle dépasse P<sub>max</sub> = ${nf(pmax, 1)} bar.`,
+      q: "Décrire le fonctionnement de cette régulation et expliquer l'intérêt de l'hystérésis.",
+      el: [`La pompe démarre quand la pression devient inférieure à ${nf(pmin, 1)} bar et s'arrête quand elle dépasse ${nf(pmax, 1)} bar`,
+        "Entre les deux seuils, la pompe garde son état (marche ou arrêt) : l'état dépend du sens d'évolution de la pression",
+        "Intérêt de l'hystérésis : éviter des démarrages et arrêts trop fréquents autour d'un seul seuil (usure des contacteurs, échauffement du moteur, coups de bélier)"],
+      expl: `<p>Sous ${nf(pmin, 1)} bar, la pompe démarre ; la pression monte jusqu'à ${nf(pmax, 1)} bar, où la pompe s'arrête ; la pression redescend lentement (consommation) jusqu'à ${nf(pmin, 1)} bar, et le cycle recommence. <b>Entre les deux seuils, la pompe garde son état</b>.</p><p>L'écart de ${nf(dp, 1)} bar (hystérésis) ${R("espace les démarrages")} : avec un seul seuil, la pompe démarrerait et s'arrêterait sans cesse, ce qui use les contacteurs et échauffe le moteur.</p>` }); }
+];
+
+/* ---------- câbles et chute de tension ---------- */
+const caR = [
+  /* cuivre ou aluminium : choix au coût */
+  () => { const L = ri(10, 20) * 10, sc = rnd([95, 120, 150]), sa = { 95: 150, 120: 185, 150: 240 }[sc], pcu = rnd([28, 34, 41]), pal = Math.round(pcu * rnd([0.45, 0.55, 0.7])), ccu = L * pcu, cal = L * pal;
+    return rd({ lv: 3, min: 5,
+      ctx: `Pour une liaison de L = ${L} m, l'étude des courants admissibles et de la chute de tension conduit à deux solutions techniquement conformes : câble cuivre de ${sc} mm² (${pcu} € HT par mètre) ou câble aluminium de ${sa} mm² (${pal} € HT par mètre). Le choix définitif se fait sur le coût.`,
+      q: "Expliquer pourquoi la section en aluminium est plus grande, puis argumenter le choix définitif (matériau et section).",
+      el: ["L'aluminium conduit moins bien que le cuivre (résistivité plus grande, courant admissible plus faible) : il faut une section plus grande pour le même courant",
+        `Comparaison des coûts : cuivre ${L} × ${pcu} = ${nf(ccu)} € et aluminium ${L} × ${pal} = ${nf(cal)} €`,
+        `Choix argumenté : aluminium ${sa} mm², ${nf(ccu - cal)} € moins cher pour un service équivalent`],
+      expl: `<p>L'aluminium a une résistivité plus grande que le cuivre (≈ 0,036 contre 0,023 Ω·mm²/m) et un courant admissible plus faible à section égale : il faut ${R("une section plus grande")} (${sa} mm² au lieu de ${sc} mm²).</p><p>Coûts : cuivre ${L} × ${pcu} = ${nf(ccu)} € ; aluminium ${L} × ${pal} = ${nf(cal)} €.</p><p>${R(`Choix : aluminium ${sa} mm²`)}, ${nf(ccu - cal)} € moins cher ; il est aussi plus léger, mais plus volumineux (cheminements et connexions adaptés).</p>` }); },
+  () => { const max = rnd([5, 6, 8]), d = max + rnd([0.8, 1.4, 2.3]), L = ri(12, 30) * 10;
+    return rd({ lv: 3, min: 4,
+      ctx: `La chute de tension calculée en bout de la liaison de ${L} m qui alimente un moteur est ΔU = ${nf(d, 1)} %, pour un maximum de ${max} % imposé par le CCTP.`,
+      q: "Proposer deux solutions pour respecter la chute de tension admissible, en expliquant pourquoi elles sont efficaces.",
+      el: ["Une première solution correcte : augmenter la section des conducteurs ou mettre des câbles en parallèle, raccourcir la liaison (rapprocher le tableau du récepteur), utiliser du cuivre si le câble est en aluminium, ou réduire le courant transporté (compensation de l'énergie réactive)",
+        "Une seconde solution correcte, différente de la première",
+        "Justification : ΔU augmente avec la résistance R = ρ L / S et avec le courant I ; chaque solution diminue R ou I"],
+      expl: `<p>${F("ΔU = √3 × I × (R cos φ + X sin φ)")} avec ${F(`R = ${FRAC("ρ × L", "S")}`)} : il faut diminuer R (ou I).</p><ul><li><b>augmenter la section</b> des conducteurs, ou poser des câbles en parallèle : R diminue ;</li><li><b>raccourcir la liaison</b> : déplacer le tableau au plus près du moteur ;</li><li>si le câble est en aluminium, passer au cuivre (ρ plus faible) ;</li><li>diminuer le courant transporté (compensation de l'énergie réactive au plus près du moteur).</li></ul>` }); },
+  () => { const p = rnd(["sous conduit, dans un vide de construction", "jointifs sur un chemin de câbles, avec quatre autres circuits", "sous conduit encastré dans une paroi isolante", "dans un local où il fait 45 °C"]);
+    return rd({ lv: 2, min: 4,
+      ctx: `Les câbles d'un départ sont posés ${p}. Pour déterminer leur section, on applique des facteurs de correction (K1, K2, K3…) avant de lire le tableau des courants admissibles.`,
+      q: "Expliquer pourquoi ces facteurs de correction sont nécessaires et comment on les utilise.",
+      el: ["Les courants admissibles des tableaux sont donnés pour des conditions de référence (température ambiante de 30 °C, câble seul, mode de pose de référence)",
+        "Dans d'autres conditions (température plus élevée, câbles groupés, pose qui évacue mal la chaleur), le câble s'échauffe davantage : il ne peut plus transporter le même courant sans dépasser la température admissible de son isolant",
+        "Utilisation : on calcule K = K1 × K2 × K3 puis I'z = Iz / K (courant fictif), et on lit dans le tableau la section dont le courant admissible est au moins égal à I'z"],
+      expl: `<p>Les tableaux de courants admissibles supposent des <b>conditions de référence</b> (30 °C, câble seul, pose de référence). Dans ces conditions-ci, le câble évacue moins bien sa chaleur : avec le même courant, son âme s'échaufferait au-delà de la température admissible de l'isolant (vieillissement, risque d'incendie).</p><p>On en tient compte avec ${F("K = K1 × K2 × K3")} : ${F(`I'<sub>z</sub> = ${FRAC("I<sub>z</sub>", "K")}`)}, puis ${R("on choisit la section dont le courant admissible du tableau est au moins égal à I'z")}.</p>` }); }
+];
+
+/* ---------- transformateur et poste de livraison ---------- */
+const trR = [
+  /* type de raccordement HTA */
+  () => { const cas = rnd(["boucle", "antenne", "double"]);
+    const ctx = { boucle: "Le site est en zone urbaine ; le réseau public HTA 20 kV y est souterrain et exploité en boucle ouverte, un câble arrive de chaque côté du site.",
+      antenne: "Le site est isolé, en zone rurale ; il n'est desservi que par une ligne aérienne HTA 20 kV unique, en bout de réseau.",
+      double: "Le site, un data center, exige la meilleure continuité de service ; le distributeur peut l'alimenter par deux câbles HTA 20 kV issus de deux départs différents." }[cas];
+    const el = { boucle: ["Raccordement en coupure d'artère (en boucle)", "Justification : le réseau souterrain est en boucle ; le poste peut être alimenté par l'un ou l'autre câble, un défaut de câble n'arrête l'alimentation que le temps de la reconfiguration", "Cellules d'arrivée : deux cellules interrupteurs, une pour l'entrée et une pour la sortie de la boucle"],
+      antenne: ["Raccordement en antenne (simple dérivation)", "Justification : une seule ligne dessert le site ; c'est le raccordement le plus simple et le moins coûteux, mais un défaut sur la ligne prive le site d'énergie", "Cellule d'arrivée : une seule cellule d'arrivée"],
+      double: ["Raccordement en double dérivation", "Justification : le site est alimenté par deux câbles indépendants ; si le câble principal est perdu, le secours prend le relais : très bonne continuité de service", "Cellules d'arrivée : deux cellules interrupteurs avec un permutateur automatique (une seule arrivée fermée à la fois)"] }[cas];
+    const nom = { boucle: "en coupure d'artère (boucle)", antenne: "en antenne (simple dérivation)", double: "en double dérivation" }[cas];
+    const maj = (t) => t[0].toUpperCase() + t.slice(1);
+    return rd({ lv: 2, min: 4, ctx,
+      q: "Justifier le type de raccordement au réseau HTA (antenne, boucle ou double dérivation) à mettre en place, et indiquer la conséquence sur les cellules d'arrivée du poste.",
+      el,
+      expl: `<p>${R(`Raccordement ${nom}`)}.</p><p>${maj(el[1].replace(/^Justification : /, ""))}.</p><p>${maj(el[2].replace(/^Cellules? d'arrivée : /, ""))}, suivie(s) de la cellule de protection générale du poste.</p>` }); },
+  () => { const cas = rnd(["bt", "ht1", "ht2"]), Sn = cas === "bt" ? rnd([630, 800, 1000, 1250]) : cas === "ht1" ? rnd([1600, 2000]) : rnd([630, 800, 1000]);
+    const ctx = cas === "ht2" ? `Le poste de livraison d'un site comporte deux transformateurs HTA/BT de ${nf(Sn)} kVA.` : `Le poste de livraison d'un site comporte un seul transformateur HTA/BT de ${nf(Sn)} kVA, 20 kV / 410 V.`;
+    const bt = cas === "bt";
+    return rd({ lv: 2, min: 3, ctx,
+      q: "Justifier le type de comptage de l'énergie (BT ou HT) à utiliser, et préciser où se fait le comptage.",
+      el: ["Règle de la NF C 13-100 : comptage BT possible seulement si le poste n'a qu'un seul transformateur de puissance au plus égale à 1 250 kVA (courant secondaire au plus 2 000 A) ; sinon comptage HT",
+        bt ? `Application : un seul transformateur de ${nf(Sn)} kVA ≤ 1 250 kVA, donc comptage BT` : cas === "ht1" ? `Application : ${nf(Sn)} kVA > 1 250 kVA, donc comptage HT` : "Application : deux transformateurs, donc comptage HT",
+        bt ? "Lieu du comptage : au secondaire du transformateur, avec des transformateurs de courant basse tension" : "Lieu du comptage : côté HTA, dans le poste, avec des transformateurs de courant et de tension HTA (cellule de comptage)"],
+      expl: `<p>NF C 13-100 : le comptage BT n'est possible que si le poste comporte <b>un seul transformateur de puissance au plus égale à 1 250 kVA</b> (courant secondaire ≤ 2 000 A) ; dans les autres cas, comptage HT.</p><p>${bt ? `Un seul transformateur de ${nf(Sn)} kVA : ${R("comptage BT")}, au secondaire du transformateur, avec des TC basse tension (les pertes du transformateur sont ajoutées forfaitairement).` : `${cas === "ht1" ? `${nf(Sn)} kVA &gt; 1 250 kVA` : "Deux transformateurs"} : ${R("comptage HT")}, côté HTA, avec des TC et des TT HTA dans le poste.`}</p>` }); },
+  () => { const Sn = rnd([630, 800, 1000]), E = D.EN50588[Sn], A = { p0: E[2], pk: E[3] || E[4] }, Bt = { p0: E[0], pk: E[5] }, x = rnd([0.2, 0.25, 0.8, 0.9]);
+    const pA = A.p0 + x * x * A.pk, pB = Bt.p0 + x * x * Bt.pk, choixA = pA < pB, dP0 = Bt.p0 - A.p0, dPk = x * x * (A.pk - Bt.pk);
+    if (Math.abs(pA - pB) / Math.min(pA, pB) < 0.1) return null;
+    return rd({ lv: 3, min: 5,
+      ctx: `Pour un transformateur de ${nf(Sn)} kVA, deux technologies sont proposées. T1 : pertes à vide P<sub>0</sub> = ${nf(A.p0)} W, pertes en charge P<sub>k</sub> = ${nf(A.pk)} W. T2 : P<sub>0</sub> = ${nf(Bt.p0)} W, P<sub>k</sub> = ${nf(Bt.pk)} W. Le transformateur fonctionnera la plupart du temps à ${Math.round(x * 100)} % de sa charge nominale. Pertes totales : P<sub>0</sub> + x² · P<sub>k</sub>.`,
+      q: "Comparer les deux technologies et, en termes de rendement, proposer la plus adaptée. Justifier.",
+      el: ["Les pertes à vide (pertes fer) existent dès que le transformateur est sous tension, quelle que soit la charge ; les pertes en charge (pertes cuivre) varient comme le carré du taux de charge",
+        `Calcul des pertes au taux de charge ${Math.round(x * 100)} % : T1 ≈ ${nf(Math.round(pA))} W et T2 ≈ ${nf(Math.round(pB))} W`,
+        `Conclusion : ${choixA ? "T1" : "T2"}, qui a le moins de pertes, donc le meilleur rendement : ${choixA ? `à cette charge, l'écart de pertes à vide (${nf(dP0)} W en faveur de T1) l'emporte sur l'écart de pertes en charge (x² × ${nf(A.pk - Bt.pk)} ≈ ${nf(Math.round(dPk))} W en faveur de T2)` : `à cette charge, l'écart de pertes en charge (x² × ${nf(A.pk - Bt.pk)} ≈ ${nf(Math.round(dPk))} W en faveur de T2) l'emporte sur l'écart de pertes à vide (${nf(dP0)} W en faveur de T1)`}`],
+      expl: `<p>Les <b>pertes à vide</b> P<sub>0</sub> (pertes fer) sont présentes dès la mise sous tension ; les <b>pertes en charge</b> varient comme le carré du taux de charge x : ${F("P = P<sub>0</sub> + x² · P<sub>k</sub>")}.</p><p>À x = ${nf(x, 2)} : T1 → ${nf(A.p0)} + ${nf(x * x, 4)} × ${nf(A.pk)} = ${nf(Math.round(pA))} W ; T2 → ${nf(Bt.p0)} + ${nf(x * x, 4)} × ${nf(Bt.pk)} = ${nf(Math.round(pB))} W.</p><p>${R(`${choixA ? "T1" : "T2"} est la plus adaptée`)} : ${choixA ? `peu chargé, le transformateur gagne davantage à avoir de faibles pertes à vide (${nf(dP0)} W d'écart) qu'il ne perd en pertes en charge (≈ ${nf(Math.round(dPk))} W).` : `très chargé, le transformateur gagne davantage à avoir de faibles pertes en charge (≈ ${nf(Math.round(dPk))} W d'écart) qu'il ne perd en pertes à vide (${nf(dP0)} W).`}</p>` }); }
+];
+
+/* ---------- alimentation de secours ---------- */
+const seR = [
+  /* redondance et mode commun */
+  () => { const s = rnd(["d'un data center", "d'un hôpital", "d'un télésiège", "d'une station de pompage d'eau potable"]);
+    return rd({ lv: 2, min: 4,
+      ctx: `L'alimentation de secours ${s} comporte deux groupes électrogènes identiques, chacun capable d'alimenter seul les récepteurs prioritaires. Les deux groupes sont alimentés en gazole par une cuve commune.`,
+      q: "Expliquer le principe de redondance mis en œuvre, puis le point faible de cette installation et une façon d'y remédier.",
+      el: ["Redondance : deux groupes alors qu'un seul suffit ; si l'un tombe en panne (ou est en maintenance), l'autre assure seul l'alimentation",
+        "Point faible : la cuve commune est un mode commun ; sa défaillance (fuite, carburant pollué, manque de carburant) arrête les deux groupes en même temps",
+        "Remède : supprimer le mode commun, par exemple une cuve (ou un circuit d'alimentation en carburant) par groupe"],
+      expl: `<p><b>Redondance</b> : l'installation comporte deux groupes alors qu'un seul suffit ; la défaillance (ou la maintenance) d'un groupe n'interrompt pas le secours.</p><p>La redondance ne protège que contre les pannes indépendantes : la <b>cuve commune</b> est un ${R("mode commun")} ; une fuite, un carburant pollué ou une cuve vide arrêtent les deux groupes à la fois.</p><p>Remède : ${R("une cuve et un circuit de carburant par groupe")} (ou une seconde cuve en secours).</p>` }); },
+  () => rd({ lv: 2, min: 4,
+    ctx: `Les serveurs d'une salle informatique sont alimentés par une ASI (onduleur) de technologie « on-line » à double conversion.`,
+    q: "Expliquer le fonctionnement de cette ASI et l'intérêt de cette technologie pour les serveurs.",
+    el: ["Fonctionnement : un redresseur transforme la tension du réseau en tension continue (qui charge la batterie), puis un onduleur recrée la tension alternative qui alimente les serveurs en permanence",
+      "À la coupure du réseau, la batterie alimente l'onduleur sans aucune interruption : pas de temps de basculement",
+      "La tension fournie est régénérée : les serveurs sont protégés des perturbations du réseau (creux de tension, surtensions, harmoniques, variations de fréquence)"],
+    expl: `<p>Double conversion : ${F("réseau → redresseur → bus continu (batterie) → onduleur → serveurs")}. Les serveurs sont <b>toujours</b> alimentés par l'onduleur.</p><p>À la coupure du réseau, la batterie, déjà raccordée au bus continu, prend le relais : ${R("aucune interruption, pas de temps de basculement")}.</p><p>La tension de sortie est fabriquée par l'onduleur : ${R("elle est propre et stable")}, les perturbations du réseau (creux, surtensions, harmoniques) n'atteignent pas les serveurs. Un by-pass permet la maintenance de l'ASI.</p>` }),
+  /* ASI + groupe électrogène */
+  () => { const td = rnd([8, 10, 12, 15]), aut = rnd([5, 8, 10, 15]);
+    return rd({ lv: 3, min: 4,
+      ctx: `En cas de coupure du réseau, le groupe électrogène d'un site démarre et prend la charge en ${td} s. Une ASI d'autonomie ${aut} min est installée entre le TGBT et les équipements sensibles.`,
+      q: "Expliquer pourquoi le groupe électrogène seul ne suffit pas, et pourquoi l'ASI seule ne suffit pas non plus.",
+      el: [`Le groupe met ${td} s à démarrer et à prendre la charge : sans ASI, les équipements sensibles seraient coupés pendant ce temps`,
+        `L'ASI assure l'alimentation sans coupure pendant le démarrage du groupe (son autonomie de ${aut} min est bien supérieure à ${td} s)`,
+        `L'autonomie de l'ASI est limitée (${aut} min) : pour une longue coupure, c'est le groupe électrogène qui prend le relais et alimente aussi l'ASI`],
+      expl: `<p>Le groupe électrogène ne fournit l'énergie qu'après ${td} s (démarrage, montée en vitesse, couplage) : ${R("il y aurait une coupure")} pour les équipements sensibles.</p><p>L'ASI, elle, alimente sans interruption, mais ${R(`seulement ${aut} min`)} (capacité de la batterie).</p><p>Les deux sont complémentaires : l'ASI couvre les ${td} premières secondes (et les micro-coupures), puis le groupe alimente l'installation, ASI comprise, pendant toute la durée de la coupure.</p>` }); }
+];
+
+/* ---------- mécanique ---------- */
+const meR = [
+  /* limiter l'accélération */
+  () => { const [s, sur, effet] = rnd([["un télésiège débrayable", "les passagers et les sièges", "inconfort des passagers, balancement des sièges"], ["un convoyeur de bouteilles", "les bouteilles", "chocs entre bouteilles, bouteilles renversées"], ["un monte-charge", "la charge et la cabine", "chocs sur la charge, câbles et guides très sollicités"], ["une ligne d'impression de bande", "la bande", "tension excessive de la bande, risque de rupture"]]);
+    return rd({ lv: 2, min: 4,
+      ctx: `Le moteur qui entraîne ${s} est piloté par un variateur ; le CCTP impose une rampe d'accélération au démarrage, au lieu d'un démarrage direct.`,
+      q: "Expliquer pourquoi on limite l'accélération au démarrage de ce système.",
+      el: [`Une forte accélération crée de grands efforts (F = m × a) sur ${sur} : ${effet}`,
+        "Le moteur doit fournir un couple d'accélération d'autant plus grand que l'accélération est forte (C = J × dω/dt) : appel de courant important et contraintes sur la transmission",
+        "La rampe du variateur limite l'accélération : démarrage progressif, efforts, couple et courant réduits"],
+      expl: `<p>${F("F = m × a")} : une accélération forte crée de grands efforts sur ${sur} (${effet}).</p><p>${F(`C<sub>acc</sub> = J × ${FRAC("dω", "dt")}`)} : le moteur doit fournir un couple d'accélération élevé, d'où un fort appel de courant et des contraintes mécaniques (réducteur, accouplements).</p><p>${R("La rampe d'accélération du variateur rend le démarrage progressif")} : efforts, couple et courant restent modérés.</p>` }); },
+  () => { const r = rnd([10, 16, 25, 40]), Nm = rnd([1450, 1460, 960]);
+    return rd({ lv: 2, min: 3,
+      ctx: `Un moteur asynchrone (${nf(Nm)} tr/min) entraîne un tambour par l'intermédiaire d'un réducteur de rapport 1 / ${r}.`,
+      q: "Expliquer le rôle du réducteur dans cette chaîne de transmission.",
+      el: [`Il réduit la vitesse : le tambour tourne à ${nf(Nm)} / ${r} ≈ ${n3(Nm / r)} tr/min`,
+        "Il multiplie le couple dans le même rapport (aux pertes près) : la puissance est transmise, au rendement du réducteur près",
+        "Il permet d'utiliser un moteur rapide et de couple faible (plus petit, moins cher) pour une charge lente qui demande un grand couple"],
+      expl: `<p>Le réducteur ${R("diminue la vitesse")} : ${FRAC(nf(Nm), r)} ≈ ${n3(Nm / r)} tr/min au tambour, et ${R("multiplie le couple")} dans le même rapport (aux pertes près) : la puissance se conserve, au rendement près.</p><p>Il permet d'utiliser un moteur rapide, de faible couple, donc compact et économique, pour entraîner une charge lente qui demande un grand couple.</p>` }); },
+  /* frein à manque de courant */
+  () => { const s = rnd(["d'un monte-charge", "d'un treuil de levage", "d'une barrière levante", "d'un convoyeur incliné"]);
+    return rd({ lv: 2, min: 4,
+      ctx: `Le moteur ${s} est commandé par un variateur ; il est équipé d'un frein mécanique à manque de courant.`,
+      q: "Expliquer pourquoi ce frein est indispensable, même avec un variateur.",
+      el: ["À l'arrêt, ou en cas de coupure de l'alimentation, le moteur ne produit plus de couple : la charge pourrait redescendre ou se déplacer sous l'effet de son poids",
+        "Le frein à manque de courant se serre automatiquement dès que sa bobine n'est plus alimentée : sécurité positive, même lors d'une coupure de courant",
+        "Le variateur peut tenir la charge en fonctionnement normal, mais pas en cas de défaut ou de coupure d'alimentation : le frein assure le maintien à l'arrêt et la sécurité"],
+      expl: `<p>À l'arrêt ou lors d'une coupure de courant, le moteur ne fournit plus de couple : ${R("la charge redescendrait sous l'effet de son poids")}.</p><p>Le frein <b>à manque de courant</b> est serré par des ressorts et desserré par un électroaimant : sans tension, il se serre tout seul. C'est une ${R("sécurité positive")} : une coupure d'alimentation ou un défaut du variateur immobilise la charge.</p>` }); }
+];
+
+/* ---------- rendement et énergie ---------- */
+const rdR = [
+  /* rendement global d'une chaîne */
+  () => { const ev = rnd([0.96, 0.97, 0.98]), em = rnd([0.88, 0.91, 0.93]), er = rnd([0.94, 0.95, 0.97]), ep = rnd([0.65, 0.72, 0.78]), eg = ev * em * er * ep, Pa = rnd([12, 18, 25]);
+    return rd({ lv: 3, min: 4,
+      ctx: `Une chaîne de pompage comporte un variateur (η = ${nf(ev, 2)}), un moteur (η = ${nf(em, 2)}), un réducteur (η = ${nf(er, 2)}) et une pompe (η = ${nf(ep, 2)}). Le variateur absorbe ${Pa} kW sur le réseau.`,
+      q: "Expliquer comment se calcule le rendement global de la chaîne, le calculer, en déduire la puissance hydraulique fournie, puis dire ce que deviennent les pertes.",
+      el: ["Chaque élément transmet au suivant sa puissance utile (Pu = η × Pa) : le rendement global est le produit des rendements",
+        `Calcul : η = ${nf(ev, 2)} × ${nf(em, 2)} × ${nf(er, 2)} × ${nf(ep, 2)} ≈ ${nf(eg, 2)}, soit une puissance hydraulique d'environ ${n3(Pa * eg)} kW pour ${Pa} kW absorbés`,
+        "Les pertes (environ " + Math.round((1 - eg) * 100) + " %) sont transformées en chaleur, dans chaque élément de la chaîne"],
+      expl: `<p>La puissance utile d'un élément est la puissance absorbée du suivant : ${F("η<sub>g</sub> = η<sub>1</sub> × η<sub>2</sub> × η<sub>3</sub> × η<sub>4</sub>")} = ${nf(ev, 2)} × ${nf(em, 2)} × ${nf(er, 2)} × ${nf(ep, 2)} = ${R(nf(eg, 3))}.</p><p>Puissance hydraulique : ${Pa} × ${nf(eg, 3)} ≈ ${n3(Pa * eg)} kW. Les ${n3(Pa * (1 - eg))} kW perdus (≈ ${Math.round((1 - eg) * 100)} %) sont ${R("dissipés en chaleur")} (pertes Joule, pertes fer, frottements, pertes hydrauliques).</p>` }); },
+  () => { const [s, dc] = rnd([["d'une usine qui utilise de nombreux moteurs, pompes et ventilateurs", false], ["d'un parc animalier (pompes de bassins, éclairage, chauffage des serres)", false], ["d'un data center (climatisation, onduleurs, éclairage)", true]]);
+    return rd({ lv: 3, min: 5,
+      ctx: `L'audit énergétique ${s} montre une consommation élevée.`,
+      q: "Proposer deux actions pour améliorer la performance énergétique du site, en justifiant chacune.",
+      el: [`Une première action pertinente, justifiée par son gain (${dc ? "free cooling, confinement des allées chaudes et froides, onduleurs ou groupes froids à haut rendement, éclairage LED, comptage…" : "variateurs sur pompes et ventilateurs, moteurs IE3 / IE4, éclairage LED avec détection, compensation de l'énergie réactive, récupération de chaleur, comptage…"})`,
+        "Une seconde action pertinente, différente de la première, justifiée par le gain qu'elle apporte"],
+      expl: `<p>Exemples d'actions (deux suffisent, justifiées) :</p><ul>${dc ? "<li><b>free cooling</b> (refroidissement par l'air extérieur quand il fait frais) et <b>confinement des allées chaudes et froides</b> : le refroidissement, premier poste hors informatique, consomme moins ;</li><li><b>onduleurs et groupes froids à haut rendement</b> : moins de pertes ;</li>" : ""}<li><b>variateurs de vitesse</b> sur les pompes et ventilateurs : la puissance varie comme le cube de la vitesse, on adapte le débit au besoin au lieu de vanner ;</li><li><b>moteurs à haut rendement</b> (IE3, IE4) : moins de pertes pour le même service ;</li><li><b>éclairage LED</b> et détection de présence ;</li><li><b>compensation de l'énergie réactive</b> : moins de courant, moins de pertes Joule, suppression de la facturation du réactif ;</li><li><b>récupération de chaleur</b> (compresseurs, groupes froids) ;</li><li><b>comptage et suivi</b> des consommations pour repérer les dérives.</li></ul>` }); }
+];
+
+/* ---------- compensation ---------- */
+const coR = [
+  /* avantages */
+  () => rd({ lv: 2, min: 3,
+    ctx: `Une batterie de condensateurs va être installée au TGBT d'un site industriel pour ramener tan φ de 0,62 à 0,4.`,
+    q: "Citer deux avantages de la compensation de l'énergie réactive pour ce site, en les expliquant.",
+    el: ["Un premier avantage correct et expliqué : suppression (ou réduction) de la facturation de l'énergie réactive (tan φ ≤ 0,4), courant appelé plus faible donc moins de pertes Joule et de chute de tension, ou puissance disponible au transformateur augmentée (taux de charge plus faible)",
+      "Un second avantage correct et expliqué, différent du premier"],
+    expl: `<p>Avantages (deux suffisent) :</p><ul><li><b>suppression de la facturation de l'énergie réactive</b> : au-delà de tan φ = 0,4, le fournisseur la facture ;</li><li><b>courant appelé plus faible</b> (S diminue quand Q diminue) : moins de pertes Joule et de chute de tension dans les câbles ;</li><li><b>puissance disponible au transformateur augmentée</b> : son taux de charge baisse, on peut ajouter des récepteurs sans le changer.</li></ul>` }),
+  () => { const Sn = rnd([630, 800, 1000, 1250]), r = rnd([0.08, 0.11, 0.19, 0.24]), Qc = Math.round(Sn * r / 5) * 5, ratio = Qc / Sn * 100, auto = ratio > 15;
+    return rd({ lv: 3, min: 4,
+      ctx: `La batterie de condensateurs à installer au TGBT doit fournir Q<sub>c</sub> = ${Qc} kvar ; le transformateur a une puissance S<sub>n</sub> = ${nf(Sn)} kVA. Règle du constructeur : si ${FRAC("Q<sub>c</sub>", "S<sub>n</sub>")} &lt; 15 %, compensation fixe ; au-delà, compensation automatique.`,
+      q: "Justifier le type de compensation à retenir.",
+      el: [`Calcul du rapport : Qc / Sn = ${Qc} / ${nf(Sn)} ≈ ${pc(ratio)}`,
+        `Comparaison au seuil : ${pc(ratio)} ${auto ? ">" : "<"} 15 %`,
+        auto ? "Conclusion : compensation automatique (batterie en gradins pilotée par un régulateur varmétrique), pour éviter la surcompensation quand la charge est faible" : "Conclusion : compensation fixe, la puissance réactive installée reste faible devant celle du transformateur, sans risque de surcompensation"],
+      expl: `<p>${F(`${FRAC("Q<sub>c</sub>", "S<sub>n</sub>")}`)} = ${FRAC(Qc, nf(Sn))} = ${pc(ratio)} ${auto ? "&gt;" : "&lt;"} 15 %.</p><p>${auto ? `${R("Compensation automatique")} : une batterie de cette taille, toujours en service, surcompenserait l'installation à faible charge (surtensions) ; un régulateur varmétrique enclenche les gradins selon le besoin.` : `${R("Compensation fixe")} : la batterie est petite devant la puissance du transformateur, elle peut rester en service en permanence sans surcompenser.`}</p>` }); }
+];
+
+/* ---------- notions moins fréquentes ---------- */
+const thR = [
+  () => { const pue = rnd([1.45, 1.6, 1.8]);
+    return rd({ lv: 2, min: 4,
+      ctx: `Le PUE annuel d'un data center vaut ${nf(pue, 2)}, avec ${F(`PUE = ${FRAC("énergie totale consommée par le data center", "énergie consommée par les équipements informatiques")}`)}.`,
+      q: "Expliquer pourquoi on cherche un PUE le plus proche possible de 1, puis proposer une action pour l'améliorer.",
+      el: [`Un PUE de ${nf(pue, 2)} signifie que pour 1 kWh consommé par l'informatique, le site consomme ${nf(pue - 1, 2)} kWh de plus (refroidissement, onduleurs, éclairage…)`,
+        "Un PUE proche de 1 : presque toute l'énergie sert à l'informatique, très peu d'énergie « hors informatique » (bon rendement énergétique)",
+        "Une action pertinente qui réduit la consommation hors informatique : free cooling, confinement des allées chaudes et froides, consigne de température plus élevée, onduleurs ou groupes froids à meilleur rendement, éclairage LED…"],
+      expl: `<p>PUE = ${nf(pue, 2)} : pour 1 kWh utile à l'informatique, le site consomme ${nf(pue - 1, 2)} kWh de plus (refroidissement surtout, onduleurs, éclairage). ${R("Un PUE proche de 1 signifie que presque toute l'énergie sert aux serveurs")}.</p><p>Pour l'améliorer : réduire la consommation du refroidissement (<b>free cooling</b>, confinement des allées chaudes et froides, consigne de température plus haute), des onduleurs (meilleur rendement) ou de l'éclairage.</p>` }); }
+];
+const haR = [
+  () => rd({ lv: 3, min: 5,
+    ctx: `Un tableau triphasé avec neutre alimente un grand nombre d'ordinateurs et d'éclairages à LED (alimentations à découpage, charges non linéaires), répartis sur les trois phases.`,
+    q: "Expliquer pourquoi le conducteur neutre de ce tableau risque d'être surchargé, et la précaution à prendre.",
+    el: ["Les charges non linéaires absorbent des courants non sinusoïdaux, riches en harmoniques, surtout de rang 3",
+      "Les harmoniques de rang 3 (et multiples de 3) des trois phases sont en phase : au lieu de s'annuler, ils s'additionnent dans le neutre",
+      "Précaution : un neutre de section au moins égale à celle des phases (voire plus grande) et protégé contre les surintensités, ou un filtrage des harmoniques de rang 3"],
+    expl: `<p>Les alimentations à découpage absorbent des courants déformés, riches en <b>harmoniques de rang 3</b>.</p><p>Pour le fondamental, les trois courants de phase sont décalés de 120° et s'annulent dans le neutre ; pour le rang 3, ils sont <b>en phase</b> : ${R("ils s'additionnent dans le neutre")}, dont le courant peut dépasser celui des phases (jusqu'à environ 1,7 fois).</p><p>Précaution : ${R("neutre de même section que les phases, voire plus grande, et protégé")} (facteur de réduction du courant admissible), ou filtrage des harmoniques.</p>` })
+];
+const moR = [
+  () => rd({ lv: 2, min: 4,
+    ctx: `Pour une petite centrale hydroélectrique raccordée au réseau, on hésite entre une génératrice asynchrone (machine asynchrone entraînée au-dessus de sa vitesse de synchronisme) et un alternateur synchrone.`,
+    q: "Citer un avantage et un inconvénient de la génératrice asynchrone par rapport à l'alternateur.",
+    el: ["Un avantage correct : machine robuste, simple et moins chère, ou couplage au réseau simple, sans synchronisation ni excitation à régler",
+      "Un inconvénient correct : elle consomme de la puissance réactive (compensation par condensateurs nécessaire), ou elle ne peut pas produire seule sur un réseau isolé sans source de réactif"],
+    expl: `<p><b>Avantages</b> : machine ${R("robuste, simple et économique")} (rotor à cage) ; couplage au réseau facile, sans synchronisation ; la fréquence est imposée par le réseau.</p><p><b>Inconvénients</b> : elle ${R("consomme de la puissance réactive")} pour se magnétiser (compensation par condensateurs nécessaire) et ne peut pas fonctionner seule en réseau isolé sans source de réactif ; l'alternateur, lui, règle sa tension et peut fournir du réactif.</p>` })
+];
+const chR = [
+  () => { const ch = rnd([["une pompe de bassin", "la pompe, qui transmet l'énergie hydraulique à l'eau"], ["le ventilateur d'une tour aéroréfrigérante", "le ventilateur, qui met l'air en mouvement"], ["un convoyeur", "le tapis du convoyeur, qui déplace les produits"]]);
+    return rd({ lv: 2, min: 4,
+      ctx: `Le moteur asynchrone qui entraîne ${ch[0]} est alimenté par un variateur de vitesse, depuis le TGBT du site ; un accouplement relie le moteur à l'effecteur.`,
+      q: "Décrire la chaîne de puissance de ce système en associant à chaque fonction (alimenter, moduler, convertir, transmettre, agir) son constituant et la forme d'énergie concernée.",
+      el: ["Alimenter : le réseau, le transformateur et le TGBT fournissent l'énergie électrique",
+        "Moduler (distribuer) : le variateur de vitesse règle l'énergie électrique envoyée au moteur",
+        "Convertir : le moteur transforme l'énergie électrique en énergie mécanique (de rotation)",
+        `Transmettre puis agir : l'accouplement transmet l'énergie mécanique à l'effecteur, ${ch[1]}`],
+      expl: `<p>${F("alimenter → moduler → convertir → transmettre → agir")}</p><ul><li><b>Alimenter</b> : réseau, transformateur, TGBT (énergie électrique) ;</li><li><b>Moduler</b> : variateur de vitesse (énergie électrique dosée) ;</li><li><b>Convertir</b> : moteur asynchrone (énergie électrique → énergie mécanique) ;</li><li><b>Transmettre</b> : accouplement (énergie mécanique) ;</li><li><b>Agir</b> : ${ch[1]}.</li></ul>` }); }
+];
+const vaR = [
+  () => { const f = rnd([35, 38, 40, 45]);
+    return rd({ lv: 2, min: 4,
+      ctx: `Un moteur asynchrone à 4 pôles est alimenté par un variateur à U/f constant. On abaisse la fréquence de 50 Hz à ${f} Hz.`,
+      q: "Expliquer comment le variateur fait varier la vitesse du moteur, pourquoi il maintient le rapport U/f constant, et comment se déplace la caractéristique couple-vitesse du moteur.",
+      el: [`Le variateur fait varier la fréquence de la tension : la vitesse de synchronisme ns = 60 f / p varie, ici ${nf(60 * f / 2)} tr/min à ${f} Hz au lieu de 1 500 tr/min`,
+        "U/f constant : le flux magnétique dans le moteur reste constant, donc le couple disponible est conservé (sans saturer ni désexciter le moteur)",
+        "La partie utile de la caractéristique couple-vitesse se déplace parallèlement à elle-même, vers les vitesses plus faibles"],
+      expl: `<p>${F(`n<sub>s</sub> = ${FRAC("60 × f", "p")}`)} : en abaissant f à ${f} Hz, ${R(`n<sub>s</sub> = ${FRAC(`60 × ${f}`, 2)} = ${nf(60 * f / 2)} tr/min`)} ; le moteur tourne un peu en dessous.</p><p>Le flux est proportionnel à U/f : en gardant ${R("U/f constant")}, le flux reste nominal, le moteur garde son couple maximal sans saturer. La caractéristique mécanique se translate parallèlement à elle-même, vers les vitesses plus faibles.</p>` }); }
+];
+
+const ajout = { "protections": [prR, 2], "bilan-puissances": [biR, 2], "fluides": [flR, 2], "economie-normes": [ecR, 2], "regulation-automatisme": [reR, 2], "cables": [caR, 2],
+  "transformateur": [trR, 2], "secours-asi": [seR, 2], "mecanique": [meR, 2], "rendement-energie": [rdR, 1], "compensation": [coR, 1],
+  "thermique-environnement": [thR, 1], "harmoniques": [haR, 1], "moteurs": [moR, 1], "chaine-energie": [chR, 1], "variateurs": [vaR, 1] };
+Object.entries(ajout).forEach(([id, [L, n]]) => { if (!B[id]) return; B[id].redac = L; B[id].count = Object.assign({}, B[id].count, { r: n }); });
+}
+
+/* =====================================================================
    TIRAGE DES SÉRIES
-   E4.tirerSerie(notion)  : une série d'une notion (niveaux 1 → 3), en
-                            privilégiant les générateurs que l'élève n'a pas vus
+   E4.tirerSerie(notion)  : une série d'une notion (niveaux 1 → 3, plus les
+                            questions de rédaction : une avant le niveau 3, une à la fin),
+                            en privilégiant les générateurs que l'élève n'a pas vus
                             récemment sur cet appareil.
    E4.tirerExpress(n)     : épreuve express, questions de toutes les notions
-                            tirées selon leur poids dans les sujets 2022-2026.
+                            tirées selon leur poids dans les sujets 2022-2026,
+                            dont deux questions de rédaction.
    E4.repereMinutes(q)    : temps de référence d'une question (rythme de l'épreuve).
    ===================================================================== */
 const vuLire = (k) => { try { return JSON.parse(localStorage.getItem("e4serie-vu:" + k) || "{}"); } catch (e) { return {}; } };
 const vuGarder = (k, v) => { try { localStorage.setItem("e4serie-vu:" + k, JSON.stringify(v)); } catch (e) {} };
 
+/* une question de rédaction (B[nid].redac[i]) */
+function genRedac(nid, i) {
+  const gen = B[nid].redac[i];
+  let q = null;
+  for (let k = 0; k < 40 && !q; k++) { try { q = gen(); } catch (e) { q = null; } }
+  if (!q) return null;
+  q.lv = q.lv || 2; q.nid = nid; q.g = nid + ":r:" + i; q.gj = 0; q.gl = 1; if (!q.docs) q.docs = [];
+  return q;
+}
+/* rédactions d'une notion, en évitant celles vues récemment (mémoire vu.r) */
+function tirerRedac(nid, n, vu) {
+  const R = B[nid].redac || []; if (!R.length || n <= 0) return [];
+  let s = new Set(vu.r || []); if (R.length - s.size < n) s = new Set();
+  const libres = [...Array(R.length).keys()].filter((i) => !s.has(i)), out = [];
+  for (const i of libres.sort(() => Math.random() - 0.5)) { if (out.length >= n) break; const q = genRedac(nid, i); if (q) { out.push(q); s.add(i); } }
+  vu.r = [...s];
+  return out;
+}
 function genGroupe(nid, lv, i) {
   const gen = B[nid].gens[lv][i];
   let r = null;
@@ -1423,8 +1850,9 @@ function genGroupe(nid, lv, i) {
 }
 E4.tirerSerie = function (nid) {
   const N = B[nid]; if (!N) return [];
-  const cnt = N.count || { 1: 4, 2: 3, 3: 3 }, vu = vuLire(nid), out = [];
+  const cnt = N.count || { 1: 4, 2: 3, 3: 3 }, vu = vuLire(nid), parNiv = { 1: [], 2: [], 3: [] };
   [1, 2, 3].forEach((lv) => {
+    const out = parNiv[lv];
     const n = (N.gens[lv] || []).length; if (!n) return;
     const tous = [...Array(n).keys()], s = new Set(vu[lv] || []), pris = new Set(), refus = new Set();
     let nq = 0, garde = 0;
@@ -1445,29 +1873,42 @@ E4.tirerSerie = function (nid) {
     /* mémoire « déjà vu » : quand tout a été vu, on repart des seuls générateurs de cette série */
     vu[lv] = [...(s.size >= n ? pris : s)];
   });
+  /* rédaction : une avant les questions de niveau 3, une à la fin (une seule : à la fin) */
+  const red = tirerRedac(nid, cnt.r || 0, vu);
   vuGarder(nid, vu);
-  return out;
+  return red.length >= 2 ? [...parNiv[1], ...parNiv[2], red[0], ...parNiv[3], ...red.slice(1)] : [...parNiv[1], ...parNiv[2], ...parNiv[3], ...red];
 };
 E4.tirerExpress = function (n) {
   n = n || 12;
   const poids = (E4.NOTIONS || []).filter((x) => B[x.id]).map((x) => ({ id: x.id, p: x.nb }));
-  const out = [], parNotion = {}, pris = new Set();
+  const out = [], parNotion = {}, pris = new Set(), nRed = n >= 8 ? 2 : 0, nNum = n - nRed;
   let garde = 0;
-  while (out.length < n && garde++ < 300) {
+  while (out.length < nNum && garde++ < 300) {
     let t = poids.reduce((a, x) => a + x.p / (1 + 2 * (parNotion[x.id] || 0)), 0) * Math.random(), id = poids[0].id;
     for (const x of poids) { t -= x.p / (1 + 2 * (parNotion[x.id] || 0)); if (t <= 0) { id = x.id; break; } }
     const r = Math.random(), lv = r < 0.3 ? 1 : r < 0.75 ? 2 : 3, L = B[id].gens[lv]; if (!L || !L.length) continue;
     const i = Math.floor(Math.random() * L.length), cle = id + ":" + lv + ":" + i;
     if (pris.has(cle) && garde < 250) continue;   /* pas deux fois le même générateur dans une épreuve express */
     const g = genGroupe(id, lv, i);
-    if (!g.length || out.length + g.length > n + 2) continue;
+    if (!g.length || out.length + g.length > nNum + 2) continue;
     out.push(...g); pris.add(cle); parNotion[id] = (parNotion[id] || 0) + 1;
   }
+  /* deux questions de rédaction, de deux notions tirées selon leur poids : une au milieu, une à la fin */
+  const red = [], avecR = poids.filter((x) => (B[x.id].redac || []).length);
+  for (let k = 0; k < 50 && red.length < nRed && avecR.length; k++) {
+    let t = avecR.reduce((a, x) => a + x.p, 0) * Math.random(), id = avecR[0].id;
+    for (const x of avecR) { t -= x.p; if (t <= 0) { id = x.id; break; } }
+    if (red.some((q) => q.nid === id)) continue;
+    const R = B[id].redac, q = genRedac(id, Math.floor(Math.random() * R.length)); if (q) red.push(q);
+  }
+  if (red[0]) { let m = Math.floor(out.length / 2); while (m > 0 && out[m] && out[m].gj > 0) m--; out.splice(m, 0, red[0]); }
+  if (red[1]) out.push(red[1]);
   return out;
 };
 /* rythme de l'épreuve : 4 h pour ≈ 35 questions, soit ≈ 7 min par question de sujet ;
    une question de série est une étape d'une question de sujet → 2 à 5 min selon le niveau */
-E4.repereMinutes = (q) => (q.lv === 1 ? 2 : q.lv === 2 ? 3.5 : 5) * (q.gj > 0 ? 0.6 : 1);
-E4.nbGenerateurs = (nid) => (B[nid] ? [1, 2, 3].reduce((a, l) => a + (B[nid].gens[l] || []).length, 0) : 0);
+E4.repereMinutes = (q) => (q.type === "redac" ? q.min || 4 : (q.lv === 1 ? 2 : q.lv === 2 ? 3.5 : 5) * (q.gj > 0 ? 0.6 : 1));
+E4.nbGenerateurs = (nid) => (B[nid] ? [1, 2, 3].reduce((a, l) => a + (B[nid].gens[l] || []).length, 0) + (B[nid].redac || []).length : 0);
+E4.nbRedaction = (nid) => (B[nid] && B[nid].redac ? B[nid].redac.length : 0);
 delete E4.BANQUE_OUTILS;
 })(window.E4);

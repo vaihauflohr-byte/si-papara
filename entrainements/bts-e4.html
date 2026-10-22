@@ -228,6 +228,23 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
 .fiche-serie{margin:6px 0 0;padding-left:1.2em}.fiche-serie li{margin:.35em 0}
 .bilan-grille{display:grid;grid-template-columns:minmax(280px,1fr) minmax(300px,1.3fr);gap:14px;align-items:start}
 .jouer>*{min-width:0}
+/* rédaction et vérification par l'IA */
+.chip.redac{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.redac-zone{margin:12px 0}.redac-zone .lab{display:block;font-weight:600;margin-bottom:4px}.redac-zone textarea{min-height:150px}.redac-zone textarea[readonly]{background:var(--paper-2)}
+.redac-aide{margin:4px 0 0;font-size:.86rem}
+.t-redac{margin:8px 0}.t-redac td{vertical-align:top}.t-redac td.qui{width:30%;white-space:nowrap}
+.t-redac tr.ok td:first-child{border-left:3px solid var(--good)}.t-redac tr.part td:first-child{border-left:3px solid var(--warn)}.t-redac tr.ko td:first-child{border-left:3px solid var(--bad)}
+.t-redac .auto{font-weight:600}.t-redac tr.ok .auto{color:var(--good)}.t-redac tr.part .auto{color:var(--warn)}.t-redac tr.ko .auto{color:var(--bad)}
+.t-redac .moi{font-size:.88rem;cursor:pointer}
+.ia-r{display:block;font-size:.84rem;color:var(--ink-2);margin-top:3px;font-style:italic}
+.ia-note{font-size:.9rem;margin:8px 0;padding:7px 11px;border-radius:5px;background:var(--paper-2);border-left:3px solid var(--accent)}
+.ia-note p{margin:.2rem 0}.ia-note.ko{background:var(--warn-soft);border-left-color:var(--warn)}
+.ia-note .attente{animation:clign 1.4s ease-in-out infinite}@keyframes clign{50%{opacity:.45}}
+.verdict-serie.part{background:var(--warn-soft);color:var(--warn)}
+.pts-serie i.part{background:var(--warn)}
+.ma-redac{background:var(--paper-2);border-radius:var(--r);padding:8px 12px;margin:6px 0;font-size:.92rem;white-space:normal}
+.grille .tag.part{background:var(--warn-soft);color:var(--warn)}.grille .tag.attente{background:var(--paper-2);color:var(--ink-3)}
+@media (max-width:760px){.t-redac td.qui{white-space:normal;width:auto}}
 @media (max-width:760px){.bilan-grille{grid-template-columns:1fr}.champ{grid-template-columns:1fr}.champ .saisie{min-width:0}.champ input[type=text]{width:auto;flex:1;min-width:0}.formule{white-space:normal}.t-series th:nth-child(3),.t-series td:nth-child(3),.t-series td .discret{display:none}.t-series td:nth-child(2){width:28%}}
 .t-notions td.act,.t-runs td.act{white-space:nowrap}
 @media (max-width:760px){.t-notions th:nth-child(2),.t-notions td:nth-child(2),.t-notions th:nth-child(4),.t-notions td:nth-child(4),.t-runs th:nth-child(2),.t-runs td:nth-child(2){display:none}.t-notions td.act,.t-runs td.act{white-space:normal}.t-notions td.act .btn,.t-runs td.act .btn{display:block;margin:0 0 4px;text-align:center}.t-runs th,.t-runs td{padding:6px 4px}.t-runs th{font-size:.7rem;letter-spacing:.02em}}
@@ -276,6 +293,26 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const nb = (x, d = 3) => Number.isFinite(x) ? Number(x.toPrecision(d)).toLocaleString("fr-FR", { maximumFractionDigits: 10 }) : "—";
   const app = document.getElementById("app");
+  /* ---------- réponses rédigées vérifiées par l'IA (SIP.ia → fonction Supabase « corriger », Claude) ----------
+     Pour les questions de rédaction (q.texte, ou sans champ ni dessin) : la réponse tapée par l'élève, le corrigé et
+     les indicateurs du barème qui ne sont pas déjà vérifiés par un champ partent à l'IA (8 indicateurs par appel au plus).
+     Verdict par indicateur : présent 1, en partie ½, absent 0 (compté dans le niveau N0–N3). Sans IA (non connecté,
+     quota, réseau) : l'élève coche lui-même, comme avant. Le verdict est gardé avec l'entraînement (jamais redemandé). */
+  const POIDS_IA = { present: 1, partiel: 0.5, absent: 0 };
+  const iaEnVol = new Set();
+  const nbCoches = (c) => (c || []).reduce((a, x) => a + (x === true ? 1 : typeof x === "number" ? x : 0), 0);
+  const brut = (h) => String(h ?? "").replace(/<span class=['"]frac['"]><span>(.*?)<\/span><span>(.*?)<\/span><\/span>/g, "($1)/($2)").replace(/<sup>(.*?)<\/sup>/g, "^$1").replace(/<sub>(.*?)<\/sub>/g, "$1").replace(/<br\s*\/?>/g, " ").replace(/<\/(p|li|tr)>/g, " ").replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+  const IA_HS = "sip_ia_hs";
+  const iaHS = () => { try { return Date.now() - Number(sessionStorage.getItem(IA_HS) || 0) < 5 * 60e3; } catch (e) { return false; } };
+  const marquerHS = (oui) => { try { if (oui) sessionStorage.setItem(IA_HS, String(Date.now())); else sessionStorage.removeItem(IA_HS); } catch (e) { /* stockage indisponible */ } };
+  const iaDispo = () => !!(window.SIP && SIP.ia && SIP.ia.actif && SIP.ia.actif() && SIP.session && SIP.session.get()) && !iaHS();
+  const estRedaction = (q) => !!(q.texte || (!(q.champs && q.champs.length) && !q.dessin));
+  function messageIA(code) {
+    if (code === "QUOTA") return "Tu as utilisé toutes tes vérifications par l'IA pour aujourd'hui : coche toi-même, avec le corrigé, ce que ta réponse contient.";
+    if (code === "NON_CONNECTE" || code === "SESSION_EXPIREE") return "Connecte-toi au site pour que l'IA vérifie ta rédaction. En attendant, coche toi-même, avec le corrigé, ce que ta réponse contient.";
+    if (code === "PROF_NON_CONNECTE" || code === "NON_AUTORISE") return "Aperçu : connecte-toi à l'espace prof dans ce navigateur pour voir la vérification par l'IA. En attendant, coche avec le corrigé.";
+    return "La vérification par l'IA n'a pas pu se faire (réseau ?) : coche toi-même, avec le corrigé, ce que ta réponse contient, ou réessaie.";
+  }
   const sujetDe = (id) => SUJETS.find((s) => s.id === id);
   const notionDe = (id) => NOTIONS.find((n) => n.id === id) || { id, nom: id };
   const nomEleve = () => { try { const s = window.SIP && SIP.session && SIP.session.get(); return s ? s.nom : null; } catch (e) { return null; } };
@@ -311,7 +348,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
     return [ch.attendu].concat(ch.alt || []).some((a) => ch.abs !== undefined ? Math.abs(v - a) <= ch.abs + 1e-9 : Math.abs(v - a) / Math.abs(a) <= (ch.tol || 2) / 100 + 1e-9);
   }
   function niveauDe(q, coches) {
-    const n = coches.filter(Boolean).length, s = q.seuils || [1, null, q.indicateurs.length];
+    const n = nbCoches(coches), s = q.seuils || [1, null, q.indicateurs.length];
     if (s[2] != null && n >= s[2]) return 3;
     if (s[1] != null && n >= s[1]) return 2;
     if (s[0] != null && n >= s[0]) return 1;
@@ -687,7 +724,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
           <div class="capacite"><b>Capacité évaluée :</b> ${esc(q.capacite)} · <span class="chip">${esc(notionDe(q.notion).nom)}</span></div>
           ${q.dessin ? `<div class="papier">✎ <b>Document réponse à compléter à l'écran</b>${q.drep ? ` · <button class="btn petit" data-drep="${q.drep}">Voir la page entière</button>` : ""}</div><div id="atelier"></div>` : q.drep ? `<div class="papier">✎ Document réponse à compléter sur papier : <button class="btn petit" data-drep="${q.drep}">Voir le DREP</button></div>` : ""}
           ${champs ? `<div class="champs">${champs}</div>` : ""}
-          ${q.texte || !(q.champs && q.champs.length) ? `<p class="discret" style="margin:6px 0 4px">Ta réponse rédigée (facultatif ici, mais obligatoire sur la copie) :</p><textarea name="texte" ${ro ? "readonly" : ""} placeholder="Relation utilisée, données relevées, calcul, conclusion…">${esc(r.valeurs.texte || "")}</textarea>` : ""}
+          ${q.texte || !(q.champs && q.champs.length) ? `<p class="discret" style="margin:6px 0 4px">${estRedaction(q) && iaDispo() ? "Ta réponse rédigée : <b>une IA la compare au corrigé</b>, indicateur par indicateur du barème (rédige-la aussi sur ta copie) :" : "Ta réponse rédigée (facultatif ici, mais obligatoire sur la copie) :"}</p><textarea name="texte" ${ro ? "readonly" : ""} placeholder="Relation utilisée, données relevées, calcul, conclusion…">${esc(r.valeurs.texte || "")}</textarea>` : ""}
           ${r.indice && q.ou ? `<div class="indice"><b>Où chercher ?</b> ${q.ou}</div>` : ""}
           <div class="actions" id="actions"></div>
           <div id="correction"></div>
@@ -725,26 +762,74 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
       const auto = {}; Object.entries(q.auto || {}).forEach(([ch, idx]) => { const c = (q.champs || []).find((x) => x.id === ch); if (c && (c.type === "point" || c.attendu !== undefined)) { const ok = champJuste(c, r.valeurs[ch]); (Array.isArray(idx) ? idx : [idx]).forEach((i) => { auto[i] = auto[i] === undefined ? ok : auto[i] && ok; }); } });
       Object.entries(auto).forEach(([idx, ok]) => (r.coches[idx] = ok));
       const valide = r.niveau != null;
+      /* rédaction : indicateurs non vérifiés par un champ → IA */
+      const libres = q.indicateurs.map((t, i) => i).filter((i) => auto[i] === undefined);
+      const texteRedige = String(r.valeurs.texte || "").trim();
+      const pourIA = estRedaction(q) && libres.length && texteRedige.length >= 15;
+      if (pourIA && !valide && (!r.ia || (r.ia.etat === "encours" && !iaEnVol.has(idItem(it)))) && iaDispo()) verifierIA(it, r, libres, texteRedige);
+      const iaV = (i) => (r.ia && r.ia.etat === "ok" && r.ia.el && r.ia.el[i]) || null;
+      const iaLit = pourIA && r.ia && r.ia.etat === "encours" && iaEnVol.has(idItem(it));
+      libres.forEach((i) => { const v = iaV(i); if (v) r.coches[i] = POIDS_IA[v.v]; });
       const dessinerGrille = () => {
-        const n = niveauDe(q, r.coches), cnt = r.coches.filter(Boolean).length;
+        const n = niveauDe(q, r.coches), cnt = nbCoches(r.coches);
         zone.innerHTML = `<div class="correction">
           <h3>Corrigé</h3>
           ${q.corrigeImg && !q.dessin ? `<img class="img-corrige" src="${it.s.dossier}${q.corrigeImg}" alt="Document réponse corrigé" data-zoom>` : ""}
           <div class="corrige">${q.corrige}</div>
           ${q.ou && !r.indice ? `<div class="indice"><b>Où était la réponse ?</b> ${q.ou}</div>` : ""}
           <div class="grille">
-            <div class="tete"><div><h3 style="margin:0">Grille d'évaluation · ${it.s.bareme === "reconstitue" ? "reconstituée (pas de barème officiel publié pour ce sujet)" : "barème officiel"}</h3><span class="discret">Coche <b>honnêtement</b> ce que tu as écrit sur ta copie. Les indicateurs liés à un résultat saisi sont cochés automatiquement.</span></div>
-              <div class="niveau n${n}">N${n} <small>${NIVEAUX[n]} · ${cnt} / ${q.indicateurs.length} indicateur${cnt > 1 ? "s" : ""}</small></div></div>
-            ${q.indicateurs.map((txt, i) => `<label class="${auto[i] !== undefined ? "auto" : ""}"><input type="checkbox" data-i="${i}" ${r.coches[i] ? "checked" : ""} ${auto[i] !== undefined || valide ? "disabled" : ""}> <span>${txt}</span>${auto[i] !== undefined ? `<span class="tag ${auto[i] ? "ok" : "ko"}">${auto[i] ? "vérifié ✓" : "faux ✗"}</span>` : ""}</label>`).join("")}
-            <p class="discret" style="margin:8px 0 0">Seuils : ${["N1", "N2", "N3"].map((k, i) => (q.seuils || [])[i] != null ? k + " dès " + q.seuils[i] : null).filter(Boolean).join(" · ")} indicateur(s).</p>
+            <div class="tete"><div><h3 style="margin:0">Grille d'évaluation · ${it.s.bareme === "reconstitue" ? "reconstituée (pas de barème officiel publié pour ce sujet)" : "barème officiel"}</h3><span class="discret">Coche <b>honnêtement</b> ce que tu as écrit sur ta copie. Les indicateurs liés à un résultat saisi sont cochés automatiquement${estRedaction(q) && libres.length ? " ; ceux de ta réponse rédigée sont vérifiés par l'IA quand elle est disponible" : ""}.</span></div>
+              <div class="niveau n${n}">N${n} <small>${NIVEAUX[n]} · ${nb(cnt, 2)} / ${q.indicateurs.length} indicateur${cnt > 1 ? "s" : ""}</small></div></div>
+            ${q.indicateurs.map((txt, i) => { const v = iaV(i), lit = iaLit && libres.includes(i), fixe = auto[i] !== undefined || !!v || lit;
+              const tag = auto[i] !== undefined ? `<span class="tag ${auto[i] ? "ok" : "ko"}">${auto[i] ? "vérifié ✓" : "faux ✗"}</span>`
+                : v ? `<span class="tag ${v.v === "present" ? "ok" : v.v === "partiel" ? "part" : "ko"}">${{ present: "IA ✓ présent", partiel: "IA ◐ en partie", absent: "IA ✗ absent" }[v.v]}</span>`
+                : lit ? `<span class="tag attente">⋯ l'IA lit</span>` : "";
+              return `<label class="${fixe ? "auto" : ""}"><input type="checkbox" data-i="${i}" ${r.coches[i] ? "checked" : ""} ${fixe || valide ? "disabled" : ""}> <span>${txt}${v && v.r ? `<span class="ia-r">${esc(v.r)}</span>` : ""}</span>${tag}</label>`; }).join("")}
+            <p class="discret" style="margin:8px 0 0">Seuils : ${["N1", "N2", "N3"].map((k, i) => (q.seuils || [])[i] != null ? k + " dès " + q.seuils[i] : null).filter(Boolean).join(" · ")} indicateur(s).${libres.some((i) => iaV(i)) ? " Un indicateur « en partie » compte pour ½." : ""}</p>
           </div>
-          ${!valide ? `<div class="actions"><button class="btn plein" data-valider>Valider mon évaluation : N${n}</button></div>` : `<p class="discret">Évaluation enregistrée : <b class="n${r.niveau}">N${r.niveau}</b>. ${r.indice ? "Indice utilisé." : ""}</p>`}
+          ${blocIA()}
+          ${!valide ? `<div class="actions"><button class="btn plein" data-valider ${iaLit ? "disabled" : ""}>${iaLit ? "⋯ L'IA lit ta réponse…" : "Valider mon évaluation : N" + n}</button></div>` : `<p class="discret">Évaluation enregistrée : <b class="n${r.niveau}">N${r.niveau}</b>. ${r.indice ? "Indice utilisé." : ""}</p>`}
         </div>`;
         zone.querySelectorAll("input[type=checkbox]").forEach((c) => c.addEventListener("change", () => { r.coches[c.dataset.i] = c.checked; sauver(); dessinerGrille(); }));
+        const bre = zone.querySelector("[data-ia-relance]"); if (bre) bre.addEventListener("click", () => { marquerHS(false); r.ia = null; sauver(); afficher(); });
         const im = zone.querySelector("[data-zoom]"); if (im) im.addEventListener("click", () => lightbox(im.src));
         const bv = zone.querySelector("[data-valider]"); if (bv) bv.addEventListener("click", () => { r.niveau = niveauDe(q, r.coches); sauver(); dessinerNav(); dessinerGrille(); if (run.phase === "corriger" || !blanc) { actions.innerHTML = (run.idx > 0 ? `<button class="btn" data-go="-1">← Précédente</button>` : "") + suivHtml; actions.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => { run.idx += Number(b.dataset.go); sauver(); afficher(); })); const bf = actions.querySelector("[data-fin]"); if (bf) bf.addEventListener("click", () => { if (enRevue) { location.hash = lienBilan; return; } if (confirm("Terminer et voir le bilan ?")) finir(); }); } });
       };
+      /* sous la grille : conseil de l'IA, ou pourquoi elle n'a pas pu lire */
+      function blocIA() {
+        if (!pourIA) return "";
+        if (iaLit) return `<div class="ia-note"><p class="attente">⋯ L'IA compare ta réponse au corrigé, indicateur par indicateur…</p></div>`;
+        if (r.ia && r.ia.etat === "ok") return `<div class="ia-note">${r.ia.conseil ? `<p><b>Conseil :</b> ${esc(r.ia.conseil)}</p>` : ""}<p class="discret">Rédaction vérifiée par une IA (Claude) à partir du corrigé et du barème : elle peut se tromper.</p></div>`;
+        if (r.ia && r.ia.etat === "erreur") return `<div class="ia-note ko"><p>${esc(messageIA(r.ia.erreur))}</p>${valide ? "" : `<button type="button" class="btn petit" data-ia-relance>Réessayer avec l'IA</button>`}</div>`;
+        if (!valide && !iaDispo()) return `<div class="ia-note ko"><p>${esc(messageIA(window.SIP && SIP.session && SIP.session.get() ? "IA_RESEAU" : "NON_CONNECTE"))}</p></div>`;
+        return "";
+      }
       dessinerGrille();
+    }
+    /* appel à l'IA pour une question de rédaction (verdict gardé dans r.ia ; la question est redessinée à son retour) */
+    async function verifierIA(it, r, libres, texte) {
+      const k = idItem(it), q = it.q, s = it.s;
+      iaEnVol.add(k); r.ia = { etat: "encours", t: Date.now() }; sauver();
+      const lots = []; for (let j = 0; j < libres.length; j += 8) lots.push(libres.slice(j, j + 8));
+      try {
+        const el = {}; let conseil = "";
+        for (const lot of lots) {
+          const d = await SIP.ia.corriger({
+            question: (`BTS Électrotechnique (2e année), épreuve E4 ${s.session}, sujet « ${s.titre} », question ${q.id}. ` + brut((q.contexte || "") + " " + q.enonce)).slice(0, 2400),
+            corrige: brut(q.corrige).slice(0, 3900),
+            elements: lot.map((i) => ({ i, t: brut(q.indicateurs[i]).slice(0, 290), p: 1 })),
+            reponse: texte.slice(0, 2000) });
+          (d.elements || []).forEach((x) => { const v = String((x && x.verdict) || "").toLowerCase(), i = Number(x && x.i); if (lot.includes(i) && POIDS_IA[v] !== undefined && !el[i]) el[i] = { v, r: String(x.raison || "").slice(0, 300) }; });
+          if (!conseil && d.conseil) conseil = String(d.conseil).slice(0, 400);
+        }
+        r.ia = { etat: "ok", el, conseil, t: Date.now() }; marquerHS(false);
+      } catch (e) {
+        const code = (e && (e.code || e.message)) || "IA";
+        if (code === "IA_RESEAU") marquerHS(true);
+        r.ia = { etat: "erreur", erreur: code, t: Date.now() };
+      }
+      iaEnVol.delete(k); sauver();
+      if (!enRevue && prc.items[run.idx] && idItem(prc.items[run.idx]) === k) afficher();
     }
     afficher();
   }
@@ -784,7 +869,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
         <p class="discret" style="margin-bottom:0">Clique sur une question pour revoir ton évaluation et le corrigé.</p></div>`;
     function ligneGroupe(g) { const niv = g.note == null ? 0 : g.note / 20; return `<tr><td>${esc(g.lib)}</td><td class="num">${g.n}</td><td class="num">${g.faible || ""}</td><td><div class="barre"><span style="width:${Math.round(100 * niv)}%;background:${niv >= .8 ? "var(--good)" : niv >= .5 ? "var(--accent)" : "var(--bad)"}"></span></div></td><td class="num">${g.note == null ? "—" : nb(g.note, 3)}</td></tr>`; }
     document.getElementById("btn-faibles").addEventListener("click", () => {
-      items.forEach((i) => { if (i.niveau != null && i.niveau <= 1) { const r = run.reponses[idItem(i.it)]; r.niveau = null; r.coches = null; r.verifie = false; r.valeurs = {}; } });
+      items.forEach((i) => { if (i.niveau != null && i.niveau <= 1) { const r = run.reponses[idItem(i.it)]; r.niveau = null; r.coches = null; r.verifie = false; r.valeurs = {}; r.ia = null; } });
       run.fini = false; run.transmis = false; run.idx = items.findIndex((i) => (run.reponses[idItem(i.it)] || {}).niveau == null); if (run.idx < 0) run.idx = 0;
       if (prc.mode === "blanc") run.phase = "corriger";
       garder(cle(prc.id), run); location.hash = lienJeu;
@@ -798,7 +883,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
     const note = noteSur20(items.map((i) => ({ q: i.q, niveau: i.r.niveau })));
     if (note == null) { if (manuel) toast("Aucune question évaluée : rien à transmettre."); return false; }
     if (!window.SIP || !SIP.session || !SIP.session.get()) { toast(manuel ? "Tu n'es pas connecté(e) au site : connecte-toi sur la page d'accueil du site, puis reviens transmettre." : "Résultat gardé sur cet appareil (non connecté au site)."); return false; }
-    const details = items.map((i) => { const d = { q: i.q.id + " · " + i.q.capacite.slice(0, 90), rep: "N" + i.r.niveau + " (" + i.r.coches.filter(Boolean).length + "/" + i.q.indicateurs.length + " indicateurs)" + (i.r.indice ? " · indice" : ""), attendu: "N3", pts: Math.round(100 * i.r.niveau / 3) / 100, erreurs: i.r.niveau <= 1 ? 1 : 0, notion: i.q.notion };
+    const details = items.map((i) => { const d = { q: i.q.id + " · " + i.q.capacite.slice(0, 90), rep: "N" + i.r.niveau + " (" + nb(nbCoches(i.r.coches), 2) + "/" + i.q.indicateurs.length + " indicateurs" + (i.r.ia && i.r.ia.etat === "ok" ? ", rédaction vérifiée par l'IA" : "") + ")" + (i.r.indice ? " · indice" : ""), attendu: "N3", pts: Math.round(100 * i.r.niveau / 3) / 100, erreurs: i.r.niveau <= 1 ? 1 : 0, notion: i.q.notion };
       const tr = i.r.valeurs && i.r.valeurs.dessin; if (Array.isArray(tr) && tr.length && JSON.stringify(tr).length < 30000) d.dessin = tr; return d; });
     try {
       const ok = await SIP.ecrire("enregistrer", { module: prc.module, titre: prc.titreSite, type: "externe", score: note, score_max: 20, duree_s: run.termine ? Math.round((run.termine - run.debut) / 1000) : null, details });

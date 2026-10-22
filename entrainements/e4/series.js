@@ -10,6 +10,11 @@
    ressources (onglets à gauche) ; chronomètre et temps de référence par question.
    Notation : on part de 20, chaque erreur retire 20 / nombre de questions
    (2 points pour une série de 10). Une seule tentative par question.
+   Questions de rédaction (type "redac") : l'élève rédige ; l'IA du site
+   (SIP.ia.corriger → fonction Supabase « corriger », Claude) juge chaque élément
+   du barème (présent 1, en partie ½, absent 0) ; sans IA (hors connexion, quota,
+   réseau), l'élève coche lui-même, avec le corrigé, ce que sa réponse contient.
+   La question vaut la part des éléments obtenus.
    Résultat transmis au suivi du professeur (module e4-serie-<notion> ou e4-express).
    ===================================================================== */
 (function () {
@@ -58,7 +63,7 @@
         </div>
         <div class="carte">
           <div class="eyebrow">Méthode</div><h3 style="margin-top:4px">Comment travailler une série</h3>
-          <ol class="discret" style="margin:6px 0 0;padding-left:1.2em"><li>Lis la situation, puis ouvre le document qui contient la donnée (onglets à gauche).</li><li>Rédige le calcul sur ta copie : relation, valeurs, unité, résultat.</li><li>Saisis ton résultat (3 chiffres significatifs suffisent) et lis le corrigé, même si tu as juste.</li><li>« Où chercher ? » t'indique la ligne ou la colonne : il est noté dans ton bilan.</li></ol>
+          <ol class="discret" style="margin:6px 0 0;padding-left:1.2em"><li>Lis la situation, puis ouvre le document qui contient la donnée (onglets à gauche).</li><li>Rédige le calcul sur ta copie : relation, valeurs, unité, résultat.</li><li>Saisis ton résultat (3 chiffres significatifs suffisent) et lis le corrigé, même si tu as juste.</li><li>« Où chercher ? » t'indique la ligne ou la colonne : il est noté dans ton bilan.</li><li>Les questions <b>✎ Rédaction</b> (justifier, expliquer, conclure) se rédigent dans le cadre prévu : une IA compare ta réponse au corrigé, élément par élément du barème.</li></ol>
         </div>
       </div>
       <h2>Les notions <span class="discret" style="font-family:var(--f-body);font-weight:400;text-transform:none;font-size:.88rem">classées par poids dans les sujets 2022-2026</span></h2>
@@ -103,9 +108,11 @@
     tic(); tmr = setInterval(tic, 1000);
     question(app);
   }
-  const noteCourante = () => { const n = st.qs.length, err = st.rep.filter((r) => !r.ok).length; return Math.max(0, Math.round((20 - 20 * err / n) * 2) / 2); };
+  const fracDe = (r) => (r && r.frac != null ? r.frac : r && r.ok ? 1 : 0);
+  const noteCourante = () => { const n = st.qs.length, err = st.rep.reduce((a, r) => a + 1 - fracDe(r), 0); return Math.max(0, Math.round((20 - 20 * err / n) * 2) / 2); };
   function entete() {
-    document.getElementById("s-pts").innerHTML = st.qs.map((q, k) => `<i class="${k < st.rep.length ? (st.rep[k].ok ? "ok" : "ko") : k === st.i ? "cour" : ""}" title="Question ${k + 1}"></i>`).join("");
+    document.getElementById("s-pts").innerHTML = st.qs.map((q, k) => { const f = k < st.rep.length ? fracDe(st.rep[k]) : null;
+      return `<i class="${f != null ? (f >= 1 ? "ok" : f > 0 ? "part" : "ko") : k === st.i ? "cour" : ""}" title="Question ${k + 1}${q.type === "redac" ? " (rédaction)" : ""}"></i>`; }).join("");
     document.getElementById("s-prog").textContent = `Question ${Math.min(st.i + 1, st.qs.length)} / ${st.qs.length} · repère : ${minutes(st.repere)} pour la série`;
     document.getElementById("s-note").innerHTML = `Note <b>${nf(noteCourante(), 1)}</b> / 20`;
   }
@@ -132,9 +139,13 @@
     const prec = q.gj > 0 ? `<div class="suite-q">Suite de la même situation (question ${st.i} → ${st.i + 1}).</div>` : "";
     const saisie = q.type === "ch"
       ? `<div class="choix-serie">${q.ch.map((c, k) => `<button type="button" class="ch" data-k="${k}"><span class="k">${k + 1}</span><span>${c}</span></button>`).join("")}</div>`
+      : q.type === "redac"
+      ? `<div class="redac-zone"><label class="lab" for="s-redac">Ta réponse rédigée</label>
+          <textarea id="s-redac" rows="7" placeholder="Rédige comme sur ta copie : des phrases complètes, les valeurs avec leur unité, une conclusion."></textarea>
+          <p class="discret redac-aide">${iaDispo() ? "Après « Valider », une IA compare ta réponse au corrigé, élément par élément du barème." : "Après « Valider », tu compareras ta réponse au corrigé et tu cocheras les éléments qu'elle contient."}</p></div>`
       : `<div class="champ"><span class="lab">Ta réponse</span><span class="saisie"><input type="text" id="s-val" inputmode="decimal" autocomplete="off" aria-label="Ta réponse"><span class="unite">${esc(q.unit || "")}</span></span></div>`;
     trav.innerHTML = `<div class="carte">
-        <div class="q-tete"><span class="q-num">Q${st.i + 1}</span><span class="chip niv${q.lv}">Niveau ${q.lv} · ${NIV[q.lv]}</span>${st.id === "express" ? `<span class="chip">${esc(notion(q.nid).nom)}</span>` : ""}<span class="discret">repère ≈ ${minutes(E4.repereMinutes(q))}</span></div>
+        <div class="q-tete"><span class="q-num">Q${st.i + 1}</span>${q.type === "redac" ? `<span class="chip redac">✎ Rédaction</span>` : `<span class="chip niv${q.lv}">Niveau ${q.lv} · ${NIV[q.lv]}</span>`}${st.id === "express" ? `<span class="chip">${esc(notion(q.nid).nom)}</span>` : ""}<span class="discret">repère ≈ ${minutes(E4.repereMinutes(q))}</span></div>
         ${prec}${q.ctx ? `<div class="contexte">${q.ctx}</div>` : ""}${q.data ? `<div class="data-serie">${q.data}</div>` : ""}
         ${q.docs && q.docs.length ? `<p class="discret doc-rappel">📄 Données à chercher dans : ${q.docs.map((d) => `<b>${esc(d.nom)}</b>`).join(" · ")}</p>` : ""}
         <p class="q-enonce">${q.q}</p>
@@ -147,16 +158,37 @@
     signalement(q);
     const ou = document.getElementById("s-ou");
     if (ou) ou.addEventListener("click", () => { indice = true; document.getElementById("s-ind").innerHTML = `<div class="indice"><b>Où chercher ?</b> ${q.ou}</div>`; ou.disabled = true; });
-    const repondre = (ok, rep, attendu) => {
-      st.rep.push({ ok, rep, attendu, indice, t: Date.now() }); if (indice) st.indices++;
+    const repondre = (ok, rep, attendu, opt) => {
+      opt = opt || {};
+      st.rep.push(Object.assign({ ok, rep, attendu, indice, t: Date.now() }, opt.donnees || {})); if (indice) st.indices++;
       entete();
       const fin = st.i + 1 >= st.qs.length;
       document.getElementById("s-actions").innerHTML = `<button class="btn plein" id="s-suite">${fin ? "Voir le bilan →" : "Question suivante →"}</button>`;
-      document.getElementById("s-fb").innerHTML = `<div class="correction"><div class="verdict-serie ${ok ? "ok" : "ko"}">${ok ? "Exact" : "Faux"}${ok ? "" : ` · réponse attendue : <b>${attendu}</b>`}</div><div class="corrige">${q.expl}</div></div>`;
+      document.getElementById("s-fb").innerHTML = opt.fb || `<div class="correction"><div class="verdict-serie ${ok ? "ok" : "ko"}">${ok ? "Exact" : "Faux"}${ok ? "" : ` · réponse attendue : <b>${attendu}</b>`}</div><div class="corrige">${q.expl}</div></div>`;
       const s = document.getElementById("s-suite"); s.focus({ preventScroll: true });
       s.addEventListener("click", () => { if (fin) terminer(app, false); else { st.i++; question(app); window.scrollTo({ top: 0, behavior: "smooth" }); } });
     };
-    if (q.type === "ch") {
+    if (q.type === "redac") {
+      const ta = document.getElementById("s-redac"), val = document.getElementById("s-valider"), w = document.getElementById("s-warn");
+      ta.focus({ preventScroll: true });
+      let enCours = false;
+      val.addEventListener("click", async () => {
+        if (st.rep.length > st.i || enCours) return;
+        const t = ta.value.trim();
+        if (t.replace(/\s+/g, " ").length < 15) { w.hidden = false; w.textContent = "Rédige ta réponse (au moins une phrase complète) avant de valider."; return; }
+        w.hidden = true; enCours = true; ta.readOnly = true; val.disabled = true;
+        const fb = document.getElementById("s-fb"), moi = st;
+        let ia = null, err = null;
+        if (iaDispo()) {
+          fb.innerHTML = `<div class="ia-note"><p class="attente">⋯ L'IA compare ta réponse au corrigé…</p></div>`;
+          try { ia = await corrigerIA(q, t); marquerHS(false); }
+          catch (e) { err = (e && (e.code || e.message)) || "IA"; if (err === "IA_RESEAU") marquerHS(true); }
+        } else err = window.SIP && SIP.session && SIP.session.get() ? "IA_ABSENTE" : "NON_CONNECTE";
+        enCours = false;
+        if (st !== moi || st.fini || st.rep.length > st.i || st.qs[st.i] !== q) return;   // temps écoulé ou série quittée pendant la lecture
+        correctionRedac(q, t, ia, err, repondre);
+      });
+    } else if (q.type === "ch") {
       trav.querySelectorAll(".ch").forEach((b) => b.addEventListener("click", () => {
         if (st.rep.length > st.i) return;
         const k = Number(b.dataset.k), ok = k === q.ok;
@@ -178,6 +210,70 @@
       inp.addEventListener("keydown", (e) => { if (e.key === "Enter") valider(); });
     }
   }
+  /* ---------- questions de rédaction : vérification par l'IA, sinon auto-évaluation ---------- */
+  const POIDS = { present: 1, partiel: 0.5, absent: 0 }, LIB = { present: "✓ présent", partiel: "◐ en partie", absent: "✗ absent" };
+  /* coupe-circuit (comme les DS blancs) : la fonction ne répond pas du tout → plus d'appel pendant 5 minutes */
+  const HS = "sip_ia_hs";
+  const iaHS = () => { try { return Date.now() - Number(sessionStorage.getItem(HS) || 0) < 5 * 60e3; } catch (e) { return false; } };
+  const marquerHS = (oui) => { try { if (oui) sessionStorage.setItem(HS, String(Date.now())); else sessionStorage.removeItem(HS); } catch (e) { /* stockage indisponible */ } };
+  const iaDispo = () => !!(window.SIP && SIP.ia && SIP.ia.actif && SIP.ia.actif() && SIP.session && SIP.session.get()) && !iaHS();
+  function messageIA(code) {
+    if (code === "QUOTA") return "Tu as utilisé toutes tes vérifications par l'IA pour aujourd'hui : coche toi-même, avec le corrigé, ce que ta réponse contient.";
+    if (code === "NON_CONNECTE" || code === "SESSION_EXPIREE") return "Connecte-toi au site pour que l'IA vérifie ta rédaction. En attendant, coche toi-même, avec le corrigé, ce que ta réponse contient.";
+    if (code === "PROF_NON_CONNECTE" || code === "NON_AUTORISE") return "Aperçu : connecte-toi à l'espace prof dans ce navigateur pour voir la vérification par l'IA. En attendant, coche avec le corrigé.";
+    if (code === "IA_ABSENTE") return "La vérification par l'IA n'est pas disponible : coche toi-même, avec le corrigé, ce que ta réponse contient.";
+    return "La vérification par l'IA n'a pas pu se faire (réseau ?) : coche toi-même, avec le corrigé, ce que ta réponse contient.";
+  }
+  async function corrigerIA(q, t) {
+    const d = await SIP.ia.corriger({
+      question: ("BTS Électrotechnique (2e année), épreuve E4, conception – étude préliminaire. " + txt((q.ctx || "") + " " + (q.data || "") + " Question : " + q.q)).slice(0, 2400),
+      corrige: txt(q.expl).slice(0, 3900),
+      elements: q.el.map((e, i) => ({ i, t: txt(e).slice(0, 290), p: 1 })),
+      reponse: t.slice(0, 2000) });
+    const v = {};
+    (d.elements || []).forEach((x) => { const k = String((x && x.verdict) || "").toLowerCase(), i = Number(x && x.i);
+      if (Number.isInteger(i) && i >= 0 && i < q.el.length && POIDS[k] !== undefined && !v[i]) v[i] = { v: k, r: String(x.raison || "").slice(0, 300) }; });
+    return { v, conseil: String(d.conseil || "").slice(0, 400) };
+  }
+  /* tableau des éléments : verdict de l'IA, ou case à cocher par l'élève (coches) */
+  function tableRedac(q, lignes, coches, fige) {
+    return `<table class="t-redac"><thead><tr><th>Élément attendu</th><th>${lignes.some((l) => l.ia) ? "Vérification" : "Dans ma réponse ?"}</th></tr></thead><tbody>
+      ${lignes.map((l) => { const cls = l.ia ? (l.ia.v === "present" ? "ok" : l.ia.v === "partiel" ? "part" : "ko") : fige ? (coches[l.i] ? "ok" : "ko") : "";
+        return `<tr class="${cls}"><td>${l.e}${l.ia && l.ia.r ? `<div class="ia-r">${esc(l.ia.r)}</div>` : ""}</td><td class="qui">${l.ia ? `<span class="auto">${LIB[l.ia.v]} <small>(IA)</small></span>` : `<label class="moi"><input type="checkbox" data-el="${l.i}" ${coches[l.i] ? "checked" : ""} ${fige ? "disabled" : ""}> c'est dans ma réponse</label>`}</td></tr>`; }).join("")}
+      </tbody></table>`;
+  }
+  function correctionRedac(q, t, ia, err, repondre) {
+    const lignes = q.el.map((e, i) => ({ e, i, ia: (ia && ia.v[i]) || null })), coches = {};
+    const somme = () => lignes.reduce((a, l) => a + (l.ia ? POIDS[l.ia.v] : coches[l.i] ? 1 : 0), 0);
+    const bloc = (fige) => {
+      const n = lignes.length, sm = somme(), frac = sm / n, cls = frac >= 1 ? "ok" : frac > 0 ? "part" : "ko", mode = lignes.every((l) => l.ia) ? "vérifiée par l'IA" : lignes.some((l) => l.ia) ? "vérifiée en partie par l'IA" : "auto-évaluée avec le corrigé";
+      const corrige = `<div class="eyebrow" style="margin-top:10px">Corrigé</div><div class="corrige">${q.expl}</div>`;
+      if (!fige) return `<div class="correction">
+        <div class="verdict-serie part">Compare ta réponse au corrigé, puis coche les éléments qu'elle contient vraiment</div>
+        ${err ? `<div class="ia-note ko"><p>${esc(messageIA(err))}</p></div>` : ""}
+        ${corrige}${tableRedac(q, lignes, coches, false)}
+        <div class="actions"><button class="btn plein" id="s-auto">Valider mon auto-évaluation</button></div></div>`;
+      return `<div class="correction">
+        <div class="verdict-serie ${cls}">Rédaction ${mode} : ${nf(sm, 1)} / ${n} élément${n > 1 ? "s" : ""}</div>
+        ${err ? `<div class="ia-note ko"><p>${esc(messageIA(err))}</p></div>` : ""}
+        ${tableRedac(q, lignes, coches, true)}
+        ${ia && ia.conseil ? `<div class="ia-note"><p><b>Conseil :</b> ${esc(ia.conseil)}</p><p class="discret">Réponse vérifiée par une IA (Claude) à partir du corrigé : elle peut se tromper. Pas d'accord ? Utilise « Signaler une erreur ».</p></div>` : ""}
+        ${corrige}</div>`;
+    };
+    const finir = () => {
+      const sm = somme(), frac = sm / lignes.length;
+      repondre(frac >= 1 - 1e-9, t, "les éléments du corrigé", { fb: bloc(true), donnees: { frac, redac: true, mode: lignes.every((l) => l.ia) ? "IA" : lignes.some((l) => l.ia) ? "IA+auto" : "auto",
+        el: lignes.map((l) => (l.ia ? l.ia.v : coches[l.i] ? "coche" : "non")), raisons: lignes.map((l) => (l.ia ? l.ia.r : "")) } });
+    };
+    if (lignes.every((l) => l.ia)) return finir();
+    const fb = document.getElementById("s-fb");
+    fb.innerHTML = bloc(false);
+    document.getElementById("s-actions").innerHTML = "";
+    fb.querySelectorAll("[data-el]").forEach((c) => c.addEventListener("change", () => { coches[c.dataset.el] = c.checked; }));
+    document.getElementById("s-auto").addEventListener("click", () => { if (st.fini || st.rep.length > st.i) return; finir(); });
+  }
+  const attenduDe = (q) => (q.type === "ch" ? txt(q.ch[q.ok]) : q.type === "redac" ? q.el.map((e) => txt(e)).join(" | ") : affiche(q));
+
   /* « Signaler une erreur » (assets/signaler.js du site) : la question part chez le professeur telle que l'élève l'a vue */
   function signalement(q) {
     const hote = document.getElementById("s-sig");
@@ -187,7 +283,7 @@
       const r = st.rep[st.i] && st.qs[st.i] === q ? st.rep[st.i] : null;
       SIP.signaler.ouvrir({ source: "serie", notion: q.nid, module: st.id === "express" ? "e4-express" : "e4-serie-" + st.id, ref: q.g + (q.gl > 1 ? "." + q.gj : ""),
         question: txt((q.ctx ? q.ctx + " · " : "") + (q.data ? txt(q.data) + " · " : "") + q.q).slice(0, 1500), figure: null,
-        reponse: r ? r.rep : null, attendu: q.type === "ch" ? txt(q.ch[q.ok]) : affiche(q), correction: txt(q.expl).slice(0, 1500) },
+        reponse: r ? String(r.rep).slice(0, 1500) : null, attendu: attenduDe(q).slice(0, 1500), correction: txt(q.expl).slice(0, 1500) },
         { lienConnexion: "../index.html#/connexion/BTS2-STI", surEnvoi: () => SIP.signaler.marquer(b) });
     });
   }
@@ -215,39 +311,48 @@
   function terminer(app, tempsEcoule) {
     if (st.fini) return;
     E4.stopSeries();
-    if (tempsEcoule) while (st.rep.length < st.qs.length) st.rep.push({ ok: false, rep: "(temps écoulé)", attendu: st.qs[st.rep.length].type === "ch" ? st.qs[st.rep.length].ch[st.qs[st.rep.length].ok] : affiche(st.qs[st.rep.length]), indice: false, horsTemps: true });
+    if (tempsEcoule) while (st.rep.length < st.qs.length) { const q = st.qs[st.rep.length]; st.rep.push({ ok: false, frac: 0, rep: "(temps écoulé)", attendu: q.type === "ch" ? q.ch[q.ok] : q.type === "redac" ? "les éléments du corrigé" : affiche(q), indice: false, horsTemps: true, redac: q.type === "redac" }); }
     st.fini = true; st.fin = Date.now(); st.note = noteCourante(); st.tempsEcoule = !!tempsEcoule;
     garderMeilleur(st.id, st.note);
     transmettre();
     location.hash = "#/bilan-serie";
   }
   function vueBilan(app) {
-    const n = st.qs.length, ok = st.rep.filter((r) => r.ok).length, note = st.note, cls = note >= 16 ? "n3" : note >= 10 ? "n2" : "n1";
+    const n = st.qs.length, ok = st.rep.filter((r) => fracDe(r) >= 1).length, note = st.note, cls = note >= 16 ? "n3" : note >= 10 ? "n2" : "n1";
     const verdict = note >= 16 ? (st.id === "express" ? "Très bonne gestion de l'épreuve" : "Notion validée") : note >= 10 ? "À consolider : recommence avec de nouvelles valeurs" : st.id === "express" ? "Travaille d'abord les notions fragiles en série" : "Relis la fiche, puis recommence";
     const duree = (st.limite ? Math.min(st.fin - st.debut, st.limite) : st.fin - st.debut) / 60e3, N = st.id === "express" ? null : B[st.id];
-    const parNotion = {}; st.qs.forEach((q, k) => { const p = parNotion[q.nid] || (parNotion[q.nid] = { n: 0, ok: 0 }); p.n++; if (st.rep[k] && st.rep[k].ok) p.ok++; });
-    const erreurs = st.qs.map((q, k) => ({ q, r: st.rep[k], k })).filter((x) => !x.r.ok);
+    const parNotion = {}; st.qs.forEach((q, k) => { const p = parNotion[q.nid] || (parNotion[q.nid] = { n: 0, ok: 0 }); p.n++; p.ok += fracDe(st.rep[k]); });
+    const erreurs = st.qs.map((q, k) => ({ q, r: st.rep[k], k })).filter((x) => fracDe(x.r) < 1);
+    const nbRed = st.qs.filter((q) => q.type === "redac").length;
+    const revoir = (x) => x.q.type === "redac"
+      ? `<p>Ta réponse${x.r.horsTemps ? " : <i>non traitée</i>" : ""}</p>${x.r.horsTemps ? "" : `<div class="ma-redac">${esc(x.r.rep).replace(/\n/g, "<br>")}</div>`}
+         ${x.r.el ? tableRedac(x.q, x.q.el.map((e, i) => ({ e, i, ia: ["present", "partiel", "absent"].includes(x.r.el[i]) ? { v: x.r.el[i], r: (x.r.raisons || [])[i] || "" } : null })), Object.fromEntries(x.q.el.map((e, i) => [i, x.r.el[i] === "coche"])), true) : ""}
+         <div class="eyebrow" style="margin-top:8px">Corrigé</div><div class="corrige">${x.q.expl}</div>`
+      : `<p>Ta réponse : <b>${esc(x.r.rep)}</b> · attendue : <b>${x.r.attendu}</b></p><div class="corrige">${x.q.expl}</div>`;
     app.innerHTML = `
       <p><a href="#/series">← Toutes les séries</a></p>
       <div class="eyebrow">${st.id === "express" ? "Épreuve express" : "Série · " + esc(notion(st.id).nom)} · bilan</div>
       <h1>${esc(verdict)}</h1>
       <div class="bilan-grille">
         <div class="carte"><div class="score"><div class="grand ${cls}">${nf(note, 1)}<small> / 20</small></div>
-          <div><div><b>${ok}</b> bonne${ok > 1 ? "s" : ""} réponse${ok > 1 ? "s" : ""} sur ${n}</div>
+          <div><div><b>${ok}</b> réponse${ok > 1 ? "s" : ""} entièrement juste${ok > 1 ? "s" : ""} sur ${n}${nbRed ? ` (dont ${nbRed} rédaction${nbRed > 1 ? "s" : ""})` : ""}</div>
           <div class="discret">Temps : <b>${minutes(duree)}</b> · repère de l'épreuve : ${minutes(st.repere)}${st.tempsEcoule ? " · <b>temps écoulé</b>" : ""}</div>
           ${st.indices ? `<div class="discret">« Où chercher ? » utilisé ${st.indices} fois</div>` : ""}</div></div>
           <p class="discret" style="margin-bottom:0">${duree > st.repere * 1.3 ? "Tu dépasses nettement le temps de référence : à l'épreuve, tu manquerais de temps. Repère plus vite le document et la ligne utiles, puis écris directement la relation." : duree < st.repere * 0.5 && note < 14 ? "Tu vas vite mais tu fais des erreurs : prends le temps de relire l'unité et la ligne du tableau avant de valider." : "Ton rythme est compatible avec la durée de l'épreuve."}</p>
           <div class="actions"><button class="btn plein" id="b-encore">Recommencer (nouvelles valeurs)</button><a class="btn" href="#/series">Autre série</a>${N && (E4.SUJETS || []).some((s) => s.questions.some((qq) => qq.notion === st.id)) ? `<a class="btn" href="#/notion/${st.id}">Questions d'annales de la notion</a>` : ""}</div></div>
         ${N ? `<div class="carte"><h3>Fiche · ${esc(N.fiche.t)}</h3><ul class="fiche-serie">${N.fiche.l.map((l) => `<li>${l}</li>`).join("")}</ul></div>`
-            : `<div class="carte"><h3>Par notion</h3><table><tbody>${Object.entries(parNotion).map(([id, p]) => `<tr><td>${esc(notion(id).nom)}</td><td class="num" style="white-space:nowrap">${p.ok} / ${p.n}</td><td>${p.ok < p.n ? `<a class="btn petit" href="#/serie/${id}">Série</a>` : "✓"}</td></tr>`).join("")}</tbody></table></div>`}
+            : `<div class="carte"><h3>Par notion</h3><table><tbody>${Object.entries(parNotion).map(([id, p]) => `<tr><td>${esc(notion(id).nom)}</td><td class="num" style="white-space:nowrap">${nf(p.ok, 1)} / ${p.n}</td><td>${p.ok < p.n - 1e-9 ? `<a class="btn petit" href="#/serie/${id}">Série</a>` : "✓"}</td></tr>`).join("")}</tbody></table></div>`}
       </div>
       <h2>${erreurs.length ? "Questions à revoir" : "Aucune erreur"}</h2>
-      ${erreurs.length ? erreurs.map((x) => `<details class="section"><summary>Q${x.k + 1} · ${esc(txt(x.q.q).slice(0, 140))}${x.r.horsTemps ? " · <i>non traitée</i>" : ""}</summary><div>${x.q.ctx ? `<div class="contexte">${x.q.ctx}</div>` : ""}<p>Ta réponse : <b>${esc(x.r.rep)}</b> · attendue : <b>${x.r.attendu}</b></p><div class="corrige">${x.q.expl}</div></div></details>`).join("") : `<p class="discret">Bravo. Refais une série dans quelques jours : les valeurs et les questions changent.</p>`}`;
+      ${erreurs.length ? erreurs.map((x) => `<details class="section"><summary>Q${x.k + 1} · ${x.q.type === "redac" ? "✎ " : ""}${esc(txt(x.q.q).slice(0, 140))}${x.r.horsTemps ? " · <i>non traitée</i>" : x.q.type === "redac" ? ` · ${nf(fracDe(x.r) * x.q.el.length, 1)} / ${x.q.el.length} élément${x.q.el.length > 1 ? "s" : ""}` : ""}</summary><div>${x.q.ctx ? `<div class="contexte">${x.q.ctx}</div>` : ""}${revoir(x)}</div></details>`).join("") : `<p class="discret">Bravo. Refais une série dans quelques jours : les valeurs et les questions changent.</p>`}`;
     document.getElementById("b-encore").addEventListener("click", () => { const id = st.id; st = null; location.hash = id === "express" ? "#/express" : "#/serie/" + id; });
   }
   async function transmettre() {
     if (st.transmis) return;
-    const details = st.qs.map((q, k) => { const r = st.rep[k] || {}; return { q: txt((q.ctx ? q.ctx + " · " : "") + q.q).slice(0, 400), rep: String(r.rep || "").slice(0, 80) + (r.indice ? " · indice" : ""), attendu: txt(r.attendu).slice(0, 120), pts: r.ok ? 1 : 0, erreurs: r.ok ? 0 : 1, notion: q.nid, niveau: q.lv, g: q.g }; });
+    const details = st.qs.map((q, k) => { const r = st.rep[k] || {}, f = fracDe(r);
+      const rep = q.type === "redac" && !r.horsTemps ? `✎ ${r.mode || "auto"} ${nf(f * q.el.length, 1)}/${q.el.length} · ${String(r.rep || "").replace(/\s+/g, " ")}` : String(r.rep || "");
+      return { q: txt((q.ctx ? q.ctx + " · " : "") + q.q).slice(0, 400), rep: rep.slice(0, q.type === "redac" ? 300 : 80) + (r.indice ? " · indice" : ""), attendu: (q.type === "redac" ? attenduDe(q) : txt(r.attendu)).slice(0, q.type === "redac" ? 400 : 120),
+        pts: Math.round(f * 100) / 100, erreurs: f >= 1 ? 0 : 1, notion: q.nid, niveau: q.lv, g: q.g, type: q.type === "redac" ? "redaction" : undefined }; });
     const titre = st.id === "express" ? "E4 · Épreuve express (" + st.qs.length + " q.)" : "E4 · Série — " + notion(st.id).nom;
     if (!window.SIP || !SIP.session || !SIP.session.get()) { toast("Tu n'es pas connecté(e) au site : résultat gardé sur cet appareil seulement."); return; }
     try {
