@@ -5,7 +5,10 @@
    Routes : #/series           liste des notions, meilleurs résultats
             #/serie/<notion>   série d'une notion (≈ 10 questions, niveaux 1 → 3)
             #/express          épreuve express : questions de toutes les notions,
-                               tirées selon leur poids dans les sujets, temps limité
+                               tirées selon leur poids dans les sujets (les sujets
+                               récents comptent double, E4.poidsExpress), temps limité
+   La liste des notions montre leur tendance (E4.tendanceHTML) : part des questions
+   dans les sujets d'avant 2024, puis dans les sujets récents.
    Comme à l'épreuve, les données se cherchent dans des extraits de dossiers
    ressources (onglets à gauche) ; chronomètre et temps de référence par question.
    Notation : on part de 20, chaque erreur retire 20 / nombre de questions
@@ -50,7 +53,7 @@
   /* ---------- liste des notions ---------- */
   function vueListe(app) {
     const best = lireMeilleurs(), N = (E4.NOTIONS || []).filter((n) => B[n.id]), max = Math.max(...N.map((n) => n.nb));
-    const ex = best.express;
+    const ex = best.express, TD = E4.tendances ? E4.tendances() : null, tendHTML = (id) => (TD ? E4.tendanceHTML(id) : "");
     app.innerHTML = `
       <p><a href="#/">← Accueil E4</a></p>
       <h1>Séries d'entraînement par notion</h1>
@@ -58,7 +61,7 @@
       <div class="grille2" style="margin-top:14px">
         <div class="carte serie-hero">
           <div class="eyebrow">Gestion du temps</div><h3 style="margin-top:4px">Épreuve express · 12 questions</h3>
-          <p class="discret">Des questions de toutes les notions, tirées selon leur poids dans les sujets. Temps limité, calculé au rythme de l'épreuve (4 h pour ≈ 35 questions) : à la fin du temps, les questions sans réponse comptent comme fausses. Entraîne-toi à ne pas rester bloqué.</p>
+          <p class="discret">Des questions de toutes les notions, tirées selon leur poids dans les sujets${TD ? ` (celles des sujets ${TD.recents.label} comptent double)` : ""}. Temps limité, calculé au rythme de l'épreuve (4 h pour ≈ 35 questions) : à la fin du temps, les questions sans réponse comptent comme fausses. Entraîne-toi à ne pas rester bloqué.</p>
           <div class="actions"><a class="btn plein" href="#/express">Démarrer l'épreuve express</a>${ex ? `<span class="discret">Meilleur : <b>${nf(ex.note, 1)} / 20</b> · ${ex.n} essai${ex.n > 1 ? "s" : ""}</span>` : ""}</div>
         </div>
         <div class="carte">
@@ -67,10 +70,11 @@
         </div>
       </div>
       <h2>Les notions <span class="discret" style="font-family:var(--f-body);font-weight:400;text-transform:none;font-size:.88rem">classées par poids dans les sujets 2022-2026</span></h2>
+      ${TD ? `<p class="discret" style="margin:-4px 0 10px;max-width:860px">▲ ▼ : part des questions de la notion dans les sujets ${TD.avant.label}, puis dans les sujets ${TD.recents.label}. Commence par les notions lourdes, surtout celles qui montent.</p>` : ""}
       <div class="carte" style="padding:8px 14px"><table class="t-series"><thead><tr><th>Notion</th><th style="width:26%">Poids dans les sujets</th><th class="num">Types de questions</th><th class="num">Mon meilleur</th><th></th></tr></thead><tbody>
-      ${N.map((n) => { const b = best[n.id], ok = b && b.note >= 16;
-        return `<tr><td><b>${esc(n.nom)}</b><br><span class="discret">${esc(n.desc || "")}</span></td>
-          <td><div class="barre"><span style="width:${Math.round(100 * n.nb / max)}%"></span></div><span class="discret">${n.nb} questions d'annales</span></td>
+      ${N.map((n) => { const b = best[n.id], ok = b && b.note >= 16, td = tendHTML(n.id);
+        return `<tr><td><b>${esc(n.nom)}</b><br><span class="discret">${esc(n.desc || "")}</span>${td ? `<div class="tend-m">${td}</div>` : ""}</td>
+          <td><div class="barre"><span style="width:${Math.round(100 * n.nb / max)}%"></span></div><span class="discret">${n.nb} questions d'annales</span>${td ? `<div class="tend-d">${td}</div>` : ""}</td>
           <td class="num">${E4.nbGenerateurs(n.id)}</td>
           <td class="num">${b ? `<span class="pastille ${ok ? "n3" : b.note >= 10 ? "n2" : "n1"}">${nf(b.note, 1)}</span>` : "—"}</td>
           <td style="white-space:nowrap"><a class="btn petit ${ok ? "" : "plein"}" href="#/serie/${n.id}">${ok ? "Refaire" : "Série"}</a></td></tr>`; }).join("")}

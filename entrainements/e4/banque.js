@@ -1808,6 +1808,60 @@ Object.entries(ajout).forEach(([id, [L, n]]) => { if (!B[id]) return; B[id].reda
 }
 
 /* =====================================================================
+   TENDANCE DES NOTIONS — calculée depuis la carte des sujets (E4.CARTE, e4/carte.js)
+   Les sujets sont coupés en deux périodes : avant E4.ANNEE_RECENTE, puis à partir
+   de cette session. Un sujet ajouté à la carte entre de lui-même dans le calcul.
+   E4.tendances()      : { avant, recents, tout, parNotion }
+                         avant / recents / tout : { de, a, label, nb (questions), sujets }
+                         parNotion[id] : { avant, recents (questions), partAvant, partRecents
+                         (en %, arrondies), ecart (points), sens "hausse" | "baisse" | "stable",
+                         fort (écart d'au moins 5 points), absente (plus aucune question
+                         dans les sujets récents), poids }
+                         null si l'une des deux périodes n'a aucun sujet.
+   E4.poidsExpress(id) : poids de la notion au tirage de l'épreuve express ;
+                         les questions des sujets récents comptent double.
+   ===================================================================== */
+E4.ANNEE_RECENTE = 2024;
+let memoTendances;
+E4.tendances = function () {
+  if (memoTendances !== undefined) return memoTendances;
+  const C = E4.CARTE || [], an = (c) => parseInt(c.session, 10) || parseInt(c.id, 10) || 0;
+  const periode = (L) => {
+    const A = L.map(an), de = Math.min(...A), a = Math.max(...A);
+    return { de, a, label: de === a ? String(de) : de + "–" + a, nb: L.reduce((s, c) => s + (c.nb || 0), 0), sujets: L.length };
+  };
+  if (!C.length) return null;   /* carte pas encore chargée : rien n'est retenu */
+  const av = C.filter((c) => an(c) < E4.ANNEE_RECENTE), re = C.filter((c) => an(c) >= E4.ANNEE_RECENTE);
+  if (!av.length || !re.length) return (memoTendances = null);
+  const P = { avant: periode(av), recents: periode(re), tout: periode(C), parNotion: {} };
+  const compte = (L, id) => L.reduce((s, c) => s + ((c.notions || {})[id] || 0), 0);
+  (E4.NOTIONS || []).forEach((n) => {
+    const nA = compte(av, n.id), nR = compte(re, n.id);
+    const pA = Math.round(100 * nA / P.avant.nb), pR = Math.round(100 * nR / P.recents.nb), ecart = pR - pA;
+    P.parNotion[n.id] = { avant: nA, recents: nR, partAvant: pA, partRecents: pR, ecart,
+      sens: ecart > 0 ? "hausse" : ecart < 0 ? "baisse" : "stable", fort: Math.abs(ecart) >= 5,
+      absente: nR === 0 && nA > 0, poids: nA + 2 * nR };
+  });
+  return (memoTendances = P);
+};
+E4.poidsExpress = function (id) {
+  const t = E4.tendances(), x = t && t.parNotion[id];
+  if (x) return x.poids;
+  const n = (E4.NOTIONS || []).find((k) => k.id === id);
+  return n ? n.nb : 0;
+};
+/* affichage commun (carte des notions, liste des séries) : « ▲ 6 % → 19 % », plus la mention
+   « absente depuis 2024 » ; classes tend, hausse | baisse | stable, fort, tend-note (styles de la page) */
+E4.tendanceHTML = function (id) {
+  const t = E4.tendances(), x = t && t.parNotion[id];
+  if (!x) return "";
+  const fl = x.sens === "hausse" ? "▲" : x.sens === "baisse" ? "▼" : "=";
+  const titre = `${x.avant} question${x.avant > 1 ? "s" : ""} sur ${t.avant.nb} dans les sujets ${t.avant.label}, ${x.recents} sur ${t.recents.nb} dans les sujets ${t.recents.label}`;
+  return `<span class="tend ${x.sens}${x.fort ? " fort" : ""}" title="${titre}"><span class="fl" aria-hidden="true">${fl}</span> ${x.partAvant}&nbsp;% → ${x.partRecents}&nbsp;%</span>` +
+    (x.absente ? `<span class="tend-note">absente depuis ${t.recents.de}</span>` : "");
+};
+
+/* =====================================================================
    TIRAGE DES SÉRIES
    E4.tirerSerie(notion)  : une série d'une notion (niveaux 1 → 3, plus les
                             questions de rédaction : une avant le niveau 3, une à la fin),
@@ -1815,7 +1869,9 @@ Object.entries(ajout).forEach(([id, [L, n]]) => { if (!B[id]) return; B[id].reda
                             récemment sur cet appareil.
    E4.tirerExpress(n)     : épreuve express, questions de toutes les notions
                             tirées selon leur poids dans les sujets 2022-2026,
-                            dont deux questions de rédaction.
+                            les questions des sujets 2024 et après comptant double
+                            (E4.poidsExpress, 980-tendances.js), dont deux questions
+                            de rédaction.
    E4.repereMinutes(q)    : temps de référence d'une question (rythme de l'épreuve).
    ===================================================================== */
 const vuLire = (k) => { try { return JSON.parse(localStorage.getItem("e4serie-vu:" + k) || "{}"); } catch (e) { return {}; } };
@@ -1880,7 +1936,8 @@ E4.tirerSerie = function (nid) {
 };
 E4.tirerExpress = function (n) {
   n = n || 12;
-  const poids = (E4.NOTIONS || []).filter((x) => B[x.id]).map((x) => ({ id: x.id, p: x.nb }));
+  const poids = (E4.NOTIONS || []).filter((x) => B[x.id]).map((x) => ({ id: x.id, p: E4.poidsExpress(x.id) })).filter((x) => x.p > 0);
+  if (!poids.length) return [];
   const out = [], parNotion = {}, pris = new Set(), nRed = n >= 8 ? 2 : 0, nNum = n - nRed;
   let garde = 0;
   while (out.length < nNum && garde++ < 300) {
