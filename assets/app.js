@@ -180,7 +180,7 @@
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
       <div id="appli-bandeau"></div><div id="sig-nouvelles"></div>
       ${SIP.flash ? SIP.flash.tuile(s.niveau, hist) : ""}
-      ${friseDS()}
+      ${friseDS(hist)}
       ${prochainDS(hist)}
       ${dsPasses(hist)}
       <details class="sequence plus"><summary><span>Aller plus loin</span><span class="discret">révision du jour, parcours, sujet blanc, toutes les notions, mes résultats</span></summary>
@@ -309,7 +309,7 @@
     const b = dsBlanc(ds), EB = b ? essaisDSB(hist, b) : [];
     const revs = EB.filter(estRevanche), defis = EB.filter((h) => !estRevanche(h));
     if (b) {
-      out.push({ k: 0, blanc: b, defi: true, t: "Le défi", d: `le DS blanc, question par question, avant de t'entraîner (${b.titre}) : ta note ne bloque rien, elle te montre ce qui t'attend`,
+      out.push({ k: 0, blanc: b, defi: true, t: "Le défi", d: `obligatoire pour ouvrir les étapes : le DS blanc, question par question (${b.titre}). Ta note ne bloque rien : elle te montre ce qui t'attend`,
         best: meilleure(defis), ok: EB.length > 0, okT: EB.some((h) => aTemps(h, lim)), n: defis.length, open: true, lien: b.page + "/defi" });
       prev = EB.length > 0;
     }
@@ -349,7 +349,7 @@
         return `<a class="btn sec${comprise ? " fait" : ""}" href="#/fiche/${n.id}" title="${esc(n.lab)}">${comprise ? "✓ " : ""}${esc(labCourt(n.lab))}${fn !== null && !comprise ? ` <small>${SIP.nb(fn, 3)}/20</small>` : ""}</a>`; }).join("");
       const cours = lot.filter((n) => coursBac(n.id)).map((n) => `<a class="btn sec" href="#/cours/${n.id}" title="${esc(coursBac(n.id).titre)}">▶ ${esc(labCourt(n.lab))}</a>`).join("");
       const btn = (x) => {
-        if (!x.open) return `<span class="btn sec off">${x.k === 1 && E[0].defi ? "après le défi" : `après l'étape ${x.k - 1}`}</span>`;
+        if (!x.open) return `<span class="btn sec off">${x.k === 1 && E[0].defi ? "fais d'abord le défi" : `après l'étape ${x.k - 1}`}</span>`;
         const note = x.best !== null ? ` <small>${SIP.nb(x.best, 3)}/20</small>` : "";
         const lab = x.ok ? (x.blanc ? `↺ Refaire${x.best !== null ? ` <small>meilleur ${SIP.nb(x.best, 3)}/20</small>` : ""}` : `✓ Validée${note}`) : x.best !== null ? `Reprendre${note}` : x.defi ? "Relever le défi" : x.revanche ? "Prendre ma revanche" : "Commencer";
         return `<a class="btn ${x.ok ? "sec fait" : cur && cur.k === x.k ? "" : "sec"}" href="${x.lien}">${lab}</a>`;
@@ -361,11 +361,12 @@
       return `<section class="carte ds-hero ${faites === E.length ? "fait" : "a-faire"}">
         <div class="ds-tete"><div><div class="eyebrow">Prochain DS</div><div class="bac-titre">${esc(lot[0].ds || "DS")} <span>· ${esc(jour(lot[0].ds_date))}</span></div><div class="discret">${esc(lot.map((n) => n.lab).join(" · "))}</div></div>
           <div class="ds-compte"><div class="grand">${faites}<small> / ${E.length}</small></div><div class="discret">étape${faites > 1 ? "s" : ""} validée${faites > 1 ? "s" : ""}</div></div></div>
+        ${E[0].defi && !E[0].ok ? `<p class="prep-cle"><span aria-hidden="true">🔒</span> <b>Pour ouvrir la préparation du ${esc(lot[0].ds || "DS")}, fais d'abord le défi.</b> L'étape 1 s'ouvre dès que tu l'as rendu, quelle que soit ta note.</p>` : ""}
         ${cours ? `<div class="prep-fiches"><span class="discret">Le cours :</span>${cours}</div>` : ""}
         ${fiches ? `<div class="prep-fiches"><span class="discret">${cours ? "Les fiches :" : "Lis d'abord les fiches :"}</span>${fiches}</div>` : ""}
         <ol class="ds-lot prep-liste">${lignes}</ol>
         ${progres(E)}
-        <p class="bac-regle">${E[0].defi ? "Commence par le défi : le DS blanc question par question, pour voir le niveau du DS ; après chaque question ratée, le site te dit quelle étape la travaille. Puis les étapes dans l'ordre : chacune" : "Dans l'ordre : chaque étape"} validée à ${PREP_SEUIL}/20 ouvre la suivante (on part de 20, −2 par erreur ; les valeurs changent à chaque essai)${E[0].defi ? ". Enfin la revanche, en conditions de DS" : ""}. Essais illimités, avant 6 h le jour du DS.</p>
+        <p class="bac-regle">${E[0].defi ? "Commence par le défi, obligatoire pour ouvrir les étapes : le DS blanc question par question, pour voir le niveau du DS ; après chaque question ratée, le site te dit quelle étape la travaille. Puis les étapes dans l'ordre : chacune" : "Dans l'ordre : chaque étape"} validée à ${PREP_SEUIL}/20 ouvre la suivante (on part de 20, −2 par erreur ; les valeurs changent à chaque essai)${E[0].defi ? ". Enfin la revanche, en conditions de DS" : ""}. Essais illimités, avant 6 h le jour du DS.</p>
       </section>`;
     }
     const faites = lot.filter((n) => etatNotion(n, hist).valide).length;
@@ -446,14 +447,16 @@
     return j === 0 ? "aujourd'hui" : j === 1 ? "demain" : j > 1 ? `dans ${j} jours` : "passé";
   }
   // la frise du tableau de bord : le dernier DS passé, le prochain, et ceux d'après
-  function friseDS() {
+  // le défi du prochain DS n'est pas encore fait : les étapes de sa préparation restent fermées
+  const defiAFaire = (x, hist) => { if (!x.prochain || !hist) return false; const E = etapesDS(x.ds, x.notions, hist); return !!(E[0] && E[0].defi && !E[0].ok); };
+  function friseDS(hist) {
     const L = listeDS(); if (!L.length) return "";
     const i = L.findIndex((x) => x.prochain), k = i < 0 ? L.length : i;
     const vus = L.slice(Math.max(0, k - 1), k + 4);
     return `<section class="carte ds-frise" aria-label="Mes DS">
         <div class="ds-frise-tete"><div class="eyebrow">Mes DS · touche un DS pour tout avoir</div><a href="#/ds">Tous les DS (${L.length}) →</a></div>
         <ol class="ds-frise-l">${vus.map((x) => `<li><a class="ds-puce${x.prochain ? " prochain" : x.passe ? " passe" : ""}" href="#/ds/${x.id}"${x.prochain ? ' aria-current="true"' : ""}>
-          <span class="ds-puce-n">${esc(x.ds)}</span><span class="ds-puce-d">${esc(jourDS(x.date))}</span><span class="ds-puce-q">${x.prochain ? `prochain · ${quandDS(x)}` : quandDS(x)}</span></a></li>`).join("")}</ol>
+          <span class="ds-puce-n">${esc(x.ds)}</span><span class="ds-puce-d">${esc(jourDS(x.date))}</span><span class="ds-puce-q">${x.prochain ? `prochain · ${quandDS(x)}` : quandDS(x)}</span>${defiAFaire(x, hist) ? `<span class="ds-puce-defi">🔒 fais d'abord le défi</span>` : ""}</a></li>`).join("")}</ol>
       </section>`;
   }
   // une notion du DS : son cours, sa fiche, sa série
@@ -472,7 +475,7 @@
     if (x) return pageDS(x, L, hist);
     const ligne = (d) => `<li><a class="ds-ligne${d.prochain ? " prochain" : ""}" href="#/ds/${d.id}">
         <span class="ds-l-txt"><span class="ds-l-t">${esc(d.ds)} <span>· ${esc(jourLong(d.date))}</span></span>
-          <span class="discret">${esc(d.notions.map((n) => n.lab).join(" · "))}</span></span>
+          <span class="discret">${esc(d.notions.map((n) => n.lab).join(" · "))}</span>${defiAFaire(d, hist) ? `<span class="ds-puce-defi">🔒 fais d'abord le défi : il ouvre la préparation</span>` : ""}</span>
         <span class="etiquette ${d.prochain ? "alerte" : ""}">${d.prochain ? `prochain · ${quandDS(d)}` : quandDS(d)}</span></a></li>`;
     const avenir = L.filter((d) => !d.passe), passes = L.filter((d) => d.passe).reverse();
     $app.innerHTML = `<p class="no-print"><a href="#/tableau">← Tableau de bord</a></p>

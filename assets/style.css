@@ -858,3 +858,8 @@ pre.fl-code { font-family: var(--f-mono); font-size: .95rem; line-height: 1.45; 
 .ds-page-prep .ds-tete > div:first-child, .ds-page-prep .prep-fiches { display: none; }
 .ds-page-prep .ds-tete { justify-content: flex-start; }
 .ds-page-prep .ds-compte { text-align: left; display: flex; align-items: baseline; gap: 8px; }
+
+/* ---- DS : le défi ouvre la préparation (bandeau de la carte du prochain DS, frise et liste des DS) ---- */
+.prep-cle { margin: 12px 0 4px; padding: 10px 12px; border-radius: var(--r); border: 1px solid var(--warn); background: var(--warn-soft); color: var(--ink); line-height: 1.45; }
+.prep-cle b { color: var(--warn); }
+.ds-puce-defi { display: block; margin-top: 3px; font-size: .76rem; font-weight: 700; color: var(--warn); }
