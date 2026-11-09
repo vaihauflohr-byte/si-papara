@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BTS Électrotechnique · U4 · Atelier documents</title>
+<meta name="description" content="Atelier E4 (U4) du BTS Électrotechnique : lire le dossier ressources sur les vraies pages des annales et répondre sur le document réponse.">
+<style>
+@font-face{font-family:'Barlow Condensed';font-weight:600;font-display:swap;src:url(../assets/fonts/barlow-condensed-600.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-weight:700;font-display:swap;src:url(../assets/fonts/barlow-condensed-700.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-weight:400;font-display:swap;src:url(../assets/fonts/ibm-plex-sans-400.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-weight:600;font-display:swap;src:url(../assets/fonts/ibm-plex-sans-600.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-weight:500;font-display:swap;src:url(../assets/fonts/ibm-plex-mono-500.woff2) format('woff2')}
+:root{color-scheme:light;
+  --ground:#edf1f4;--paper:#fff;--paper-2:#f4f7f9;--ink:#15202b;--ink-2:#44525f;--ink-3:#77838f;
+  --rule:#d5dce3;--rule-2:#e6ebef;--line-strong:#15202b;
+  --accent:#1d3f7a;--accent-soft:#e2e9f5;--accent-ink:#fff;
+  --good:#146c43;--good-soft:#dff2e7;--bad:#b42318;--bad-soft:#fde4e1;--warn:#8a5a00;--warn-soft:#fff2d2;
+  --grid:#e9eef3;--coulomb:#c2410c;
+  --f-disp:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;--r:6px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --ground:#0d1318;--paper:#141c24;--paper-2:#19232d;--ink:#e2e8ee;--ink-2:#a9b5c1;--ink-3:#7b8894;
+  --rule:#28343f;--rule-2:#1f2a34;--line-strong:#c8d2dc;--accent:#8fb0ee;--accent-soft:#1a2a44;--accent-ink:#0d1318;
+  --good:#6ccb97;--good-soft:#132d1f;--bad:#ff8f84;--bad-soft:#3a1714;--warn:#e8b75a;--warn-soft:#32270e;--grid:#1a242e;--coulomb:#f29b6b}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --ground:#0d1318;--paper:#141c24;--paper-2:#19232d;--ink:#e2e8ee;--ink-2:#a9b5c1;--ink-3:#7b8894;
+  --rule:#28343f;--rule-2:#1f2a34;--line-strong:#c8d2dc;--accent:#8fb0ee;--accent-soft:#1a2a44;--accent-ink:#0d1318;
+  --good:#6ccb97;--good-soft:#132d1f;--bad:#ff8f84;--bad-soft:#3a1714;--warn:#e8b75a;--warn-soft:#32270e;--grid:#1a242e;--coulomb:#f29b6b}
+*{box-sizing:border-box}html,body{margin:0}[hidden]{display:none!important}
+body{background:var(--ground);color:var(--ink);font:15.5px/1.55 var(--f-body)}
+a{color:var(--accent);text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+b,strong{font-weight:600}
+h1{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:clamp(1.7rem,3.6vw,2.4rem);line-height:1;margin:.1em 0 .5em;text-wrap:balance}
+h2{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:1.35rem;line-height:1.1;margin:30px 0 12px;padding-bottom:6px;border-bottom:1.5px solid var(--line-strong)}
+h3{font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.03em;font-size:1.1rem;line-height:1.15;margin:0 0 .35em}
+.eyebrow{font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.12em;font-size:.76rem;color:var(--ink-3)}
+.discret{color:var(--ink-2);font-size:.9rem}
+.mono{font-family:var(--f-mono)}
+/* en-tête */
+.haut{background:var(--paper);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:20}
+.haut-in{max-width:1280px;margin:0 auto;padding:9px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{display:inline-flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none;min-width:0}
+.logo img{width:46px;height:auto;display:block}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .logo img{filter:invert(1)}}
+.logo-ey{font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.12em;font-size:.7rem;color:var(--ink-3)}
+.logo-nom{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:1.45rem;line-height:.95}
+.haut-droite{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.86rem}
+.sip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.82rem}
+.sip.ok{background:var(--good-soft);color:var(--good)}.sip.ko{background:var(--warn-soft);color:var(--warn)}.sip.ap{background:var(--accent-soft);color:var(--accent)}
+.sip a{color:inherit;font-weight:600}
+main{max-width:1280px;margin:0 auto;padding:18px 16px 70px}
+/* boutons */
+.btn{appearance:none;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:600 .92rem/1.2 var(--f-body);padding:9px 14px;border-radius:var(--r);cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+.btn:hover{border-color:var(--ink-3)}
+.btn.plein{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.plein:hover{filter:brightness(1.1)}
+.btn.petit{padding:5px 10px;font-size:.82rem;white-space:nowrap}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.danger{color:var(--bad)}
+/* cartes */
+.carte{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:18px 20px}
+.carte+.carte{margin-top:14px}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.15;margin:0 .2em;font-size:.95em}
+.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 .25em}
+.resultat{font-weight:600;background:var(--good-soft);border-radius:4px;padding:7px 11px}
+
+/* ---------- atelier documents ---------- */
+.retour-e4{display:inline-block;margin-bottom:8px}
+.methode{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0 18px}
+.methode div{background:var(--paper);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:var(--r);padding:10px 12px}
+.methode b{display:block;font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.04em;font-size:1rem}
+.fams{display:grid;gap:12px}
+.fam{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 18px;align-items:center}
+.fam h3{margin:2px 0 4px}
+.niv{display:flex;flex-wrap:wrap;gap:6px}
+.niv a{display:flex;flex-direction:column;align-items:flex-start;min-width:118px}
+.niv a small{font-weight:400;color:var(--ink-3);font-size:.75rem}
+.btn.plein small{color:inherit;opacity:.85}
+@media (max-width:760px){.fam{grid-template-columns:1fr}}
+.at-tete{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;margin-bottom:10px}
+.at-tete h1{margin:0;font-size:clamp(1.3rem,3vw,1.9rem)}
+.at-prog{margin-left:auto;font-family:var(--f-mono);font-size:.9rem;color:var(--ink-2)}
+.at-grille{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:980px){.at-grille{grid-template-columns:minmax(0,1fr)}.at-grille>.at-mission{display:contents}.at-sit{order:1}.etape{order:2}.at-doc{order:3}.drep{order:4}}
+.at-doc,.at-mission,.at-mission>*{min-width:0}
+.at-doc{position:sticky;top:72px;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);overflow:hidden}
+@media (max-width:980px){.at-doc{position:static}}
+.at-outils{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--rule);background:var(--paper-2)}
+.at-pages{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+.at-pages button{appearance:none;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:600 .8rem var(--f-body);padding:5px 9px;border-radius:5px;cursor:pointer}
+.at-pages button[aria-current="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.at-vue{height:calc(100vh - 190px);min-height:420px;overflow:auto;background:#7a8590;position:relative}
+@media (max-width:980px){.at-vue{height:70vh}}
+.at-page{position:relative;margin:0 auto;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.25)}
+.at-page img{display:block;width:100%;height:auto;cursor:crosshair;user-select:none;-webkit-user-select:none}
+.at-calque{position:absolute;inset:0;pointer-events:none}
+.at-case{position:absolute;border:3px solid;border-radius:3px}
+.at-case.ok{border-color:#15803d;background:rgba(21,128,61,.14)}
+.at-case.montre{border-color:#1d4ed8;background:rgba(29,78,216,.14);animation:at-cli 1s ease-in-out 3}
+.at-case.ligne{border-color:#c2410c;background:rgba(194,65,12,.08);border-style:dashed}
+.at-clic{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border:3px solid #b42318;border-radius:50%;animation:at-fade 1.6s forwards}
+@keyframes at-fade{to{opacity:0;transform:scale(1.8)}}
+@keyframes at-cli{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.at-case.montre,.at-clic{animation:none}}
+.at-mission{display:grid;gap:12px}
+.at-figw{overflow-x:auto;margin-top:8px}
+.at-sit .at-fig{display:block;width:100%;min-width:540px;max-width:660px;height:auto;color:var(--ink)}
+.at-sit p{margin:0}
+.etape{border-left:5px solid var(--accent)}
+.etape h2{margin:4px 0 8px;font-size:1.15rem;border:0;padding:0}
+.etape .consigne{font-size:1.02rem}
+.retour{margin-top:10px;padding:8px 12px;border-radius:5px;font-weight:500}
+.retour.ok{background:var(--good-soft);color:var(--good)}
+.retour.ko{background:var(--bad-soft);color:var(--bad)}
+.retour.info{background:var(--accent-soft);color:var(--ink)}
+.retour.montre{background:var(--warn-soft);color:var(--warn)}
+.etape-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.drep{background:var(--paper);border:2px solid var(--line-strong);border-radius:3px;padding:0}
+.drep-titre{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:8px 12px;border-bottom:2px solid var(--line-strong)}
+.drep-tab{overflow-x:auto}
+.drep table{border-collapse:collapse;width:100%;font-size:.9rem}
+.drep th,.drep td{border:1px solid var(--line-strong);padding:6px 7px;text-align:center;vertical-align:middle}
+.drep th{background:var(--paper-2);font-weight:600;font-size:.82rem;line-height:1.25}
+.drep input,.drep select{font:inherit;font-family:var(--f-mono);width:100%;min-width:72px;padding:6px 6px;border:1.5px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);text-align:center}
+.drep select{min-width:150px;font-family:var(--f-body);text-align:left}
+.drep td.actif input,.drep td.actif select{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.drep td.juste input,.drep td.juste select{border-color:var(--good);background:var(--good-soft);color:var(--good)}
+.drep td.faux input,.drep td.faux select{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+.drep td.montre input,.drep td.montre select{border-color:var(--warn);background:var(--warn-soft);color:var(--warn)}
+.drep input:disabled,.drep select:disabled{opacity:1}
+.drep td.attente input,.drep td.attente select{background:var(--paper-2);border-style:dashed}
+.bilan-pts{font-family:var(--f-mono);font-weight:600}
+.recap{list-style:none;padding:0;margin:8px 0;display:grid;gap:6px}
+.recap li{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px;padding:6px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--paper)}
+.recap .p{font-family:var(--f-mono);font-weight:700}
+.note20{font-family:var(--f-disp);font-weight:700;font-size:2.4rem;line-height:1}
+.etiq{display:inline-block;font-family:var(--f-mono);font-size:.75rem;font-weight:600;padding:0 7px;border-radius:4px;border:1px solid var(--rule)}
+.etiq.ok{background:var(--good-soft);color:var(--good);border-color:transparent}
+.etiq.moy{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.etiq.ko{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+
+</style>
+</head>
+<body>
+<header class="haut"><div class="haut-in">
+  <a class="logo" href="#"><img src="../assets/logo-papara.svg" alt="" onerror="this.remove()"><span><span class="logo-ey">LPO Papara · BTS Électrotechnique</span><br><span class="logo-nom">Atelier documents</span></span></a>
+  <div class="haut-droite"><span class="discret">Épreuve E4 · U4</span><span id="sip-etat" class="discret"></span></div>
+</div></header>
+<main id="app"></main>
+
+<script src="e4/atelier.js"></script>
+<!-- site SI Papara : connexion de l'élève et envoi des résultats au professeur (ignoré si la page est ouverte seule) -->
+<script src="../config.js" onerror="void 0"></script>
+<script>
+  if (window.SIP_CONFIG && SIP_CONFIG.supabaseUrl && SIP_CONFIG.supabaseAnonKey)
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
+</script>
+<script src="../assets/backend.js" onerror="void 0"></script>
+<script>
+(function () {
+"use strict";
+const A = window.E4 && E4.ATELIER, app = document.getElementById("app");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nf = (x, d = 3) => Number(x).toLocaleString("fr-FR", { maximumFractionDigits: d });
+const brut = (h) => String(h ?? "").replace(/<span class="frac"><span>(.*?)<\/span><span>(.*?)<\/span><\/span>/g, "($1)/($2)").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+const IMG_W = 910, IMG_H = 1287;
+const lire = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+const garder = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* rien */ } };
+const sess = () => { try { return window.SIP && SIP.session && SIP.session.get(); } catch (e) { return null; } };
+const CLE_BEST = () => "u4atelier:" + ((sess() || {}).nom || "local");
+const famDe = (id) => A.FAMILLES.find((f) => f.id === id);
+
+/* ---------- accueil ---------- */
+function accueil() {
+  const best = lire(CLE_BEST()) || {};
+  app.innerHTML = `<a class="retour-e4" href="bts-e4.html">← Entraînement E4</a>
+    <div class="eyebrow">Épreuve E4 · U4 · atelier</div><h1>Lire le dossier ressources, répondre sur le DREP</h1>
+    <p class="discret">À l'épreuve, presque toutes les données se trouvent dans le dossier ressources (DRES), puis se reportent dans le dossier réponses (DREP). Ici, tu t'entraînes sur les <b>vraies pages des sujets d'annales</b> : tu cliques sur la case où se trouve l'information, puis tu la reportes dans le DREP à l'écran. Chaque essai tire un nouveau cas.</p>
+    <div class="methode">
+      <div><b>1 · Je sais ce que je cherche</b>La grandeur, son unité, et ce qui la fait choisir (lettre, température, courant…).</div>
+      <div><b>2 · Je trouve le tableau</b>Par son titre : le DRES est rangé par documents et chaque tableau a un nom.</div>
+      <div><b>3 · Ligne, puis colonne</b>Je lis au croisement, sans sauter de ligne, et je reporte la valeur avec son unité.</div>
+    </div>
+    <div class="fams">${A.FAMILLES.map((f) => `<section class="carte fam"><div><div class="eyebrow">${esc(f.doc)}</div><h3>${esc(f.titre)}</h3><p class="discret" style="margin:0">${esc(f.resume)}</p></div>
+      <div class="niv">${A.NIVEAUX.map((n) => { const b = best[f.id + "-" + n.n]; return `<a class="btn ${n.n === 1 ? "plein" : ""}" href="#${f.id}/${n.n}" title="${esc(n.resume)}">Niveau ${n.n}<small>${esc(n.titre)}${b != null ? ` · meilleur ${nf(b, 1)}/20` : ""}</small></a>`; }).join("")}</div></section>`).join("")}</div>
+    <p class="discret" style="margin-top:16px">${A.NIVEAUX.map((n) => `<b>Niveau ${n.n}</b> · ${esc(n.resume)}`).join("<br>")}</p>`;
+}
+
+/* ---------- un exercice ---------- */
+let R = null;
+function demarrer(famId, niveau) {
+  const F = famDe(famId); if (!F) { location.hash = ""; return; }
+  const cas = F.genere(), suj = A.SUJETS[cas.sujet];
+  const pages = niveau === 1 ? cas.pagesN1 : suj.pages;
+  R = { F, niveau, cas, suj, pages, page: pages[0], zoom: null, k: 0, debut: Date.now(), zones: {}, champs: {}, aide: {}, fini: false };
+  cas.etapes.forEach((e, i) => { R.zones[i] = { err: 0, ok: false, montre: false, pts: 0 }; });
+  Object.keys(cas.champs).forEach((id) => { R.champs[id] = { essais: 0, etat: null, val: "", pts: 0 }; });
+  rendre();
+  allerEtape(0);
+}
+const etape = () => R.cas.etapes[R.k];
+const tableDe = (id) => A.TABLES[id];
+
+function rendre() {
+  const c = R.cas;
+  app.innerHTML = `<a class="retour-e4" href="#">← Les ateliers</a>
+    <div class="at-tete"><div><div class="eyebrow">${esc(R.F.titre)} · niveau ${R.niveau} — ${esc(A.NIVEAUX[R.niveau - 1].titre)}</div><h1>${esc(c.titre)}</h1></div>
+      <span class="at-prog" id="at-prog"></span></div>
+    <div class="at-grille">
+      <section class="at-doc" aria-label="Dossier ressources">
+        <div class="at-outils"><span class="eyebrow">DRES · ${esc(R.suj.titre)}</span><div class="at-pages" id="at-pages"></div>
+          <button class="btn petit" type="button" id="at-moins" aria-label="Dézoomer">−</button><button class="btn petit" type="button" id="at-plus" aria-label="Zoomer">+</button></div>
+        <div class="at-vue" id="at-vue"><div class="at-page" id="at-page"><img id="at-img" alt="" draggable="false"><div class="at-calque" id="at-calque"></div></div></div>
+      </section>
+      <div class="at-mission">
+        <section class="carte at-sit"><div class="eyebrow">La situation</div>${c.situation}${c.fig ? `<div class="at-figw">${c.fig}</div>` : ""}</section>
+        <section class="carte etape" id="at-etape" aria-live="polite"></section>
+        <section class="drep" aria-label="Document réponse"><div class="drep-titre">${esc(c.drep.titre)}</div><div class="drep-tab">${tableDrep()}</div></section>
+      </div>
+    </div>`;
+  document.getElementById("at-pages").innerHTML = R.pages.map((p) => `<button type="button" data-p="${p}">p. ${p}</button>`).join("");
+  document.getElementById("at-pages").addEventListener("click", (e) => { const b = e.target.closest("[data-p]"); if (b) ouvrir(+b.dataset.p); });
+  document.getElementById("at-plus").onclick = () => zoomer(1.25);
+  document.getElementById("at-moins").onclick = () => zoomer(0.8);
+  const img = document.getElementById("at-img");
+  img.addEventListener("click", clic);
+  img.addEventListener("load", () => { calque(); });
+  app.querySelectorAll(".drep [data-ch]").forEach((el) => {
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); valider(); } });
+  });
+  ouvrir(R.page);
+}
+function tableDrep() {
+  const d = R.cas.drep;
+  const cell = (v) => {
+    const m = /^\{(\w+)\}$/.exec(v);
+    if (!m) return `<td>${v}</td>`;
+    const ch = R.cas.champs[m[1]], id = m[1];
+    const ctl = ch.type === "choix" ? `<select data-ch="${id}" aria-label="${esc(ch.label)}"><option value="">…</option>${ch.options.map((o, i) => `<option value="${i}">${esc(o)}</option>`).join("")}</select>`
+      : `<input data-ch="${id}" inputmode="decimal" autocomplete="off" aria-label="${esc(ch.label)}${ch.unite ? " en " + esc(ch.unite) : ""}">`;
+    return `<td class="attente" id="td-${id}">${ctl}</td>`;
+  };
+  return `<table><thead><tr>${d.entetes.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${d.lignes.map((l) => `<tr>${l.map(cell).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+/* ---------- le document : pages, zoom, calque ---------- */
+function largeurAjustee() { const v = document.getElementById("at-vue"); return Math.max(280, v.clientWidth - 16); }
+function ouvrir(p, versTable) {
+  R.page = p;
+  const img = document.getElementById("at-img");
+  if (R.zoom == null) R.zoom = Math.max(1, Math.min(2.4, 900 / largeurAjustee()));
+  document.getElementById("at-page").style.width = Math.round(largeurAjustee() * R.zoom) + "px";
+  const src = `e4/docs/${R.cas.sujet}/dres-${p}.jpg`;
+  if (!img.src.endsWith(src)) { img.src = src; img.alt = `Dossier ressources, page ${p} sur ${R.suj.total}`; }
+  document.querySelectorAll("#at-pages [data-p]").forEach((b) => b.setAttribute("aria-current", String(+b.dataset.p === p)));
+  calque();
+  if (versTable) defiler(versTable);
+}
+function zoomer(f) {
+  const v = document.getElementById("at-vue"), cx = (v.scrollLeft + v.clientWidth / 2) / v.scrollWidth, cy = (v.scrollTop + v.clientHeight / 2) / v.scrollHeight;
+  R.zoom = Math.max(1, Math.min(3, R.zoom * f));
+  document.getElementById("at-page").style.width = Math.round(largeurAjustee() * R.zoom) + "px";
+  v.scrollLeft = cx * v.scrollWidth - v.clientWidth / 2; v.scrollTop = cy * v.scrollHeight - v.clientHeight / 2;
+}
+function defiler(tid) {
+  const t = tableDe(tid), v = document.getElementById("at-vue"), img = document.getElementById("at-img");
+  const go = () => { const k = img.clientWidth / IMG_W; v.scrollTo({ top: Math.max(0, t.boite[1] * k - 30), left: Math.max(0, t.boite[0] * k - 20), behavior: "smooth" }); };
+  if (img.complete && img.naturalWidth) go(); else img.addEventListener("load", go, { once: true });
+}
+const pct = (x, tot) => (100 * x / tot) + "%";
+function rect(t, r, c, cls) {
+  const x0 = c == null ? t.x[0] : t.x[c], x1 = c == null ? t.x[t.x.length - 1] : t.x[c + 1], y0 = t.y[r], y1 = t.y[r + 1];
+  return `<div class="at-case ${cls}" style="left:${pct(x0 - 2, IMG_W)};top:${pct(y0 - 2, IMG_H)};width:${pct(x1 - x0 + 4, IMG_W)};height:${pct(y1 - y0 + 4, IMG_H)}"></div>`;
+}
+function calque() {
+  const z = document.getElementById("at-calque"); if (!z || !R) return;
+  let h = "";
+  R.cas.etapes.forEach((e, i) => {
+    if (!e.zone) return;
+    const t = tableDe(e.zone.table), Z = R.zones[i];
+    if (t.page !== R.page) return;
+    if (Z.ok) h += rect(t, e.zone.r, e.zone.c, "ok");
+    else if (Z.montre) h += rect(t, e.zone.r, e.zone.c, "montre");
+    else if (i === R.k && Z.ligne) h += rect(t, e.zone.r, null, "ligne");
+  });
+  z.innerHTML = h + (R.marque && R.marque.page === R.page ? `<div class="at-clic" style="left:${pct(R.marque.x, IMG_W)};top:${pct(R.marque.y, IMG_H)}"></div>` : "");
+}
+
+/* ---------- les étapes ---------- */
+const NOM = (e) => { const t = e.zone && tableDe(e.zone.table); return t ? `${t.doc}, tableau « ${t.nom} »` : ""; };
+function consigne(e) {
+  if (e.calcul) return `Calcule <b>${esc(e.quoi)}</b> et écris le résultat dans le DREP.`;
+  const t = tableDe(e.zone.table);
+  if (R.niveau === 1) return `Dans le tableau « <b>${esc(t.nom)}</b> », clique sur la case qui donne <b>${esc(e.quoi)}</b> : ${esc(e.critere)}.`;
+  if (R.niveau === 2) return `Trouve dans le dossier ressources le tableau « <b>${esc(t.nom)}</b> » (${esc(t.doc)}), puis clique sur la case qui donne <b>${esc(e.quoi)}</b> : ${esc(e.critere)}.`;
+  return `Cherche dans le dossier ressources <b>${esc(e.quoi)}</b>, puis clique sur la case où se lit cette information (${esc(e.critere)}).`;
+}
+function allerEtape(k) {
+  R.k = k; R.marque = null;
+  const e = etape();
+  if (e.zone && R.niveau === 1) { const t = tableDe(e.zone.table); ouvrir(t.page, e.zone.table); }
+  majEtape(); majDrep(); calque();
+}
+function zoneFaite(i) { const Z = R.zones[i]; return !R.cas.etapes[i].zone || Z.ok || Z.montre; }
+function majEtape(msg, cls) {
+  const e = etape(), i = R.k, z = document.getElementById("at-etape"), n = R.cas.etapes.length;
+  document.getElementById("at-prog").textContent = `Étape ${Math.min(i + 1, n)} / ${n} · ${nf(points().s, 1)} pt`;
+  const champsFaits = e.champs.every((id) => R.champs[id].etat);
+  const aZone = !zoneFaite(i);
+  z.innerHTML = `<div class="eyebrow">Étape ${i + 1} / ${n}${e.zone ? " · lire le DRES" : " · calculer"}</div>
+    <h2>${esc(e.quoi.charAt(0).toUpperCase() + e.quoi.slice(1))}</h2>
+    <div class="consigne">${aZone ? consigne(e) : champsFaits ? "" : e.zone ? `Reporte ${e.champs.length > 1 ? "les valeurs lues" : "la valeur lue"} dans le DREP (${e.champs.map((id) => esc(R.cas.champs[id].label)).join(", ")}), puis valide.` : consigne(e)}</div>
+    ${msg ? `<div class="retour ${cls || "info"}">${msg}</div>` : ""}
+    ${champsFaits ? `<div class="retour ${e.champs.every((id) => R.champs[id].etat === "juste") && (!e.zone || R.zones[i].ok) ? "ok" : "montre"}"><b>Correction :</b> ${e.pourquoi}</div>` : ""}
+    <div class="etape-actions">
+      ${aZone && R.niveau > 1 ? `<button class="btn" type="button" id="at-aide">Où chercher ?</button>` : ""}
+      ${!aZone && !champsFaits ? `<button class="btn plein" type="button" id="at-valider">Valider</button>` : ""}
+      ${champsFaits ? `<button class="btn plein" type="button" id="at-suivant">${i + 1 < n ? "Étape suivante →" : "Voir mon bilan →"}</button>` : ""}
+    </div>`;
+  const b1 = document.getElementById("at-aide"); if (b1) b1.onclick = aide;
+  const b2 = document.getElementById("at-valider"); if (b2) b2.onclick = valider;
+  const b3 = document.getElementById("at-suivant"); if (b3) { b3.onclick = () => (i + 1 < n ? allerEtape(i + 1) : bilan()); b3.focus({ preventScroll: true }); }
+}
+function majDrep() {
+  const e = etape(), actifs = !zoneFaite(R.k) ? [] : e.champs.filter((id) => !R.champs[id].etat);
+  Object.keys(R.cas.champs).forEach((id) => {
+    const td = document.getElementById("td-" + id), C = R.champs[id], ctl = td.querySelector("[data-ch]");
+    td.className = C.etat ? C.etat : actifs.includes(id) ? "actif" : "attente";
+    ctl.disabled = !actifs.includes(id);
+    if (C.etat === "montre") { const ch = R.cas.champs[id]; ctl.value = ch.type === "choix" ? String(ch.attendu) : nf(ch.attendu); }
+  });
+  if (actifs.length) { const el = document.querySelector(`#td-${actifs[0]} [data-ch]`); if (el && document.activeElement !== el && window.innerWidth > 980) el.focus({ preventScroll: true }); }
+}
+function aide() {
+  const e = etape(), i = R.k, t = tableDe(e.zone.table);
+  R.aide[i] = true;
+  ouvrir(t.page, e.zone.table);
+  majEtape(`Regarde page ${t.page} : ${esc(NOM(e))}. (Avec l'aide, cette case rapporte au plus ½ point.)`, "info");
+}
+
+/* ---------- clic sur la page ---------- */
+function clic(ev) {
+  const e = etape(), i = R.k; if (!e || !e.zone || zoneFaite(i)) return;
+  const img = ev.currentTarget, x = ev.offsetX * IMG_W / img.clientWidth, y = ev.offsetY * IMG_H / img.clientHeight;
+  R.marque = { page: R.page, x, y };
+  const ici = Object.entries(A.TABLES).filter(([, t]) => t.sujet === R.cas.sujet && t.page === R.page && x >= t.boite[0] && x <= t.boite[2] && y >= t.boite[1] && y <= t.boite[3]);
+  const cible = tableDe(e.zone.table), Z = R.zones[i];
+  const trouve = ici.find(([id]) => id === e.zone.table);
+  if (!trouve) {
+    if (!ici.length) { calque(); majEtape("Clique dans une case d'un tableau.", "info"); return; }
+    erreur(R.page !== cible.page ? `Le tableau « ${esc(ici[0][1].nom)} » ne donne pas ${esc(e.quoi)} : cherche ailleurs dans le dossier.` : `Tu es dans le tableau « ${esc(ici[0][1].nom)} » : il ne donne pas ${esc(e.quoi)}.`);
+    return;
+  }
+  const t = trouve[1];
+  const r = t.y.findIndex((v, k) => k < t.y.length - 1 && y >= v && y < t.y[k + 1]);
+  const c = t.x.findIndex((v, k) => k < t.x.length - 1 && x >= v && x < t.x[k + 1]);
+  if (r < 0) { calque(); majEtape("Tu es dans les titres du tableau : clique dans la ligne qui convient.", "info"); return; }
+  if (r !== e.zone.r) { erreur(`Ligne « ${esc(t.lignes[r])} » : ce n'est pas la bonne. Il faut ${esc(e.critere)}.`); return; }
+  if (e.zone.c != null && c < 0) { Z.ligne = true; calque(); majEtape(`Bonne ligne ! Clique maintenant dans la bonne colonne${t.titreCol ? ` (${esc(t.titreCol)})` : ""}.`, "info"); return; }
+  if (e.zone.c != null && c !== e.zone.c) { Z.ligne = true; erreur(`Bonne ligne, mais colonne « ${esc(t.colonnes[c])} » : ce n'est pas la bonne. Il faut ${esc(e.critere)}.`); return; }
+  Z.ok = true; Z.pts = Z.err === 0 && !R.aide[i] ? 1 : 0.5;
+  calque(); majEtape(`✓ C'est la bonne case. ${e.champs.length > 1 ? "Reporte les valeurs" : "Reporte la valeur"} dans le DREP.`, "ok"); majDrep();
+}
+function erreur(msg) {
+  const i = R.k, e = etape(), Z = R.zones[i];
+  Z.err++;
+  if (Z.err >= 3) {
+    Z.montre = true; Z.pts = 0;
+    const t = tableDe(e.zone.table);
+    if (t.page !== R.page) ouvrir(t.page, e.zone.table);
+    calque(); majEtape(`${msg}<br>La bonne case est entourée en bleu (page ${t.page}, ${esc(NOM(e))}). Reporte maintenant la valeur dans le DREP.`, "montre"); majDrep();
+    return;
+  }
+  calque(); majEtape(`${msg} <span class="discret">(essai ${Z.err} sur 3)</span>`, "ko");
+}
+
+/* ---------- les champs du DREP ---------- */
+function nombre(s) { const t = String(s || "").replace(/\s| /g, "").replace(",", ".").replace(/[^0-9.+-eE]/g, ""); return t === "" ? NaN : Number(t); }
+function juste(ch, v) {
+  if (ch.type === "choix") return v !== "" && Number(v) === ch.attendu;
+  const x = nombre(v); if (!Number.isFinite(x)) return false;
+  if (ch.tolR != null) return Math.abs(x - ch.attendu) <= Math.abs(ch.attendu) * ch.tolR / 100 + 1e-9;
+  return Math.abs(x - ch.attendu) <= (ch.abs || 0) + 1e-9;
+}
+function valider() {
+  const e = etape(); if (!zoneFaite(R.k)) return;
+  const actifs = e.champs.filter((id) => !R.champs[id].etat);
+  let fautes = [], vides = [];
+  actifs.forEach((id) => {
+    const ch = R.cas.champs[id], C = R.champs[id], ctl = document.querySelector(`#td-${id} [data-ch]`), v = ctl.value;
+    if (v === "" || (ch.type !== "choix" && !Number.isFinite(nombre(v)))) { vides.push(ch.label); return; }
+    C.val = v; C.essais++;
+    if (juste(ch, v)) { C.etat = "juste"; C.pts = C.essais === 1 ? 1 : 0.5; }
+    else if (C.essais >= 2) { C.etat = "montre"; C.pts = 0; }
+    else fautes.push(ch.label);
+  });
+  majDrep();
+  if (vides.length) { majEtape(`Écris d'abord ${vides.map(esc).join(", ")} dans le DREP (un nombre, avec la virgule si besoin).`, "info"); return; }
+  if (fautes.length) {
+    actifs.filter((id) => !R.champs[id].etat).forEach((id) => { document.getElementById("td-" + id).className = "faux actif"; });
+    majEtape(`${fautes.map(esc).join(", ")} : pas tout à fait. ${e.calcul ? "Refais le calcul (et vérifie l'arrondi)." : "Relis la case entourée, sans sauter de ligne."} Corrige, puis valide.`, "ko");
+    return;
+  }
+  majEtape(); calque();
+}
+
+/* ---------- bilan ---------- */
+function points() {
+  let s = 0, m = 0;
+  R.cas.etapes.forEach((e, i) => { if (e.zone) { m += 1; s += R.zones[i].pts; } });
+  Object.values(R.champs).forEach((C) => { m += 1; s += C.pts; });
+  return { s, m };
+}
+async function bilan() {
+  if (R.fini) return; R.fini = true;
+  const { s, m } = points(), n20 = Math.round(200 * s / m) / 10;
+  const best = lire(CLE_BEST()) || {}, cle = R.F.id + "-" + R.niveau;
+  if (best[cle] == null || n20 > best[cle]) { best[cle] = n20; garder(CLE_BEST(), best); }
+  const ligne = (e, i) => {
+    const pz = e.zone ? R.zones[i].pts : null, pc = e.champs.reduce((a, id) => a + R.champs[id].pts, 0), max = (e.zone ? 1 : 0) + e.champs.length, p = (pz || 0) + pc;
+    return `<li><span class="p">${p === max ? "✓" : p > 0 ? "½" : "✗"}</span><div><b>${esc(e.quoi.charAt(0).toUpperCase() + e.quoi.slice(1))}</b> <span class="etiq ${p === max ? "ok" : p > 0 ? "moy" : "ko"}">${nf(p, 1)} / ${max}</span><div class="discret">${e.pourquoi}</div></div></li>`;
+  };
+  document.getElementById("at-etape").innerHTML = `<div class="eyebrow">Bilan</div><div class="note20">${nf(n20, 1)}<small style="font-size:.5em">/20</small></div>
+    <p class="bilan-pts">${nf(s, 1)} point${s > 1 ? "s" : ""} sur ${m} · case trouvée du premier coup = 1 pt, au deuxième essai ou avec l'aide = ½ pt ; valeur juste du premier coup = 1 pt, au deuxième = ½ pt.</p>
+    <ol class="recap">${R.cas.etapes.map(ligne).join("")}</ol>
+    <p id="at-envoi" class="discret"></p>
+    <div class="etape-actions"><a class="btn plein" href="#${R.F.id}/${R.niveau}/${Date.now()}">↻ Un autre cas</a>${R.niveau < 3 ? `<a class="btn" href="#${R.F.id}/${R.niveau + 1}">Niveau ${R.niveau + 1} →</a>` : ""}<a class="btn" href="#">Les ateliers</a></div>`;
+  document.getElementById("at-prog").textContent = `Terminé · ${nf(n20, 1)}/20`;
+  document.getElementById("at-etape").scrollIntoView({ behavior: "smooth", block: "start" });
+  const z = document.getElementById("at-envoi");
+  if (!(window.SIP && SIP.ecrire && sess())) { z.textContent = "Connecte-toi au site pour que ta note parte au professeur."; return; }
+  const details = R.cas.etapes.map((e, i) => ({ q: brut(consigne(e)), rep: (e.zone ? (R.zones[i].ok ? (R.zones[i].err ? `case trouvée au ${R.zones[i].err + 1}e essai` : "case trouvée du premier coup") + (R.aide[i] ? " (avec l'aide)" : "") : "case montrée") + " · " : "") + e.champs.map((id) => `${R.cas.champs[id].label} = ${R.champs[id].val || "—"}`).join(" ; "),
+    attendu: brut(e.pourquoi), pts: (e.zone ? R.zones[i].pts : 0) + e.champs.reduce((a, id) => a + R.champs[id].pts, 0), bareme: (e.zone ? 1 : 0) + e.champs.length }));
+  details.forEach((d) => { d.erreurs = d.pts < d.bareme ? 1 : 0; });
+  try {
+    const ok = await SIP.ecrire("enregistrer", { module: `e4-atelier-${R.F.id}-n${R.niveau}`, titre: `E4 · Atelier documents — ${R.F.titre} (niveau ${R.niveau})`, type: "externe",
+      score: s, score_max: m, duree_s: Math.round((Date.now() - R.debut) / 1000), details });
+    z.textContent = ok ? "✓ Note envoyée au professeur." : "Note gardée : elle partira au professeur dès que le réseau revient.";
+  } catch (e) { z.textContent = "La note n'a pas pu partir : reconnecte-toi au site."; }
+}
+
+/* ---------- routes ---------- */
+function route() {
+  const h = location.hash.replace(/^#\/?/, "").split("/");
+  if (!h[0]) { R = null; accueil(); window.scrollTo(0, 0); return; }
+  const F = famDe(h[0]), n = Math.min(3, Math.max(1, +h[1] || 1));
+  if (!F) { location.hash = ""; return; }
+  demarrer(F.id, n); window.scrollTo(0, 0);
+}
+A.etat = () => R;   // l'exercice en cours (vérifications automatiques)
+window.addEventListener("hashchange", route);
+window.addEventListener("resize", () => { if (R && R.zoom) document.getElementById("at-page").style.width = Math.round(largeurAjustee() * R.zoom) + "px"; });
+const etat = document.getElementById("sip-etat"), s0 = sess();
+if (etat) etat.textContent = s0 ? `· ${s0.nom}` : "· non connecté (note non transmise)";
+route();
+})();
+
+</script>
+</body>
+</html>

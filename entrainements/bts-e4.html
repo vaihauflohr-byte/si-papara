@@ -475,7 +475,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
       ${E4.BANQUE ? `<div class="carte serie-hero" style="margin-top:14px"><div class="eyebrow">Banque de questions · ${Object.keys(E4.BANQUE).length} notions · ${Object.keys(E4.BANQUE).reduce((a, k) => a + E4.nbGenerateurs(k), 0)} types de questions</div>
         <h3 style="margin-top:4px">Avant les sujets complets : les séries par notion</h3>
         <p class="discret" style="margin:4px 0 0;max-width:860px">Les questions types des sujets 2022-2026, avec de nouvelles valeurs à chaque essai et les extraits de dossiers ressources où chercher les données. Note sur 20, résultat transmis au professeur. L'épreuve express (12 questions, temps limité) t'entraîne à gérer ton temps.</p>
-        <div class="actions"><a class="btn plein" href="#/series">Séries par notion</a><a class="btn" href="#/express">Épreuve express · temps limité</a></div></div>` : ""}
+        <div class="actions"><a class="btn plein" href="#/series">Séries par notion</a><a class="btn" href="#/express">Épreuve express · temps limité</a><a class="btn" href="bts-u4-atelier.html" title="Sur les vraies pages des annales : trouver la donnée dans le dossier ressources, puis la reporter dans le document réponse">Atelier documents · lire le DRES</a></div></div>` : ""}
       ${runs.length ? `<h2>Mes entraînements</h2><div class="carte" style="padding:8px 14px"><table class="t-runs"><thead><tr><th>Parcours</th><th>Mode</th><th>Avancement</th><th class="num">Note indicative</th><th></th></tr></thead><tbody>${runs.slice(0, 12).map(ligneRun).join("")}</tbody></table></div>` : ""}
       <h2>Les sujets</h2>
       <div class="grille2">${CARTE.map((c) => {
