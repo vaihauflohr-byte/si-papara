@@ -678,3 +678,48 @@ create policy sip_depots_prof_lit on storage.objects for select to authenticated
 drop policy if exists sip_depots_prof_supprime on storage.objects;
 create policy sip_depots_prof_supprime on storage.objects for delete to authenticated
   using (bucket_id = 'depots' and public.is_prof());
+
+-- ---------------------------------------------------------------------
+-- Lancement du flash par le professeur — même bloc que supabase/flash.sql
+-- ---------------------------------------------------------------------
+create table if not exists public.flash_lancements (
+  niveau text primary key,              -- classe (TSI…)
+  flash  text not null,                 -- date du flash dans contenu/flashs.js (AAAA-MM-JJ)
+  debut  timestamptz not null,
+  fin    timestamptz not null
+);
+alter table public.flash_lancements enable row level security;
+revoke all on public.flash_lancements from anon, authenticated;
+
+-- Professeur connecté : lancer le flash d'une classe pour p_duree_s secondes (0 = arrêter : plus personne ne peut le commencer).
+create or replace function public.flash_lancer(p_niveau text, p_flash text, p_duree_s int)
+returns json language plpgsql security definer set search_path = public as $$
+declare d timestamptz := now(); f timestamptz;
+begin
+  if not public.is_prof() then raise exception 'NON_AUTORISE'; end if;
+  if p_duree_s is null or p_duree_s <= 0 then
+    delete from flash_lancements where niveau = p_niveau;
+    return json_build_object('ok', true, 'lance', false, 'maintenant', d);
+  end if;
+  f := d + make_interval(secs => least(p_duree_s, 3600));
+  insert into flash_lancements (niveau, flash, debut, fin) values (left(p_niveau, 20), left(p_flash, 20), d, f)
+  on conflict (niveau) do update set flash = excluded.flash, debut = excluded.debut, fin = excluded.fin;
+  return json_build_object('ok', true, 'lance', true, 'flash', p_flash, 'debut', d, 'fin', f, 'maintenant', d);
+end $$;
+
+-- Élève connecté (jeton) : le flash lancé pour sa classe, avec l'heure du serveur (chrono juste même si l'horloge
+-- du téléphone est fausse).
+create or replace function public.flash_etat(p_jeton uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare v uuid := _eleve(p_jeton); n text; r flash_lancements;
+begin
+  select niveau into n from eleves where id = v;
+  select * into r from flash_lancements where niveau = n;
+  if not found then return json_build_object('lance', false, 'maintenant', now()); end if;
+  return json_build_object('lance', true, 'flash', r.flash, 'debut', r.debut, 'fin', r.fin, 'maintenant', now());
+end $$;
+
+revoke execute on function public.flash_lancer(text, text, int) from public, anon;
+grant execute on function public.flash_lancer(text, text, int) to authenticated;
+revoke execute on function public.flash_etat(uuid) from public;
+grant execute on function public.flash_etat(uuid) to anon, authenticated;
