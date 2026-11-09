@@ -7,7 +7,7 @@
 --  Le professeur clique « Lancer » sur la page projetée : la base note l'heure de début et de fin du flash
 --  pour la classe. Les élèves qui attendent sur « Flash du jour » le voient (ils interrogent la base toutes les
 --  2 secondes) : leur chrono démarre, réglé sur l'heure du serveur, et finit en même temps que celui du tableau.
---  Une ligne par classe au plus ; aucune donnée d'élève ici.
+--  Une ligne par classe au plus ; aucune donnée d'élève ici. Pendant le flash, « +1 min » repousse la fin (flash_rallonger).
 --  À la fin du chrono, l'élève voit sa note, mais pas sa correction le jour même tant que le professeur ne l'a pas
 --  montrée (flash_montrer : une ligne par classe et par jour dans flash_corrections) ; le site l'ouvre le lendemain.
 -- =====================================================================
@@ -51,6 +51,21 @@ begin
   return json_build_object('ok', true, 'lance', true, 'flash', p_flash, 'debut', d, 'fin', f, 'maintenant', d);
 end $$;
 
+-- Professeur connecté : ajouter p_secondes (1 à 600) au flash en cours de sa classe (« +1 min » ; 1 heure au plus en tout).
+-- Les élèves relisent la fin du flash toutes les 2 s (flash_etat) : leur chrono suit.
+create or replace function public.flash_rallonger(p_niveau text, p_secondes int)
+returns json language plpgsql security definer set search_path = public as $$
+declare r flash_lancements;
+begin
+  if not public.is_prof() then raise exception 'NON_AUTORISE'; end if;
+  update flash_lancements
+     set fin = least(fin + make_interval(secs => greatest(1, least(coalesce(p_secondes, 60), 600))), debut + interval '1 hour')
+   where niveau = p_niveau and fin > now()
+  returning * into r;
+  if not found then return json_build_object('ok', false, 'lance', false, 'maintenant', now()); end if;
+  return json_build_object('ok', true, 'lance', true, 'flash', r.flash, 'debut', r.debut, 'fin', r.fin, 'maintenant', now());
+end $$;
+
 -- Professeur connecté : montrer (p_montrer = true) ou cacher (false) la correction du flash d'un jour ; null = lire.
 create or replace function public.flash_montrer(p_niveau text, p_jour date, p_montrer boolean)
 returns json language plpgsql security definer set search_path = public as $$
@@ -84,3 +99,5 @@ revoke execute on function public.flash_etat(uuid) from public;
 grant execute on function public.flash_etat(uuid) to anon, authenticated;
 revoke execute on function public.flash_montrer(text, date, boolean) from public, anon;
 grant execute on function public.flash_montrer(text, date, boolean) to authenticated;
+revoke execute on function public.flash_rallonger(text, int) from public, anon;
+grant execute on function public.flash_rallonger(text, int) to authenticated;
