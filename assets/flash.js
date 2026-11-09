@@ -10,10 +10,11 @@
    du tableau, la copie est rendue toute seule à 0:00. Une seule copie notée par jour : module flash-<date du jour>.
    Correction : chaque réponse part à l'IA (SIP.ia.corriger → fonction Supabase « corriger ») avec la question,
    le corrigé et les éléments du barème ; verdict par élément (présent 1, en partie ½, absent 0). La note part au
-   prof dès que la copie est corrigée, mais l'ÉLÈVE NE VOIT NI LA CORRECTION NI SA NOTE le jour même tant que le
-   prof ne l'a pas montrée (bouton « Montrer la correction aux élèves » : supabase/flash.sql, flash_montrer) ;
-   elles s'ouvrent toutes seules le lendemain. Si l'IA n'a pas pu corriger une réponse, l'élève la coche lui-même
-   avec le corrigé, une fois la correction montrée.
+   prof dès que la copie est corrigée. L'ÉLÈVE VOIT SA NOTE À LA FIN DU CHRONO (pas avant, même s'il a rendu tôt :
+   il ne peut pas souffler aux autres que ses réponses sont justes), avec les points de chaque question, mais PAS
+   SA CORRECTION le jour même tant que le prof ne l'a pas montrée (bouton « Montrer la correction aux élèves » :
+   supabase/flash.sql, flash_montrer) ; elle s'ouvre toute seule le lendemain. Si l'IA n'a pas pu corriger une
+   réponse, l'élève la coche lui-même avec le corrigé, une fois la correction montrée : sa note s'affiche alors.
    Durée : 5 minutes (DUREE_FLASH), ou celle donnée par le flash préparé.
    Sources : « AAAA-MM-JJ » (flash préparé), « alea-<graine> » (tirage, le même chez tous), « q:<réf>,<réf>… »
    (questions choisies) ; une réf est « AAAA-MM-JJ~<n° de question> » ou « b~<id de la banque> ».
@@ -109,14 +110,25 @@ window.SIP = window.SIP || {};
     const f = flashDe(jour);
     return f ? seance(jour, refsFlash(f), f.duree_s) : null;
   }
-  // la correction (et la note) du jour restent cachées à l'élève tant que le prof ne les a pas montrées ;
-  // celles des jours passés sont visibles. CORRIGEES : jours montrés, renvoyés par la base (flash_etat).
-  let CORRIGEES = new Set();
+  // la correction du jour reste cachée à l'élève tant que le prof ne l'a pas montrée ; celles des jours passés sont
+  // visibles. CORRIGEES : jours montrés, renvoyés par la base (flash_etat).
+  // La note, elle, s'affiche à la fin du chrono : celui de la copie de l'appareil, sinon celui lancé par le prof.
+  let CORRIGEES = new Set(), LANCE = null;   // LANCE : { jour, fin } du dernier lancement lu dans la base (fin à l'heure de l'appareil)
   const visible = (jour) => jour < SIP.aujourdhui() || CORRIGEES.has(jour);
-  async function majCorrigees() {
-    try { const r = await SIP.api.flashEtat(); CORRIGEES = new Set((r && r.corrigees) || []); return true; } catch (e) { return false; }
+  function noterLance(r) {
+    LANCE = r && r.lance && r.debut && r.fin ? { jour: SIP.jourTahiti(r.debut), fin: Date.parse(r.fin) + (Date.now() - Date.parse(r.maintenant || r.debut)) } : null;
   }
-  const noteVisible = (module) => { const m = /^flash-(\d{4}-\d{2}-\d{2})$/.exec(module || ""); return !m || visible(m[1]); };
+  async function majCorrigees() {
+    try { const r = await SIP.api.flashEtat(); CORRIGEES = new Set((r && r.corrigees) || []); noterLance(r); return true; } catch (e) { return false; }
+  }
+  const finCopie = (st) => (st && st.debut ? st.fin || st.debut + (st.duree_s || DUREE_FLASH) * 1000 : 0);
+  function chronoFini(jour) {
+    if (jour < SIP.aujourdhui()) return true;
+    const st = lire({ date: jour });
+    if (st && st.debut) return Date.now() >= finCopie(st);
+    return !(LANCE && LANCE.jour === jour && Date.now() < LANCE.fin);
+  }
+  const noteVisible = (module) => { const m = /^flash-(\d{4}-\d{2}-\d{2})$/.exec(module || ""); return !m || visible(m[1]) || chronoFini(m[1]); };
   const flashsPour = (niveau) => tous().some((f) => (f.niveau || "TSI") === niveau) || banque().some((q) => (q.niveau || "TSI") === niveau);
 
   const verdict = (st, k, i) => (st.cor && st.cor[k] && st.cor[k].v && st.cor[k].v[i]) || null;
@@ -127,6 +139,8 @@ window.SIP = window.SIP || {};
   const total = (f, st) => ({ s: f.questions.reduce((a, q, k) => a + ptsQ(f, st, k), 0), m: f.questions.reduce((a, q) => a + maxQ(q), 0) });
   const sur20 = (s, m) => (m ? (20 * s) / m : 0);
   const classeNote = (n) => (SIP.appreciation ? SIP.appreciation(n).cls : n >= 12 ? "ok" : "alerte");
+  // la note d'une copie, si on la connaît : celle reçue par le prof (hist), sinon celle de la copie de l'appareil corrigée en entier
+  const noteDe = (F, st, fait) => (fait ? sur20(fait.score, fait.score_max) : F && st && st.rendu && complete(F, st) ? sur20(total(F, st).s, total(F, st).m) : null);
 
   // ---------- morceaux d'affichage ----------
   const teteQ = (q, k, droite) => `<div class="fl-q-tete"><span class="fl-num">${k + 1}</span><span class="eyebrow">${esc(q.theme || "")}</span>${droite || ""}</div>`;
@@ -148,8 +162,10 @@ window.SIP = window.SIP || {};
     const auj = SIP.aujourdhui(), base = { date: auj }, st = lire(base), fait = faits(base, hist)[0];
     const F = seanceDuJour(auj);
     if ((fait || (st && st.rendu)) && !visible(auj)) {
+      const fini = chronoFini(auj), n = fini ? noteDe(F, st, fait) : null;
       return `<a class="carte fl-tuile fait" href="#/flash/${auj}"><span class="fl-eclair" aria-hidden="true">⚡</span>
-        <div><div class="eyebrow">Flash du jour · rendu</div><div class="fl-tuile-t">Copie rendue ✓</div><div class="discret">Ta correction et ta note s'afficheront quand le prof les montrera.</div></div><span class="btn sec">Ma copie →</span></a>`;
+        <div><div class="eyebrow">Flash du jour · rendu</div><div class="fl-tuile-t">${n !== null ? `${nb(n)}<small>/20</small>` : "Copie rendue ✓"}</div>
+        <div class="discret">${n !== null ? "Ta correction s'affichera quand le prof la montrera." : fini ? "Ta note s'affichera dès que ta copie sera corrigée." : "Ta note s'affichera à la fin du chrono."}</div></div><span class="btn sec">Ma copie →</span></a>`;
     }
     if (fait || (st && st.envoye && F)) {
       const n = fait ? sur20(fait.score, fait.score_max) : sur20(total(F, st).s, total(F, st).m);
@@ -168,7 +184,7 @@ window.SIP = window.SIP || {};
     const auj = SIP.aujourdhui(), f = flashDe(auj), n = dejaTombe(auj, "TSI").length;
     return `<section class="carte fl-prof"><div class="eyebrow">Mode professeur · flash</div>
       <h2>${f ? `Flash préparé aujourd'hui : ${f.questions.length} questions · ${minutes(f)}` : "Flash du jour"}</h2>
-      <p class="discret">Choisis le flash ${f ? "(celui préparé, " : "("}3 questions au hasard parmi les ${n} déjà tombées, ou celles que tu coches), projette-le puis clique « Lancer » : le chrono des élèves part avec le tien. À la fin, leur correction et leur note restent cachées jusqu'à ce que tu cliques « Montrer la correction aux élèves ».</p>
+      <p class="discret">Choisis le flash ${f ? "(celui préparé, " : "("}3 questions au hasard parmi les ${n} déjà tombées, ou celles que tu coches), projette-le puis clique « Lancer » : le chrono des élèves part avec le tien. À la fin du chrono, ils voient leur note ; leur correction reste cachée jusqu'à ce que tu cliques « Montrer la correction aux élèves ».</p>
       <a class="btn" href="#/flash/projeter">⚡ Choisir et projeter le flash</a></section>`;
   }
 
@@ -183,11 +199,11 @@ window.SIP = window.SIP || {};
     $app.innerHTML = `<p class="no-print"><a href="#/tableau">← Tableau de bord</a></p><h1>Mes flashs</h1>
       <p class="discret">Le flash du début de séance : quelques questions en quelques minutes, sur ce qu'on a déjà vu. Chaque flash garde ta correction et le corrigé : relis-les avant le DS.</p>
       ${L.length ? `<div class="nb-liste">${L.map((jour) => { const base = { date: jour }, fait = faits(base, hist)[0], st = lire(base), F = seanceDuJour(jour);
-        const rendu = !!(fait || (st && st.rendu)), cache = rendu && !visible(jour);
-        const n = cache ? null : fait ? sur20(fait.score, fait.score_max) : st && st.envoye && F ? sur20(total(F, st).s, total(F, st).m) : null;
+        const rendu = !!(fait || (st && st.rendu)), fini = chronoFini(jour);
+        const n = rendu && (fini || visible(jour)) ? noteDe(F, st, fait) : null;
         return `<a class="nb-row fl-ligne" href="#/flash/${jour}"><span class="nb-rk">⚡</span>
           <span class="nb-nm"><b>${esc(jourLong(jour))}</b><span class="discret">${F ? F.questions.map((q) => esc(q.theme || "")).join(" · ") : "copie faite sur un autre appareil"}</span></span>
-          ${n !== null ? `<span class="etiquette ${classeNote(n)}">${nb(n)}/20</span>` : cache ? `<span class="etiquette" title="La note s'affichera quand le prof montrera la correction">rendu ✓</span>` : jour === auj ? `<span class="etiquette alerte">à faire</span>` : `<span class="etiquette">pas fait</span>`}<span class="nb-go" aria-hidden="true">→</span></a>`; }).join("")}</div>`
+          ${n !== null ? `<span class="etiquette ${classeNote(n)}">${nb(n)}/20</span>` : rendu ? `<span class="etiquette" title="${fini ? "Ta note s'affichera quand ta copie sera corrigée" : "Ta note s'affichera à la fin du chrono"}">rendu ✓</span>` : jour === auj ? `<span class="etiquette alerte">à faire</span>` : `<span class="etiquette">pas fait</span>`}<span class="nb-go" aria-hidden="true">→</span></a>`; }).join("")}</div>`
         : `<p class="discret">Pas encore de flash.</p>`}`;
   }
 
@@ -214,7 +230,7 @@ window.SIP = window.SIP || {};
           <li>Seul, en silence, calculatrice autorisée.</li>
           <li>Le flash démarre <b>quand le prof le lance</b> au tableau : reste sur cette page, ton chrono partira avec le sien. À 0:00, ta copie est rendue toute seule.</li>
           <li>Pour chaque question, écris ton calcul et ton résultat <b>avec l'unité</b>.</li>
-          <li>Une IA corrige ta copie avec le corrigé du prof ; tu verras ta correction et ta note quand le prof les montrera. Une seule copie : c'est elle qui est notée.</li>
+          <li>Une IA corrige ta copie avec le corrigé du prof : tu vois ta note à la fin du chrono, ta correction quand le prof la montre. Une seule copie : c'est elle qui est notée.</li>
         </ul>`;
 
   // le jour du flash : l'élève attend que le prof le lance (la base est interrogée toutes les 2 s)
@@ -312,23 +328,40 @@ window.SIP = window.SIP || {};
     } catch (e) { ENVOIS.delete(cle(f)); return { erreur: e.message || "erreur" }; }
   }
 
-  // ---------- copie rendue, correction pas encore montrée : ni corrigé ni note ----------
+  // ---------- copie rendue, correction pas encore montrée : la note à la fin du chrono, pas le corrigé ----------
   const SANS_RELANCE = ["QUOTA", "IA_ABSENTE", "CLE_ABSENTE", "NON_CONNECTE", "PROF_NON_CONNECTE", "NON_AUTORISE", "SESSION_EXPIREE"];
   function copieRendue($app, f, st, ctx) {
     arreter();
     const vue = VUE, jour = f.date;
     st.cor = st.cor || {};
+    let echec = false;   // l'IA n'a pas pu tout corriger : la note viendra avec la correction (l'élève coche lui-même)
     $app.innerHTML = `${retour()}
-      <div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}</div><h1>Copie rendue ✓</h1>
-      ${st.auto ? `<p class="discret">Temps écoulé : ta copie a été rendue à 0:00.</p>` : ""}
-      <div class="carte fl-cache"><p><b>Ta correction et ta note s'afficheront quand le prof les montrera</b> (au plus tard demain, dans « Mes flashs »).</p>
+      <div class="fl-res-tete"><div><div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}</div><h1>Copie rendue ✓</h1>
+        ${st.auto ? `<p class="discret">Temps écoulé : ta copie a été rendue à 0:00.</p>` : ""}</div>
+        <div class="fl-note" id="fl-note" aria-live="polite"></div></div>
+      <div class="carte fl-cache"><p id="fl-note-info"></p>
+        <p><b>Ta correction s'affichera quand le prof la montrera</b> (au plus tard demain, dans « Mes flashs »).</p>
         <p class="discret" id="fl-etat-copie" aria-live="polite">${st.envoye ? "✓ Ta copie est corrigée et envoyée au prof." : "Ta copie est en train d'être corrigée : garde la page ouverte quelques secondes."}</p></div>
+      ${iaInfo}
       <h2 class="fl-h2">Ta copie</h2>
-      ${f.questions.map((q, k) => { const r = (st.reponses[k] || "").trim(); return `<section class="carte fl-q">${teteQ(q, k)}${corpsQ(q)}
+      ${f.questions.map((q, k) => { const r = (st.reponses[k] || "").trim(); return `<section class="carte fl-q">${teteQ(q, k, `<span class="fl-pts" id="fl-p${k}" hidden></span>`)}${corpsQ(q)}
         <div class="fl-ta-rep"><div class="eyebrow">Ta réponse</div>${r ? `<p class="fl-rep">${esc(r)}</p>` : `<p class="fl-rep vide">Pas de réponse.</p>`}</div></section>`; }).join("")}
       ${apercu() ? `<p class="discret no-print"><button type="button" class="btn-lien" id="fl-reset">↺ Recommencer ce flash (aperçu seulement)</button></p>` : ""}`;
     const etat = document.getElementById("fl-etat-copie");
     const dire = (t) => { if (vue === VUE && etat) etat.textContent = t; };
+    // la note : à la fin du chrono (pas avant, même pour qui a rendu tôt), dès que toute la copie est corrigée
+    const majNote = () => {
+      const z = document.getElementById("fl-note"), info = document.getElementById("fl-note-info");
+      if (vue !== VUE || !z || !info) return;
+      const fini = Date.now() >= finDe(f, st), prete = fini && complete(f, st);
+      if (prete) { const { s, m } = total(f, st), n = sur20(s, m); z.innerHTML = `<span class="etiquette ${classeNote(n)} fl-note-n">${nb(n)}<small>/20</small></span><span class="discret">${nb(s)} / ${nb(m)} points</span>`; }
+      else z.innerHTML = "";
+      info.hidden = prete;
+      info.innerHTML = prete ? "" : !fini ? `<b>Ta note s'affichera à la fin du chrono</b>, dans ${mmss(reste(f, st))}.`
+        : echec ? "<b>Ta note s'affichera avec ta correction</b> : une réponse est à vérifier toi-même avec le corrigé." : "<b>Ta note arrive</b> dès que ta copie est corrigée.";
+      f.questions.forEach((q, k) => { const p = document.getElementById("fl-p" + k); if (p) { p.hidden = !prete; p.textContent = prete ? `${nb(ptsQ(f, st, k))} / ${nb(maxQ(q))}` : ""; } });
+    };
+    MAJ = () => majNote();   // chaque question corrigée par l'IA
     // la correction par l'IA se fait tout de suite, en arrière-plan (une nouvelle tentative si l'IA ne répond pas) ;
     // la note part au prof même si l'élève quitte la page entre-temps
     if (!st.envoye) {
@@ -338,15 +371,22 @@ window.SIP = window.SIP || {};
           return ko.length ? new Promise((ok) => setTimeout(ok, 4000)).then(() => Promise.all(ko.map((k) => corrigerQ(f, st, k)))) : null;
         })
         .then(async () => {
-          if (!complete(f, st)) { dire("Ta copie est rendue. Une réponse n'a pas pu être corrigée par l'IA : tu la vérifieras toi-même avec le corrigé, quand le prof le montrera."); return; }
+          if (!complete(f, st)) { echec = true; majNote(); dire("Ta copie est rendue. Une réponse n'a pas pu être corrigée par l'IA : tu la vérifieras toi-même avec le corrigé, quand le prof le montrera."); return; }
+          majNote();
           const r = await envoyerNote(f, st, ctx);
           if (r === "envoye" || (r === null && st.envoye)) dire("✓ Ta copie est corrigée et envoyée au prof.");
           else if (r === "file") dire("Ta copie est corrigée ; elle partira au prof dès que le réseau revient.");
           else if (r && r.erreur) dire("Ta copie est corrigée ; elle partira au prof quand tu seras reconnecté.");
         });
     }
-    // dès que le prof montre la correction, elle s'affiche (vérification toutes les 5 s)
-    MINUTERIE = setInterval(async () => { await majCorrigees(); if (vue === VUE && visible(jour)) correction($app, f, st, ctx); }, 5000);
+    // chaque seconde : le compte à rebours de la note ; toutes les 5 s : la correction est-elle montrée ?
+    let tic = 0;
+    MINUTERIE = setInterval(async () => {
+      majNote();
+      if (++tic % 5) return;
+      await majCorrigees(); if (vue === VUE && visible(jour)) correction($app, f, st, ctx);
+    }, 1000);
+    majNote();
     const rz = document.getElementById("fl-reset");
     if (rz) rz.onclick = () => { effacer(f); eleve($app, f.date, ctx); };
   }
@@ -452,7 +492,10 @@ window.SIP = window.SIP || {};
   // copie faite sur un autre appareil : la note du serveur, et le corrigé si on sait quelles questions
   function dejaFait($app, F, h, jour) {
     if (!visible(jour)) {
-      $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}</div><h1>Copie rendue ✓</h1><div class="carte fl-cache"><p>Tu as rendu ce flash le ${esc(SIP.fmtDate(h.fait_le, true))}. <b>Ta correction et ta note s'afficheront quand le prof les montrera</b> (au plus tard demain).</p></div>`;
+      const n = chronoFini(jour) ? sur20(h.score, h.score_max) : null;
+      $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}</div><h1>Copie rendue ✓</h1><div class="carte fl-cache">
+        <p>Tu as rendu ce flash le ${esc(SIP.fmtDate(h.fait_le, true))}${n !== null ? ` : ta note est <b>${nb(n)}/20</b>` : ""}.</p>
+        <p>${n !== null ? "" : "Ta note s'affichera à la fin du chrono. "}<b>Ta correction s'affichera quand le prof la montrera</b> (au plus tard demain).</p></div>`;
       return;
     }
     const n = sur20(h.score, h.score_max);
@@ -483,7 +526,7 @@ window.SIP = window.SIP || {};
       <h1>Quel flash lancer ?</h1>
       <p class="discret">Les élèves ouvrent « Flash du jour » dans leur session et attendent. Choisis le flash, projette-le, puis clique « Lancer » : leurs chronos partent avec le tien (${DUREE_FLASH / 60} minutes).</p>
       <section class="carte fl-src fl-montrer-carte"><div class="eyebrow">Correction du flash d'aujourd'hui</div>
-        <p class="discret" style="margin:4px 0 8px">À 0:00, les élèves voient seulement « Copie rendue » : leur correction et leur note restent cachées jusqu'à ce que tu les montres (sinon elles s'ouvrent le lendemain).</p>
+        <p class="discret" style="margin:4px 0 8px">À 0:00, les élèves voient leur note. Leur correction reste cachée jusqu'à ce que tu la montres (sinon elle s'ouvre le lendemain).</p>
         <button class="btn sec" type="button" id="fl-montrer" disabled>…</button> <span class="discret" id="fl-montrer-etat"></span></section>
       ${prevu ? `<section class="carte fl-src"><div class="eyebrow">Préparé pour aujourd'hui</div><h2>${prevu.questions.length} questions · ${minutes(prevu)}</h2>${apercuQ(refsFlash(prevu))}
         <a class="btn" href="#/flash/projeter/${prevu.date}">Projeter ce flash →</a></section>` : ""}
@@ -529,7 +572,7 @@ window.SIP = window.SIP || {};
         const r = await SIP.api.flashMontrer(NIVEAU_PROF, auj, voulu);
         if (vue !== VUE) return;
         montree = !!(r && r.montree); afficher();
-        dire(montree ? "✓ Les élèves voient maintenant leur correction et leur note (leur page s'ouvre toute seule)." : "Correction cachée : les élèves ne voient plus que « Copie rendue ».");
+        dire(montree ? "✓ Les élèves voient maintenant leur correction (leur page s'ouvre toute seule)." : "Correction cachée : les élèves ne voient plus que leur note.");
       } catch (e) { if (vue !== VUE) return; afficher(); erreur(e); }
     };
     afficher();
@@ -559,7 +602,7 @@ window.SIP = window.SIP || {};
         <ol class="fl-pz-qs">${F.questions.map((q, k) => `<li class="fl-pz-q"><span class="fl-num">${k + 1}</span><div class="fl-pz-qc">
           <div class="eyebrow">${esc(q.theme || "")}</div><div class="fl-pz-en">${q.enonce}</div>
           <div class="fl-pz-rep" hidden><b>Réponse :</b> ${q.corrige}</div></div>${q.fig ? `<div class="fl-pz-fig">${q.fig}</div>` : ""}</li>`).join("")}</ol>
-        <p class="fl-pz-aide">Espace : lancer · C : corrigé au tableau · F : plein écran · Échap : quitter · « Montrer la correction aux élèves » : leur page affiche alors leur correction et leur note</p>
+        <p class="fl-pz-aide">Espace : lancer · C : corrigé au tableau · F : plein écran · Échap : quitter · À 0:00, les élèves voient leur note · « Montrer la correction aux élèves » : leur page affiche alors leur correction</p>
       </div></div>`;
     const ch = document.getElementById("flp-t"), et = document.getElementById("flp-et"), go = document.getElementById("flp-go"), cor = document.getElementById("flp-cor");
     const info = document.getElementById("flp-info");

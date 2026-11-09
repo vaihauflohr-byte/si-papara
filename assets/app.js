@@ -701,7 +701,7 @@
     const lib = { entrainement: "Entraînement", revision_hebdo: "Révision hebdo", externe: "Exercice", revision_jour: "Révision du jour" };
     return `<div class="table-defil"><table><thead><tr><th>Date</th><th>Activité</th><th class="num">Note</th></tr></thead><tbody>${h.map((x) =>
       `<tr><td>${SIP.fmtDate(x.fait_le, true)}</td><td>${esc(x.titre || (SIP.module(x.module) || {}).titre || x.module)}<br><span class="discret">${/^fiche-/.test(x.module) ? "Vérification de fiche" : /^flash-/.test(x.module) ? "Flash" : lib[x.type] || x.type}</span></td>
-      <td class="num">${SIP.flash && !SIP.flash.noteVisible(x.module) ? `<span class="etiquette" title="La note s'affichera quand le prof montrera la correction">rendu ✓</span>` : etiquetteNote(x.score, x.score_max)}</td></tr>`).join("")}</tbody></table></div>`;
+      <td class="num">${SIP.flash && !SIP.flash.noteVisible(x.module) ? `<span class="etiquette" title="La note s'affichera à la fin du chrono">rendu ✓</span>` : etiquetteNote(x.score, x.score_max)}</td></tr>`).join("")}</tbody></table></div>`;
   }
 
   async function vueHistorique() {
