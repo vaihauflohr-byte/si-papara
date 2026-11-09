@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Seconde SI · Projet planeur · notes des équipes</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+table.pl{width:100%;border-collapse:collapse;font-size:.92rem;margin:8px 0}
+table.pl th,table.pl td{border:1px solid var(--rule);padding:6px 7px;text-align:center;vertical-align:middle}
+table.pl th{background:var(--paper-2);font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.03em;font-weight:600;font-size:.8rem}
+table.pl td.g{text-align:left}
+.pl-scroll{overflow-x:auto}
+.nt input[type=text]{font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);width:11em}
+.nt input.mb{width:15em}
+.nt input[type=number]{font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);width:4.6em}
+.nt select{font:inherit;padding:4px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
+.tot{font-family:var(--f-mono);font-weight:700;font-size:1.05rem;white-space:nowrap}
+.x{border:0;background:none;color:var(--bad);cursor:pointer;font-size:1.1rem}
+@media print{.no-print,.haut{display:none!important}.nt input,.nt select{border:0;padding:0}}
+</style>
+</head>
+<body>
+<header class="haut"><div class="haut-in">
+  <a class="logo" href="2si-planeur.html"><img class="logo-img" src="../assets/logo-papara.svg" alt="Lycée Tuianu Le Gayic, Papara" width="60" height="48"><span class="logo-txt"><span class="logo-ey">Lycée Tuianu Le Gayic · Papara</span><span class="logo-nom">SI <em>Papara</em></span></span></a>
+  <div class="qui"><a href="2si-planeur.html#eval">← Le projet</a></div>
+</div></header>
+<main class="large nt">
+<div class="eyebrow">Seconde SI · projet planeur · professeur</div>
+<h1>Notes des équipes</h1>
+<p>Un niveau de 1 à 4 par critère, la note sur 20 se calcule seule. <b>Les notes restent sur cet appareil</b> (rien n'est envoyé au site) : exporte le CSV pour les garder ou les reporter dans Pronote.</p>
+<p class="no-print"><button class="btn" id="add">+ Ajouter une équipe</button> <button class="btn sec" id="csv">Exporter en CSV</button> <button class="btn sec" onclick="window.print()">Imprimer</button> <button class="btn sec" id="raz">Tout effacer</button></p>
+<div class="pl-scroll"><table class="pl" id="t"></table></div>
+<p class="discret" id="regle"></p>
+</main>
+<script>
+/* Même barème que la page élève (entrainements/2si-planeur.html) : si tu changes l'un, change l'autre. */
+const PARTS = [
+  { id: "A", nom: "Connaissances", pts: 5, type: "note", aide: "moyenne /20 des 3 séries" },
+  { id: "B", nom: "Modèle Onshape", pts: 5, crit: ["B1 Esquisses", "B2 Cahier des charges", "B3 Prêt à imprimer"] },
+  { id: "C", nom: "Essais", pts: 4, crit: ["C1 Mesures", "C2 Modification", "C3 Analyse"] },
+  { id: "D", nom: "Performance", pts: 2, type: "dist", aide: "distance moyenne (m)" },
+  { id: "E", nom: "Esthétique", pts: 2, crit: ["E Esthétique"] },
+  { id: "F", nom: "Équipe", pts: 2, crit: ["F Équipe"] }
+];
+const NIV = { 1: 0, 2: 0.4, 3: 0.75, 4: 1 };
+const PERF = [2, 1.5, 1];   // premier, deuxième, dernier tiers du classement
+const CLE = "sip_2si_planeur_notes";
+let E = []; try { E = JSON.parse(localStorage.getItem(CLE)) || []; } catch (e) { E = []; }
+const garder = () => { try { localStorage.setItem(CLE, JSON.stringify(E)); } catch (e) { /* stockage indisponible */ } };
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fr = (x, n = 2) => (Math.round(x * 100) / 100).toFixed(n).replace(".", ",");
+const num = (v) => { const x = parseFloat(String(v).replace(",", ".")); return isFinite(x) ? x : null; };
+
+function pointsPerf() {   // rang par tiers parmi les équipes qui ont une distance
+  const L = E.map((e, i) => [num(e.D), i]).filter((x) => x[0] != null && x[0] > 0).sort((a, b) => b[0] - a[0]);
+  const out = {}; L.forEach((x, r) => { out[x[1]] = PERF[Math.min(2, Math.floor(r * 3 / L.length))]; }); return out;
+}
+function calc(e, i, perf) {
+  const d = {}; let total = 0, complet = true;
+  for (const p of PARTS) {
+    let v = null;
+    if (p.type === "note") { const n = num(e.A); if (n != null) v = Math.max(0, Math.min(20, n)) / 20 * p.pts; }
+    else if (p.type === "dist") { if (perf[i] != null) v = perf[i]; else if (num(e.D) === 0) v = 0; }
+    else { const L = p.crit.map((c) => NIV[e[c]]); if (L.every((x) => x != null)) v = L.reduce((s, x) => s + x, 0) / L.length * p.pts; }
+    d[p.id] = v; if (v == null) complet = false; else total += v;
+  }
+  return { d, total, complet };
+}
+function rendu() {
+  const perf = pointsPerf();
+  const cols = PARTS.map((p) => p.crit ? p.crit.map((c) => `<th>${c}</th>`).join("") : `<th>${p.id} · ${p.aide}</th>`).join("");
+  document.getElementById("t").innerHTML = `<tr><th>Équipe</th><th>Membres</th>${cols}${PARTS.map((p) => `<th>${p.id}<br>/ ${p.pts}</th>`).join("")}<th>Note / 20</th><th class="no-print"></th></tr>` +
+    E.map((e, i) => { const r = calc(e, i, perf);
+      return `<tr><td class="g"><input type="text" data-i="${i}" data-k="nom" value="${esc(e.nom)}" placeholder="nom de l'équipe"></td><td class="g"><input type="text" class="mb" data-i="${i}" data-k="membres" value="${esc(e.membres)}" placeholder="élèves"></td>` +
+        PARTS.map((p) => p.crit ? p.crit.map((c) => `<td><select data-i="${i}" data-k="${c}"><option value="">–</option>${[1, 2, 3, 4].map((n) => `<option ${String(e[c]) === String(n) ? "selected" : ""}>${n}</option>`).join("")}</select></td>`).join("")
+          : `<td><input type="number" step="0.1" min="0" data-i="${i}" data-k="${p.id}" value="${esc(e[p.id])}"></td>`).join("") +
+        PARTS.map((p) => `<td>${r.d[p.id] == null ? "—" : fr(r.d[p.id])}</td>`).join("") +
+        `<td class="tot">${r.complet ? fr(r.total, 1) : `<span class="discret">${fr(r.total, 1)} …</span>`}</td><td class="no-print"><button class="x" data-del="${i}" title="Supprimer l'équipe">✕</button></td></tr>`; }).join("") +
+    (E.length ? "" : `<tr><td colspan="99" class="g discret">Aucune équipe : clique sur « Ajouter une équipe ».</td></tr>`);
+}
+const T = document.getElementById("t");
+T.addEventListener("change", (ev) => { const el = ev.target; if (el.dataset.k == null) return; E[el.dataset.i][el.dataset.k] = el.value; garder(); rendu(); });
+T.addEventListener("click", (ev) => { const i = ev.target.dataset.del; if (i == null) return; if (confirm(`Supprimer l'équipe « ${E[i].nom || "sans nom"} » ?`)) { E.splice(i, 1); garder(); rendu(); } });
+document.getElementById("add").onclick = () => { E.push({ nom: "", membres: "" }); garder(); rendu(); };
+document.getElementById("raz").onclick = () => { if (confirm("Effacer toutes les équipes et leurs notes sur cet appareil ?")) { E = []; garder(); rendu(); } };
+document.getElementById("csv").onclick = () => {
+  const perf = pointsPerf(); const q = (s) => `"${String(s == null ? "" : s).replace(/"/g, '""')}"`;
+  const crits = PARTS.flatMap((p) => p.crit || []);
+  const L = [["Équipe", "Membres", "Séries /20", "Distance (m)", ...crits, ...PARTS.map((p) => `${p.id} /${p.pts}`), "Note /20"].map(q).join(";")];
+  E.forEach((e, i) => { const r = calc(e, i, perf); L.push([e.nom, e.membres, e.A, e.D, ...crits.map((c) => e[c] || ""), ...PARTS.map((p) => r.d[p.id] == null ? "" : fr(r.d[p.id])), r.complet ? fr(r.total, 1) : ""].map(q).join(";")); });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + L.join("\r\n")], { type: "text/csv;charset=utf-8" })); a.download = "2si-planeur-notes.csv"; a.click();
+};
+document.getElementById("regle").textContent = "Niveaux : 1 = 0 % des points du critère, 2 = 40 %, 3 = 75 %, 4 = 100 % ; les critères d'une même partie comptent autant les uns que les autres. Performance : classement des distances par tiers (2 · 1,5 · 1 point), 0 si le planeur n'a pas volé (distance 0). Partie A : moyenne sur 20 des meilleures notes aux trois séries (espace prof du site).";
+rendu();
+</script>
+</body>
+</html>

@@ -122,6 +122,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 
   <details class="carte no-print"><summary><b>Pour le professeur : fichiers à imprimer</b></summary>
     <p>Catapulte : <a href="2si-planeur/catapulte_rail.stl" download>rail</a> · <a href="2si-planeur/catapulte_pied.stl" download>pied</a>. Planeurs de démonstration (une aile et un stabilisateur pour les trois fuselages) : <a href="2si-planeur/aile.stl" download>aile</a> · <a href="2si-planeur/stabilisateur.stl" download>stabilisateur</a> · <a href="2si-planeur/fuselage_A_reference.stl" download>fuselage A (équilibré)</a> · <a href="2si-planeur/fuselage_B_nez_court.stl" download>fuselage B (cabre)</a> · <a href="2si-planeur/fuselage_C_nez_lourd.stl" download>fuselage C (pique)</a>.</p>
+    <p><a class="btn" href="2si-planeur-notes.html">Noter les équipes →</a></p>
     <p class="discret">Fuselages à 100 % de remplissage. Les limites du cahier des charges et le barème se changent directement dans cette page (<code>entrainements/2si-planeur.html</code>).</p>
   </details>
 </section>
@@ -225,7 +226,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 <section class="pl-sec" id="s-eval" hidden>
   <div class="carte">
     <h2 style="margin-top:0">Comment le projet est noté</h2>
-    <p>Note sur 20. La distance du planeur ne compte que pour 3 points : ce qui est noté d'abord, c'est <b>ta façon de travailler</b>.</p>
+    <p>Note sur 20. La distance du planeur ne compte que pour 2 points : ce qui est noté d'abord, c'est <b>ta façon de travailler</b>.</p>
     <div class="pl-scroll"><table class="pl" id="t-bareme"></table></div>
   </div>
   <div class="carte">
@@ -259,9 +260,10 @@ const ETAPES = [
 const BAREME = [
   ["A", "Connaissances", "Les trois séries notées du site (meilleure note de chacune)", 5],
   ["B", "Modèle Onshape", "Esquisses cotées, cahier des charges respecté, fichiers prêts à imprimer", 5],
-  ["C", "Essais et amélioration", "Carnet d'essais, modification unique et justifiée, analyse du résultat", 5],
-  ["D", "Performance", "Distance moyenne de ta meilleure version au concours", 3],
-  ["E", "Travail d'équipe", "Chacun participe, délais tenus, matériel respecté", 2]
+  ["C", "Essais et amélioration", "Carnet d'essais, modification unique et justifiée, analyse du résultat", 4],
+  ["D", "Performance", "Distance moyenne de ta meilleure version au concours", 2],
+  ["E", "Esthétique", "Forme soignée, proportions, finition, identité de l'équipe", 2],
+  ["F", "Travail d'équipe", "Chacun participe, délais tenus, matériel respecté", 2]
 ];
 const CRITERES = [
   ["B1 · Esquisses", "Contour ouvert ou sans cotes", "Contour fermé, quelques cotes", "Esquisse entièrement cotée (traits noirs)", "Entièrement cotée, et facile à modifier en changeant une cote"],
@@ -270,9 +272,11 @@ const CRITERES = [
   ["C1 · Mesures", "Pas de mesures notées", "Mesures incomplètes ou crans différents", "3 lancers par version, même cran, moyenne juste", "Mesures complètes, et la régularité des lancers est commentée"],
   ["C2 · Modification", "Aucune modification, ou tout changé d'un coup", "Une modification, sans raison donnée", "Une seule modification, justifiée par une observation du vol", "Une seule modification, justifiée, avec le résultat attendu annoncé avant l'essai"],
   ["C3 · Analyse", "Pas de conclusion", "« C'est mieux » ou « c'est moins bien », sans chiffre", "Écart entre les deux versions calculé et commenté", "Écart calculé, comparé à la variation entre lancers, et suite proposée"],
-  ["E · Équipe", "Un seul membre travaille", "Travail inégal, retards", "Chacun a une part visible du travail, délais tenus", "Équipe autonome, qui aide aussi les autres"]
+  ["E · Esthétique", "Pièces brutes : bavures, aile de travers", "Planeur propre, forme très simple (rectangles)", "Forme travaillée, proportions agréables, finition soignée", "Un vrai style : forme originale, nom ou signe de l'équipe, sans nuire au vol"],
+  ["F · Équipe", "Un seul membre travaille", "Travail inégal, retards", "Chacun a une part visible du travail, délais tenus", "Équipe autonome, qui aide aussi les autres"]
 ];
-const PERF = "Performance (3 points) : 3 points pour le premier tiers du classement, 2 points pour le deuxième tiers, 1 point pour le dernier tiers. Un planeur qui a volé rapporte toujours au moins 1 point.";
+const POINTS_NIVEAU = "Niveau 1 = 0 % des points du critère · niveau 2 = 40 % · niveau 3 = 75 % · niveau 4 = 100 %.";
+const PERF = "Performance (2 points) : 2 points pour le premier tiers du classement, 1,5 point pour le deuxième tiers, 1 point pour le dernier tiers. Un planeur qui a volé rapporte toujours au moins 1 point.";
 
 /* ---------- Onglets ---------- */
 const boutons = [...document.querySelectorAll(".pl-nav button")];
@@ -321,7 +325,7 @@ document.getElementById("t-bareme").innerHTML = `<tr><th></th><th>Partie</th><th
   BAREME.map((b) => `<tr><td class="n"><b>${b[0]}</b></td><td><b>${b[1]}</b></td><td>${b[2]}</td><td class="n pl-pts">${b[3]}</td></tr>`).join("") +
   `<tr><th colspan="3">Total</th><th class="n pl-pts">${BAREME.reduce((s, b) => s + b[3], 0)}</th></tr>`;
 document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Niveau 1 · insuffisant</th><th>Niveau 2 · fragile</th><th>Niveau 3 · attendu</th><th>Niveau 4 · très bien</th></tr>` +
-  CRITERES.map((c) => `<tr><td><b>${c[0]}</b></td>${c.slice(1).map((x) => `<td>${x}</td>`).join("")}</tr>`).join("") + `<tr><td colspan="5">${PERF}</td></tr>`;
+  CRITERES.map((c) => `<tr><td><b>${c[0]}</b></td>${c.slice(1).map((x) => `<td>${x}</td>`).join("")}</tr>`).join("") + `<tr><td colspan="5">${PERF}</td></tr><tr><td colspan="5">${POINTS_NIVEAU}</td></tr>`;
 </script>
 </body>
 </html>
