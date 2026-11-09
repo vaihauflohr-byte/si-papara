@@ -12,7 +12,7 @@
 
 create table if not exists public.flash_lancements (
   niveau text primary key,              -- classe (TSI…)
-  flash  text not null,                 -- date du flash dans contenu/flashs.js (AAAA-MM-JJ)
+  flash  text not null,                 -- source : AAAA-MM-JJ (flash préparé), alea-<graine>, q:<réf>,<réf>… (assets/flash.js)
   debut  timestamptz not null,
   fin    timestamptz not null
 );
@@ -30,7 +30,7 @@ begin
     return json_build_object('ok', true, 'lance', false, 'maintenant', d);
   end if;
   f := d + make_interval(secs => least(p_duree_s, 3600));
-  insert into flash_lancements (niveau, flash, debut, fin) values (left(p_niveau, 20), left(p_flash, 20), d, f)
+  insert into flash_lancements (niveau, flash, debut, fin) values (left(p_niveau, 20), left(p_flash, 300), d, f)
   on conflict (niveau) do update set flash = excluded.flash, debut = excluded.debut, fin = excluded.fin;
   return json_build_object('ok', true, 'lance', true, 'flash', p_flash, 'debut', d, 'fin', f, 'maintenant', d);
 end $$;
