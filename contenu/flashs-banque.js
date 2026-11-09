@@ -249,19 +249,32 @@ window.SIP = window.SIP || {};
     return svg(460, 236, "Chariot et pirogue sur une cale en pente d'angle alpha = 10°, remontés à vitesse constante, sans frottement ; trois forces : le poids P = 2 500 N vertical vers le bas en G, l'effort T du câble parallèle à la pente vers le haut, et l'appui N de la cale perpendiculaire à la pente ; T et N sont à trouver", s);
   })();
 
+  // =================================================================== valeurs qui changent (flash relancé « avec d'autres valeurs »)
+  // r : tirage au hasard réglé par assets/flash.js (le même chez le prof et chez tous les élèves)
+  const choix = (r, a) => a[Math.floor(r() * a.length)];
+  const entre = (r, a, b) => a + Math.floor(r() * (b - a + 1));
+  const mil = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  const dec = (x, d) => (+x).toFixed(d).replace(".", ",");
+  const cs3 = (x) => {   // 3 chiffres significatifs, virgule décimale, espace entre les milliers
+    if (!+x) return "0";
+    const v = +(+x).toPrecision(3), e = Math.floor(Math.log10(Math.abs(v)));
+    const [ent, frac] = v.toFixed(Math.max(0, 2 - e)).split(".");
+    return mil(ent) + (frac ? "," + frac : "");
+  };
+
   // =================================================================== meca-frottement
-  const figSumoPousse = svg(460, 140, "Le robot sumo, à gauche, pousse un adversaire, à droite ; l'adversaire résiste avec une force de 6,0 N sur le robot ; l'appui de la piste sur les roues motrices du robot vaut N = 8,00 N ; coefficient d'adhérence entre la gomme et la piste f = 0,70",
+  const figSumoPousse = (N, f, R) => svg(460, 140, `Le robot sumo, à gauche, pousse un adversaire, à droite ; l'adversaire résiste avec une force de ${R} N sur le robot ; l'appui de la piste sur les roues motrices du robot vaut N = ${N} N ; coefficient d'adhérence entre la gomme et la piste f = ${f}`,
     `<g transform="translate(0,-56)">` + tx(40, 80, "le robot pousse →", 'font-size="14"')
     + `<rect x="10" y="140" width="440" height="10" fill="currentColor" fill-opacity=".07"/>` + ln(10, 140, 450, 140, 'stroke-width="2"')
     + boite(40, 94, 130, 34, { rx: 6, op: 0.12 }) + tx(126, 116, "robot", `${MIL} font-size="14"`)
     + `<circle cx="75" cy="124" r="16" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.6"/>` + point(75, 124, 2.5)
     + boite(232, 94, 130, 34, { rx: 6, op: 0.12 }) + tx(282, 116, "adversaire", `${MIL} font-size="14"`)
     + `<circle cx="342" cy="124" r="16" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.6"/>` + point(342, 124, 2.5)
-    + fl(230, 111, 172, 111, { red: true, w: 3 }) + tx(201, 102, "6,0 N", `${MIL} ${GRAS} ${RF}`)
-    + fl(75, 186, 75, 142, { w: 2.5 }) + tx(86, 172, "N = 8,00 N", GRAS)
-    + tx(232, 176, "gomme sur la piste : f = 0,70", GRAS) + `</g>`);
+    + fl(230, 111, 172, 111, { red: true, w: 3 }) + tx(201, 102, `${R} N`, `${MIL} ${GRAS} ${RF}`)
+    + fl(75, 186, 75, 142, { w: 2.5 }) + tx(86, 172, `N = ${N} N`, GRAS)
+    + tx(232, 176, `gomme sur la piste : f = ${f}`, GRAS) + `</g>`);
 
-  const figGlaciere = (() => {
+  const figGlaciere = (phi, th) => {
     const panneau = (x0, deg, txtHaut, txtBas, angTxt, rouge) => {
       const a = deg * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), O = [x0, 160], Lg = 220;
       const Q = (s, h) => [O[0] + s * ca - h * sa, O[1] - s * sa - h * ca];
@@ -277,20 +290,20 @@ window.SIP = window.SIP || {};
       s += tx(x0 - 16, 186, txtBas, `font-size="14" ${PALE}`);
       return s;
     };
-    let s = panneau(30, 22, "Essai : on incline la planche", "à 22°, elle commence à glisser", "22°", true);
+    let s = panneau(30, phi, "Essai : on incline la planche", `à ${phi}°, elle commence à glisser`, `${phi}°`, true);
     s += ln(286, 10, 286, 190, 'stroke-width="1" stroke-dasharray="4 4" stroke-opacity=".4"');
-    s += panneau(320, 15, "Sur le pont du bateau", "le pont penche de 15° : glisse-t-elle ?", "15°", false);
-    return svg(560, 196, "À gauche, l'essai : on incline une planche, la glacière commence à glisser quand l'angle atteint 22°. À droite, la même glacière est posée sur le pont du bateau, qui penche de 15°", s, true);
-  })();
+    s += panneau(320, th, "Sur le pont du bateau", `le pont penche de ${th}° : glisse-t-elle ?`, `${th}°`, false);
+    return svg(560, 196, `À gauche, l'essai : on incline une planche, la glacière commence à glisser quand l'angle atteint ${phi}°. À droite, la même glacière est posée sur le pont du bateau, qui penche de ${th}°`, s, true);
+  };
 
-  const figRoueFrein = svg(440, 196, "Roue arrière d'un scooter qui freine sur une route mouillée : au contact B, le sol appuie avec N = 1 000 N vers le haut et doit retenir la roue avec T = 600 N vers l'arrière ; le scooter avance vers la droite ; route mouillée f = 0,50",
+  const figRoueFrein = (N, T, f, route) => svg(440, 196, `Roue arrière d'un scooter qui freine sur une route ${route} : au contact B, le sol appuie avec N = ${N} N vers le haut et doit retenir la roue avec T = ${T} N vers l'arrière ; le scooter avance vers la droite ; route ${route} f = ${f}`,
     `<rect x="20" y="150" width="400" height="10" fill="currentColor" fill-opacity=".07"/>` + ln(20, 150, 420, 150, 'stroke-width="2"')
     + `<circle cx="200" cy="106" r="44" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="200" cy="106" r="32" fill="none" stroke="currentColor" stroke-width="1.2"/>` + point(200, 106, 4)
-    + fl(200, 150, 200, 30) + tx(210, 42, "N = 1 000 N", GRAS)
-    + fl(200, 150, 112, 150, { red: true, w: 3.5 }) + tx(150, 180, "T = 600 N", `${MIL} ${GRAS} ${RF}`)
+    + fl(200, 150, 200, 30) + tx(210, 42, `N = ${N} N`, GRAS)
+    + fl(200, 150, 112, 150, { red: true, w: 3.5 }) + tx(150, 180, `T = ${T} N`, `${MIL} ${GRAS} ${RF}`)
     + point(200, 150, 4) + tx(208, 172, "B", GRAS)
     + tx(296, 80, "le scooter avance", 'font-size="14"') + fl(296, 94, 380, 94, { w: 2 })
-    + tx(236, 186, "route mouillée : f = 0,50", GRAS));
+    + tx(236, 186, `route ${route} : f = ${f}`, GRAS));
 
   // =================================================================== info-programmation
   const codeListe = `<pre class="code fl-code"><span class="fl-n"> 1</span>  niveaux = [12, 15, 9, 14]   <span class="fl-c"># hauteurs d'eau en cm</span>
@@ -506,35 +519,84 @@ window.SIP = window.SIP || {};
     {
       id: "meca-frottement-1", notion: "meca-frottement", theme: "Frottement · force maximale",
       enonce: "N est l'appui de la piste sur les roues motrices du robot. Calcule la poussée maximale avant que les roues patinent. Le robot peut-il pousser l'adversaire, qui résiste avec 6,0 N ?",
-      fig: figSumoPousse,
+      fig: figSumoPousse("8,00", "0,70", "6,0"),
       ia: "Robot sumo qui pousse un adversaire. L'appui de la piste sur les roues motrices du robot vaut N = 8,00 N. Coefficient d'adhérence entre la gomme des roues et la piste : f = 0,70. L'adversaire résiste avec une force de 6,0 N. Calculer la poussée maximale du robot avant que ses roues patinent. Le robot peut-il pousser l'adversaire ?",
       corrige: "Loi de Coulomb : la poussée maximale vaut F<sub>max</sub> = f × N = 0,70 × 8,00 = <b>5,60 N</b>. 6,0 N &gt; 5,60 N : les roues <b>patinent</b>, le robot <b>ne peut pas</b> pousser l'adversaire.",
       elements: [
         { t: "Poussée maximale Fmax = f × N = 0,70 × 8,00 = 5,60 N", p: 1 },
         { t: "6,0 N > 5,60 N : les roues patinent (glissent), le robot ne peut pas pousser l'adversaire", p: 1 }
-      ]
+      ],
+      variante: (r) => {
+        const N = choix(r, [6, 7, 8, 9, 10, 12]), f = choix(r, [0.5, 0.6, 0.7, 0.8, 0.9]), Fmax = f * N, pousse = r() < 0.5;
+        const R = Math.round(Fmax * (pousse ? 0.65 + 0.2 * r() : 1.15 + 0.2 * r()) * 10) / 10;   // nettement en dessous ou au-dessus
+        const sN = cs3(N), sf = dec(f, 2), sR = dec(R, 1), sF = cs3(Fmax);
+        return {
+          enonce: `N est l'appui de la piste sur les roues motrices du robot. Calcule la poussée maximale avant que les roues patinent. Le robot peut-il pousser l'adversaire, qui résiste avec ${sR} N ?`,
+          fig: figSumoPousse(sN, sf, sR),
+          ia: `Robot sumo qui pousse un adversaire. L'appui de la piste sur les roues motrices du robot vaut N = ${sN} N. Coefficient d'adhérence entre la gomme des roues et la piste : f = ${sf}. L'adversaire résiste avec une force de ${sR} N. Calculer la poussée maximale du robot avant que ses roues patinent. Le robot peut-il pousser l'adversaire ?`,
+          corrige: `Loi de Coulomb : la poussée maximale vaut F<sub>max</sub> = f × N = ${sf} × ${sN} = <b>${sF} N</b>. `
+            + (pousse ? `${sR} N &lt; ${sF} N : les roues <b>ne patinent pas</b>, le robot <b>peut</b> pousser l'adversaire.` : `${sR} N &gt; ${sF} N : les roues <b>patinent</b>, le robot <b>ne peut pas</b> pousser l'adversaire.`),
+          elements: [
+            { t: `Poussée maximale Fmax = f × N = ${sf} × ${sN} = ${sF} N`, p: 1 },
+            { t: pousse ? `${sR} N < ${sF} N : les roues ne patinent pas, le robot peut pousser l'adversaire` : `${sR} N > ${sF} N : les roues patinent (glissent), le robot ne peut pas pousser l'adversaire`, p: 1 }
+          ]
+        };
+      }
     },
     {
       id: "meca-frottement-2", notion: "meca-frottement", theme: "Frottement · angle et tan φ",
       enonce: "Sur la planche, la glacière commence à glisser quand l'angle atteint 22°. Calcule le coefficient d'adhérence f. Sur le pont du bateau, qui penche de 15°, la glacière glisse-t-elle ?",
-      fig: figGlaciere,
+      fig: figGlaciere(22, 15),
       ia: "Essai : on incline une planche ; la glacière posée dessus commence à glisser quand l'angle atteint 22°. Ensuite, la même glacière est posée sur le pont d'un bateau qui penche de 15°. Calculer le coefficient d'adhérence f. La glacière glisse-t-elle sur le pont incliné de 15° ?",
       corrige: "À l'angle où ça commence à glisser, f = tan φ : f = tan 22° = <b>0,404</b>. Sur le pont : 15° &lt; 22° (ou tan 15° = 0,268 &lt; 0,404) : la glacière <b>ne glisse pas</b>.",
       elements: [
         { t: "f = tan 22° = 0,404", p: 1 },
         { t: "15° < 22° (ou tan 15° = 0,268 < 0,404) : la glacière ne glisse pas", p: 1 }
-      ]
+      ],
+      variante: (r) => {
+        const phi = entre(r, 16, 30);
+        let th = entre(r, 8, 30); while (Math.abs(th - phi) < 3) th = entre(r, 8, 30);
+        const glisse = th > phi, sf = cs3(Math.tan(phi * Math.PI / 180)), st = cs3(Math.tan(th * Math.PI / 180));
+        return {
+          enonce: `Sur la planche, la glacière commence à glisser quand l'angle atteint ${phi}°. Calcule le coefficient d'adhérence f. Sur le pont du bateau, qui penche de ${th}°, la glacière glisse-t-elle ?`,
+          fig: figGlaciere(phi, th),
+          ia: `Essai : on incline une planche ; la glacière posée dessus commence à glisser quand l'angle atteint ${phi}°. Ensuite, la même glacière est posée sur le pont d'un bateau qui penche de ${th}°. Calculer le coefficient d'adhérence f. La glacière glisse-t-elle sur le pont incliné de ${th}° ?`,
+          corrige: `À l'angle où ça commence à glisser, f = tan φ : f = tan ${phi}° = <b>${sf}</b>. Sur le pont : `
+            + (glisse ? `${th}° &gt; ${phi}° (ou tan ${th}° = ${st} &gt; ${sf}) : la glacière <b>glisse</b>.` : `${th}° &lt; ${phi}° (ou tan ${th}° = ${st} &lt; ${sf}) : la glacière <b>ne glisse pas</b>.`),
+          elements: [
+            { t: `f = tan ${phi}° = ${sf}`, p: 1 },
+            { t: glisse ? `${th}° > ${phi}° (ou tan ${th}° = ${st} > ${sf}) : la glacière glisse` : `${th}° < ${phi}° (ou tan ${th}° = ${st} < ${sf}) : la glacière ne glisse pas`, p: 1 }
+          ]
+        };
+      }
     },
     {
       id: "meca-frottement-3", notion: "meca-frottement", theme: "Frottement · glisse ou pas ?",
       enonce: `Le scooter freine sur une route mouillée. Pour s'arrêter, le sol doit retenir la roue avec T = 600 N. Calcule ${fr("T", "N")}, puis dis si la roue glisse.`,
-      fig: figRoueFrein,
+      fig: figRoueFrein("1 000", "600", "0,50", "mouillée"),
       ia: "La roue arrière d'un scooter freine sur une route mouillée. Au contact B, le sol appuie avec N = 1 000 N et doit retenir la roue avec T = 600 N. Coefficient d'adhérence sur route mouillée : f = 0,50. Calculer T sur N, puis dire si la roue glisse.",
       corrige: `${fr("T", "N")} = ${fr("600", "1 000")} = <b>0,600</b>. 0,600 &gt; f = 0,50 : l'action du sol sort du cône d'adhérence, <b>la roue glisse</b> (elle se bloque et dérape).`,
       elements: [
         { t: "T sur N = 600 sur 1 000 = 0,600", p: 1 },
         { t: "0,600 > f = 0,50 : la roue glisse (l'équilibre est impossible)", p: 1 }
-      ]
+      ],
+      variante: (r) => {
+        const N = choix(r, [800, 900, 1000, 1100, 1200]), seche = r() < 0.4, f = seche ? choix(r, [0.7, 0.8]) : choix(r, [0.4, 0.5, 0.6]);
+        // T à 10 N près, nettement au-dessus ou au-dessous de f × N (et T sur N reste plus petit que 1)
+        const glisse = r() < 0.5, T = Math.round((N * f * (glisse ? (seche ? 1.1 + 0.08 * r() : 1.15 + 0.2 * r()) : 0.65 + 0.2 * r())) / 10) * 10;
+        const route = seche ? "sèche" : "mouillée", sN = mil(N), sT = mil(T), sf = dec(f, 2), sq = cs3(T / N);
+        return {
+          enonce: `Le scooter freine sur une route ${route}. Pour s'arrêter, le sol doit retenir la roue avec T = ${sT} N. Calcule ${fr("T", "N")}, puis dis si la roue glisse.`,
+          fig: figRoueFrein(sN, sT, sf, route),
+          ia: `La roue arrière d'un scooter freine sur une route ${route}. Au contact B, le sol appuie avec N = ${sN} N et doit retenir la roue avec T = ${sT} N. Coefficient d'adhérence sur route ${route} : f = ${sf}. Calculer T sur N, puis dire si la roue glisse.`,
+          corrige: `${fr("T", "N")} = ${fr(sT, sN)} = <b>${sq}</b>. `
+            + (glisse ? `${sq} &gt; f = ${sf} : l'action du sol sort du cône d'adhérence, <b>la roue glisse</b> (elle se bloque et dérape).` : `${sq} &lt; f = ${sf} : l'action du sol reste dans le cône d'adhérence, <b>la roue ne glisse pas</b> (le scooter freine sans déraper).`),
+          elements: [
+            { t: `T sur N = ${sT} sur ${sN} = ${sq}`, p: 1 },
+            { t: glisse ? `${sq} > f = ${sf} : la roue glisse (l'équilibre est impossible)` : `${sq} < f = ${sf} : la roue ne glisse pas (l'action du sol reste dans le cône d'adhérence)`, p: 1 }
+          ]
+        };
+      }
     },
     // ---------------------------------------------------------------- info-programmation
     {
@@ -610,4 +672,11 @@ window.SIP = window.SIP || {};
   // et son unité, et dans les milliers, pour que « 16,0 % » ou « 2 460 N » ne soient pas coupés en fin de ligne
   const insec = (h) => h.replace(/(\d) (?=\d{3}(?!\d))/g, "$1\u00a0").replace(/(\d) (?=(?:%|N·m|N|m\/s|m³\/h|m|s|cm|°C|kg|W|V)(?![A-Za-zÀ-ÿ³]))/g, "$1\u00a0");
   SIP.FLASH_BANQUE.forEach((q) => { q.enonce = insec(q.enonce); q.corrige = insec(q.corrige); q.elements.forEach((e) => { e.t = insec(e.t); }); });
+  // une question avec d'autres valeurs (flash relancé « avec d'autres valeurs ») ; null si elle n'a pas de valeurs qui changent
+  SIP.FLASH_VARIANTE = (q, r) => {
+    if (!q || typeof q.variante !== "function") return null;
+    const v = q.variante(r);
+    v.enonce = insec(v.enonce); v.corrige = insec(v.corrige); v.elements.forEach((e) => { e.t = insec(e.t); });
+    return Object.assign({}, q, v, { variee: true });
+  };
 })(window.SIP);
