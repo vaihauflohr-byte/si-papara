@@ -15,6 +15,6 @@
    Format des dates : AAAA-MM-JJ. Une entrée vide { } = rien à corriger.
    ===================================================================== */
 window.SIP_CALENDRIER = {
-  recalage: { },
+  recalage: { "4": "2026-11-09" },   // DS 03 reporté après les vacances : jeudi 12 novembre ; tout le plan suit d'une semaine
   ds: { }
 };
