@@ -21,8 +21,17 @@ table.pl td.n,table.pl th.n{text-align:center;white-space:nowrap}
 .pl-etape{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start}
 .pl-num{font-family:var(--f-disp);font-weight:700;font-size:1.7rem;line-height:1;width:44px;height:44px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center}
 .pl-etape h3{margin:.2em 0 .3em}
-.pl-fait{display:flex;gap:8px;align-items:center;margin-top:8px;font-weight:600}
-.pl-fait input{width:20px;height:20px}
+.pl-fait{display:flex;gap:10px;align-items:flex-start;margin:10px 0;cursor:pointer}
+.pl-fait input{width:20px;height:20px;flex:none;margin-top:2px}
+.pl-fait input:checked+span{color:var(--ink-3);text-decoration:line-through}
+.pl-et{margin:0 0 12px;padding:0}
+.pl-et>summary{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:12px 16px;cursor:pointer;list-style:none}
+.pl-et>summary::-webkit-details-marker{display:none}
+.pl-et-t{display:flex;flex-direction:column;gap:2px}
+.pl-et-in{padding:4px 18px 14px;border-top:1px solid var(--rule)}
+.pl-bloc{margin:12px 0;padding:10px 12px;background:var(--paper-2);border-radius:var(--r)}
+.pl-bloc input[type=text]{width:100%;font:inherit;padding:6px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
+.pl-bloc input[type=number],.pl-bloc select{font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
 .pl-pas{counter-reset:pas;list-style:none;padding:0;margin:0}
 .pl-pas>li{counter-increment:pas;position:relative;padding:0 0 14px 40px}
 .pl-pas>li::before{content:counter(pas);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:600;display:flex;align-items:center;justify-content:center;font-size:.9rem}
@@ -32,7 +41,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 .pl-moy{font-family:var(--f-mono);font-weight:600}
 .pl-niv td:nth-child(n+2){font-size:.9rem}
 .pl-pts{font-family:var(--f-mono);font-weight:600;white-space:nowrap}
-@media print{.pl-nav,.haut,.no-print{display:none!important}.pl-sec[hidden]{display:block!important}}
+@media print{.pl-nav,.haut,.no-print{display:none!important}.pl-sec[hidden]{display:block!important}.pl-et>.pl-et-in{display:block}}
 </style>
 </head>
 <body>
@@ -77,17 +86,18 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 
   <div class="carte">
     <h2 style="margin-top:0">Le cahier des charges</h2>
-    <p>Un planeur qui ne respecte pas une de ces lignes n'est pas imprimé.</p>
+    <p><b>Le besoin</b> : un planeur lancé par la catapulte de la classe, qui parcourt la plus grande distance possible. <b>Les contraintes</b> : un planeur qui ne respecte pas une de ces lignes n'est pas imprimé.</p>
     <div class="pl-scroll"><table class="pl">
-      <tr><th>Ce qu'on demande</th><th>Limite</th><th>Pourquoi</th></tr>
-      <tr><td>Envergure (largeur totale de l'aile)</td><td class="n"><b>210 mm</b> maximum</td><td>Taille du plateau de l'imprimante</td></tr>
-      <tr><td>Longueur du fuselage</td><td class="n"><b>210 mm</b> maximum</td><td>Taille du plateau de l'imprimante</td></tr>
-      <tr><td>Masse totale, lest compris</td><td class="n"><b>30 g</b> maximum</td><td>Un planeur lourd tombe vite</td></tr>
-      <tr><td>Crochet sous le nez</td><td class="n"><b>imposé</b> (dessin ci-dessous)</td><td>Il doit entrer dans le canal de la catapulte</td></tr>
-      <tr><td>Dessous du fuselage</td><td class="n"><b>plat</b>, sauf le crochet</td><td>Il glisse sur les deux rails de la catapulte</td></tr>
-      <tr><td>Épaisseur des pièces</td><td class="n">multiple de <b>0,2 mm</b></td><td>L'imprimante dépose des couches de 0,2 mm</td></tr>
-      <tr><td>Impression</td><td class="n">chaque pièce <b>à plat</b>, sans support</td><td>Rapide, et ça ne rate pas</td></tr>
-      <tr><td>Matière</td><td class="n">PLA, lest autorisé dans le nez</td><td>Une vis, de la pâte à fixe</td></tr>
+      <tr><th class="n">N°</th><th>Ce qu'on demande</th><th>Limite</th><th>Pourquoi</th></tr>
+      <tr><td class="n"><b>C1</b></td><td>Envergure (largeur totale de l'aile)</td><td class="n"><b>210 mm</b> maximum</td><td>Taille du plateau de l'imprimante</td></tr>
+      <tr><td class="n"><b>C2</b></td><td>Longueur du fuselage</td><td class="n"><b>210 mm</b> maximum</td><td>Taille du plateau de l'imprimante</td></tr>
+      <tr><td class="n"><b>C3</b></td><td>Masse totale, lest compris</td><td class="n"><b>30 g</b> maximum</td><td>Un planeur lourd tombe vite</td></tr>
+      <tr><td class="n"><b>C4</b></td><td>Nombre de pièces</td><td class="n"><b>3</b> : fuselage, aile, stabilisateur</td><td>Montage sans colle, par les fentes</td></tr>
+      <tr><td class="n"><b>C5</b></td><td>Crochet sous le nez</td><td class="n"><b>imposé</b> (dessin ci-dessous)</td><td>Il doit entrer dans le canal de la catapulte</td></tr>
+      <tr><td class="n"><b>C6</b></td><td>Dessous du fuselage</td><td class="n"><b>plat</b>, sauf le crochet</td><td>Il glisse sur les deux rails de la catapulte</td></tr>
+      <tr><td class="n"><b>C7</b></td><td>Épaisseur des pièces</td><td class="n">multiple de <b>0,2 mm</b></td><td>L'imprimante dépose des couches de 0,2 mm</td></tr>
+      <tr><td class="n"><b>C8</b></td><td>Impression</td><td class="n">chaque pièce <b>à plat</b>, sans support</td><td>Rapide, et ça ne rate pas</td></tr>
+      <tr><td class="n"><b>C9</b></td><td>Matière</td><td class="n">PLA, lest autorisé dans le nez</td><td>Une vis, de la pâte à fixe</td></tr>
     </table></div>
   </div>
 
@@ -129,7 +139,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 
 <!-- ============ LES ÉTAPES ============ -->
 <section class="pl-sec" id="s-etapes" hidden>
-  <p>Le projet avance au rythme de la classe : on passe à l'étape suivante quand celle-ci est finie. Coche une étape quand ton équipe l'a terminée.</p>
+  <p><b>Suis les étapes dans l'ordre.</b> Ouvre l'étape en cours, fais chaque ligne, coche-la. On passe à l'étape suivante quand tout est coché. <span class="discret">Tes réponses sont gardées sur cet appareil.</span></p>
   <div id="etapes"></div>
 </section>
 
@@ -249,14 +259,55 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 
 <script>
 /* ---------- Réglages : étapes, barème, critères (à modifier ici) ---------- */
+const C = (id, t) => ({ k: "c", id, t });          // une case à cocher
+const B = (id) => ({ k: "b", id });                 // un bloc à remplir (voir BLOCS plus bas)
 const ETAPES = [
-  { t: "Lancer avant de concevoir", d: "Tu lances trois planeurs déjà imprimés : un qui vole bien, un qui lève le nez, un qui pique. Tu cherches ce qui les différencie.", l: "Livrable : pour chaque planeur, ce que tu observes et où se trouve son centre de gravité (équilibre sur un doigt).", s: "Série « Planeur 1 »" },
-  { t: "Prendre en main Onshape", d: "Compte, document partagé, première esquisse cotée : le fuselage avec le crochet imposé.", l: "Livrable : un fuselage extrudé, esquisse aux traits noirs, crochet aux bonnes cotes.", s: "Série « Planeur 2 »" },
-  { t: "Concevoir la version 1", d: "Ton équipe dessine l'aile et le stabilisateur, vérifie la masse et les dimensions, puis exporte les fichiers STL.", l: "Livrable : trois fichiers STL conformes au cahier des charges. Le professeur imprime avant la séance suivante.", s: "" },
-  { t: "Essayer et mesurer", d: "Trois lancers au même cran, distances dans le carnet d'essais. Tu décris le vol et tu choisis UNE modification.", l: "Livrable : carnet d'essais rempli pour la version 1, modification choisie et justifiée.", s: "Série « Planeur 3 »" },
-  { t: "Concevoir la version 2", d: "Tu modifies ton modèle Onshape (une seule chose), tu exportes de nouveau.", l: "Livrable : fichiers STL de la version 2.", s: "" },
-  { t: "Le concours", d: "Les deux groupes s'affrontent : trois lancers par équipe, classement sur la moyenne. Puis chaque équipe explique en deux minutes ce qu'elle a changé et ce que ça a donné.", l: "Livrable : carnet d'essais complet, avec l'écart entre la version 1 et la version 2.", s: "" }
+  { t: "Lancer avant de concevoir", but: "Comprendre pourquoi un planeur vole bien ou mal, avant de dessiner le tien.", items: [
+    C("1a", "Lance chaque planeur (A, B, C) deux fois, goupille dans le trou à 60 mm. Regarde bien le vol."),
+    C("1b", "Pose chaque planeur en équilibre sur un doigt. Mesure la distance entre le bout du nez et ton doigt."),
+    B("obs"),
+    C("1c", "Fais la série « Planeur 1 · Voler et rester stable » sur ton tableau de bord.") ] },
+  { t: "Former l'équipe et ouvrir Onshape", but: "Avoir une équipe, un compte et un document partagé.", items: [
+    B("equipe"),
+    C("2a", "Chaque membre crée son compte Onshape (onglet « Onshape pas à pas », partie « Avant de commencer »)."),
+    C("2b", "Un membre crée le document « Planeur – équipe … » et le partage avec les autres et avec le professeur."),
+    C("2c", "Chaque membre ouvre le document partagé sur son poste : tout le monde voit la même chose.") ] },
+  { t: "Dessiner le fuselage", but: "Réussir une première pièce : esquisse cotée, crochet imposé, extrusion.", items: [
+    C("3a", "Esquisse du fuselage vu de côté, contour fermé (onglet « Onshape pas à pas », pièce 1)."),
+    C("3b", "Crochet imposé dessiné sous le nez, avec les cotes 9, 5, 7 et 7 mm."),
+    C("3c", "Toutes les cotes sont posées : les traits sont noirs."),
+    C("3d", "Les deux fentes sont tracées (1,0 mm de haut), celle de l'aile penche de 2 à 3 mm."),
+    C("3e", "Extrusion de 5 mm faite."),
+    C("3f", "Fais la série « Planeur 2 · Dessiner et imprimer »."),
+    C("3g", "Montre ton fuselage au professeur.") ] },
+  { t: "Concevoir la version 1", but: "Un planeur complet, conforme au cahier des charges, prêt à imprimer.", items: [
+    C("4a", "Aile dessinée et extrudée en pièce séparée (pièce 2)."),
+    C("4b", "Stabilisateur dessiné et extrudé en pièce séparée."),
+    C("4c", "Relève dans Onshape les dimensions et le volume de chaque pièce, puis remplis la fiche ci-dessous."),
+    B("fiche"),
+    C("4d", "Toutes les lignes de la fiche sont vertes."),
+    C("4e", "Les trois fichiers STL sont exportés (millimètres) et envoyés au professeur.") ] },
+  { t: "Essayer et mesurer", but: "Savoir ce que vaut ta version 1, et décider quoi changer.", items: [
+    C("5a", "Fais la série « Planeur 3 · Essayer, mesurer, améliorer »."),
+    C("5b", "Monte ton planeur : aile et stabilisateur glissés dans les fentes, bien centrés."),
+    C("5c", "Cherche son point d'équilibre sur un doigt. Il doit être sous l'aile, vers le premier tiers. Sinon, ajoute du lest dans le nez."),
+    C("5d", "Pèse le planeur. Note la masse dans l'onglet « Mes essais »."),
+    C("5e", "Trois lancers au cran choisi par le professeur. Note les trois distances dans « Mes essais »."),
+    C("5f", "Décris le vol, puis choisis UNE seule modification avec le tableau « Lire le vol de ton planeur »."),
+    C("5g", "Remplis les trois lignes « Entre la version 1 et la version 2 » dans « Mes essais ».") ] },
+  { t: "Concevoir la version 2", but: "Améliorer en changeant une seule chose.", items: [
+    C("6a", "Modifie ton modèle Onshape en changeant une cote (pas en redessinant)."),
+    C("6b", "Vérifie de nouveau la fiche de conformité (étape 4) avec les nouvelles valeurs."),
+    C("6c", "Exporte les fichiers STL de la version 2 (nom : equipe_piece_v2.stl) et envoie-les."),
+    C("6d", "Trois lancers avec la version 2, au même cran. Note-les dans « Mes essais »."),
+    C("6e", "Lis l'écart calculé par le site : la version 2 est-elle vraiment meilleure ?") ] },
+  { t: "Le concours", but: "Trois lancers devant tout le monde, puis deux minutes pour expliquer.", items: [
+    C("7a", "Choisis ta meilleure version et vérifie son équilibre."),
+    C("7b", "Trois lancers officiels. Note-les sur la ligne « Concours » de « Mes essais »."),
+    B("oral"),
+    C("7c", "Imprime ton carnet d'essais et rends-le au professeur.") ] }
 ];
+const LIMITES = { envergure: 210, longueur: 210, masse: 30, couche: 0.2, pla: 1.24 };
 const BAREME = [
   ["A", "Connaissances", "Les trois séries notées du site (meilleure note de chacune)", 5],
   ["B", "Modèle Onshape", "Esquisses cotées, cahier des charges respecté, fichiers prêts à imprimer", 5],
@@ -288,21 +339,62 @@ if (boutons.some((b) => b.dataset.s === location.hash.slice(1))) ouvrir(location
 const CLE = "sip_2si_planeur";
 let D = {}; try { D = JSON.parse(localStorage.getItem(CLE)) || {}; } catch (e) { D = {}; }
 const garder = () => { try { localStorage.setItem(CLE, JSON.stringify(D)); } catch (e) { /* stockage indisponible : on continue sans */ } };
+const nbfr = (x, n = 2) => x.toFixed(n).replace(".", ",");
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-/* ---------- Étapes ---------- */
-D.etapes = D.etapes || {};
-document.getElementById("etapes").innerHTML = ETAPES.map((e, i) => `<div class="carte pl-etape"><div class="pl-num">${i + 1}</div><div>
-  <h3>${e.t}</h3><p style="margin:.2em 0">${e.d}</p><p class="discret" style="margin:.2em 0">${e.l}</p>
-  ${e.s ? `<p style="margin:.3em 0"><span class="etiquette">à faire sur le site</span> ${e.s}</p>` : ""}
-  <label class="pl-fait"><input type="checkbox" data-e="${i}" ${D.etapes[i] ? "checked" : ""}> Étape terminée</label></div></div>`).join("");
-document.querySelectorAll("[data-e]").forEach((c) => c.onchange = () => { D.etapes[c.dataset.e] = c.checked; garder(); });
+/* ---------- Étapes : parcours guidé ---------- */
+D.c = D.c || {}; D.f = D.f || {};
+const champ = (k, ph, type = "text", st = "") => `<input type="${type}" ${type === "number" ? 'step="0.1" min="0"' : ""} data-f="${k}" value="${esc(D.f[k])}" placeholder="${ph}" style="${st}">`;
+const BLOCS = {
+  obs: () => `<div class="pl-scroll"><table class="pl"><tr><th>Planeur</th><th>Ce qu'il fait en vol</th><th class="n">Équilibre : distance nez → doigt (mm)</th></tr>` +
+    ["A", "B", "C"].map((x) => `<tr><td><b>${x}</b></td><td><select data-f="obs${x}"><option value="">choisis…</option>${["Il vole droit et se pose loin", "Il lève le nez, ralentit, puis tombe", "Il pique et touche le sol tout de suite", "Il part sur le côté"].map((o) => `<option ${D.f["obs" + x] === o ? "selected" : ""}>${o}</option>`).join("")}</select></td><td class="n">${champ("eq" + x, "mm", "number", "width:6em")}</td></tr>`).join("") +
+    `</table></div><p><label>Ma conclusion : qu'est-ce qui change entre un planeur qui vole bien et un planeur qui tombe ?<br>${champ("concl", "exemple : la place du point d'équilibre…")}</label></p>`,
+  equipe: () => `<p><label>Nom de l'équipe : ${champ("eqNom", "nom", "text", "width:14em;min-width:0")}</label> &nbsp; <label>Membres : ${champ("eqMb", "prénoms", "text", "width:20em;min-width:0")}</label></p>`,
+  fiche: () => `<div class="pl-scroll"><table class="pl"><tr><th>Ce que je relève dans Onshape</th><th class="n">Ma valeur</th><th>Vérification</th></tr>
+    <tr><td>Envergure de l'aile (mm)</td><td class="n">${champ("env", "mm", "number", "width:6em")}</td><td id="v-env"></td></tr>
+    <tr><td>Corde de l'aile au milieu (mm)</td><td class="n">${champ("corde", "mm", "number", "width:6em")}</td><td id="v-corde"></td></tr>
+    <tr><td>Épaisseur de l'aile (mm)</td><td class="n">${champ("ep", "mm", "number", "width:6em")}</td><td id="v-ep"></td></tr>
+    <tr><td>Longueur du fuselage (mm)</td><td class="n">${champ("lon", "mm", "number", "width:6em")}</td><td id="v-lon"></td></tr>
+    <tr><td>Volume du fuselage (cm³)</td><td class="n">${champ("vf", "cm³", "number", "width:6em")}</td><td rowspan="4" id="v-masse"></td></tr>
+    <tr><td>Volume de l'aile (cm³)</td><td class="n">${champ("va", "cm³", "number", "width:6em")}</td></tr>
+    <tr><td>Volume du stabilisateur (cm³)</td><td class="n">${champ("vs", "cm³", "number", "width:6em")}</td></tr>
+    <tr><td>Lest prévu dans le nez (g)</td><td class="n">${champ("lest", "g", "number", "width:6em")}</td></tr>
+    <tr><td>Crochet aux cotes imposées (9, 5, 7, 7, épaisseur 5)</td><td class="n"><input type="checkbox" data-c="crochet" ${D.c.crochet ? "checked" : ""} style="width:20px;height:20px"></td><td id="v-crochet"></td></tr>
+    <tr><td>Chaque pièce se pose à plat, sans rien dans le vide</td><td class="n"><input type="checkbox" data-c="plat" ${D.c.plat ? "checked" : ""} style="width:20px;height:20px"></td><td id="v-plat"></td></tr>
+  </table></div>`,
+  oral: () => `<p><b>Tes deux minutes devant la classe</b> : complète ces trois phrases, puis lis-les.</p>
+    <p><label>« Notre version 1… » (ce qu'elle faisait en vol)<br>${champ("o1", "exemple : levait le nez et tombait à 3 m")}</label></p>
+    <p><label>« Nous avons changé… » (la seule modification, et pourquoi)<br>${champ("o2", "exemple : 2 g de lest dans le nez, pour avancer le centre de gravité")}</label></p>
+    <p><label>« Résultat… » (les chiffres)<br>${champ("o3", "exemple : 4,5 m au lieu de 3 m, soit +50 %")}</label></p>`
+};
+const OKT = (ok, t) => `<span class="etiquette ${ok ? "ok" : "alerte"}">${ok ? "✓ conforme" : "✗ à corriger"}</span> ${t}`;
+const nv = (k) => { const x = parseFloat(D.f[k]); return isFinite(x) ? x : null; };
+function verifier() {
+  const set = (id, h) => { const el = document.getElementById(id); if (el) el.innerHTML = h; };
+  const env = nv("env"), corde = nv("corde"), ep = nv("ep"), lon = nv("lon");
+  set("v-env", env == null ? "" : OKT(env <= LIMITES.envergure, `maximum ${LIMITES.envergure} mm`));
+  set("v-corde", env == null || corde == null ? "" : `Surface de l'aile ≈ <b>${nbfr(env * corde / 100, 0)} cm²</b> <span class="discret">(envergure × corde)</span>`);
+  if (ep == null) set("v-ep", ""); else { const n = ep / LIMITES.couche; set("v-ep", OKT(ep > 0 && Math.abs(n - Math.round(n)) < 1e-6, `${nbfr(n, Math.abs(n - Math.round(n)) < 1e-6 ? 0 : 1)} couche${n >= 2 ? "s" : ""} de 0,2 mm`)); }
+  set("v-lon", lon == null ? "" : OKT(lon <= LIMITES.longueur, `maximum ${LIMITES.longueur} mm`));
+  const V = [nv("vf"), nv("va"), nv("vs")];
+  if (V.some((x) => x == null)) set("v-masse", `<span class="discret">Remplis les trois volumes : le site calcule la masse.</span>`);
+  else { const m = V.reduce((s, x) => s + x, 0) * LIMITES.pla + (nv("lest") || 0);
+    set("v-masse", `Masse = (${V.map((x) => nbfr(x, 1)).join(" + ")}) × 1,24${nv("lest") ? " + " + nbfr(nv("lest"), 1) : ""} = <b>${nbfr(m, 1)} g</b><br>${OKT(m <= LIMITES.masse, `maximum ${LIMITES.masse} g`)}${env && corde ? `<br><span class="discret">Charge alaire ≈ ${nbfr(m / (env * corde / 100), 2)} g/cm²</span>` : ""}`); }
+  set("v-crochet", D.c.crochet ? OKT(true, "") : ""); set("v-plat", D.c.plat ? OKT(true, "") : "");
+  ETAPES.forEach((e, i) => { const L = e.items.filter((x) => x.k === "c"); const n = L.filter((x) => D.c[x.id]).length; const el = document.getElementById("av" + i);
+    if (el) { el.textContent = `${n} / ${L.length}`; el.className = "etiquette" + (n === L.length ? " ok" : ""); } });
+}
+const premiere = Math.max(0, ETAPES.findIndex((e) => e.items.some((x) => x.k === "c" && !D.c[x.id])));
+document.getElementById("etapes").innerHTML = ETAPES.map((e, i) => `<details class="carte pl-et" ${i === premiere ? "open" : ""}><summary><span class="pl-num">${i + 1}</span><span class="pl-et-t"><b>${e.t}</b><span class="discret">${e.but}</span></span><span class="etiquette" id="av${i}"></span></summary>
+  <div class="pl-et-in">${e.items.map((x) => x.k === "c" ? `<label class="pl-fait"><input type="checkbox" data-c="${x.id}" ${D.c[x.id] ? "checked" : ""}><span>${x.t}</span></label>` : `<div class="pl-bloc">${BLOCS[x.id]()}</div>`).join("")}</div></details>`).join("");
+const $et = document.getElementById("etapes");
+const saisie = (ev) => { const el = ev.target; if (el.dataset.c != null) D.c[el.dataset.c] = el.checked; else if (el.dataset.f != null) D.f[el.dataset.f] = el.value; else return; garder(); verifier(); };
+$et.addEventListener("input", saisie); $et.addEventListener("change", saisie);
 
 /* ---------- Carnet d'essais ---------- */
 D.essais = D.essais || {};
 const VERSIONS = ["Version 1", "Version 2", "Concours"];
 const T = document.getElementById("t-essais");
-const nbfr = (x, n = 2) => x.toFixed(n).replace(".", ",");
 VERSIONS.forEach((v, i) => { const e = D.essais[i] || {}; const tr = document.createElement("tr");
   tr.innerHTML = `<td><b>${v}</b></td><td class="n"><input type="number" step="0.1" min="0" data-v="${i}" data-k="m" value="${esc(e.m)}" aria-label="masse ${v}"></td>` +
     [1, 2, 3].map((k) => `<td class="n"><input type="number" step="0.01" min="0" data-v="${i}" data-k="d${k}" value="${esc(e["d" + k])}" aria-label="lancer ${k} ${v}"></td>`).join("") +
@@ -318,7 +410,7 @@ function calcul() {
 T.addEventListener("input", (ev) => { const el = ev.target; if (!el.dataset.k) return; (D.essais[el.dataset.v] = D.essais[el.dataset.v] || {})[el.dataset.k] = el.value; garder(); calcul(); });
 ["equipe", "cran", "modif", "pourquoi", "attendu"].forEach((id) => { const el = document.getElementById(id); el.value = D[id] || ""; el.oninput = () => { D[id] = el.value; garder(); }; });
 document.getElementById("raz").onclick = () => { if (confirm("Effacer tout le carnet d'essais et les étapes cochées sur cet appareil ?")) { try { localStorage.removeItem(CLE); } catch (e) { /* rien */ } location.reload(); } };
-calcul();
+calcul(); verifier();
 
 /* ---------- Barème et critères ---------- */
 document.getElementById("t-bareme").innerHTML = `<tr><th></th><th>Partie</th><th>Ce qui est regardé</th><th class="n">Points</th></tr>` +
