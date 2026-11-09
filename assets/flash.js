@@ -157,9 +157,10 @@ window.SIP = window.SIP || {};
   }
   // un flash lancé aujourd'hui qu'on peut encore rejoindre (plus d'une seconde et demie de chrono)
   const lanceOuvert = () => (LANCE && LANCE.jour === SIP.aujourdhui() && Date.now() < LANCE.fin - 1500 ? LANCE : null);
-  // le prof a ajouté du temps : la fin de la copie suit celle du lancement (même lancement : même source, même début)
+  // le prof a ajouté du temps : la fin de la copie suit celle du lancement (même lancement : même source, même début),
+  // copie rendue ou non : qui a rendu tôt voit sa note à la nouvelle fin, comme les autres
   function caler(f, st, r) {
-    if (!(r && r.lance && r.fin && r.debut && r.flash === st.source) || st.rendu) return false;
+    if (!(r && r.lance && r.fin && r.debut && r.flash === st.source)) return false;
     const decal = Date.now() - Date.parse(r.maintenant || r.debut);
     if (st.lanceLe ? st.lanceLe !== r.debut : Math.abs(Date.parse(r.debut) + decal - st.debut) > 5000) return false;
     const fin = Date.parse(r.fin) + decal;
@@ -170,9 +171,10 @@ window.SIP = window.SIP || {};
   function chronoFini(id) {
     const x = lireId(id); if (!x) return true;
     if (x.jour < SIP.aujourdhui()) return true;
-    const fid = idDe(x.jour, x.passage || 1), st = lire({ id: fid });
-    if (st && st.debut) return Date.now() >= finCopie(st);
-    return !(LANCE && LANCE.id === fid && Date.now() < LANCE.fin);
+    const fid = idDe(x.jour, x.passage || 1), st = lire({ id: fid }), L = LANCE && LANCE.id === fid ? LANCE : null;
+    // la fin de la copie, ou plus tard si le prof a ajouté du temps à ce même lancement (lu dans la base)
+    if (st && st.debut) return Date.now() >= Math.max(finCopie(st), L && st.lanceLe && st.lanceLe === L.debut ? L.fin : 0);
+    return !(L && Date.now() < L.fin);
   }
   const noteVisible = (module) => { const m = /^flash-(\d{4}-\d{2}-\d{2})((?:-\d{1,3})?)$/.exec(module || ""); return !m || visible(m[1]) || chronoFini(m[1] + m[2]); };
   const flashsPour = (niveau) => tous().some((f) => (f.niveau || "TSI") === niveau) || banque().some((q) => (q.niveau || "TSI") === niveau);
@@ -465,17 +467,20 @@ window.SIP = window.SIP || {};
           else if (r && r.erreur) dire("Ta copie est corrigée ; elle partira au prof quand tu seras reconnecté.");
         });
     }
-    // chaque seconde : le compte à rebours de la note ; toutes les 5 s : du temps ajouté par le prof (la note attend
-    // la nouvelle fin), un nouveau passage lancé (l'élève y part), la correction montrée ?
-    let tic = 0;
+    // chaque seconde : le compte à rebours de la note ; toutes les 2 s jusqu'à la fin du chrono, puis toutes les 5 s :
+    // du temps ajouté par le prof (la note attend la nouvelle fin), un nouveau passage lancé (l'élève y part), la correction montrée ?
+    let tic = 0, enVol = false;
     MINUTERIE = setInterval(async () => {
       majNote();
-      if (++tic % 5) return;
-      const r = await majCorrigees();
-      if (vue !== VUE) return;
-      if (r) caler(f, st, r);
-      if (aRejoindre(ctx, f.id)) return intro($app, jour, ctx);
-      if (visible(jour)) correction($app, f, st, ctx);
+      if (++tic % (Date.now() < finDe(f, st) + 5000 ? 2 : 5) || enVol) return;
+      enVol = true;
+      try {
+        const r = await majCorrigees();
+        if (vue !== VUE) return;
+        if (r && caler(f, st, r)) majNote();
+        if (aRejoindre(ctx, f.id)) return intro($app, jour, ctx);
+        if (visible(jour)) correction($app, f, st, ctx);
+      } finally { enVol = false; }
     }, 1000);
     majNote();
     const rz = document.getElementById("fl-reset");
