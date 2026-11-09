@@ -96,6 +96,9 @@ window.SIP = window.SIP || {};
     // dépôts de la démo : le contenu des fichiers de 1,5 Mo au plus est gardé dans ce navigateur
     const cleFichier = (id) => CLE + ":fichier:" + id;
     const uuid = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : "f-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+    // flash lancé par le prof (démo, aperçu) : signal gardé dans ce navigateur, lu par la page de l'élève
+    const FLASH_LOCAL = "sip_flash_lance";
+    function flashLocal() { try { return JSON.parse(localStorage.getItem(FLASH_LOCAL)) || {}; } catch (e) { return {}; } }
     function blobDemo(r) {
       let d = null; try { d = localStorage.getItem(cleFichier(r.id)); } catch (e) {}
       if (!d) throw new Error("DEMO_NON_GARDE");
@@ -105,6 +108,17 @@ window.SIP = window.SIP || {};
     }
 
     return {
+      async flashLancer(niveau, flash, duree) {
+        const L = flashLocal(), d = Date.now();
+        if (!duree || duree <= 0) delete L[niveau]; else L[niveau] = { flash, debut: new Date(d).toISOString(), fin: new Date(d + Math.min(duree, 3600) * 1000).toISOString() };
+        try { localStorage.setItem(FLASH_LOCAL, JSON.stringify(L)); } catch (e) {}
+        return Object.assign({ ok: true, lance: !!L[niveau], maintenant: new Date(d).toISOString() }, L[niveau] || {});
+      },
+      async flashEtat() {
+        const s = SIP.session.get(); if (!s) throw new Error("SESSION_EXPIREE");
+        const r = flashLocal()[s.niveau], m = new Date().toISOString();
+        return r ? Object.assign({ lance: true, maintenant: m }, r) : { lance: false, maintenant: m };
+      },
       mode: "demo",
       async connexion(niveau, nom, pin) {
         const db = load();
@@ -285,6 +299,9 @@ window.SIP = window.SIP || {};
       mode: "supabase",
       connexion: (niveau, nom, pin) => rpc("connexion", { p_niveau: niveau, p_nom: nom, p_pin: pin }),
       etat: () => rpc("mon_etat", { p_jeton: jeton() }),
+      // flash du début de séance (supabase/flash.sql) : le prof le lance, l'élève attend le lancement
+      flashLancer: (niveau, flash, duree) => rpc("flash_lancer", { p_niveau: niveau, p_flash: flash, p_duree_s: duree }),
+      flashEtat: () => rpc("flash_etat", { p_jeton: jeton() }),
       enregistrer: (t) => rpc("enregistrer_entrainement", {
         p_jeton: jeton(), p_module: t.module, p_titre: t.titre || null, p_type: t.type || "entrainement",
         p_score: t.score, p_score_max: t.score_max, p_duree_s: t.duree_s || null, p_details: t.details || null, p_fait_le: t.fait_le || null
@@ -426,7 +443,7 @@ window.SIP = window.SIP || {};
     ["connexion", "etat", "enregistrer", "adopter", "lire", "signaler", "mesSignalements", "profConnexion", "profDonnees", "profSignalements",
       "traiterSignalement", "validerSignalement", "creerEleve", "changerPin", "basculerActif", "supprimerEleve", "profDeconnexion",
       "projetEtat", "projetEnregistrer", "profProjets", "profProjetMaj", "depotListe", "depotEnvoyer", "depotOuvrir", "depotRetirer",
-      "profDepots", "profDepotUrl", "profDepotBlob", "profDepotVu", "profDepotSupprimer"].forEach((f) => (api[f] = ko));
+      "profDepots", "profDepotUrl", "profDepotBlob", "profDepotVu", "profDepotSupprimer", "flashLancer", "flashEtat"].forEach((f) => (api[f] = ko));
     api.profSession = async () => false;
     api.profJeton = async () => null;
     api.profStatut = async () => "inconnu";
@@ -512,7 +529,10 @@ window.SIP = window.SIP || {};
   const vers = (f) => (...a) => (SIP.apercu.actif() ? locale : principal)[f](...a);
   SIP.api = Object.assign({}, principal, { etat: vers("etat"), enregistrer: vers("enregistrer"), adopter: vers("adopter"), lire: vers("lire"),
     signaler: vers("signaler"), mesSignalements: vers("mesSignalements"), projetEtat: vers("projetEtat"), projetEnregistrer: vers("projetEnregistrer"),
-    depotListe: vers("depotListe"), depotEnvoyer: vers("depotEnvoyer"), depotOuvrir: vers("depotOuvrir"), depotRetirer: vers("depotRetirer") });
+    depotListe: vers("depotListe"), depotEnvoyer: vers("depotEnvoyer"), depotOuvrir: vers("depotOuvrir"), depotRetirer: vers("depotRetirer"),
+    flashEtat: vers("flashEtat"),
+    // le prof lance le flash dans la base (Supabase) et, pour l'aperçu dans ce navigateur, dans le signal local
+    flashLancer: async (n, f, d) => { const r = await principal.flashLancer(n, f, d); if (principal !== locale) await locale.flashLancer(n, f, d).catch(() => null); return r; } });
 
   // ---------- Écritures élève avec file d'attente hors-ligne ----------
   async function envoyer(op) {

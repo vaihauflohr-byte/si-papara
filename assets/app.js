@@ -78,7 +78,7 @@
       ${Object.entries(groupes).map(([g, ns]) => `<h2>${esc(g)}</h2><div class="grille">${ns.map((n) =>
         `<a class="carte tuile" href="#/connexion/${n.id}"><h3>${esc(n.nom)}</h3>${n.desc ? `<div class="discret">${esc(n.desc)}</div>` : ""}<span class="etiquette" style="margin-top:6px">${SIP.modulesDu(n.id).length} modules</span></a>`).join("")}</div>`).join("")}
       <p class="pied"><a href="prof.html">Espace professeur</a></p>`;
-    SIP.statutProf().then((st) => { const z = document.getElementById("accueil-prof"); if (st === "oui" && z) z.innerHTML = carteApercu(); }).catch(() => {});
+    SIP.statutProf().then((st) => { const z = document.getElementById("accueil-prof"); if (st === "oui" && z) z.innerHTML = (SIP.flash ? SIP.flash.carteProf() : "") + carteApercu(); }).catch(() => {});
   }
   // Les 7 filières, pour entrer en aperçu d'un clic
   function carteApercu(titre) {
@@ -173,6 +173,7 @@
       $app.innerHTML = `<h1>${salut(s)}</h1>
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
       <div id="appli-bandeau"></div><div id="sig-nouvelles"></div>
+      ${SIP.flash ? SIP.flash.tuile(s.niveau, hist) : ""}
       ${prochainDS(hist)}
       ${dsPasses(hist)}
       <details class="sequence plus"><summary><span>Aller plus loin</span><span class="discret">révision du jour, parcours, sujet blanc, toutes les notions, mes résultats</span></summary>
@@ -190,6 +191,7 @@
       $app.innerHTML = `<h1>${salut(s)}</h1>
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
       <div id="appli-bandeau"></div>
+      ${SIP.flash ? SIP.flash.tuile(s.niveau, hist) : ""}
       ${/^BTS2/.test(s.niveau) ? tuileProjet() + tuileE4(hist) : ""}
       ${grille}
       ${blocsModules(modules, hist)}
@@ -695,7 +697,7 @@
     if (!h.length) return `<p class="discret">Aucun entraînement pour l'instant.</p>`;
     const lib = { entrainement: "Entraînement", revision_hebdo: "Révision hebdo", externe: "Exercice", revision_jour: "Révision du jour" };
     return `<div class="table-defil"><table><thead><tr><th>Date</th><th>Activité</th><th class="num">Note</th></tr></thead><tbody>${h.map((x) =>
-      `<tr><td>${SIP.fmtDate(x.fait_le, true)}</td><td>${esc(x.titre || (SIP.module(x.module) || {}).titre || x.module)}<br><span class="discret">${/^fiche-/.test(x.module) ? "Vérification de fiche" : lib[x.type] || x.type}</span></td>
+      `<tr><td>${SIP.fmtDate(x.fait_le, true)}</td><td>${esc(x.titre || (SIP.module(x.module) || {}).titre || x.module)}<br><span class="discret">${/^fiche-/.test(x.module) ? "Vérification de fiche" : /^flash-/.test(x.module) ? "Flash" : lib[x.type] || x.type}</span></td>
       <td class="num">${etiquetteNote(x.score, x.score_max)}</td></tr>`).join("")}</tbody></table></div>`;
   }
 
@@ -904,6 +906,17 @@
     document.getElementById("go").onclick = lancer;
   }
 
+  // ---------------- Flash du début de séance (assets/flash.js, contenu/flashs.js) ----------------
+  async function vueFlash(date) {
+    if (!SIP.flash) { location.hash = "#/tableau"; return; }
+    $app.innerHTML = `<p class="discret">Chargement…</p>`;
+    await chargerEtat();
+    const s = SIP.session.get(), hist = ETAT.historique || [];
+    if (!date) return SIP.flash.liste($app, s.niveau, hist);
+    SIP.flash.eleve($app, date, { hist, ecrire });
+  }
+  const estProjFlash = (h) => h[0] === "flash" && (h[1] === "projeter" || h[2] === "projeter");
+
   // ---------------- Routeur ----------------
   async function router() {
     if (MISSIONS_EN_COURS) { try { MISSIONS_EN_COURS.arreter(); } catch (e) { /* rien */ } }
@@ -915,6 +928,7 @@
     if (ANIM_EN_COURS && ANIM_EN_COURS.arreter) { try { ANIM_EN_COURS.arreter(); } catch (e) { /* rien */ } }
     ANIM_EN_COURS = null;
     if (PROJ) { document.removeEventListener("keydown", PROJ); PROJ = null; }
+    if (SIP.flash) SIP.flash.arreter();
     document.body.classList.remove("projection");
     entete(); banniere();
     const h = location.hash.replace(/^#\/?/, "").split("/");
@@ -922,6 +936,7 @@
     window.scrollTo(0, 0);
     try {
       if (h[0] === "apercu") return await vueApercu(h[1]);
+      if (estProjFlash(h) && SIP.flash) return SIP.flash.projeter($app, h[1] === "projeter" ? null : h[1]);
       if (!s) { if (h[0] === "connexion") return vueConnexion(h[1]); if (h[0] === "fiche") return vueFicheBac(h[1]); if (h[0] === "cours") return vueCours(h[1], h[2]); return vueAccueil(); }
       switch (h[0]) {
         case "module": return vueModule(h[1]);
@@ -934,6 +949,7 @@
         case "methode": return vueMethode();
         case "fiche": return vueFicheBac(h[1]);
         case "cours": return vueCours(h[1], h[2]);
+        case "flash": return await vueFlash(h[1]);
         case "fiches-bac": return vueFichesBac();
         default: location.hash = "#/tableau";
       }
