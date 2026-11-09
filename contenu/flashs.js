@@ -1,16 +1,16 @@
 /* =====================================================================
    FLASHS — les questions flash du début de séance, faites sur le site.
-   Les élèves ouvrent « Flash du jour » et attendent. Le prof projette le flash (Accueil > « Projeter le flash
-   du jour », ou #/flash/projeter) et clique « Lancer » : le chrono des élèves part avec le sien, leur copie
-   est rendue toute seule à 0:00, puis l'IA la corrige avec le barème ci-dessous.
-   (Une seule fois dans Supabase : supabase/flash.sql. Sans lui, le code ci-dessous s'affiche au lancement.)
+   Les élèves ouvrent « Flash du jour » et attendent. Le prof choisit le flash (Accueil > « Choisir et projeter
+   le flash », ou #/flash/projeter) : celui préparé pour le jour, 3 questions au hasard parmi ce qui est déjà
+   tombé (ces flashs, une fois passés, et la banque contenu/flashs-banque.js), ou les questions qu'il coche.
+   Il clique « Lancer » : le chrono des élèves part avec le sien, leur copie est rendue toute seule à 0:00,
+   puis l'IA la corrige avec le barème ci-dessous.
 
    Une entrée par flash :
      date      jour où il est fait en classe (AAAA-MM-JJ) : il n'est ouvert à la note que ce jour-là
      niveau    classe concernée (TSI = Terminale SI)
-     code      4 chiffres, de secours : affichés au lancement seulement si flash.sql n'est pas installé
      duree_s   durée du chrono de l'élève, en secondes
-     questions { theme, enonce (HTML), fig (dessin SVG), ia (l'énoncé en texte pour l'IA, avec les données
+     questions { notion, theme, enonce (HTML), fig (dessin SVG), ia (l'énoncé en texte pour l'IA, avec les données
                du dessin), corrige (HTML), elements [{ t, p }] (ce que l'IA vérifie dans la réponse, p points) }
    ===================================================================== */
 window.SIP = window.SIP || {};
@@ -50,10 +50,10 @@ ${bloc(xs[0], "Batterie")}${fleche(xs[0] + W, "6,0 W")}${bloc(xs[1], "Moteur", "
 
   SIP.FLASHS = [
     {
-      date: "2026-11-09", niveau: "TSI", code: "4827", duree_s: 180,
+      date: "2026-11-09", niveau: "TSI", duree_s: 180,
       questions: [
         {
-          theme: "Cinématique · profil de vitesse",
+          notion: "meca-cinematique", theme: "Cinématique · profil de vitesse",
           enonce: "Le robot suit ce profil de vitesse. Détermine son accélération au démarrage, puis la distance parcourue entre 0 et 3,0 s.",
           fig: profilV,
           ia: "Le robot suit un profil de vitesse en trapèze (graphique v(t)) : la vitesse passe de 0 à 0,60 m/s entre t = 0 et t = 0,5 s, reste à 0,60 m/s jusqu'à t = 2,5 s, puis revient à 0 à t = 3,0 s. Déterminer l'accélération au démarrage, puis la distance parcourue entre 0 et 3,0 s.",
@@ -64,7 +64,7 @@ ${bloc(xs[0], "Batterie")}${fleche(xs[0] + W, "6,0 W")}${bloc(xs[1], "Moteur", "
           ]
         },
         {
-          theme: "Rappel · Python",
+          notion: "info-programmation", theme: "Rappel · Python",
           enonce: "Quelle valeur prend <code>msg</code> à la fin ? Combien de blocs s'exécutent ?",
           fig: codeVent,
           ia: "Programme Python :\nv = 47  # vitesse du vent en km/h\nif v >= 80:\n    msg = \"danger\"\nelif v >= 50:\n    msg = \"alerte\"\nelse:\n    msg = \"calme\"\nQuelle valeur prend msg à la fin ? Combien de blocs s'exécutent ?",
@@ -75,7 +75,7 @@ ${bloc(xs[0], "Batterie")}${fleche(xs[0] + W, "6,0 W")}${bloc(xs[1], "Moteur", "
           ]
         },
         {
-          theme: "Rappel · rendement et pertes",
+          notion: "ener-rendement", theme: "Rappel · rendement et pertes",
           enonce: "Calcule la puissance utile P<sub>u</sub> reçue par la roue, puis la puissance perdue. Que devient-elle ?",
           fig: chaine,
           ia: "Chaîne de puissance : la batterie fournit 6,0 W au moteur (rendement 0,70), le moteur entraîne un réducteur (rendement 0,90), qui entraîne la roue. Calculer la puissance utile Pu reçue par la roue, puis la puissance perdue. Que devient-elle ?",
