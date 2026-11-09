@@ -200,6 +200,7 @@
       <div id="appli-bandeau"></div>
       ${SIP.flash ? SIP.flash.tuile(s.niveau, hist) : ""}
       ${/^BTS2/.test(s.niveau) ? tuileProjet() + tuileE4(hist) : ""}
+      ${s.niveau === "2SI" ? tuilePlaneur(hist) : ""}
       ${grille}
       ${blocsModules(modules, hist)}
       ${derniers}
@@ -211,6 +212,17 @@
     };
     if (SIP.appli) SIP.appli.bandeau(document.getElementById("appli-bandeau"));
     if (s.niveau === "TSI") afficherMesSignalements();
+  }
+
+  // Seconde SI : le projet planeur (entrainements/2si-planeur.html) et l'avancement des trois séries notées qui vont avec
+  function tuilePlaneur(hist) {
+    const ids = ["2si-pl-vol", "2si-pl-onshape", "2si-pl-essais"];
+    const faites = ids.filter((id) => hist.some((h) => h.module === id)).length;
+    return `<a class="carte bac-hero ${faites === ids.length ? "fait" : "a-faire"}" href="entrainements/2si-planeur.html">
+        <div><div class="eyebrow">Seconde SI · projet de l'année</div><div class="bac-titre">Mon projet <span>le planeur qui va le plus loin</span></div>
+        <p class="discret" style="margin:0">Le défi et le cahier des charges, les étapes, Onshape pas à pas, ton carnet d'essais et la façon dont le projet est noté.</p></div>
+        <div class="bac-d"><div><div class="grand">${faites}<small> / ${ids.length}</small></div><div class="discret">séries du projet faites</div></div><span class="btn">Ouvrir →</span></div>
+      </a>`;
   }
 
   // BTS 2 : le projet U61/U62 (entrainements/bts-projets.html) — le titre du projet s'affiche quand il est attribué ou choisi

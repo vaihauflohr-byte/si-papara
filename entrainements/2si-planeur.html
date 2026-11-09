@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seconde SI · Projet planeur</title>
+<meta name="theme-color" content="#1d3f7a">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.pl-nav{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 20px;position:sticky;top:0;background:var(--ground);padding:8px 0;z-index:5;border-bottom:1px solid var(--rule)}
+.pl-nav button{font:inherit;font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:7px 13px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper);color:var(--ink);cursor:pointer}
+.pl-nav button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pl-sec[hidden]{display:none}
+.pl-sec .carte{margin:0 0 14px}
+.pl-sec svg{max-width:100%;height:auto;display:block;margin:10px auto;color:var(--ink)}
+table.pl{width:100%;border-collapse:collapse;font-size:.95rem;margin:8px 0}
+table.pl th,table.pl td{border:1px solid var(--rule);padding:7px 9px;text-align:left;vertical-align:top}
+table.pl th{background:var(--paper-2);font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.03em;font-weight:600}
+table.pl td.n,table.pl th.n{text-align:center;white-space:nowrap}
+.pl-scroll{overflow-x:auto}
+.pl-etape{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start}
+.pl-num{font-family:var(--f-disp);font-weight:700;font-size:1.7rem;line-height:1;width:44px;height:44px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center}
+.pl-etape h3{margin:.2em 0 .3em}
+.pl-fait{display:flex;gap:8px;align-items:center;margin-top:8px;font-weight:600}
+.pl-fait input{width:20px;height:20px}
+.pl-pas{counter-reset:pas;list-style:none;padding:0;margin:0}
+.pl-pas>li{counter-increment:pas;position:relative;padding:0 0 14px 40px}
+.pl-pas>li::before{content:counter(pas);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:600;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--paper-2)}
+.pl-essais input[type=number]{width:5.2em;font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
+.pl-essais input[type=text]{width:100%;min-width:12em;font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
+.pl-moy{font-family:var(--f-mono);font-weight:600}
+.pl-niv td:nth-child(n+2){font-size:.9rem}
+.pl-pts{font-family:var(--f-mono);font-weight:600;white-space:nowrap}
+@media print{.pl-nav,.haut,.no-print{display:none!important}.pl-sec[hidden]{display:block!important}}
+</style>
+</head>
+<body>
+<header class="haut"><div class="haut-in">
+  <a class="logo" href="../index.html#/tableau"><img class="logo-img" src="../assets/logo-papara.svg" alt="Lycée Tuianu Le Gayic, Papara" width="60" height="48"><span class="logo-txt"><span class="logo-ey">Lycée Tuianu Le Gayic · Papara</span><span class="logo-nom">SI <em>Papara</em></span></span></a>
+  <div class="qui"><a href="../index.html#/tableau">← Tableau de bord</a></div>
+</div></header>
+<main>
+<div class="eyebrow">Seconde SI · projet de l'année</div>
+<h1>Le planeur qui va le plus loin</h1>
+<p>Ton équipe conçoit un planeur dans Onshape. Il est imprimé en 3D, puis lancé par la catapulte de la classe. <b>Le même lanceur, le même réglage pour tous</b> : seule ta conception fait la différence.</p>
+
+<div class="pl-nav" role="tablist">
+  <button role="tab" data-s="defi" aria-selected="true">Le défi</button>
+  <button role="tab" data-s="etapes">Les étapes</button>
+  <button role="tab" data-s="onshape">Onshape pas à pas</button>
+  <button role="tab" data-s="essais">Mes essais</button>
+  <button role="tab" data-s="eval">Évaluation</button>
+</div>
+
+<!-- ============ LE DÉFI ============ -->
+<section class="pl-sec" id="s-defi">
+  <div class="carte">
+    <h2 style="margin-top:0">La règle du jeu</h2>
+    <ul>
+      <li>Équipes de 2 ou 3. Un planeur par équipe.</li>
+      <li>Chaque planeur est lancé <b>3 fois</b>, au même cran de la catapulte. On garde la <b>moyenne</b> des 3 distances.</li>
+      <li>La distance se mesure du bout de la catapulte jusqu'au <b>premier point où le planeur touche le sol</b>.</li>
+      <li>Tu as droit à deux versions : la version 1, puis une version 2 améliorée après les essais.</li>
+    </ul>
+    <svg viewBox="0 0 690 170" role="img" aria-label="La catapulte lance le planeur, on mesure la distance jusqu'au premier contact au sol">
+      <line x1="10" y1="150" x2="680" y2="150" stroke="currentColor" stroke-width="2"/>
+      <g stroke="currentColor" stroke-width="3" fill="none"><line x1="30" y1="148" x2="120" y2="118"/><line x1="100" y1="124" x2="100" y2="150"/></g>
+      <text x="62" y="166" font-size="13" fill="currentColor" text-anchor="middle">catapulte</text>
+      <path d="M122 114 C 260 20, 430 40, 560 148" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 5"/>
+      <g transform="translate(300 52) rotate(-4)" fill="none" stroke="currentColor" stroke-width="2"><path d="M-30 0 h56 v-10 l-8 0 -6 10"/><path d="M-12 -4 l22 2" stroke-width="4"/></g>
+      <g stroke="var(--bad)" stroke-width="1.5"><line x1="122" y1="158" x2="560" y2="158"/><line x1="122" y1="152" x2="122" y2="164"/><line x1="560" y1="152" x2="560" y2="164"/></g>
+      <text x="340" y="146" font-size="13" fill="var(--bad)" text-anchor="middle" font-weight="600">distance mesurée</text>
+      <circle cx="560" cy="150" r="4" fill="var(--bad)"/><text x="574" y="140" font-size="12" fill="currentColor">premier contact</text>
+    </svg>
+  </div>
+
+  <div class="carte">
+    <h2 style="margin-top:0">Le cahier des charges</h2>
+    <p>Un planeur qui ne respecte pas une de ces lignes n'est pas imprimé.</p>
+    <div class="pl-scroll"><table class="pl">
+      <tr><th>Ce qu'on demande</th><th>Limite</th><th>Pourquoi</th></tr>
+      <tr><td>Envergure (largeur totale de l'aile)</td><td class="n"><b>210 mm</b> maximum</td><td>Taille du plateau de l'imprimante</td></tr>
+      <tr><td>Longueur du fuselage</td><td class="n"><b>210 mm</b> maximum</td><td>Taille du plateau de l'imprimante</td></tr>
+      <tr><td>Masse totale, lest compris</td><td class="n"><b>30 g</b> maximum</td><td>Un planeur lourd tombe vite</td></tr>
+      <tr><td>Crochet sous le nez</td><td class="n"><b>imposé</b> (dessin ci-dessous)</td><td>Il doit entrer dans le canal de la catapulte</td></tr>
+      <tr><td>Dessous du fuselage</td><td class="n"><b>plat</b>, sauf le crochet</td><td>Il glisse sur les deux rails de la catapulte</td></tr>
+      <tr><td>Épaisseur des pièces</td><td class="n">multiple de <b>0,2 mm</b></td><td>L'imprimante dépose des couches de 0,2 mm</td></tr>
+      <tr><td>Impression</td><td class="n">chaque pièce <b>à plat</b>, sans support</td><td>Rapide, et ça ne rate pas</td></tr>
+      <tr><td>Matière</td><td class="n">PLA, lest autorisé dans le nez</td><td>Une vis, de la pâte à fixe</td></tr>
+    </table></div>
+  </div>
+
+  <div class="carte">
+    <h2 style="margin-top:0">La pièce imposée : le crochet</h2>
+    <p>L'élastique s'accroche derrière ce crochet. Il est <b>ouvert vers l'arrière</b> : quand le planeur part, l'élastique se décroche tout seul. Tu le dessines dans la même esquisse que ton fuselage.</p>
+    <svg viewBox="0 0 640 250" role="img" aria-label="Dessin coté du crochet sous le nez du fuselage">
+      <defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
+      <text x="20" y="24" font-size="13" fill="currentColor">← nez (avant)</text><text x="620" y="24" font-size="13" fill="currentColor" text-anchor="end">queue (arrière) →</text>
+      <!-- fuselage vu de côté, échelle 10 px/mm -->
+      <path d="M60 40 H600 V120 H330 L400 190 H350 L240 120 H60 Z" fill="var(--accent-soft)" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+      <text x="470" y="86" font-size="14" fill="currentColor" text-anchor="middle">fuselage (vu de côté)</text>
+      <text x="345" y="162" font-size="13" fill="currentColor" text-anchor="middle" transform="rotate(45 345 162)">crochet</text>
+      <g stroke="currentColor" stroke-width="1" fill="none">
+        <line x1="240" y1="104" x2="330" y2="104" marker-start="url(#fl)" marker-end="url(#fl)"/><line x1="240" y1="98" x2="240" y2="120"/><line x1="330" y1="98" x2="330" y2="120"/>
+        <line x1="350" y1="206" x2="400" y2="206" marker-start="url(#fl)" marker-end="url(#fl)"/><line x1="350" y1="192" x2="350" y2="212"/><line x1="400" y1="192" x2="400" y2="212"/>
+        <line x1="440" y1="120" x2="440" y2="190" marker-start="url(#fl)" marker-end="url(#fl)"/><line x1="404" y1="190" x2="448" y2="190"/><line x1="334" y1="120" x2="448" y2="120" stroke-dasharray="3 3"/>
+        <line x1="330" y1="222" x2="400" y2="222" marker-start="url(#fl)" marker-end="url(#fl)"/><line x1="330" y1="124" x2="330" y2="228" stroke-dasharray="3 3"/><line x1="400" y1="212" x2="400" y2="228"/>
+      </g>
+      <g font-size="14" fill="currentColor" font-weight="600" text-anchor="middle">
+        <text x="285" y="98">9</text><text x="375" y="203">5</text><text x="458" y="160" text-anchor="start">7</text><text x="365" y="240">7</text>
+      </g>
+      <text x="150" y="150" font-size="12" fill="currentColor" text-anchor="middle">30 mm au moins</text><text x="150" y="165" font-size="12" fill="currentColor" text-anchor="middle">entre le bout du nez</text><text x="150" y="180" font-size="12" fill="currentColor" text-anchor="middle">et le crochet</text>
+      <text x="530" y="170" font-size="13" fill="currentColor" text-anchor="middle">Cotes en mm</text><text x="530" y="188" font-size="13" fill="currentColor" text-anchor="middle">Épaisseur du crochet : 5 mm</text>
+    </svg>
+    <ul>
+      <li>En haut, le crochet fait <b>9 mm</b> de long. En bas, <b>5 mm</b>.</li>
+      <li>Il descend de <b>7 mm</b> sous le fuselage, et son bord arrière est décalé de <b>7 mm</b> vers la queue.</li>
+      <li>Son épaisseur (l'extrusion) est de <b>5 mm</b>, pas plus : le canal de la catapulte fait 6,2 mm de large.</li>
+    </ul>
+  </div>
+
+  <details class="carte no-print"><summary><b>Pour le professeur : fichiers à imprimer</b></summary>
+    <p>Catapulte : <a href="2si-planeur/catapulte_rail.stl" download>rail</a> · <a href="2si-planeur/catapulte_pied.stl" download>pied</a>. Planeurs de démonstration (une aile et un stabilisateur pour les trois fuselages) : <a href="2si-planeur/aile.stl" download>aile</a> · <a href="2si-planeur/stabilisateur.stl" download>stabilisateur</a> · <a href="2si-planeur/fuselage_A_reference.stl" download>fuselage A (équilibré)</a> · <a href="2si-planeur/fuselage_B_nez_court.stl" download>fuselage B (cabre)</a> · <a href="2si-planeur/fuselage_C_nez_lourd.stl" download>fuselage C (pique)</a>.</p>
+    <p class="discret">Fuselages à 100 % de remplissage. Les limites du cahier des charges et le barème se changent directement dans cette page (<code>entrainements/2si-planeur.html</code>).</p>
+  </details>
+</section>
+
+<!-- ============ LES ÉTAPES ============ -->
+<section class="pl-sec" id="s-etapes" hidden>
+  <p>Le projet avance au rythme de la classe : on passe à l'étape suivante quand celle-ci est finie. Coche une étape quand ton équipe l'a terminée.</p>
+  <div id="etapes"></div>
+</section>
+
+<!-- ============ ONSHAPE ============ -->
+<section class="pl-sec" id="s-onshape" hidden>
+  <div class="carte">
+    <h2 style="margin-top:0">Avant de commencer</h2>
+    <p>Onshape est un logiciel de dessin 3D qui marche <b>dans le navigateur</b> : rien à installer, au lycée comme à la maison, sur ordinateur ou sur tablette. Il est gratuit pour les élèves.</p>
+    <ol class="pl-pas">
+      <li>Va sur <a href="https://www.onshape.com/fr/education/sign-up" target="_blank" rel="noopener">onshape.com → Éducation → créer un compte</a>. Choisis « Étudiant », avec ton adresse e-mail. Note ton mot de passe dans ton cahier.</li>
+      <li>Ouvre <a href="https://cad.onshape.com" target="_blank" rel="noopener">cad.onshape.com</a> et connecte-toi. Clique sur <b>Créer → Document</b>. Nomme-le <code>Planeur – équipe …</code>.</li>
+      <li>Clique sur <b>Partager</b> (en haut à droite) et ajoute l'adresse e-mail de tes coéquipiers et de ton professeur.</li>
+    </ol>
+    <p class="astuce">Si un bouton est en anglais : Sketch = Esquisse, Extrude = Extruder, Dimension = Cote, Export = Exporter.</p>
+  </div>
+
+  <div class="carte">
+    <h2 style="margin-top:0">Pièce 1 : le fuselage</h2>
+    <svg viewBox="0 0 640 190" role="img" aria-label="Esquisse du fuselage vu de côté : nez, fente de l'aile, crochet, poutre, dérive, fente du stabilisateur">
+      <path d="M40 70 q4 -26 30 -26 H330 l24 18 H520 l34 -48 h28 V96 H190 l22 22 h-16 l-22 -22 H52 q-12 0 -12 -26 Z" fill="var(--accent-soft)" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M200 60 L320 66" stroke="var(--bad)" stroke-width="4"/><path d="M524 80 h50" stroke="var(--bad)" stroke-width="4"/>
+      <g font-size="13" fill="currentColor" text-anchor="middle"><text x="60" y="124">nez (lourd)</text><text x="200" y="140">crochet imposé</text><text x="260" y="34">fente de l'aile</text><text x="430" y="52">poutre (fine)</text><text x="582" y="12" text-anchor="end">dérive</text><text x="548" y="118">fente du stabilisateur</text></g>
+      <g stroke="currentColor" stroke-width="1"><line x1="40" y1="160" x2="582" y2="160"/><line x1="40" y1="152" x2="40" y2="168"/><line x1="582" y1="152" x2="582" y2="168"/></g>
+      <text x="311" y="180" font-size="13" fill="currentColor" text-anchor="middle" font-weight="600">210 mm maximum</text>
+    </svg>
+    <ol class="pl-pas">
+      <li>Dans la liste à gauche, clique sur le plan <b>Face</b>, puis sur <b>Esquisse</b>.</li>
+      <li>Avec l'outil <b>Ligne</b> (touche <kbd>L</kbd>), trace le contour du fuselage vu de côté, comme sur le dessin. Le contour doit être <b>fermé</b> : tu reviens au point de départ.</li>
+      <li>Ajoute le <b>crochet imposé</b> sous le nez (cotes dans l'onglet « Le défi »).</li>
+      <li>Avec l'outil <b>Cote</b> (touche <kbd>D</kbd>), clique sur chaque trait et tape sa longueur. Quand tous les traits sont <b>noirs</b>, l'esquisse est finie.</li>
+      <li>Trace les deux <b>fentes</b> : un rectangle fin, haut de <b>1,0 mm</b> pour une aile de 0,8 mm. L'aile se glissera dedans.</li>
+      <li>Clique sur la coche verte, puis sur <b>Extruder</b> (<kbd>Maj</kbd> + <kbd>E</kbd>). Profondeur : <b>5 mm</b>. Valide.</li>
+    </ol>
+    <p class="astuce">La fente de l'aile penche un peu : son avant est 2 à 3 mm plus haut que son arrière. Sans cela, le planeur pique.</p>
+  </div>
+
+  <div class="carte">
+    <h2 style="margin-top:0">Pièce 2 : l'aile, puis le stabilisateur</h2>
+    <svg viewBox="0 0 640 150" role="img" aria-label="Aile vue de dessus avec son envergure et sa corde">
+      <path d="M60 40 H580 V70 L500 96 H140 L60 70 Z" fill="var(--accent-soft)" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+      <text x="320" y="30" font-size="13" fill="currentColor" text-anchor="middle">avant de l'aile (bord d'attaque)</text>
+      <g stroke="currentColor" stroke-width="1"><line x1="60" y1="120" x2="580" y2="120"/><line x1="60" y1="112" x2="60" y2="128"/><line x1="580" y1="112" x2="580" y2="128"/><line x1="320" y1="40" x2="320" y2="96" stroke-dasharray="4 3"/></g>
+      <text x="320" y="140" font-size="13" fill="currentColor" text-anchor="middle" font-weight="600">envergure : 210 mm maximum</text><text x="332" y="72" font-size="13" fill="currentColor">corde</text>
+    </svg>
+    <ol class="pl-pas">
+      <li>Clique sur le plan <b>Dessus</b>, puis sur <b>Esquisse</b>. Trace la forme de ton aile vue de dessus. C'est <b>ta</b> forme : rectangle, bouts effilés, bouts arrondis…</li>
+      <li>Cote l'envergure et la corde. La corde au milieu doit être <b>la plus grande</b>, sinon l'aile ne passe pas dans la fente.</li>
+      <li>Extrude de <b>0,8 mm</b> (4 couches). Dans la fenêtre Extruder, choisis <b>Nouveau</b> pour créer une pièce séparée.</li>
+      <li>Refais la même chose pour le stabilisateur, plus petit : environ un quart de la surface de l'aile.</li>
+    </ol>
+  </div>
+
+  <div class="carte">
+    <h2 style="margin-top:0">Vérifier, puis exporter</h2>
+    <ol class="pl-pas">
+      <li><b>Masse</b> : clique sur une pièce dans la liste, puis sur l'icône de la balance en bas à droite (« Propriétés de masse »). Relève le <b>volume</b> en cm³ et calcule : masse = volume × 1,24.</li>
+      <li>Additionne les trois pièces. Plus de 30 g ? Affine la poutre ou raccourcis l'aile.</li>
+      <li><b>Export</b> : clic droit sur la pièce dans la liste → <b>Exporter</b>. Format <b>STL</b>, unité <b>millimètre</b>. Nomme le fichier <code>equipe_piece_v1.stl</code>.</li>
+      <li>Envoie les trois fichiers STL à ton professeur.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ MES ESSAIS ============ -->
+<section class="pl-sec" id="s-essais" hidden>
+  <div class="carte pl-essais">
+    <h2 style="margin-top:0">Carnet d'essais</h2>
+    <p>Trois lancers par version, au même cran. Le site calcule la moyenne et l'écart entre tes versions. <span class="discret">Le carnet est gardé sur cet appareil : imprime-le ou recopie-le pour le rendre.</span></p>
+    <p><label>Équipe : <input type="text" id="equipe" style="width:16em;min-width:0" placeholder="noms des membres"></label> &nbsp; <label>Cran de tirage : <input type="number" id="cran" style="width:5em" placeholder="mm"></label></p>
+    <div class="pl-scroll"><table class="pl" id="t-essais">
+      <tr><th>Version</th><th class="n">Masse (g)</th><th class="n">Lancer 1 (m)</th><th class="n">Lancer 2 (m)</th><th class="n">Lancer 3 (m)</th><th class="n">Moyenne</th><th>Ce que j'observe en vol</th></tr>
+    </table></div>
+    <p id="bilan" class="formule" hidden></p>
+    <h3 style="margin-top:18px">Entre la version 1 et la version 2</h3>
+    <p><label>La seule chose que je change :<br><input type="text" id="modif" placeholder="exemple : j'ajoute 2 g dans le nez"></label></p>
+    <p><label>Pourquoi (ce que j'ai observé) :<br><input type="text" id="pourquoi" placeholder="exemple : la version 1 lève le nez puis tombe"></label></p>
+    <p><label>Ce que j'attends :<br><input type="text" id="attendu" placeholder="exemple : un vol plus à plat, donc plus long"></label></p>
+    <p class="no-print"><button class="btn" onclick="window.print()">Imprimer le carnet</button> <button class="btn sec" id="raz">Tout effacer</button></p>
+  </div>
+  <div class="carte">
+    <h2 style="margin-top:0">Lire le vol de ton planeur</h2>
+    <div class="pl-scroll"><table class="pl">
+      <tr><th>Ce que tu vois</th><th>Cause probable</th><th>Modification à essayer</th></tr>
+      <tr><td>Il lève le nez, ralentit, puis tombe</td><td>Centre de gravité trop en arrière</td><td>Ajouter du lest dans le nez</td></tr>
+      <tr><td>Il pique et touche le sol tout de suite</td><td>Centre de gravité trop en avant</td><td>Enlever du lest, ou reculer l'aile</td></tr>
+      <tr><td>Il part toujours du même côté</td><td>Aile pas centrée, ou dérive tordue</td><td>Recentrer l'aile, vérifier la dérive</td></tr>
+      <tr><td>Il vole droit mais pas loin</td><td>Trop lourd, ou trop de traînée</td><td>Alléger la queue, affiner le fuselage</td></tr>
+      <tr><td>L'aile se plie au lancer</td><td>Aile trop fine ou trop longue</td><td>Raccourcir l'aile ou l'épaissir de 0,2 mm</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<!-- ============ ÉVALUATION ============ -->
+<section class="pl-sec" id="s-eval" hidden>
+  <div class="carte">
+    <h2 style="margin-top:0">Comment le projet est noté</h2>
+    <p>Note sur 20. La distance du planeur ne compte que pour 3 points : ce qui est noté d'abord, c'est <b>ta façon de travailler</b>.</p>
+    <div class="pl-scroll"><table class="pl" id="t-bareme"></table></div>
+  </div>
+  <div class="carte">
+    <h2 style="margin-top:0">Les critères, niveau par niveau</h2>
+    <p>Pour chaque critère, le professeur te place sur un des quatre niveaux. Lis la colonne de droite : c'est ce qu'il faut viser.</p>
+    <div class="pl-scroll"><table class="pl pl-niv" id="t-criteres"></table></div>
+  </div>
+  <div class="carte">
+    <h2 style="margin-top:0">Les trois séries notées du site</h2>
+    <p>Elles sont sur ton tableau de bord, dans « Projet planeur ». Tu peux les refaire : les questions et les valeurs changent, et c'est ta <b>meilleure note</b> qui compte.</p>
+    <ul>
+      <li><b>Planeur 1 · Voler et rester stable</b> : à faire avant de dessiner.</li>
+      <li><b>Planeur 2 · Dessiner et imprimer</b> : à faire pendant le travail sur Onshape.</li>
+      <li><b>Planeur 3 · Essayer, mesurer, améliorer</b> : à faire avant les essais de la version 1.</li>
+    </ul>
+    <p><a class="btn" href="../index.html#/tableau">Aller aux séries →</a></p>
+  </div>
+</section>
+</main>
+
+<script>
+/* ---------- Réglages : étapes, barème, critères (à modifier ici) ---------- */
+const ETAPES = [
+  { t: "Lancer avant de concevoir", d: "Tu lances trois planeurs déjà imprimés : un qui vole bien, un qui lève le nez, un qui pique. Tu cherches ce qui les différencie.", l: "Livrable : pour chaque planeur, ce que tu observes et où se trouve son centre de gravité (équilibre sur un doigt).", s: "Série « Planeur 1 »" },
+  { t: "Prendre en main Onshape", d: "Compte, document partagé, première esquisse cotée : le fuselage avec le crochet imposé.", l: "Livrable : un fuselage extrudé, esquisse aux traits noirs, crochet aux bonnes cotes.", s: "Série « Planeur 2 »" },
+  { t: "Concevoir la version 1", d: "Ton équipe dessine l'aile et le stabilisateur, vérifie la masse et les dimensions, puis exporte les fichiers STL.", l: "Livrable : trois fichiers STL conformes au cahier des charges. Le professeur imprime avant la séance suivante.", s: "" },
+  { t: "Essayer et mesurer", d: "Trois lancers au même cran, distances dans le carnet d'essais. Tu décris le vol et tu choisis UNE modification.", l: "Livrable : carnet d'essais rempli pour la version 1, modification choisie et justifiée.", s: "Série « Planeur 3 »" },
+  { t: "Concevoir la version 2", d: "Tu modifies ton modèle Onshape (une seule chose), tu exportes de nouveau.", l: "Livrable : fichiers STL de la version 2.", s: "" },
+  { t: "Le concours", d: "Les deux groupes s'affrontent : trois lancers par équipe, classement sur la moyenne. Puis chaque équipe explique en deux minutes ce qu'elle a changé et ce que ça a donné.", l: "Livrable : carnet d'essais complet, avec l'écart entre la version 1 et la version 2.", s: "" }
+];
+const BAREME = [
+  ["A", "Connaissances", "Les trois séries notées du site (meilleure note de chacune)", 5],
+  ["B", "Modèle Onshape", "Esquisses cotées, cahier des charges respecté, fichiers prêts à imprimer", 5],
+  ["C", "Essais et amélioration", "Carnet d'essais, modification unique et justifiée, analyse du résultat", 5],
+  ["D", "Performance", "Distance moyenne de ta meilleure version au concours", 3],
+  ["E", "Travail d'équipe", "Chacun participe, délais tenus, matériel respecté", 2]
+];
+const CRITERES = [
+  ["B1 · Esquisses", "Contour ouvert ou sans cotes", "Contour fermé, quelques cotes", "Esquisse entièrement cotée (traits noirs)", "Entièrement cotée, et facile à modifier en changeant une cote"],
+  ["B2 · Cahier des charges", "Plusieurs limites dépassées", "Une limite dépassée, repérée par le professeur", "Toutes les limites respectées", "Toutes respectées, et vérifiées par l'équipe (masse calculée, dimensions relevées)"],
+  ["B3 · Prêt à imprimer", "Fichiers manquants ou inutilisables", "STL fournis, à corriger avant impression", "STL corrects, pièces à plat, épaisseurs multiples de 0,2 mm", "STL corrects du premier coup, bien nommés, rendus à temps"],
+  ["C1 · Mesures", "Pas de mesures notées", "Mesures incomplètes ou crans différents", "3 lancers par version, même cran, moyenne juste", "Mesures complètes, et la régularité des lancers est commentée"],
+  ["C2 · Modification", "Aucune modification, ou tout changé d'un coup", "Une modification, sans raison donnée", "Une seule modification, justifiée par une observation du vol", "Une seule modification, justifiée, avec le résultat attendu annoncé avant l'essai"],
+  ["C3 · Analyse", "Pas de conclusion", "« C'est mieux » ou « c'est moins bien », sans chiffre", "Écart entre les deux versions calculé et commenté", "Écart calculé, comparé à la variation entre lancers, et suite proposée"],
+  ["E · Équipe", "Un seul membre travaille", "Travail inégal, retards", "Chacun a une part visible du travail, délais tenus", "Équipe autonome, qui aide aussi les autres"]
+];
+const PERF = "Performance (3 points) : 3 points pour le premier tiers du classement, 2 points pour le deuxième tiers, 1 point pour le dernier tiers. Un planeur qui a volé rapporte toujours au moins 1 point.";
+
+/* ---------- Onglets ---------- */
+const boutons = [...document.querySelectorAll(".pl-nav button")];
+function ouvrir(s) { boutons.forEach((b) => b.setAttribute("aria-selected", b.dataset.s === s)); document.querySelectorAll(".pl-sec").forEach((x) => x.hidden = x.id !== "s-" + s); }
+boutons.forEach((b) => b.onclick = () => { ouvrir(b.dataset.s); history.replaceState(null, "", "#" + b.dataset.s); window.scrollTo(0, 0); });
+if (boutons.some((b) => b.dataset.s === location.hash.slice(1))) ouvrir(location.hash.slice(1));
+
+/* ---------- Mémoire locale ---------- */
+const CLE = "sip_2si_planeur";
+let D = {}; try { D = JSON.parse(localStorage.getItem(CLE)) || {}; } catch (e) { D = {}; }
+const garder = () => { try { localStorage.setItem(CLE, JSON.stringify(D)); } catch (e) { /* stockage indisponible : on continue sans */ } };
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ---------- Étapes ---------- */
+D.etapes = D.etapes || {};
+document.getElementById("etapes").innerHTML = ETAPES.map((e, i) => `<div class="carte pl-etape"><div class="pl-num">${i + 1}</div><div>
+  <h3>${e.t}</h3><p style="margin:.2em 0">${e.d}</p><p class="discret" style="margin:.2em 0">${e.l}</p>
+  ${e.s ? `<p style="margin:.3em 0"><span class="etiquette">à faire sur le site</span> ${e.s}</p>` : ""}
+  <label class="pl-fait"><input type="checkbox" data-e="${i}" ${D.etapes[i] ? "checked" : ""}> Étape terminée</label></div></div>`).join("");
+document.querySelectorAll("[data-e]").forEach((c) => c.onchange = () => { D.etapes[c.dataset.e] = c.checked; garder(); });
+
+/* ---------- Carnet d'essais ---------- */
+D.essais = D.essais || {};
+const VERSIONS = ["Version 1", "Version 2", "Concours"];
+const T = document.getElementById("t-essais");
+const nbfr = (x, n = 2) => x.toFixed(n).replace(".", ",");
+VERSIONS.forEach((v, i) => { const e = D.essais[i] || {}; const tr = document.createElement("tr");
+  tr.innerHTML = `<td><b>${v}</b></td><td class="n"><input type="number" step="0.1" min="0" data-v="${i}" data-k="m" value="${esc(e.m)}" aria-label="masse ${v}"></td>` +
+    [1, 2, 3].map((k) => `<td class="n"><input type="number" step="0.01" min="0" data-v="${i}" data-k="d${k}" value="${esc(e["d" + k])}" aria-label="lancer ${k} ${v}"></td>`).join("") +
+    `<td class="n pl-moy" id="moy${i}">—</td><td><input type="text" data-v="${i}" data-k="obs" value="${esc(e.obs)}" aria-label="observation ${v}"></td>`; T.appendChild(tr); });
+function moyenne(i) { const e = D.essais[i] || {}; const L = [e.d1, e.d2, e.d3].map(parseFloat).filter((x) => isFinite(x) && x >= 0); return L.length === 3 ? (L[0] + L[1] + L[2]) / 3 : null; }
+function calcul() {
+  const M = VERSIONS.map((v, i) => moyenne(i));
+  M.forEach((m, i) => document.getElementById("moy" + i).textContent = m == null ? "—" : nbfr(m) + " m");
+  const b = document.getElementById("bilan");
+  if (M[0] != null && M[1] != null && M[0] > 0) { const ec = Math.abs(M[1] - M[0]) / M[0] * 100;
+    b.hidden = false; b.textContent = `Version 2 : ${M[1] > M[0] ? "+" : M[1] < M[0] ? "−" : ""}${nbfr(Math.abs(M[1] - M[0]))} m par rapport à la version 1 · écart relatif ${nbfr(ec, 0)} %`; } else b.hidden = true;
+}
+T.addEventListener("input", (ev) => { const el = ev.target; if (!el.dataset.k) return; (D.essais[el.dataset.v] = D.essais[el.dataset.v] || {})[el.dataset.k] = el.value; garder(); calcul(); });
+["equipe", "cran", "modif", "pourquoi", "attendu"].forEach((id) => { const el = document.getElementById(id); el.value = D[id] || ""; el.oninput = () => { D[id] = el.value; garder(); }; });
+document.getElementById("raz").onclick = () => { if (confirm("Effacer tout le carnet d'essais et les étapes cochées sur cet appareil ?")) { try { localStorage.removeItem(CLE); } catch (e) { /* rien */ } location.reload(); } };
+calcul();
+
+/* ---------- Barème et critères ---------- */
+document.getElementById("t-bareme").innerHTML = `<tr><th></th><th>Partie</th><th>Ce qui est regardé</th><th class="n">Points</th></tr>` +
+  BAREME.map((b) => `<tr><td class="n"><b>${b[0]}</b></td><td><b>${b[1]}</b></td><td>${b[2]}</td><td class="n pl-pts">${b[3]}</td></tr>`).join("") +
+  `<tr><th colspan="3">Total</th><th class="n pl-pts">${BAREME.reduce((s, b) => s + b[3], 0)}</th></tr>`;
+document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Niveau 1 · insuffisant</th><th>Niveau 2 · fragile</th><th>Niveau 3 · attendu</th><th>Niveau 4 · très bien</th></tr>` +
+  CRITERES.map((c) => `<tr><td><b>${c[0]}</b></td>${c.slice(1).map((x) => `<td>${x}</td>`).join("")}</tr>`).join("") + `<tr><td colspan="5">${PERF}</td></tr>`;
+</script>
+</body>
+</html>
