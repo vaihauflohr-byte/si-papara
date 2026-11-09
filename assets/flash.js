@@ -9,8 +9,12 @@
    mêmes questions à partir de la source, et démarre son chrono réglé sur l'heure du serveur : il finit avec celui
    du tableau, la copie est rendue toute seule à 0:00. Une seule copie notée par jour : module flash-<date du jour>.
    Correction : chaque réponse part à l'IA (SIP.ia.corriger → fonction Supabase « corriger ») avec la question,
-   le corrigé et les éléments du barème ; verdict par élément (présent 1, en partie ½, absent 0). Sans IA
-   (réseau, quota, aperçu) : l'élève coche lui-même avec le corrigé.
+   le corrigé et les éléments du barème ; verdict par élément (présent 1, en partie ½, absent 0). La note part au
+   prof dès que la copie est corrigée, mais l'ÉLÈVE NE VOIT NI LA CORRECTION NI SA NOTE le jour même tant que le
+   prof ne l'a pas montrée (bouton « Montrer la correction aux élèves » : supabase/flash.sql, flash_montrer) ;
+   elles s'ouvrent toutes seules le lendemain. Si l'IA n'a pas pu corriger une réponse, l'élève la coche lui-même
+   avec le corrigé, une fois la correction montrée.
+   Durée : 5 minutes (DUREE_FLASH), ou celle donnée par le flash préparé.
    Sources : « AAAA-MM-JJ » (flash préparé), « alea-<graine> » (tirage, le même chez tous), « q:<réf>,<réf>… »
    (questions choisies) ; une réf est « AAAA-MM-JJ~<n° de question> » ou « b~<id de la banque> ».
    ===================================================================== */
@@ -28,7 +32,7 @@ window.SIP = window.SIP || {};
   const nb = (x) => (SIP.nb ? SIP.nb(x, 3) : String(Math.round(x * 10) / 10).replace(".", ","));
   const POIDS = { present: 1, partiel: 0.5, absent: 0 };
   const PASTILLE = { present: "✓", partiel: "½", absent: "✗" };
-  const DUREE_Q = 60;            // flash tiré ou composé : une minute par question
+  const DUREE_FLASH = 300, DUREE_Q = 60;   // un flash dure 5 minutes (une minute de plus par question au-delà de 5)
   const brut = (h) => String(h ?? "")
     .replace(/<span class="frac"><span class="nu">(.*?)<\/span><span class="sr"> sur <\/span><span class="de">(.*?)<\/span><\/span>/g, "($1)/($2)")
     .replace(/<sup>(.*?)<\/sup>/g, "^$1").replace(/<sub>(.*?)<\/sub>/g, "$1").replace(/<br\s*\/?>/g, " ").replace(/<[^>]+>/g, "")
@@ -46,7 +50,7 @@ window.SIP = window.SIP || {};
   function seance(jour, refs, duree) {
     const qs = (refs || []).map(qRef);
     if (!qs.length || qs.some((q) => !q)) return null;
-    return { date: jour, refs, duree_s: duree || qs.length * DUREE_Q, questions: qs };
+    return { date: jour, refs, duree_s: duree || Math.max(DUREE_FLASH, qs.length * DUREE_Q), questions: qs };
   }
   // « ce qui est déjà tombé » : les questions des flashs faits avant ce jour, et la banque des notions déjà vues
   function dejaTombe(jour, niveau) {
@@ -105,6 +109,14 @@ window.SIP = window.SIP || {};
     const f = flashDe(jour);
     return f ? seance(jour, refsFlash(f), f.duree_s) : null;
   }
+  // la correction (et la note) du jour restent cachées à l'élève tant que le prof ne les a pas montrées ;
+  // celles des jours passés sont visibles. CORRIGEES : jours montrés, renvoyés par la base (flash_etat).
+  let CORRIGEES = new Set();
+  const visible = (jour) => jour < SIP.aujourdhui() || CORRIGEES.has(jour);
+  async function majCorrigees() {
+    try { const r = await SIP.api.flashEtat(); CORRIGEES = new Set((r && r.corrigees) || []); return true; } catch (e) { return false; }
+  }
+  const noteVisible = (module) => { const m = /^flash-(\d{4}-\d{2}-\d{2})$/.exec(module || ""); return !m || visible(m[1]); };
   const flashsPour = (niveau) => tous().some((f) => (f.niveau || "TSI") === niveau) || banque().some((q) => (q.niveau || "TSI") === niveau);
 
   const verdict = (st, k, i) => (st.cor && st.cor[k] && st.cor[k].v && st.cor[k].v[i]) || null;
@@ -135,6 +147,10 @@ window.SIP = window.SIP || {};
     if (!flashsPour(niveau)) return "";
     const auj = SIP.aujourdhui(), base = { date: auj }, st = lire(base), fait = faits(base, hist)[0];
     const F = seanceDuJour(auj);
+    if ((fait || (st && st.rendu)) && !visible(auj)) {
+      return `<a class="carte fl-tuile fait" href="#/flash/${auj}"><span class="fl-eclair" aria-hidden="true">⚡</span>
+        <div><div class="eyebrow">Flash du jour · rendu</div><div class="fl-tuile-t">Copie rendue ✓</div><div class="discret">Ta correction et ta note s'afficheront quand le prof les montrera.</div></div><span class="btn sec">Ma copie →</span></a>`;
+    }
     if (fait || (st && st.envoye && F)) {
       const n = fait ? sur20(fait.score, fait.score_max) : sur20(total(F, st).s, total(F, st).m);
       return `<a class="carte fl-tuile fait" href="#/flash/${auj}"><span class="fl-eclair" aria-hidden="true">⚡</span>
@@ -152,7 +168,7 @@ window.SIP = window.SIP || {};
     const auj = SIP.aujourdhui(), f = flashDe(auj), n = dejaTombe(auj, "TSI").length;
     return `<section class="carte fl-prof"><div class="eyebrow">Mode professeur · flash</div>
       <h2>${f ? `Flash préparé aujourd'hui : ${f.questions.length} questions · ${minutes(f)}` : "Flash du jour"}</h2>
-      <p class="discret">Choisis le flash ${f ? "(celui préparé, " : "("}3 questions au hasard parmi les ${n} déjà tombées, ou celles que tu coches), projette-le puis clique « Lancer » : le chrono des élèves part avec le tien.</p>
+      <p class="discret">Choisis le flash ${f ? "(celui préparé, " : "("}3 questions au hasard parmi les ${n} déjà tombées, ou celles que tu coches), projette-le puis clique « Lancer » : le chrono des élèves part avec le tien. À la fin, leur correction et leur note restent cachées jusqu'à ce que tu cliques « Montrer la correction aux élèves ».</p>
       <a class="btn" href="#/flash/projeter">⚡ Choisir et projeter le flash</a></section>`;
   }
 
@@ -167,10 +183,11 @@ window.SIP = window.SIP || {};
     $app.innerHTML = `<p class="no-print"><a href="#/tableau">← Tableau de bord</a></p><h1>Mes flashs</h1>
       <p class="discret">Le flash du début de séance : quelques questions en quelques minutes, sur ce qu'on a déjà vu. Chaque flash garde ta correction et le corrigé : relis-les avant le DS.</p>
       ${L.length ? `<div class="nb-liste">${L.map((jour) => { const base = { date: jour }, fait = faits(base, hist)[0], st = lire(base), F = seanceDuJour(jour);
-        const n = fait ? sur20(fait.score, fait.score_max) : st && st.envoye && F ? sur20(total(F, st).s, total(F, st).m) : null;
+        const rendu = !!(fait || (st && st.rendu)), cache = rendu && !visible(jour);
+        const n = cache ? null : fait ? sur20(fait.score, fait.score_max) : st && st.envoye && F ? sur20(total(F, st).s, total(F, st).m) : null;
         return `<a class="nb-row fl-ligne" href="#/flash/${jour}"><span class="nb-rk">⚡</span>
           <span class="nb-nm"><b>${esc(jourLong(jour))}</b><span class="discret">${F ? F.questions.map((q) => esc(q.theme || "")).join(" · ") : "copie faite sur un autre appareil"}</span></span>
-          ${n !== null ? `<span class="etiquette ${classeNote(n)}">${nb(n)}/20</span>` : jour === auj ? `<span class="etiquette alerte">à faire</span>` : `<span class="etiquette">pas fait</span>`}<span class="nb-go" aria-hidden="true">→</span></a>`; }).join("")}</div>`
+          ${n !== null ? `<span class="etiquette ${classeNote(n)}">${nb(n)}/20</span>` : cache ? `<span class="etiquette" title="La note s'affichera quand le prof montrera la correction">rendu ✓</span>` : jour === auj ? `<span class="etiquette alerte">à faire</span>` : `<span class="etiquette">pas fait</span>`}<span class="nb-go" aria-hidden="true">→</span></a>`; }).join("")}</div>`
         : `<p class="discret">Pas encore de flash.</p>`}`;
   }
 
@@ -180,7 +197,7 @@ window.SIP = window.SIP || {};
     const auj = SIP.aujourdhui();
     if (!estDate(jour)) jour = auj;
     const base = { date: jour }, st = lire(base), F = seanceDuJour(jour), fait = faits(base, ctx.hist);
-    if (st && st.rendu && F) return correction($app, F, st, ctx);
+    if (st && st.rendu && F) return visible(jour) ? correction($app, F, st, ctx) : copieRendue($app, F, st, ctx);
     if (st && st.debut && F) return reste(F, st) > 0 ? repondre($app, F, st, ctx) : rendre($app, F, st, ctx, true);
     if (fait.length) return dejaFait($app, F, fait[0], jour);
     if (jour > auj) { $app.innerHTML = `${retour()}<div class="carte"><h1>Flash du ${esc(jourLong(jour))}</h1><p>Il n'est pas encore ouvert.</p></div>`; return; }
@@ -197,7 +214,7 @@ window.SIP = window.SIP || {};
           <li>Seul, en silence, calculatrice autorisée.</li>
           <li>Le flash démarre <b>quand le prof le lance</b> au tableau : reste sur cette page, ton chrono partira avec le sien. À 0:00, ta copie est rendue toute seule.</li>
           <li>Pour chaque question, écris ton calcul et ton résultat <b>avec l'unité</b>.</li>
-          <li>Ensuite, une IA corrige ta copie avec le corrigé du prof. Une seule copie : c'est elle qui est notée.</li>
+          <li>Une IA corrige ta copie avec le corrigé du prof ; tu verras ta correction et ta note quand le prof les montrera. Une seule copie : c'est elle qui est notée.</li>
         </ul>`;
 
   // le jour du flash : l'élève attend que le prof le lance (la base est interrogée toutes les 2 s)
@@ -214,6 +231,7 @@ window.SIP = window.SIP || {};
       enVol = true;
       try {
         const r = await SIP.api.flashEtat();
+        if (r && r.corrigees) CORRIGEES = new Set(r.corrigees);
         if (vue !== VUE) return;
         // un lancement d'un autre jour (resté dans la base) ne compte pas
         if (r && r.lance && SIP.jourTahiti(r.debut) === jour) {
@@ -272,7 +290,65 @@ window.SIP = window.SIP || {};
   function rendre($app, f, st, ctx, auto) {
     arreter();
     if (!st.rendu) { st.rendu = Math.min(Date.now(), finDe(f, st) + 15000); st.auto = !!auto; st.cor = st.cor || {}; garder(f, st); }
-    correction($app, f, st, ctx);
+    if (visible(f.date)) correction($app, f, st, ctx); else copieRendue($app, f, st, ctx);
+  }
+
+  // ---------- la note part au prof (dès que toutes les réponses sont corrigées) ----------
+  async function envoyerNote(f, st, ctx) {   // → null (pas prête ou déjà partie) | "envoye" | "file" | { erreur }
+    if (!complete(f, st) || st.envoye || ENVOIS.has(cle(f))) return null;
+    ENVOIS.add(cle(f));
+    const { s, m } = total(f, st);
+    const details = f.questions.map((q, k) => {
+      const p = ptsQ(f, st, k), b = maxQ(q), parEleve = q.elements.some((e, i) => (verdict(st, k, i) || {}).par === "eleve");
+      return { q: `${q.theme ? q.theme + " — " : ""}${brut(q.enonce)}`, rep: (st.reponses[k] || "").slice(0, 600) + (parEleve ? " [auto-évaluée]" : ""), attendu: brut(q.corrige),
+        pts: p, bareme: b, erreurs: p < b ? 1 : 0, par: parEleve ? "eleve" : "ia",
+        elements: q.elements.map((e, i) => { const v = verdict(st, k, i) || {}; return { t: e.t, p: e.p, verdict: v.verdict, par: v.par }; }) };
+    });
+    try {
+      const ok = await ctx.ecrire("enregistrer", { module: moduleDe(f), titre: `Flash du ${jourLong(f.date)}`, type: "externe", score: s, score_max: m,
+        duree_s: Math.max(1, Math.round((st.rendu - st.debut) / 1000)), details });
+      st.envoye = true; ENVOIS.delete(cle(f)); garder(f, st);
+      return ok ? "envoye" : "file";
+    } catch (e) { ENVOIS.delete(cle(f)); return { erreur: e.message || "erreur" }; }
+  }
+
+  // ---------- copie rendue, correction pas encore montrée : ni corrigé ni note ----------
+  const SANS_RELANCE = ["QUOTA", "IA_ABSENTE", "CLE_ABSENTE", "NON_CONNECTE", "PROF_NON_CONNECTE", "NON_AUTORISE", "SESSION_EXPIREE"];
+  function copieRendue($app, f, st, ctx) {
+    arreter();
+    const vue = VUE, jour = f.date;
+    st.cor = st.cor || {};
+    $app.innerHTML = `${retour()}
+      <div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}</div><h1>Copie rendue ✓</h1>
+      ${st.auto ? `<p class="discret">Temps écoulé : ta copie a été rendue à 0:00.</p>` : ""}
+      <div class="carte fl-cache"><p><b>Ta correction et ta note s'afficheront quand le prof les montrera</b> (au plus tard demain, dans « Mes flashs »).</p>
+        <p class="discret" id="fl-etat-copie" aria-live="polite">${st.envoye ? "✓ Ta copie est corrigée et envoyée au prof." : "Ta copie est en train d'être corrigée : garde la page ouverte quelques secondes."}</p></div>
+      <h2 class="fl-h2">Ta copie</h2>
+      ${f.questions.map((q, k) => { const r = (st.reponses[k] || "").trim(); return `<section class="carte fl-q">${teteQ(q, k)}${corpsQ(q)}
+        <div class="fl-ta-rep"><div class="eyebrow">Ta réponse</div>${r ? `<p class="fl-rep">${esc(r)}</p>` : `<p class="fl-rep vide">Pas de réponse.</p>`}</div></section>`; }).join("")}
+      ${apercu() ? `<p class="discret no-print"><button type="button" class="btn-lien" id="fl-reset">↺ Recommencer ce flash (aperçu seulement)</button></p>` : ""}`;
+    const etat = document.getElementById("fl-etat-copie");
+    const dire = (t) => { if (vue === VUE && etat) etat.textContent = t; };
+    // la correction par l'IA se fait tout de suite, en arrière-plan (une nouvelle tentative si l'IA ne répond pas) ;
+    // la note part au prof même si l'élève quitte la page entre-temps
+    if (!st.envoye) {
+      Promise.all(f.questions.map((q, k) => (qComplete(f, st, k) ? null : corrigerQ(f, st, k))))
+        .then(() => {
+          const ko = f.questions.map((q, k) => k).filter((k) => !qComplete(f, st, k) && !SANS_RELANCE.includes((st.cor[k] || {}).code));
+          return ko.length ? new Promise((ok) => setTimeout(ok, 4000)).then(() => Promise.all(ko.map((k) => corrigerQ(f, st, k)))) : null;
+        })
+        .then(async () => {
+          if (!complete(f, st)) { dire("Ta copie est rendue. Une réponse n'a pas pu être corrigée par l'IA : tu la vérifieras toi-même avec le corrigé, quand le prof le montrera."); return; }
+          const r = await envoyerNote(f, st, ctx);
+          if (r === "envoye" || (r === null && st.envoye)) dire("✓ Ta copie est corrigée et envoyée au prof.");
+          else if (r === "file") dire("Ta copie est corrigée ; elle partira au prof dès que le réseau revient.");
+          else if (r && r.erreur) dire("Ta copie est corrigée ; elle partira au prof quand tu seras reconnecté.");
+        });
+    }
+    // dès que le prof montre la correction, elle s'affiche (vérification toutes les 5 s)
+    MINUTERIE = setInterval(async () => { await majCorrigees(); if (vue === VUE && visible(jour)) correction($app, f, st, ctx); }, 5000);
+    const rz = document.getElementById("fl-reset");
+    if (rz) rz.onclick = () => { effacer(f); eleve($app, f.date, ctx); };
   }
 
   // ---------- correction ----------
@@ -308,25 +384,10 @@ window.SIP = window.SIP || {};
     };
     MAJ = maj;
     const envoyer = async () => {
-      if (!complete(f, st) || st.envoye || ENVOIS.has(cle(f))) return;
-      ENVOIS.add(cle(f));
-      const { s, m } = total(f, st);
-      const details = f.questions.map((q, k) => {
-        const p = ptsQ(f, st, k), b = maxQ(q), parEleve = q.elements.some((e, i) => (verdict(st, k, i) || {}).par === "eleve");
-        return { q: `${q.theme ? q.theme + " — " : ""}${brut(q.enonce)}`, rep: (st.reponses[k] || "").slice(0, 600) + (parEleve ? " [auto-évaluée]" : ""), attendu: brut(q.corrige),
-          pts: p, bareme: b, erreurs: p < b ? 1 : 0, par: parEleve ? "eleve" : "ia",
-          elements: q.elements.map((e, i) => { const v = verdict(st, k, i) || {}; return { t: e.t, p: e.p, verdict: v.verdict, par: v.par }; }) };
-      });
-      const fin = document.getElementById("fl-fin");
-      try {
-        const ok = await ctx.ecrire("enregistrer", { module: moduleDe(f), titre: `Flash du ${jourLong(f.date)}`, type: "externe", score: s, score_max: m,
-          duree_s: Math.max(1, Math.round((st.rendu - st.debut) / 1000)), details });
-        st.envoye = true; ENVOIS.delete(cle(f)); garder(f, st);
-        if (vue === VUE && fin) fin.innerHTML = `<p class="${ok ? "ok-txt" : "discret"}">${ok ? "✓ Note envoyée au prof." : "Note gardée sur ton appareil : elle partira au prof dès que le réseau revient."}</p>`;
-      } catch (e) {
-        ENVOIS.delete(cle(f));
-        if (vue === VUE && fin) fin.innerHTML = `<p class="erreur">La note n'a pas pu partir (${esc(e.message)}). Reconnecte-toi puis rouvre ce flash : elle repartira.</p>`;
-      }
+      const r = await envoyerNote(f, st, ctx), fin = document.getElementById("fl-fin");
+      if (!r || vue !== VUE || !fin) return;
+      fin.innerHTML = r.erreur ? `<p class="erreur">La note n'a pas pu partir (${esc(r.erreur)}). Reconnecte-toi puis rouvre ce flash : elle repartira.</p>`
+        : `<p class="${r === "envoye" ? "ok-txt" : "discret"}">${r === "envoye" ? "✓ Note envoyée au prof." : "Note gardée sur ton appareil : elle partira au prof dès que le réseau revient."}</p>`;
     };
     APRES = () => { majNote(); envoyer(); };
     f.questions.forEach((q, k) => maj(k));
@@ -390,15 +451,20 @@ window.SIP = window.SIP || {};
 
   // copie faite sur un autre appareil : la note du serveur, et le corrigé si on sait quelles questions
   function dejaFait($app, F, h, jour) {
+    if (!visible(jour)) {
+      $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}</div><h1>Copie rendue ✓</h1><div class="carte fl-cache"><p>Tu as rendu ce flash le ${esc(SIP.fmtDate(h.fait_le, true))}. <b>Ta correction et ta note s'afficheront quand le prof les montrera</b> (au plus tard demain).</p></div>`;
+      return;
+    }
     const n = sur20(h.score, h.score_max);
     const chapeau = `Tu as rendu ce flash le ${esc(SIP.fmtDate(h.fait_le, true))} : <b>${nb(n)}/20</b>. Ta copie détaillée est sur l'appareil où tu l'as faite.`;
     if (F) return revoir($app, F, chapeau + " Voici les questions et le corrigé.");
     $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}</div><h1>Flash rendu</h1><p>${chapeau}</p>`;
   }
   function revoir($app, f, chapeau) {
-    $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(f.date))}</div><h1>Les questions et le corrigé</h1>
-      <p>${chapeau}</p>
-      ${f.questions.map((q, k) => `<section class="carte fl-q">${teteQ(q, k)}${corpsQ(q)}<details class="fl-corrige"><summary>Le corrigé</summary><div>${q.corrige}</div></details></section>`).join("")}`;
+    const ok = visible(f.date);
+    $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(f.date))}</div><h1>${ok ? "Les questions et le corrigé" : "Les questions"}</h1>
+      <p>${ok ? chapeau : "Le corrigé s'affichera quand le prof le montrera (au plus tard demain). En attendant, cherche les questions."}</p>
+      ${f.questions.map((q, k) => `<section class="carte fl-q">${teteQ(q, k)}${corpsQ(q)}${ok ? `<details class="fl-corrige"><summary>Le corrigé</summary><div>${q.corrige}</div></details>` : ""}</section>`).join("")}`;
   }
 
   // ---------- professeur : choisir le flash ----------
@@ -415,7 +481,10 @@ window.SIP = window.SIP || {};
     const autres = tous().filter((f) => f.date !== auj).sort((a, b) => b.date.localeCompare(a.date));
     $app.innerHTML = `<p class="no-print"><a href="#/">← Accueil</a></p>
       <h1>Quel flash lancer ?</h1>
-      <p class="discret">Les élèves ouvrent « Flash du jour » dans leur session et attendent. Choisis le flash, projette-le, puis clique « Lancer » : leurs chronos partent avec le tien.</p>
+      <p class="discret">Les élèves ouvrent « Flash du jour » dans leur session et attendent. Choisis le flash, projette-le, puis clique « Lancer » : leurs chronos partent avec le tien (${DUREE_FLASH / 60} minutes).</p>
+      <section class="carte fl-src fl-montrer-carte"><div class="eyebrow">Correction du flash d'aujourd'hui</div>
+        <p class="discret" style="margin:4px 0 8px">À 0:00, les élèves voient seulement « Copie rendue » : leur correction et leur note restent cachées jusqu'à ce que tu les montres (sinon elles s'ouvrent le lendemain).</p>
+        <button class="btn sec" type="button" id="fl-montrer" disabled>…</button> <span class="discret" id="fl-montrer-etat"></span></section>
       ${prevu ? `<section class="carte fl-src"><div class="eyebrow">Préparé pour aujourd'hui</div><h2>${prevu.questions.length} questions · ${minutes(prevu)}</h2>${apercuQ(refsFlash(prevu))}
         <a class="btn" href="#/flash/projeter/${prevu.date}">Projeter ce flash →</a></section>` : ""}
       <section class="carte fl-src"><div class="eyebrow">Au hasard</div><h2>3 questions sur ce qui est déjà tombé</h2>
@@ -435,9 +504,35 @@ window.SIP = window.SIP || {};
       const ok = refs.length >= 1 && refs.length <= 6;
       bouton.setAttribute("aria-disabled", String(!ok)); bouton.classList.toggle("sec", !ok);
       bouton.href = ok ? "#/flash/projeter/q:" + refs.join(",") : "#";
-      compte.textContent = refs.length ? `${refs.length} question${refs.length > 1 ? "s" : ""} · ${refs.length} min${refs.length > 6 ? " — 6 au plus" : ""}` : "Coche de 1 à 6 questions.";
+      compte.textContent = refs.length ? `${refs.length} question${refs.length > 1 ? "s" : ""} · ${Math.max(DUREE_FLASH, refs.length * DUREE_Q) / 60} min${refs.length > 6 ? " — 6 au plus" : ""}` : "Coche de 1 à 6 questions.";
     };
     if (bouton) { $app.querySelectorAll(".fl-choix-q input").forEach((i) => (i.onchange = majCarte)); bouton.onclick = (ev) => { if (bouton.getAttribute("aria-disabled") === "true") ev.preventDefault(); }; majCarte(); }
+    boutonMontrer(document.getElementById("fl-montrer"), (t) => { const z = document.getElementById("fl-montrer-etat"); if (z) z.textContent = t; });
+  }
+
+  // ---------- professeur : montrer (ou cacher) la correction du jour aux élèves ----------
+  function boutonMontrer(b, dire) {
+    if (!b) return;
+    const auj = SIP.aujourdhui(), vue = VUE;
+    let montree = null;
+    const afficher = () => { b.disabled = montree === null; b.setAttribute("aria-pressed", String(!!montree)); b.textContent = montree ? "✓ Correction montrée · la cacher" : "Montrer la correction aux élèves"; b.classList.toggle("plein", !montree); };
+    const erreur = (e) => dire(/NON_AUTORISE|JWT|permission/i.test((e && e.message) || "") ? "Connecte-toi à l'espace prof dans ce navigateur pour montrer la correction." : sqlAbsent(e) || /flash_montrer/i.test((e && e.message) || "") ? "La base n'a pas encore cette fonction (supabase/flash.sql à jour à installer)." : "Pas de réponse de la base : réessaie.");
+    SIP.api.flashMontrer(NIVEAU_PROF, auj, null).then((r) => { if (vue !== VUE) return; montree = !!(r && r.montree); afficher(); }).catch((e) => { if (vue !== VUE) return; montree = false; afficher(); erreur(e); });
+    // pas pendant le chrono : ceux qui ont rendu tôt verraient la correction pendant que les autres composent
+    const chronoTourne = () => { try { const L = JSON.parse(localStorage.getItem("sip_flash_lance") || "{}")[NIVEAU_PROF]; return !!(L && L.flash && Date.parse(L.fin) > Date.now()); } catch (e) { return false; } };
+    b.onclick = async () => {
+      if (montree === null) return;
+      const voulu = !montree;
+      if (voulu && chronoTourne()) { dire("Attends la fin du chrono : sinon, ceux qui ont rendu tôt verraient la correction pendant que les autres composent."); return; }
+      b.disabled = true;
+      try {
+        const r = await SIP.api.flashMontrer(NIVEAU_PROF, auj, voulu);
+        if (vue !== VUE) return;
+        montree = !!(r && r.montree); afficher();
+        dire(montree ? "✓ Les élèves voient maintenant leur correction et leur note (leur page s'ouvre toute seule)." : "Correction cachée : les élèves ne voient plus que « Copie rendue ».");
+      } catch (e) { if (vue !== VUE) return; afficher(); erreur(e); }
+    };
+    afficher();
   }
 
   // ---------- professeur : projeter et lancer ----------
@@ -452,7 +547,8 @@ window.SIP = window.SIP || {};
     $app.innerHTML = `<div class="proj fl-proj">
       <div class="proj-barre"><span class="proj-titre">Flash · ${esc(jourLong(auj))}</span>
         <button class="btn" type="button" id="flp-go">Lancer le flash</button>
-        <button class="btn sec" type="button" id="flp-cor" aria-pressed="false">Correction</button><button class="btn sec" type="button" id="flp-fs">Plein écran</button>
+        <button class="btn sec" type="button" id="flp-cor" aria-pressed="false" title="Afficher le corrigé au tableau (les élèves ne le voient pas sur leur page)">Corrigé au tableau</button>
+        <button class="btn sec" type="button" id="flp-montrer" disabled>…</button><button class="btn sec" type="button" id="flp-fs">Plein écran</button>
         <a class="btn sec" href="#/flash/projeter">Changer</a><a class="btn sec" href="#/">Quitter</a></div>
       <p class="fl-pz-info" id="flp-info" role="status" aria-live="polite"></p>
       <div class="proj-zone fl-pz">
@@ -463,7 +559,7 @@ window.SIP = window.SIP || {};
         <ol class="fl-pz-qs">${F.questions.map((q, k) => `<li class="fl-pz-q"><span class="fl-num">${k + 1}</span><div class="fl-pz-qc">
           <div class="eyebrow">${esc(q.theme || "")}</div><div class="fl-pz-en">${q.enonce}</div>
           <div class="fl-pz-rep" hidden><b>Réponse :</b> ${q.corrige}</div></div>${q.fig ? `<div class="fl-pz-fig">${q.fig}</div>` : ""}</li>`).join("")}</ol>
-        <p class="fl-pz-aide">Espace : lancer · C : correction · F : plein écran · Échap : quitter</p>
+        <p class="fl-pz-aide">Espace : lancer · C : corrigé au tableau · F : plein écran · Échap : quitter · « Montrer la correction aux élèves » : leur page affiche alors leur correction et leur note</p>
       </div></div>`;
     const ch = document.getElementById("flp-t"), et = document.getElementById("flp-et"), go = document.getElementById("flp-go"), cor = document.getElementById("flp-cor");
     const info = document.getElementById("flp-info");
@@ -480,6 +576,8 @@ window.SIP = window.SIP || {};
     };
     // page rechargée pendant le flash : on reprend le chrono lancé depuis ce navigateur
     try { const L = JSON.parse(localStorage.getItem("sip_flash_lance") || "{}")[niveau]; if (L && L.flash === source && Date.parse(L.fin) > Date.now()) tourner(Date.parse(L.fin), "en cours"); } catch (e) { /* rien */ }
+    // le bouton relit l'état dans la base : un lancement cache la correction du jour (flash_lancer)
+    const montrer = () => boutonMontrer(document.getElementById("flp-montrer"), (t) => dire(esc(t), /^✓/.test(t) ? "ok" : ""));
     const lancer = async () => {
       if (go.disabled || vue !== VUE) return;
       go.disabled = true;
@@ -497,6 +595,7 @@ window.SIP = window.SIP || {};
         if (vue !== VUE) return;
         tourner(Date.parse(r.fin) + (Date.now() - Date.parse(r.maintenant)), "en cours");
         dire("✓ Lancé : le chrono des élèves qui attendent sur « Flash du jour » est parti. Ceux qui l'ouvrent maintenant ont le temps qui reste.", "ok");
+        montrer();
       } catch (e) {
         if (vue !== VUE) return;
         go.disabled = false;
@@ -508,6 +607,7 @@ window.SIP = window.SIP || {};
     const corr = () => { const on = cor.getAttribute("aria-pressed") !== "true"; cor.setAttribute("aria-pressed", String(on)); $app.querySelectorAll(".fl-pz-rep").forEach((e) => (e.hidden = !on)); };
     const fs = () => { if (document.fullscreenElement) document.exitFullscreen(); else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); };
     go.onclick = lancer; cor.onclick = corr; document.getElementById("flp-fs").onclick = fs;
+    montrer();
     CLAVIER = (ev) => {
       if (ev.target.closest && ev.target.closest("input,textarea,select,button,a")) { if (ev.key === " ") return; }
       if (ev.key === " ") { ev.preventDefault(); if (!enCours) lancer(); }
@@ -520,5 +620,5 @@ window.SIP = window.SIP || {};
     aff();
   }
 
-  SIP.flash = { tuile, carteProf, liste, eleve, projeter, arreter, seanceDe, tirage, dejaTombe };
+  SIP.flash = { tuile, carteProf, liste, eleve, projeter, arreter, seanceDe, tirage, dejaTombe, majCorrigees, noteVisible, concerne: flashsPour };
 })(window.SIP);

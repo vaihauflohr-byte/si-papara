@@ -130,10 +130,12 @@
     };
   }
 
+  // correction du flash du jour montrée ou non par le prof (assets/flash.js)
+  const majFlash = (s) => (SIP.flash && s && SIP.flash.concerne(s.niveau) ? SIP.flash.majCorrigees() : null);
   async function vueTableau() {
     const s = SIP.session.get();
     $app.innerHTML = `<p class="discret">Chargement…</p>`;
-    await chargerEtat();
+    await Promise.all([chargerEtat(), majFlash(s)]);
     const fs = fichesSuivies();
     const aLire = fs.filter((f) => f.active && !f.lu_aujourdhui).length;
     const actives = fs.filter((f) => f.active).length, ancrees = fs.filter((f) => f.ancree).length;
@@ -699,11 +701,11 @@
     const lib = { entrainement: "Entraînement", revision_hebdo: "Révision hebdo", externe: "Exercice", revision_jour: "Révision du jour" };
     return `<div class="table-defil"><table><thead><tr><th>Date</th><th>Activité</th><th class="num">Note</th></tr></thead><tbody>${h.map((x) =>
       `<tr><td>${SIP.fmtDate(x.fait_le, true)}</td><td>${esc(x.titre || (SIP.module(x.module) || {}).titre || x.module)}<br><span class="discret">${/^fiche-/.test(x.module) ? "Vérification de fiche" : /^flash-/.test(x.module) ? "Flash" : lib[x.type] || x.type}</span></td>
-      <td class="num">${etiquetteNote(x.score, x.score_max)}</td></tr>`).join("")}</tbody></table></div>`;
+      <td class="num">${SIP.flash && !SIP.flash.noteVisible(x.module) ? `<span class="etiquette" title="La note s'affichera quand le prof montrera la correction">rendu ✓</span>` : etiquetteNote(x.score, x.score_max)}</td></tr>`).join("")}</tbody></table></div>`;
   }
 
   async function vueHistorique() {
-    await chargerEtat();
+    await Promise.all([chargerEtat(), majFlash(SIP.session.get())]);
     $app.innerHTML = `<p><a href="#/tableau">← Retour</a></p><h1>Tous mes entraînements</h1>${tableHistorique(ETAT.historique || [])}`;
   }
 
@@ -911,7 +913,7 @@
   async function vueFlash(date) {
     if (!SIP.flash) { location.hash = "#/tableau"; return; }
     $app.innerHTML = `<p class="discret">Chargement…</p>`;
-    await chargerEtat();
+    await Promise.all([chargerEtat(), majFlash(SIP.session.get())]);
     const s = SIP.session.get(), hist = ETAT.historique || [];
     if (!date) return SIP.flash.liste($app, s.niveau, hist);
     SIP.flash.eleve($app, date, { hist, ecrire });
