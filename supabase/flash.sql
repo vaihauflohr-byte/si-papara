@@ -8,8 +8,8 @@
 --  pour la classe. Les élèves qui attendent sur « Flash du jour » le voient (ils interrogent la base toutes les
 --  2 secondes) : leur chrono démarre, réglé sur l'heure du serveur, et finit en même temps que celui du tableau.
 --  Une ligne par classe au plus ; aucune donnée d'élève ici.
---  À la fin du flash, l'élève ne voit ni sa correction ni sa note le jour même tant que le professeur ne les a pas
---  montrées (flash_montrer : une ligne par classe et par jour dans flash_corrections) ; le site les ouvre le lendemain.
+--  À la fin du chrono, l'élève voit sa note, mais pas sa correction le jour même tant que le professeur ne l'a pas
+--  montrée (flash_montrer : une ligne par classe et par jour dans flash_corrections) ; le site l'ouvre le lendemain.
 -- =====================================================================
 
 create table if not exists public.flash_lancements (
