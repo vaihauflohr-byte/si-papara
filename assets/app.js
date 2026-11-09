@@ -237,7 +237,8 @@
         <div><div class="eyebrow">BTS Électrotechnique · épreuve E4</div><div class="bac-titre">Entraînement E4 <span>sujets d'annales</span></div>
         <p class="discret" style="margin:0">Les documents du sujet à côté des questions, vérification des calculs, auto-évaluation avec la grille officielle N0–N3, sujet blanc chronométré.</p></div>
         <div class="bac-d">${e4.length ? `<div><div class="grand">${SIP.nb(meilleur, 3)}<small> / 20</small></div><div class="discret">meilleur résultat · ${e4.length} entraînement${e4.length > 1 ? "s" : ""}</div></div>` : ""}<span class="btn">S'entraîner →</span></div>
-      </a>`;
+      </a>
+      <p class="fl-dernier"><span aria-hidden="true">📄</span> <a href="entrainements/bts-u4-atelier.html"><b>Atelier documents U4</b></a> : sur les vraies pages des annales, trouver la donnée dans le dossier ressources et la reporter dans le document réponse.</p>`;
   }
 
   // Questions signalées comme fausses par l'élève (assets/signaler.js) : la liste, et la réponse du professeur une fois traitées
@@ -936,7 +937,7 @@
     window.scrollTo(0, 0);
     try {
       if (h[0] === "apercu") return await vueApercu(h[1]);
-      if (estProjFlash(h) && SIP.flash) return SIP.flash.projeter($app, h[1] === "projeter" ? null : h[1]);
+      if (estProjFlash(h) && SIP.flash) return SIP.flash.projeter($app, h[1] === "projeter" ? (h[2] || null) : h[1]);
       if (!s) { if (h[0] === "connexion") return vueConnexion(h[1]); if (h[0] === "fiche") return vueFicheBac(h[1]); if (h[0] === "cours") return vueCours(h[1], h[2]); return vueAccueil(); }
       switch (h[0]) {
         case "module": return vueModule(h[1]);

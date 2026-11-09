@@ -791,3 +791,14 @@ pre.fl-code { font-family: var(--f-mono); font-size: .95rem; line-height: 1.45; 
 .fl-pz-info { margin: 0; padding: 0 16px; font-size: .95rem; }
 .fl-pz-info:not(:empty) { padding: 8px 16px; background: var(--accent-soft); border-bottom: 1px solid var(--rule); }
 .fl-pz-info.ok { background: var(--good-soft); color: var(--good); } .fl-pz-info.alerte { background: var(--warn-soft); color: var(--warn); } .fl-pz-info.ko { background: var(--bad-soft); color: var(--bad); }
+.fl-tuile.pret { border-top-color: var(--accent); }
+.fl-src { margin: 0 0 14px; }
+.fl-src h2 { margin: 4px 0 8px; }
+.fl-src .rang { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.fl-tire { margin: 6px 0 4px; padding-left: 1.3em; } .fl-tire li { margin: 4px 0; } .fl-tire .discret { display: block; font-size: .85rem; }
+.fl-groupe { margin: 10px 0; } .fl-groupe > .eyebrow { margin-bottom: 4px; }
+.fl-choix-q { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: start; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 5px; margin: 4px 0; cursor: pointer; }
+.fl-choix-q:hover { border-color: var(--accent); }
+.fl-choix-q input { margin-top: 4px; width: 18px; height: 18px; }
+.fl-choix-q span { display: flex; flex-direction: column; } .fl-choix-q .discret { font-size: .85rem; }
+.btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }

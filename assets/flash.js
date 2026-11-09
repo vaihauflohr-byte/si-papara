@@ -1,35 +1,80 @@
 /* =====================================================================
-   SI Papara — les flashs de début de séance (questions dans contenu/flashs.js)
+   SI Papara — les flashs de début de séance
+   Questions : contenu/flashs.js (flashs préparés, un par date) et contenu/flashs-banque.js (banque par notion).
 
-   Élève (#/flash/AAAA-MM-JJ) : le jour du flash, il ouvre la page et attend. Quand le prof clique « Lancer » sur la
-   page projetée, la base note le début et la fin (supabase/flash.sql) ; la page de l'élève, qui l'interroge toutes
-   les 2 s, démarre son chrono réglé sur l'heure du serveur : il finit avec celui du tableau, et la copie est rendue
-   toute seule à 0:00. Recharger la page ne change pas le chrono. Une seule copie notée par flash.
-   Si flash.sql n'est pas installé dans Supabase : le code du flash s'affiche au tableau au lancement, l'élève le tape.
+   Le prof choisit le flash (#/flash/projeter) : le flash préparé du jour, 3 questions tirées au hasard dans « ce
+   qui est déjà tombé » (questions des flashs passés + banque des notions déjà vues), ou les questions qu'il coche.
+   Il le projette et clique « Lancer » : la base note la source, le début et la fin (supabase/flash.sql).
+   Élève (#/flash/jour) : il ouvre la page et attend ; la page interroge la base toutes les 2 s, reconstruit les
+   mêmes questions à partir de la source, et démarre son chrono réglé sur l'heure du serveur : il finit avec celui
+   du tableau, la copie est rendue toute seule à 0:00. Une seule copie notée par jour : module flash-<date du jour>.
    Correction : chaque réponse part à l'IA (SIP.ia.corriger → fonction Supabase « corriger ») avec la question,
    le corrigé et les éléments du barème ; verdict par élément (présent 1, en partie ½, absent 0). Sans IA
-   (réseau, quota, aperçu) : l'élève coche lui-même avec le corrigé. Note enregistrée : module flash-<date>.
-   Prof (#/flash/projeter ; lancer demande d'être connecté à l'espace prof dans ce navigateur) : questions, Lancer,
-   chrono, correction (C), plein écran (F).
+   (réseau, quota, aperçu) : l'élève coche lui-même avec le corrigé.
+   Sources : « AAAA-MM-JJ » (flash préparé), « alea-<graine> » (tirage, le même chez tous), « q:<réf>,<réf>… »
+   (questions choisies) ; une réf est « AAAA-MM-JJ~<n° de question> » ou « b~<id de la banque> ».
    ===================================================================== */
 window.SIP = window.SIP || {};
 (function (SIP) {
   const esc = SIP.esc;
   const tous = () => SIP.FLASHS || [];
+  const banque = () => SIP.FLASH_BANQUE || [];
   const flashDe = (date) => tous().find((f) => f.date === date) || null;
-  const pour = (niveau) => tous().filter((f) => !f.niveau || f.niveau === niveau);
   const moduleDe = (f) => "flash-" + f.date;
+  const estDate = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x || "");
   const jourLong = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Pacific/Tahiti" });
-  const jourCourt = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone: "Pacific/Tahiti" });
   const mmss = (s) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
   const minutes = (f) => { const m = f.duree_s / 60; return `${SIP.nb ? SIP.nb(m, 2) : m} minute${m > 1 ? "s" : ""}`; };
   const nb = (x) => (SIP.nb ? SIP.nb(x, 3) : String(Math.round(x * 10) / 10).replace(".", ","));
   const POIDS = { present: 1, partiel: 0.5, absent: 0 };
   const PASTILLE = { present: "✓", partiel: "½", absent: "✗" };
+  const DUREE_Q = 60;            // flash tiré ou composé : une minute par question
   const brut = (h) => String(h ?? "")
     .replace(/<span class="frac"><span class="nu">(.*?)<\/span><span class="sr"> sur <\/span><span class="de">(.*?)<\/span><\/span>/g, "($1)/($2)")
     .replace(/<sup>(.*?)<\/sup>/g, "^$1").replace(/<sub>(.*?)<\/sub>/g, "$1").replace(/<br\s*\/?>/g, " ").replace(/<[^>]+>/g, "")
     .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+
+  // ---------- les questions d'un flash, d'après sa source ----------
+  function qRef(ref) {
+    const m = /^(\d{4}-\d{2}-\d{2})~(\d+)$/.exec(ref || "");
+    if (m) { const f = flashDe(m[1]); return f ? f.questions[+m[2]] || null : null; }
+    const b = /^b~(.+)$/.exec(ref || "");
+    return b ? banque().find((q) => q.id === b[1]) || null : null;
+  }
+  const refsFlash = (f) => f.questions.map((q, k) => f.date + "~" + k);
+  // une séance : les questions posées un jour donné (date = jour de la séance, clé de la copie et du module)
+  function seance(jour, refs, duree) {
+    const qs = (refs || []).map(qRef);
+    if (!qs.length || qs.some((q) => !q)) return null;
+    return { date: jour, refs, duree_s: duree || qs.length * DUREE_Q, questions: qs };
+  }
+  // « ce qui est déjà tombé » : les questions des flashs faits avant ce jour, et la banque des notions déjà vues
+  function dejaTombe(jour, niveau) {
+    const L = [];
+    tous().filter((f) => f.date < jour && (!f.niveau || !niveau || f.niveau === niveau)).forEach((f) => L.push(...refsFlash(f)));
+    banque().filter((q) => !niveau || (q.niveau || "TSI") === niveau).forEach((q) => L.push("b~" + q.id));   // la banque est celle de la Terminale SI
+    return L;
+  }
+  function hasard(graine) {   // même suite chez le prof et chez chaque élève
+    let a = graine >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  const notionDe = (ref) => { const q = qRef(ref); return (q && (q.notion || q.theme)) || ref; };
+  function tirage(graine, jour, niveau, n = 3) {   // n questions, de notions différentes autant que possible
+    const m = dejaTombe(jour, niveau), r = hasard(graine);
+    for (let i = m.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [m[i], m[j]] = [m[j], m[i]]; }
+    const choix = [], vues = new Set();
+    m.forEach((x) => { if (choix.length < n && !vues.has(notionDe(x))) { choix.push(x); vues.add(notionDe(x)); } });
+    m.forEach((x) => { if (choix.length < n && !choix.includes(x)) choix.push(x); });
+    return choix;
+  }
+  function seanceDe(source, jour, niveau) {
+    if (estDate(source)) { const f = flashDe(source); return f ? seance(jour, refsFlash(f), f.duree_s) : null; }
+    const a = /^alea-(\d{1,9})$/.exec(source || "");
+    if (a) return seance(jour, tirage(+a[1], jour, niveau), null);
+    if (/^q:/.test(source || "")) return seance(jour, source.slice(2).split(",").filter(Boolean).slice(0, 8), null);
+    return null;
+  }
 
   // ---------- minuterie et clavier de la vue affichée ----------
   let MINUTERIE = null, CLAVIER = null, VUE = 0;
@@ -40,8 +85,8 @@ window.SIP = window.SIP || {};
     MAJ = null; APRES = null; VUE++;
   }
 
-  // ---------- copie de l'élève, gardée sur l'appareil ----------
-  // (une seule copie en mémoire par flash : une correction en cours continue même si l'élève change de page)
+  // ---------- copie de l'élève, gardée sur l'appareil (une par jour) ----------
+  // (une seule copie en mémoire par jour : une correction en cours continue même si l'élève change de page)
   const cle = (f) => { const s = SIP.session.get() || {}; return `sip_flash_v1:${s.eleve_id || "local"}:${f.date}`; };
   const MEMO = {}, ENVOL = {}, ENVOIS = new Set();
   const lire = (f) => { const c = cle(f); if (MEMO[c]) return MEMO[c]; try { const v = JSON.parse(localStorage.getItem(c)); if (v) MEMO[c] = v; return v || null; } catch (e) { return null; } };
@@ -53,6 +98,14 @@ window.SIP = window.SIP || {};
   const sqlAbsent = (e) => /flash_(etat|lancer)|schema cache|PGRST202|Could not find the function/i.test((e && e.message) || "");
   const apercu = () => !!(SIP.apercu && SIP.apercu.actif());
   const faits = (f, hist) => (apercu() ? [] : (hist || []).filter((h) => h.module === moduleDe(f)));
+  // la séance d'un jour pour cet élève : les questions de sa copie, sinon le flash préparé ce jour-là
+  function seanceDuJour(jour) {
+    const st = lire({ date: jour });
+    if (st && st.refs) { const F = seance(jour, st.refs, st.duree_s); if (F) return F; }
+    const f = flashDe(jour);
+    return f ? seance(jour, refsFlash(f), f.duree_s) : null;
+  }
+  const flashsPour = (niveau) => tous().some((f) => (f.niveau || "TSI") === niveau) || banque().some((q) => (q.niveau || "TSI") === niveau);
 
   const verdict = (st, k, i) => (st.cor && st.cor[k] && st.cor[k].v && st.cor[k].v[i]) || null;
   const qComplete = (f, st, k) => f.questions[k].elements.every((e, i) => !!verdict(st, k, i));
@@ -77,87 +130,81 @@ window.SIP = window.SIP || {};
     return "L'IA n'a pas pu corriger (réseau ?) : réessaie, ou compare ta réponse au corrigé et coche toi-même.";
   }
 
-  // ---------- tuile du tableau de bord ----------
+  // ---------- tuile du tableau de bord (toujours là pour une classe qui a des flashs) ----------
   function tuile(niveau, hist) {
-    const auj = SIP.aujourdhui(), L = pour(niveau);
-    const f = L.find((x) => x.date === auj);
-    if (f) {
-      const fait = faits(f, hist)[0], st = lire(f);
-      if (fait || (st && st.envoye)) {
-        const n = fait ? sur20(fait.score, fait.score_max) : sur20(total(f, st).s, total(f, st).m);
-        return `<a class="carte fl-tuile fait" href="#/flash/${f.date}"><span class="fl-eclair" aria-hidden="true">⚡</span>
-          <div><div class="eyebrow">Flash du jour · rendu</div><div class="fl-tuile-t">${nb(n)}<small>/20</small></div><div class="discret">Revois ta correction et le corrigé.</div></div><span class="btn sec">Ma correction →</span></a>`;
-      }
-      const enCours = st && st.debut && !st.rendu;
-      return `<a class="carte fl-tuile a-faire" href="#/flash/${f.date}"><span class="fl-eclair" aria-hidden="true">⚡</span>
-        <div><div class="eyebrow">Flash du jour · noté</div><div class="fl-tuile-t">${f.questions.length} questions · ${minutes(f)}</div>
-        <div class="discret">${enCours ? "Ton chrono tourne : reviens vite à ta copie." : st && st.rendu ? "Ta copie est rendue : vois ta correction." : "Ouvre-le et attends : il démarre quand le prof le lance."}</div></div>
-        <span class="btn">${enCours ? "Reprendre →" : st && st.rendu ? "Ma correction →" : "Ouvrir →"}</span></a>`;
+    if (!flashsPour(niveau)) return "";
+    const auj = SIP.aujourdhui(), base = { date: auj }, st = lire(base), fait = faits(base, hist)[0];
+    const F = seanceDuJour(auj);
+    if (fait || (st && st.envoye && F)) {
+      const n = fait ? sur20(fait.score, fait.score_max) : sur20(total(F, st).s, total(F, st).m);
+      return `<a class="carte fl-tuile fait" href="#/flash/${auj}"><span class="fl-eclair" aria-hidden="true">⚡</span>
+        <div><div class="eyebrow">Flash du jour · rendu</div><div class="fl-tuile-t">${nb(n)}<small>/20</small></div><div class="discret">Revois ta correction et le corrigé.</div></div><span class="btn sec">Ma correction →</span></a>`;
     }
-    const passe = L.filter((x) => x.date < auj).sort((a, b) => b.date.localeCompare(a.date))[0];
-    if (!passe || SIP.joursEntre(passe.date, auj) > 6) return "";
-    const fait = faits(passe, hist)[0];
-    return `<p class="fl-dernier"><span aria-hidden="true">⚡</span> Dernier flash (${esc(jourCourt(passe.date))}) : ${fait ? `<b>${nb(sur20(fait.score, fait.score_max))}/20</b>` : "pas fait"} · <a href="#/flash/${passe.date}">${fait ? "revoir ma correction" : "voir le corrigé"}</a> · <a href="#/flash">tous mes flashs</a></p>`;
+    const enCours = st && st.debut && !st.rendu, rendu = st && st.rendu;
+    return `<a class="carte fl-tuile ${enCours || rendu || flashDe(auj) ? "a-faire" : "pret"}" href="#/flash/${auj}"><span class="fl-eclair" aria-hidden="true">⚡</span>
+      <div><div class="eyebrow">Flash du jour · noté</div><div class="fl-tuile-t">${enCours ? "Ton chrono tourne" : rendu ? "Copie rendue" : "Quand le prof le lance"}</div>
+      <div class="discret">${enCours ? "Reviens vite à ta copie." : rendu ? "Vois ta correction." : "Ouvre-le et attends : il démarre avec le chrono du tableau."}</div></div>
+      <span class="btn">${enCours ? "Reprendre →" : rendu ? "Ma correction →" : "Ouvrir →"}</span></a>`;
   }
 
   // carte de l'accueil, pour le professeur connecté dans ce navigateur
   function carteProf() {
-    const auj = SIP.aujourdhui(), f = tous().find((x) => x.date === auj);
-    const prochain = tous().filter((x) => x.date > auj).sort((a, b) => a.date.localeCompare(b.date))[0];
+    const auj = SIP.aujourdhui(), f = flashDe(auj), n = dejaTombe(auj, "TSI").length;
     return `<section class="carte fl-prof"><div class="eyebrow">Mode professeur · flash</div>
-      ${f ? `<h2>Flash du jour : ${f.questions.length} questions · ${minutes(f)}</h2>
-        <p class="discret">Les élèves ouvrent « Flash du jour » et attendent. Projette-le puis clique « Lancer » : leur chrono démarre en même temps que le tien.</p>
-        <a class="btn" href="#/flash/${f.date}/projeter">⚡ Projeter le flash du jour</a>`
-        : `<h2>Pas de flash prévu aujourd'hui</h2><p class="discret">${prochain ? `Prochain : ${esc(jourLong(prochain.date))}.` : "Aucun flash à venir dans contenu/flashs.js."}</p>
-        ${tous().length ? `<a class="btn sec" href="#/flash/projeter">Projeter un flash</a>` : ""}`}</section>`;
+      <h2>${f ? `Flash préparé aujourd'hui : ${f.questions.length} questions · ${minutes(f)}` : "Flash du jour"}</h2>
+      <p class="discret">Choisis le flash ${f ? "(celui préparé, " : "("}3 questions au hasard parmi les ${n} déjà tombées, ou celles que tu coches), projette-le puis clique « Lancer » : le chrono des élèves part avec le tien.</p>
+      <a class="btn" href="#/flash/projeter">⚡ Choisir et projeter le flash</a></section>`;
   }
 
   // ---------- liste des flashs de l'élève ----------
   function liste($app, niveau, hist) {
     arreter();
-    const auj = SIP.aujourdhui(), L = pour(niveau).filter((f) => f.date <= auj).sort((a, b) => b.date.localeCompare(a.date));
+    const auj = SIP.aujourdhui();
+    const jours = new Set(tous().filter((f) => f.date <= auj && (!f.niveau || f.niveau === niveau)).map((f) => f.date));
+    (hist || []).forEach((h) => { const m = /^flash-(\d{4}-\d{2}-\d{2})$/.exec(h.module || ""); if (m) jours.add(m[1]); });
+    if (lire({ date: auj })) jours.add(auj);
+    const L = [...jours].sort((a, b) => b.localeCompare(a));
     $app.innerHTML = `<p class="no-print"><a href="#/tableau">← Tableau de bord</a></p><h1>Mes flashs</h1>
-      <p class="discret">Le flash du début de séance : quelques questions en quelques minutes, sur ce qu'on a vu la dernière fois et un peu avant. Chaque flash garde ta correction et le corrigé : relis-les avant le DS.</p>
-      ${L.length ? `<div class="nb-liste">${L.map((f) => { const fait = faits(f, hist)[0], st = lire(f);
-        const n = fait ? sur20(fait.score, fait.score_max) : st && st.envoye ? sur20(total(f, st).s, total(f, st).m) : null;
-        return `<a class="nb-row fl-ligne" href="#/flash/${f.date}"><span class="nb-rk">⚡</span>
-          <span class="nb-nm"><b>${esc(jourLong(f.date))}</b><span class="discret">${f.questions.map((q) => esc(q.theme || "")).join(" · ")}</span></span>
-          ${n !== null ? `<span class="etiquette ${classeNote(n)}">${nb(n)}/20</span>` : f.date === auj ? `<span class="etiquette alerte">à faire</span>` : `<span class="etiquette">pas fait</span>`}<span class="nb-go" aria-hidden="true">→</span></a>`; }).join("")}</div>`
+      <p class="discret">Le flash du début de séance : quelques questions en quelques minutes, sur ce qu'on a déjà vu. Chaque flash garde ta correction et le corrigé : relis-les avant le DS.</p>
+      ${L.length ? `<div class="nb-liste">${L.map((jour) => { const base = { date: jour }, fait = faits(base, hist)[0], st = lire(base), F = seanceDuJour(jour);
+        const n = fait ? sur20(fait.score, fait.score_max) : st && st.envoye && F ? sur20(total(F, st).s, total(F, st).m) : null;
+        return `<a class="nb-row fl-ligne" href="#/flash/${jour}"><span class="nb-rk">⚡</span>
+          <span class="nb-nm"><b>${esc(jourLong(jour))}</b><span class="discret">${F ? F.questions.map((q) => esc(q.theme || "")).join(" · ") : "copie faite sur un autre appareil"}</span></span>
+          ${n !== null ? `<span class="etiquette ${classeNote(n)}">${nb(n)}/20</span>` : jour === auj ? `<span class="etiquette alerte">à faire</span>` : `<span class="etiquette">pas fait</span>`}<span class="nb-go" aria-hidden="true">→</span></a>`; }).join("")}</div>`
         : `<p class="discret">Pas encore de flash.</p>`}`;
   }
 
-  // ---------- vue élève d'un flash ----------
-  function eleve($app, date, ctx) {
+  // ---------- vue élève : le flash d'un jour ----------
+  function eleve($app, jour, ctx) {
     arreter();
-    const f = flashDe(date);
-    if (!f) { $app.innerHTML = `${retour()}<div class="carte"><p>Ce flash n'existe pas.</p></div>`; return; }
-    const st = lire(f), fait = faits(f, ctx.hist), auj = SIP.aujourdhui();
-    if (st && st.rendu) return correction($app, f, st, ctx);
-    if (st && st.debut) return reste(f, st) > 0 ? repondre($app, f, st, ctx) : rendre($app, f, st, ctx, true);
-    if (fait.length) return dejaFait($app, f, fait[0]);
-    if (f.date > auj) { $app.innerHTML = `${retour()}<div class="carte"><h1>Flash du ${esc(jourLong(f.date))}</h1><p>Il n'est pas encore ouvert.</p></div>`; return; }
-    if (f.date < auj) return revoir($app, f, "Tu n'as pas fait ce flash en classe. Voici les questions et le corrigé : cherche d'abord, puis ouvre le corrigé.");
-    intro($app, f, ctx);
+    const auj = SIP.aujourdhui();
+    if (!estDate(jour)) jour = auj;
+    const base = { date: jour }, st = lire(base), F = seanceDuJour(jour), fait = faits(base, ctx.hist);
+    if (st && st.rendu && F) return correction($app, F, st, ctx);
+    if (st && st.debut && F) return reste(F, st) > 0 ? repondre($app, F, st, ctx) : rendre($app, F, st, ctx, true);
+    if (fait.length) return dejaFait($app, F, fait[0], jour);
+    if (jour > auj) { $app.innerHTML = `${retour()}<div class="carte"><h1>Flash du ${esc(jourLong(jour))}</h1><p>Il n'est pas encore ouvert.</p></div>`; return; }
+    if (jour < auj) {
+      if (F) return revoir($app, F, "Tu n'as pas fait ce flash en classe. Voici les questions et le corrigé : cherche d'abord, puis ouvre le corrigé.");
+      $app.innerHTML = `${retour()}<div class="carte"><p>Pas de flash ce jour-là.</p></div>`; return;
+    }
+    intro($app, jour, ctx);
   }
 
-  const regles = (f, depart) => `<div class="eyebrow">⚡ Flash · ${esc(jourLong(f.date))} · noté</div>
-        <h1>${f.questions.length} questions · ${minutes(f)}</h1>
+  const regles = (jour, F) => `<div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))} · noté</div>
+        <h1>${F ? `${F.questions.length} questions · ${minutes(F)}` : "Le flash du jour"}</h1>
         <ul class="fl-regles">
           <li>Seul, en silence, calculatrice autorisée.</li>
-          <li>${depart} À 0:00, ta copie est rendue toute seule.</li>
+          <li>Le flash démarre <b>quand le prof le lance</b> au tableau : reste sur cette page, ton chrono partira avec le sien. À 0:00, ta copie est rendue toute seule.</li>
           <li>Pour chaque question, écris ton calcul et ton résultat <b>avec l'unité</b>.</li>
           <li>Ensuite, une IA corrige ta copie avec le corrigé du prof. Une seule copie : c'est elle qui est notée.</li>
         </ul>`;
-  const commencer = ($app, f, ctx, debut, fin) => {
-    const st = { debut, fin, reponses: f.questions.map(() => ""), rendu: null, cor: {} };
-    garder(f, st); repondre($app, f, st, ctx);
-  };
 
   // le jour du flash : l'élève attend que le prof le lance (la base est interrogée toutes les 2 s)
-  function intro($app, f, ctx) {
-    const vue = VUE;
+  function intro($app, jour, ctx) {
+    const vue = VUE, prevu = flashDe(jour), niveau = (SIP.session.get() || {}).niveau;
     $app.innerHTML = `${retour()}
-      <div class="carte fl-intro">${regles(f, "Le flash démarre <b>quand le prof le lance</b> au tableau : reste sur cette page, ton chrono partira avec le sien.")}
+      <div class="carte fl-intro">${regles(jour, prevu ? seance(jour, refsFlash(prevu), prevu.duree_s) : null)}
         <div class="fl-attente" id="fl-att" role="status" aria-live="polite"><span class="fl-point" aria-hidden="true"></span><span id="fl-att-t">En attente du lancement par le prof…</span></div>
       </div>`;
     const etat = document.getElementById("fl-att-t"), boite = document.getElementById("fl-att");
@@ -168,39 +215,26 @@ window.SIP = window.SIP || {};
       try {
         const r = await SIP.api.flashEtat();
         if (vue !== VUE) return;
-        if (r && r.lance && r.flash === f.date) {
+        // un lancement d'un autre jour (resté dans la base) ne compte pas
+        if (r && r.lance && SIP.jourTahiti(r.debut) === jour) {
+          const F = seanceDe(r.flash, jour, niveau);
+          if (!F) { etat.textContent = "Ce flash n'est pas encore sur ton appareil : recharge la page."; boite.classList.add("ko"); return; }
           const decal = Date.now() - Date.parse(r.maintenant), fin = Date.parse(r.fin) + decal, debut = Date.parse(r.debut) + decal;
-          if (fin - Date.now() > 1500) { arreter(); commencer($app, f, ctx, debut, fin); return; }
-          arreter(); revoir($app, f, "Le flash est terminé et tu ne l'as pas commencé à temps. Voici les questions et le corrigé : cherche d'abord, puis ouvre le corrigé."); return;
-        } else { etat.textContent = "En attente du lancement par le prof…"; boite.classList.remove("fini", "ko"); }
+          if (fin - Date.now() > 1500) {
+            arreter();
+            const st = { debut, fin, source: r.flash, refs: F.refs, duree_s: F.duree_s, reponses: F.questions.map(() => ""), rendu: null, cor: {} };
+            garder(F, st); repondre($app, F, st, ctx); return;
+          }
+          arreter(); revoir($app, F, "Le flash est terminé et tu ne l'as pas commencé à temps. Voici les questions et le corrigé : cherche d'abord, puis ouvre le corrigé."); return;
+        }
+        etat.textContent = "En attente du lancement par le prof…"; boite.classList.remove("ko");
       } catch (e) {
         if (vue !== VUE) return;
-        if (sqlAbsent(e)) { arreter(); introCode($app, f, ctx); return; }
         if (e.message === "SESSION_EXPIREE") { arreter(); etat.textContent = "Ta session a expiré : reconnecte-toi, puis rouvre le flash."; boite.classList.add("ko"); return; }
-        etat.textContent = "Pas de réseau : nouvel essai dans 2 secondes…"; boite.classList.add("ko");
+        etat.textContent = sqlAbsent(e) ? "Le lancement à distance n'est pas installé : préviens le prof." : "Pas de réseau : nouvel essai dans 2 secondes…"; boite.classList.add("ko");
       } finally { enVol = false; }
     };
     MINUTERIE = setInterval(sonder, 2000); sonder();
-  }
-
-  // secours, tant que supabase/flash.sql n'est pas installé : le code s'affiche au tableau au lancement
-  function introCode($app, f, ctx) {
-    $app.innerHTML = `${retour()}
-      <div class="carte fl-intro">${regles(f, "Ton chrono démarre quand tu tapes le <b>code affiché au tableau</b> quand le prof lance le flash.")}
-        <form id="fl-go" class="fl-code-form" autocomplete="off">
-          <label for="fl-code">Code du tableau</label>
-          <input id="fl-code" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="····" aria-describedby="fl-msg">
-          <button class="btn" type="submit">Commencer</button>
-        </form>
-        <p id="fl-msg" class="erreur" role="alert" hidden></p>
-        ${apercu() ? `<p class="discret">Aperçu professeur : le code est <b>${esc(f.code)}</b>.</p>` : ""}
-      </div>`;
-    const inp = document.getElementById("fl-code"), msg = document.getElementById("fl-msg");
-    document.getElementById("fl-go").onsubmit = (ev) => {
-      ev.preventDefault();
-      if (inp.value.replace(/\D/g, "") !== String(f.code)) { msg.textContent = "Ce n'est pas le code du tableau. Regarde bien, et retape-le."; msg.hidden = false; inp.select(); return; }
-      commencer($app, f, ctx, Date.now(), Date.now() + f.duree_s * 1000);
-    };
   }
 
   function repondre($app, f, st, ctx) {
@@ -354,10 +388,12 @@ window.SIP = window.SIP || {};
     garder(f, st); notifier(k);
   }
 
-  // copie faite sur un autre appareil : la note du serveur, et le corrigé
-  function dejaFait($app, f, h) {
+  // copie faite sur un autre appareil : la note du serveur, et le corrigé si on sait quelles questions
+  function dejaFait($app, F, h, jour) {
     const n = sur20(h.score, h.score_max);
-    revoir($app, f, `Tu as rendu ce flash le ${esc(SIP.fmtDate(h.fait_le, true))} : <b>${nb(n)}/20</b>. Ta copie détaillée est sur l'appareil où tu l'as faite ; voici les questions et le corrigé.`);
+    const chapeau = `Tu as rendu ce flash le ${esc(SIP.fmtDate(h.fait_le, true))} : <b>${nb(n)}/20</b>. Ta copie détaillée est sur l'appareil où tu l'as faite.`;
+    if (F) return revoir($app, F, chapeau + " Voici les questions et le corrigé.");
+    $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}</div><h1>Flash rendu</h1><p>${chapeau}</p>`;
   }
   function revoir($app, f, chapeau) {
     $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(f.date))}</div><h1>Les questions et le corrigé</h1>
@@ -365,38 +401,72 @@ window.SIP = window.SIP || {};
       ${f.questions.map((q, k) => `<section class="carte fl-q">${teteQ(q, k)}${corpsQ(q)}<details class="fl-corrige"><summary>Le corrigé</summary><div>${q.corrige}</div></details></section>`).join("")}`;
   }
 
-  // ---------- projection (professeur) ----------
-  function projeter($app, date) {
+  // ---------- professeur : choisir le flash ----------
+  const NIVEAU_PROF = "TSI";
+  const ligneQ = (ref, coche) => { const q = qRef(ref); if (!q) return ""; const resume = brut(q.enonce);
+    return `<label class="fl-choix-q"><input type="checkbox" value="${esc(ref)}"${coche ? " checked" : ""}><span><b>${esc(q.theme || "")}</b><span class="discret">${esc(resume.length > 140 ? resume.slice(0, 137) + "…" : resume)}</span></span></label>`; };
+  const apercuQ = (refs) => `<ol class="fl-tire">${refs.map((ref) => { const q = qRef(ref); return q ? `<li><b>${esc(q.theme || "")}</b> <span class="discret">${esc(brut(q.enonce))}</span></li>` : ""; }).join("")}</ol>`;
+  const nomNotion = (id) => { const n = SIP.BAC && SIP.BAC.notions ? SIP.BAC.notions.find((x) => x.id === id) : null; return n ? n.lab : id; };
+  function choisir($app) {
+    const auj = SIP.aujourdhui(), prevu = flashDe(auj), pool = dejaTombe(auj, NIVEAU_PROF);
+    let graine = 1 + Math.floor(Math.random() * 999999998);
+    const groupes = {};
+    pool.forEach((ref) => { const q = qRef(ref), g = (q && (q.notion || q.theme)) || "autres"; (groupes[g] = groupes[g] || []).push(ref); });
+    const autres = tous().filter((f) => f.date !== auj).sort((a, b) => b.date.localeCompare(a.date));
+    $app.innerHTML = `<p class="no-print"><a href="#/">← Accueil</a></p>
+      <h1>Quel flash lancer ?</h1>
+      <p class="discret">Les élèves ouvrent « Flash du jour » dans leur session et attendent. Choisis le flash, projette-le, puis clique « Lancer » : leurs chronos partent avec le tien.</p>
+      ${prevu ? `<section class="carte fl-src"><div class="eyebrow">Préparé pour aujourd'hui</div><h2>${prevu.questions.length} questions · ${minutes(prevu)}</h2>${apercuQ(refsFlash(prevu))}
+        <a class="btn" href="#/flash/projeter/${prevu.date}">Projeter ce flash →</a></section>` : ""}
+      <section class="carte fl-src"><div class="eyebrow">Au hasard</div><h2>3 questions sur ce qui est déjà tombé</h2>
+        <p class="discret">Tirées parmi ${pool.length} question${pool.length > 1 ? "s" : ""} : les flashs des séances passées et la banque des notions déjà vues (une question par notion si possible). Tous les élèves ont les mêmes.</p>
+        ${pool.length ? `<div id="fl-tirage"></div><div class="rang"><button class="btn sec" type="button" id="fl-retirer">↻ Tirer d'autres questions</button><a class="btn" id="fl-proj-alea" href="#">Projeter ce flash →</a></div>` : `<p>Pas encore de questions déjà tombées.</p>`}</section>
+      <section class="carte fl-src"><div class="eyebrow">À la carte</div><h2>Je choisis les questions</h2>
+        ${pool.length ? `${Object.keys(groupes).map((g) => `<div class="fl-groupe"><div class="eyebrow">${esc(nomNotion(g))}</div>${groupes[g].map((ref) => ligneQ(ref, false)).join("")}</div>`).join("")}
+        <p class="rang"><a class="btn" id="fl-proj-carte" href="#" aria-disabled="true">Projeter les questions cochées →</a><span class="discret" id="fl-nb-carte">Coche de 1 à 6 questions.</span></p>` : `<p>Pas encore de questions déjà tombées.</p>`}</section>
+      ${autres.length ? `<section class="carte fl-src"><div class="eyebrow">Les flashs préparés</div><div class="nb-liste">${autres.map((x) => `<a class="nb-row fiche-ligne" href="#/flash/projeter/${x.date}"><span class="nb-rk">⚡</span><span class="nb-nm"><b>${esc(jourLong(x.date))}</b><span class="discret">${x.questions.map((q) => esc(q.theme || "")).join(" · ")}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("")}</div></section>` : ""}`;
+    const zone = document.getElementById("fl-tirage");
+    const montrer = () => { if (!zone) return; zone.innerHTML = apercuQ(tirage(graine, auj, NIVEAU_PROF)); document.getElementById("fl-proj-alea").href = "#/flash/projeter/alea-" + graine; };
+    montrer();
+    const re = document.getElementById("fl-retirer"); if (re) re.onclick = () => { graine = 1 + Math.floor(Math.random() * 999999998); montrer(); };
+    const bouton = document.getElementById("fl-proj-carte"), compte = document.getElementById("fl-nb-carte");
+    const majCarte = () => {
+      const refs = [...$app.querySelectorAll(".fl-choix-q input:checked")].map((i) => i.value);
+      const ok = refs.length >= 1 && refs.length <= 6;
+      bouton.setAttribute("aria-disabled", String(!ok)); bouton.classList.toggle("sec", !ok);
+      bouton.href = ok ? "#/flash/projeter/q:" + refs.join(",") : "#";
+      compte.textContent = refs.length ? `${refs.length} question${refs.length > 1 ? "s" : ""} · ${refs.length} min${refs.length > 6 ? " — 6 au plus" : ""}` : "Coche de 1 à 6 questions.";
+    };
+    if (bouton) { $app.querySelectorAll(".fl-choix-q input").forEach((i) => (i.onchange = majCarte)); bouton.onclick = (ev) => { if (bouton.getAttribute("aria-disabled") === "true") ev.preventDefault(); }; majCarte(); }
+  }
+
+  // ---------- professeur : projeter et lancer ----------
+  function projeter($app, source) {
     arreter();
-    const auj = SIP.aujourdhui();
-    const f = date ? flashDe(date) : tous().find((x) => x.date === auj);
-    if (!f) {
-      const L = tous().slice().sort((a, b) => b.date.localeCompare(a.date));
-      $app.innerHTML = `<p><a href="#/">← Accueil</a></p><h1>Projeter un flash</h1><p class="discret">${date ? "Ce flash n'existe pas." : "Pas de flash prévu aujourd'hui."} Choisis-en un :</p>
-        <div class="nb-liste">${L.map((x) => `<a class="nb-row fiche-ligne" href="#/flash/${x.date}/projeter"><span class="nb-rk">⚡</span><span class="nb-nm"><b>${esc(jourLong(x.date))}</b><span class="discret">${x.questions.map((q) => esc(q.theme || "")).join(" · ")}</span></span><span class="nb-go" aria-hidden="true">→</span></a>`).join("") || `<p class="discret">Aucun flash dans contenu/flashs.js.</p>`}</div>`;
-      return;
-    }
+    if (!source) return choisir($app);
+    source = decodeURIComponent(source);
+    const auj = SIP.aujourdhui(), niveau = NIVEAU_PROF, F = seanceDe(source, auj, niveau);
+    if (!F) { $app.innerHTML = `<p><a href="#/flash/projeter">← Choisir un flash</a></p><div class="carte"><p>Ce flash n'existe pas (ou plus).</p></div>`; return; }
     document.body.classList.add("projection");
-    const T = f.duree_s, niveau = f.niveau || "TSI", vue = VUE;
+    const T = F.duree_s, vue = VUE;
     $app.innerHTML = `<div class="proj fl-proj">
-      <div class="proj-barre"><span class="proj-titre">Flash · ${esc(jourLong(f.date))}</span>
+      <div class="proj-barre"><span class="proj-titre">Flash · ${esc(jourLong(auj))}</span>
         <button class="btn" type="button" id="flp-go">Lancer le flash</button>
         <button class="btn sec" type="button" id="flp-cor" aria-pressed="false">Correction</button><button class="btn sec" type="button" id="flp-fs">Plein écran</button>
-        <a class="btn sec" href="#/">Quitter</a></div>
+        <a class="btn sec" href="#/flash/projeter">Changer</a><a class="btn sec" href="#/">Quitter</a></div>
       <p class="fl-pz-info" id="flp-info" role="status" aria-live="polite"></p>
       <div class="proj-zone fl-pz">
         <div class="fl-pz-tete">
-          <div><h1>Flash · ${esc(jourLong(f.date))}</h1><p class="fl-pz-sous">${minutes(f)} · seul · en silence · calculatrice autorisée<br>Sur le site : ouvre <b>Flash du jour</b> et attends le lancement</p></div>
-          <div class="fl-pz-code" id="flp-code" hidden><span>Code</span><b>${esc(f.code)}</b></div>
+          <div><h1>Flash · ${esc(jourLong(auj))}</h1><p class="fl-pz-sous">${minutes(F)} · seul · en silence · calculatrice autorisée<br>Sur le site : ouvre <b>Flash du jour</b> et attends le lancement</p></div>
           <div class="fl-pz-ch"><div class="fl-pz-t" id="flp-t">${mmss(T)}</div><div class="fl-pz-et" id="flp-et">pas lancé</div></div>
         </div>
-        <ol class="fl-pz-qs">${f.questions.map((q, k) => `<li class="fl-pz-q"><span class="fl-num">${k + 1}</span><div class="fl-pz-qc">
+        <ol class="fl-pz-qs">${F.questions.map((q, k) => `<li class="fl-pz-q"><span class="fl-num">${k + 1}</span><div class="fl-pz-qc">
           <div class="eyebrow">${esc(q.theme || "")}</div><div class="fl-pz-en">${q.enonce}</div>
           <div class="fl-pz-rep" hidden><b>Réponse :</b> ${q.corrige}</div></div>${q.fig ? `<div class="fl-pz-fig">${q.fig}</div>` : ""}</li>`).join("")}</ol>
         <p class="fl-pz-aide">Espace : lancer · C : correction · F : plein écran · Échap : quitter</p>
       </div></div>`;
     const ch = document.getElementById("flp-t"), et = document.getElementById("flp-et"), go = document.getElementById("flp-go"), cor = document.getElementById("flp-cor");
-    const info = document.getElementById("flp-info"), code = document.getElementById("flp-code");
+    const info = document.getElementById("flp-info");
     const dire = (t, cls) => { info.innerHTML = t; info.className = "fl-pz-info" + (cls ? " " + cls : ""); };
     let fin = null, enCours = false;
     const aff = () => {
@@ -409,35 +479,29 @@ window.SIP = window.SIP || {};
       if (MINUTERIE) clearInterval(MINUTERIE); MINUTERIE = setInterval(aff, 200); aff();
     };
     // page rechargée pendant le flash : on reprend le chrono lancé depuis ce navigateur
-    try { const L = JSON.parse(localStorage.getItem("sip_flash_lance") || "{}")[niveau]; if (L && L.flash === f.date && Date.parse(L.fin) > Date.now()) tourner(Date.parse(L.fin), "en cours"); } catch (e) { /* rien */ }
+    try { const L = JSON.parse(localStorage.getItem("sip_flash_lance") || "{}")[niveau]; if (L && L.flash === source && Date.parse(L.fin) > Date.now()) tourner(Date.parse(L.fin), "en cours"); } catch (e) { /* rien */ }
     const lancer = async () => {
       if (go.disabled || vue !== VUE) return;
       go.disabled = true;
       if (enCours) {   // arrêter : plus personne ne peut commencer ; les copies commencées gardent leur chrono
-        try { await SIP.api.flashLancer(niveau, f.date, 0); } catch (e) { /* le chrono du tableau s'arrête quand même */ }
+        try { await SIP.api.flashLancer(niveau, source, 0); } catch (e) { /* le chrono du tableau s'arrête quand même */ }
         if (vue !== VUE) return;
         enCours = false; fin = null; if (MINUTERIE) clearInterval(MINUTERIE); MINUTERIE = null; aff();
-        et.textContent = "arrêté"; go.textContent = "Relancer"; go.disabled = false; code.hidden = true;
+        et.textContent = "arrêté"; go.textContent = "Relancer"; go.disabled = false;
         dire("Flash arrêté : plus personne ne peut le commencer. Les élèves déjà partis gardent leur chrono.");
         return;
       }
       dire("Lancement…");
       try {
-        const r = await SIP.api.flashLancer(niveau, f.date, T);
+        const r = await SIP.api.flashLancer(niveau, source, T);
         if (vue !== VUE) return;
-        const decal = Date.now() - Date.parse(r.maintenant);
-        code.hidden = true;
-        tourner(Date.parse(r.fin) + decal, "en cours");
+        tourner(Date.parse(r.fin) + (Date.now() - Date.parse(r.maintenant)), "en cours");
         dire("✓ Lancé : le chrono des élèves qui attendent sur « Flash du jour » est parti. Ceux qui l'ouvrent maintenant ont le temps qui reste.", "ok");
       } catch (e) {
         if (vue !== VUE) return;
-        if (sqlAbsent(e)) {        // flash.sql pas encore installé : le code au tableau, les élèves le tapent
-          code.hidden = false; tourner(Date.now() + T * 1000, "en cours");
-          dire("La base n'a pas encore le lancement à distance (supabase/flash.sql à installer une fois) : les élèves tapent le code affiché.", "alerte");
-          return;
-        }
         go.disabled = false;
-        if (/NON_AUTORISE|JWT|permission/i.test(e.message || "")) dire(`Pour lancer le flash sur les téléphones, connecte-toi d'abord à <a href="prof.html">l'espace prof</a> dans ce navigateur, puis reviens ici.`, "ko");
+        if (sqlAbsent(e)) dire("La base n'a pas le lancement à distance (supabase/flash.sql à installer une fois).", "ko");
+        else if (/NON_AUTORISE|JWT|permission/i.test(e.message || "")) dire(`Pour lancer le flash sur les téléphones, connecte-toi d'abord à <a href="prof.html">l'espace prof</a> dans ce navigateur, puis reviens ici.`, "ko");
         else dire(`Le lancement n'est pas parti (${esc(e.message || "réseau ?")}) : réessaie.`, "ko");
       }
     };
@@ -456,5 +520,5 @@ window.SIP = window.SIP || {};
     aff();
   }
 
-  SIP.flash = { tuile, carteProf, liste, eleve, projeter, arreter, duJour: (niveau) => pour(niveau).find((f) => f.date === SIP.aujourdhui()) || null };
+  SIP.flash = { tuile, carteProf, liste, eleve, projeter, arreter, seanceDe, tirage, dejaTombe };
 })(window.SIP);

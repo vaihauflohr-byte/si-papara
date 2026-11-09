@@ -116,7 +116,7 @@ window.SIP = window.SIP || {};
       },
       async flashEtat() {
         const s = SIP.session.get(); if (!s) throw new Error("SESSION_EXPIREE");
-        const r = flashLocal()[s.niveau], m = new Date().toISOString();
+        const r = flashLocal()[s.niveau], m = new Date(Date.now()).toISOString();
         return r ? Object.assign({ lance: true, maintenant: m }, r) : { lance: false, maintenant: m };
       },
       mode: "demo",
