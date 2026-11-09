@@ -198,6 +198,12 @@ Un élève peut envoyer au plus 30 signalements par jour. « Copier le signaleme
 - `ds: { "DS 02": "2026-10-15" }` — le DS 02 change de jour sans décaler le reste ; les séries de ses notions sont à valider avant ce jour-là, 6 h.
 Les numéros de semaine et les noms des DS sont ceux de « Tout le planning ». Quand le plan est regénéré (plan_src.py → si_papara_bac.py), remets `{ }` : les nouvelles dates sont alors dans les fichiers générés.
 
+## Base en pause (plan gratuit de Supabase)
+
+Sur le plan gratuit, Supabase met en pause une base restée 7 jours sans activité (pendant les vacances, par exemple) : plus personne ne peut se connecter (« Connexion refusée : Failed to fetch »). Pour la relancer : supabase.com/dashboard, le projet, **Resume project** ; les données reviennent telles quelles en quelques minutes.
+
+Pour l'éviter, la tâche GitHub `.github/workflows/garder-base-active.yml` interroge la base tous les 3 jours (avec un jeton d'élève inconnu : rien n'est lu ni écrit). Si la base ne répond pas, la tâche échoue et GitHub envoie un e-mail. GitHub suspend les tâches planifiées d'un dépôt public resté 60 jours sans modification : après de longues vacances sans rien changer au site, la réactiver dans l'onglet Actions du dépôt.
+
 ## Arborescence
 
 ```

@@ -1,0 +1,40 @@
+# Garde la base Supabase éveillée. Sur le plan gratuit, Supabase met en pause un projet sans activité
+# pendant 7 jours (vacances…) : le site ne marche plus, ni pour les élèves ni pour le prof.
+# Tous les 3 jours, cette tâche pose une question à la base avec un jeton d'élève inconnu : la base
+# répond « SESSION_EXPIREE », sans rien lire d'autre ni rien écrire.
+# Si la base ne répond pas (projet déjà en pause), la tâche échoue et GitHub envoie un e-mail :
+# il faut alors ouvrir supabase.com/dashboard et cliquer sur « Resume project ».
+# NB : GitHub suspend les tâches planifiées d'un dépôt public resté 60 jours sans aucune modification.
+name: Garder la base active
+on:
+  schedule:
+    - cron: "37 17 */3 * *"   # tous les 3 jours, 7 h 37 à Tahiti
+  workflow_dispatch:   # bouton « Run workflow » dans l'onglet Actions, pour essayer
+permissions:
+  contents: read
+jobs:
+  interroger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: config.js
+          sparse-checkout-cone-mode: false
+      - name: Interroger la base
+        run: |
+          URL=$(sed -n 's/.*supabaseUrl: *"\([^"]*\)".*/\1/p' config.js)
+          CLE=$(sed -n 's/.*supabaseAnonKey: *"\([^"]*\)".*/\1/p' config.js)
+          for essai in 1 2 3; do
+            code=$(curl -s -o reponse.txt -w "%{http_code}" --max-time 60 -X POST "$URL/rest/v1/rpc/mon_etat" \
+              -H "apikey: $CLE" -H "Content-Type: application/json" \
+              -d '{"p_jeton":"00000000-0000-0000-0000-000000000000"}') || code=000
+            echo "Essai $essai : réponse $code $(head -c 200 reponse.txt 2>/dev/null)"
+            if [ "$code" = 200 ] || grep -q SESSION_EXPIREE reponse.txt 2>/dev/null; then
+              echo "La base répond."
+              exit 0
+            fi
+            sleep 60
+          done
+          echo "::error::La base Supabase ne répond pas (projet en pause ?). Ouvre supabase.com/dashboard, ton projet, puis « Resume project »."
+          exit 1
