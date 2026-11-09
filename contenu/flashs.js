@@ -9,7 +9,7 @@
    Une entrée par flash :
      date      jour où il est fait en classe (AAAA-MM-JJ) : il n'est ouvert à la note que ce jour-là
      niveau    classe concernée (TSI = Terminale SI)
-     duree_s   durée du chrono de l'élève, en secondes
+     duree_s   durée du chrono de l'élève, en secondes (300 = 5 minutes, la durée d'un flash)
      questions { notion, theme, enonce (HTML), fig (dessin SVG), ia (l'énoncé en texte pour l'IA, avec les données
                du dessin), corrige (HTML), elements [{ t, p }] (ce que l'IA vérifie dans la réponse, p points) }
    ===================================================================== */
@@ -50,7 +50,7 @@ ${bloc(xs[0], "Batterie")}${fleche(xs[0] + W, "6,0 W")}${bloc(xs[1], "Moteur", "
 
   SIP.FLASHS = [
     {
-      date: "2026-11-09", niveau: "TSI", duree_s: 180,
+      date: "2026-11-09", niveau: "TSI", duree_s: 300,
       questions: [
         {
           notion: "meca-cinematique", theme: "Cinématique · profil de vitesse",
