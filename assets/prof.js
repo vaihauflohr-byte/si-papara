@@ -274,9 +274,10 @@
       const blanc = blancs.length ? { dernier: note20(blancs[0].score, blancs[0].score_max), le: blancs[0].fait_le, meilleur: Math.max(...blancs.map((t) => note20(t.score, t.score_max))), n: blancs.length } : null;
       const dsbs = E.filter((t) => t.type === "externe" && /^dsb-/.test(t.module)).sort((a, b) => quand(b) - quand(a));
       const dsb = dsbs.length ? { dernier: note20(dsbs[0].score, dsbs[0].score_max), le: dsbs[0].fait_le, ds: dsbs[0].module.replace(/^dsb-ds(\d+)$/, "DS $1"), pas: dsbPas(dsbs[0]), meilleur: Math.max(...dsbs.filter((t) => t.module === dsbs[0].module).map((t) => note20(t.score, t.score_max))), n: dsbs.filter((t) => t.module === dsbs[0].module).length } : null;
-      // flashs du début de séance (assets/flash.js) : un essai par flash, module flash-AAAA-MM-JJ
-      const fls = E.filter((t) => /^flash-\d{4}-\d{2}-\d{2}$/.test(t.module)).sort((a, b) => b.module.localeCompare(a.module) || quand(b) - quand(a));
-      const flash = fls.length ? { dernier: note20(fls[0].score, fls[0].score_max), le: fls[0].module.slice(6), n: new Set(fls.map((t) => t.module)).size,
+      // flashs du début de séance (assets/flash.js) : un essai par flash, module flash-AAAA-MM-JJ (flash-AAAA-MM-JJ-<n> : n-ième passage du jour, relancé avec d'autres valeurs)
+      const passage = (m) => +(m.slice(17) || 1);
+      const fls = E.filter((t) => /^flash-\d{4}-\d{2}-\d{2}(-\d{1,3})?$/.test(t.module)).sort((a, b) => b.module.slice(6, 16).localeCompare(a.module.slice(6, 16)) || passage(b.module) - passage(a.module) || quand(b) - quand(a));
+      const flash = fls.length ? { dernier: note20(fls[0].score, fls[0].score_max), le: fls[0].module.slice(6, 16), n: new Set(fls.map((t) => t.module)).size,
         moy: (() => { const m = {}; fls.forEach((t) => { if (!(t.module in m)) m[t.module] = note20(t.score, t.score_max); }); const v = Object.values(m); return v.reduce((a, x) => a + x, 0) / v.length; })() } : null;
       return { e, cells, valides, echues: echues.length, note10: echues.length ? (10 * valides) / echues.length : null, jours7, parcours, blanc, dsb, preps, flash };
     });

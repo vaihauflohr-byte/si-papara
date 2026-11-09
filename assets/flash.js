@@ -15,9 +15,14 @@
    SA CORRECTION le jour même tant que le prof ne l'a pas montrée (bouton « Montrer la correction aux élèves » :
    supabase/flash.sql, flash_montrer) ; elle s'ouvre toute seule le lendemain. Si l'IA n'a pas pu corriger une
    réponse, l'élève la coche lui-même avec le corrigé, une fois la correction montrée : sa note s'affiche alors.
-   Durée : 5 minutes (DUREE_FLASH), ou celle donnée par le flash préparé.
+   Durée : 5 minutes (DUREE_FLASH), ou celle donnée par le flash préparé. Pendant le flash, le prof peut ajouter
+   une minute (« +1 min » : flash_rallonger) : la fin de chaque copie suit celle du lancement.
    Sources : « AAAA-MM-JJ » (flash préparé), « alea-<graine> » (tirage, le même chez tous), « q:<réf>,<réf>… »
    (questions choisies) ; une réf est « AAAA-MM-JJ~<n° de question> » ou « b~<id de la banque> ».
+   Passages : « <source>@<n> » est le n-ième passage du jour, relancé « avec d'autres valeurs » : mêmes questions,
+   valeurs tirées au hasard (SIP.FLASH_VARIANTE, les mêmes chez tous), nouvelle copie et nouvelle note pour chaque
+   élève (copie et module flash-AAAA-MM-JJ-<n> ; le 1er passage garde flash-AAAA-MM-JJ). Route élève :
+   #/flash/AAAA-MM-JJ (le passage en cours ou le dernier fait) ou #/flash/AAAA-MM-JJ-<n> (ce passage-là).
    ===================================================================== */
 window.SIP = window.SIP || {};
 (function (SIP) {
@@ -25,7 +30,12 @@ window.SIP = window.SIP || {};
   const tous = () => SIP.FLASHS || [];
   const banque = () => SIP.FLASH_BANQUE || [];
   const flashDe = (date) => tous().find((f) => f.date === date) || null;
-  const moduleDe = (f) => "flash-" + f.date;
+  const idDe = (jour, p) => (p > 1 ? `${jour}-${p}` : jour);   // une séance : son jour et son numéro de passage
+  const lireId = (id) => { const m = /^(\d{4}-\d{2}-\d{2})(?:-(\d{1,3}))?$/.exec(id || ""); return m ? { jour: m[1], passage: m[2] ? Math.max(1, +m[2]) : 0 } : null; };
+  const passageDe = (source) => { const m = /@(\d{1,3})$/.exec(source || ""); return m ? Math.max(1, +m[1]) : 1; };
+  const sansPassage = (source) => String(source || "").replace(/@\d{1,3}$/, "");
+  const eme = (p) => (p === 1 ? "1er" : `${p}e`);
+  const moduleDe = (f) => "flash-" + (f.id || f.date);
   const estDate = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x || "");
   const jourLong = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Pacific/Tahiti" });
   const mmss = (s) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
@@ -47,11 +57,19 @@ window.SIP = window.SIP || {};
     return b ? banque().find((q) => q.id === b[1]) || null : null;
   }
   const refsFlash = (f) => f.questions.map((q, k) => f.date + "~" + k);
-  // une séance : les questions posées un jour donné (date = jour de la séance, clé de la copie et du module)
-  function seance(jour, refs, duree) {
-    const qs = (refs || []).map(qRef);
+  const hachage = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  // la question d'un passage : à partir du 2e, d'autres valeurs (les mêmes chez tous : le tirage dépend du jour, du passage et de la question)
+  function qVar(ref, jour, p) {
+    const q = qRef(ref);
+    if (!q || p < 2 || !SIP.FLASH_VARIANTE) return q;
+    return SIP.FLASH_VARIANTE(q, hasard(hachage(`${jour}|${p}|${ref}`))) || q;
+  }
+  const varie = (ref) => { const q = qRef(ref); return !!(q && typeof q.variante === "function"); };
+  // une séance : les questions posées un jour donné, à un passage donné (id = jour[-passage] : clé de la copie et du module)
+  function seance(jour, refs, duree, passage) {
+    const p = passage > 1 ? passage : 1, qs = (refs || []).map((ref) => qVar(ref, jour, p));
     if (!qs.length || qs.some((q) => !q)) return null;
-    return { date: jour, refs, duree_s: duree || Math.max(DUREE_FLASH, qs.length * DUREE_Q), questions: qs };
+    return { date: jour, passage: p, id: idDe(jour, p), refs, duree_s: duree || Math.max(DUREE_FLASH, qs.length * DUREE_Q), questions: qs };
   }
   // « ce qui est déjà tombé » : les questions des flashs faits avant ce jour, et la banque des notions déjà vues
   function dejaTombe(jour, niveau) {
@@ -74,11 +92,13 @@ window.SIP = window.SIP || {};
     return choix;
   }
   function seanceDe(source, jour, niveau) {
-    if (estDate(source)) { const f = flashDe(source); return f ? seance(jour, refsFlash(f), f.duree_s) : null; }
-    const a = /^alea-(\d{1,9})$/.exec(source || "");
-    if (a) return seance(jour, tirage(+a[1], jour, niveau), null);
-    if (/^q:/.test(source || "")) return seance(jour, source.slice(2).split(",").filter(Boolean).slice(0, 8), null);
-    return null;
+    const base = sansPassage(source), p = passageDe(source);
+    let F = null;
+    if (estDate(base)) { const f = flashDe(base); F = f ? seance(jour, refsFlash(f), f.duree_s, p) : null; }
+    else if (/^alea-\d{1,9}$/.test(base)) F = seance(jour, tirage(+base.slice(5), jour, niveau), null, p);
+    else if (/^q:/.test(base)) F = seance(jour, base.slice(2).split(",").filter(Boolean).slice(0, 8), null, p);
+    if (F) F.source = source;
+    return F;
   }
 
   // ---------- minuterie et clavier de la vue affichée ----------
@@ -90,9 +110,10 @@ window.SIP = window.SIP || {};
     MAJ = null; APRES = null; VUE++;
   }
 
-  // ---------- copie de l'élève, gardée sur l'appareil (une par jour) ----------
-  // (une seule copie en mémoire par jour : une correction en cours continue même si l'élève change de page)
-  const cle = (f) => { const s = SIP.session.get() || {}; return `sip_flash_v1:${s.eleve_id || "local"}:${f.date}`; };
+  // ---------- copie de l'élève, gardée sur l'appareil (une par jour et par passage) ----------
+  // (une seule copie en mémoire par passage : une correction en cours continue même si l'élève change de page)
+  const prefixe = () => { const s = SIP.session.get() || {}; return `sip_flash_v1:${s.eleve_id || "local"}:`; };
+  const cle = (f) => prefixe() + (f.id || f.date);
   const MEMO = {}, ENVOL = {}, ENVOIS = new Set();
   const lire = (f) => { const c = cle(f); if (MEMO[c]) return MEMO[c]; try { const v = JSON.parse(localStorage.getItem(c)); if (v) MEMO[c] = v; return v || null; } catch (e) { return null; } };
   const garder = (f, st) => { const c = cle(f); MEMO[c] = st; try { localStorage.setItem(c, JSON.stringify(st)); } catch (e) { /* stockage plein ou interdit */ } };
@@ -103,32 +124,57 @@ window.SIP = window.SIP || {};
   const sqlAbsent = (e) => /flash_(etat|lancer)|schema cache|PGRST202|Could not find the function/i.test((e && e.message) || "");
   const apercu = () => !!(SIP.apercu && SIP.apercu.actif());
   const faits = (f, hist) => (apercu() ? [] : (hist || []).filter((h) => h.module === moduleDe(f)));
-  // la séance d'un jour pour cet élève : les questions de sa copie, sinon le flash préparé ce jour-là
-  function seanceDuJour(jour) {
-    const st = lire({ date: jour });
-    if (st && st.refs) { const F = seance(jour, st.refs, st.duree_s); if (F) return F; }
-    const f = flashDe(jour);
-    return f ? seance(jour, refsFlash(f), f.duree_s) : null;
+  // la séance d'un passage pour cet élève : les questions de sa copie, sinon (1er passage) le flash préparé ce jour-là
+  function seanceDeId(id) {
+    const x = lireId(id); if (!x) return null;
+    const p = x.passage || 1, st = lire({ id: idDe(x.jour, p) });
+    if (st && st.refs) { const F = seance(x.jour, st.refs, st.duree_s, p); if (F) return F; }
+    const f = p === 1 ? flashDe(x.jour) : null;
+    return f ? seance(x.jour, refsFlash(f), f.duree_s, 1) : null;
+  }
+  // les passages d'un jour que l'élève a faits : copies de l'appareil et notes reçues par le prof
+  function passagesDe(jour, hist) {
+    const P = new Set(), pre = prefixe() + jour;
+    const voir = (c) => { if (c === pre) P.add(1); else if (c && c.startsWith(pre + "-")) { const n = +c.slice(pre.length + 1); if (n > 1) P.add(n); } };
+    Object.keys(MEMO).forEach(voir);
+    try { for (let i = 0; i < localStorage.length; i++) voir(localStorage.key(i)); } catch (e) { /* rien */ }
+    if (!apercu()) (hist || []).forEach((h) => { const m = /^flash-(\d{4}-\d{2}-\d{2})(?:-(\d{1,3}))?$/.exec(h.module || ""); if (m && m[1] === jour) P.add(m[2] ? +m[2] : 1); });
+    return [...P].sort((a, b) => a - b);
   }
   // la correction du jour reste cachée à l'élève tant que le prof ne l'a pas montrée ; celles des jours passés sont
   // visibles. CORRIGEES : jours montrés, renvoyés par la base (flash_etat).
   // La note, elle, s'affiche à la fin du chrono : celui de la copie de l'appareil, sinon celui lancé par le prof.
-  let CORRIGEES = new Set(), LANCE = null;   // LANCE : { jour, fin } du dernier lancement lu dans la base (fin à l'heure de l'appareil)
+  // LANCE : le dernier lancement lu dans la base { jour, passage, id, source, debut, fin (à l'heure de l'appareil) }
+  let CORRIGEES = new Set(), LANCE = null;
   const visible = (jour) => jour < SIP.aujourdhui() || CORRIGEES.has(jour);
   function noterLance(r) {
-    LANCE = r && r.lance && r.debut && r.fin ? { jour: SIP.jourTahiti(r.debut), fin: Date.parse(r.fin) + (Date.now() - Date.parse(r.maintenant || r.debut)) } : null;
+    if (!(r && r.lance && r.debut && r.fin)) { LANCE = null; return; }
+    const jour = SIP.jourTahiti(r.debut), p = passageDe(r.flash);
+    LANCE = { jour, passage: p, id: idDe(jour, p), source: r.flash, debut: r.debut, fin: Date.parse(r.fin) + (Date.now() - Date.parse(r.maintenant || r.debut)) };
   }
   async function majCorrigees() {
-    try { const r = await SIP.api.flashEtat(); CORRIGEES = new Set((r && r.corrigees) || []); noterLance(r); return true; } catch (e) { return false; }
+    try { const r = await SIP.api.flashEtat(); CORRIGEES = new Set((r && r.corrigees) || []); noterLance(r); return r || {}; } catch (e) { return null; }
+  }
+  // un flash lancé aujourd'hui qu'on peut encore rejoindre (plus d'une seconde et demie de chrono)
+  const lanceOuvert = () => (LANCE && LANCE.jour === SIP.aujourdhui() && Date.now() < LANCE.fin - 1500 ? LANCE : null);
+  // le prof a ajouté du temps : la fin de la copie suit celle du lancement (même lancement : même source, même début)
+  function caler(f, st, r) {
+    if (!(r && r.lance && r.fin && r.debut && r.flash === st.source) || st.rendu) return false;
+    const decal = Date.now() - Date.parse(r.maintenant || r.debut);
+    if (st.lanceLe ? st.lanceLe !== r.debut : Math.abs(Date.parse(r.debut) + decal - st.debut) > 5000) return false;
+    const fin = Date.parse(r.fin) + decal;
+    if (Math.abs(fin - finDe(f, st)) < 1500) return false;
+    st.fin = fin; garder(f, st); return true;
   }
   const finCopie = (st) => (st && st.debut ? st.fin || st.debut + (st.duree_s || DUREE_FLASH) * 1000 : 0);
-  function chronoFini(jour) {
-    if (jour < SIP.aujourdhui()) return true;
-    const st = lire({ date: jour });
+  function chronoFini(id) {
+    const x = lireId(id); if (!x) return true;
+    if (x.jour < SIP.aujourdhui()) return true;
+    const fid = idDe(x.jour, x.passage || 1), st = lire({ id: fid });
     if (st && st.debut) return Date.now() >= finCopie(st);
-    return !(LANCE && LANCE.jour === jour && Date.now() < LANCE.fin);
+    return !(LANCE && LANCE.id === fid && Date.now() < LANCE.fin);
   }
-  const noteVisible = (module) => { const m = /^flash-(\d{4}-\d{2}-\d{2})$/.exec(module || ""); return !m || visible(m[1]) || chronoFini(m[1]); };
+  const noteVisible = (module) => { const m = /^flash-(\d{4}-\d{2}-\d{2})((?:-\d{1,3})?)$/.exec(module || ""); return !m || visible(m[1]) || chronoFini(m[1] + m[2]); };
   const flashsPour = (niveau) => tous().some((f) => (f.niveau || "TSI") === niveau) || banque().some((q) => (q.niveau || "TSI") === niveau);
 
   const verdict = (st, k, i) => (st.cor && st.cor[k] && st.cor[k].v && st.cor[k].v[i]) || null;
@@ -159,22 +205,29 @@ window.SIP = window.SIP || {};
   // ---------- tuile du tableau de bord (toujours là pour une classe qui a des flashs) ----------
   function tuile(niveau, hist) {
     if (!flashsPour(niveau)) return "";
-    const auj = SIP.aujourdhui(), base = { date: auj }, st = lire(base), fait = faits(base, hist)[0];
-    const F = seanceDuJour(auj);
+    const auj = SIP.aujourdhui(), L = lanceOuvert();
+    // un flash lancé que l'élève n'a pas encore commencé (1er passage ou relance avec d'autres valeurs) : il y va tout de suite
+    if (L && !lire({ id: L.id }) && !faits({ id: L.id }, hist).length) {
+      return `<a class="carte fl-tuile a-faire" href="#/flash/${auj}"><span class="fl-eclair" aria-hidden="true">⚡</span>
+        <div><div class="eyebrow">Flash du jour · noté${L.passage > 1 ? ` · ${eme(L.passage)} passage` : ""}</div><div class="fl-tuile-t">Le flash est lancé !</div>
+        <div class="discret">Ouvre-le vite : ton chrono a démarré avec celui du tableau.</div></div><span class="btn">Ouvrir →</span></a>`;
+    }
+    const P = passagesDe(auj, hist), p = P.length ? P[P.length - 1] : 1, id = idDe(auj, p), base = { id, date: auj };
+    const st = lire(base), fait = faits(base, hist)[0], F = seanceDeId(id), pass = p > 1 ? ` · ${eme(p)} passage` : "";
     if ((fait || (st && st.rendu)) && !visible(auj)) {
-      const fini = chronoFini(auj), n = fini ? noteDe(F, st, fait) : null;
+      const fini = chronoFini(id), n = fini ? noteDe(F, st, fait) : null;
       return `<a class="carte fl-tuile fait" href="#/flash/${auj}"><span class="fl-eclair" aria-hidden="true">⚡</span>
-        <div><div class="eyebrow">Flash du jour · rendu</div><div class="fl-tuile-t">${n !== null ? `${nb(n)}<small>/20</small>` : "Copie rendue ✓"}</div>
+        <div><div class="eyebrow">Flash du jour · rendu${pass}</div><div class="fl-tuile-t">${n !== null ? `${nb(n)}<small>/20</small>` : "Copie rendue ✓"}</div>
         <div class="discret">${n !== null ? "Ta correction s'affichera quand le prof la montrera." : fini ? "Ta note s'affichera dès que ta copie sera corrigée." : "Ta note s'affichera à la fin du chrono."}</div></div><span class="btn sec">Ma copie →</span></a>`;
     }
     if (fait || (st && st.envoye && F)) {
       const n = fait ? sur20(fait.score, fait.score_max) : sur20(total(F, st).s, total(F, st).m);
       return `<a class="carte fl-tuile fait" href="#/flash/${auj}"><span class="fl-eclair" aria-hidden="true">⚡</span>
-        <div><div class="eyebrow">Flash du jour · rendu</div><div class="fl-tuile-t">${nb(n)}<small>/20</small></div><div class="discret">Revois ta correction et le corrigé.</div></div><span class="btn sec">Ma correction →</span></a>`;
+        <div><div class="eyebrow">Flash du jour · rendu${pass}</div><div class="fl-tuile-t">${nb(n)}<small>/20</small></div><div class="discret">Revois ta correction et le corrigé.</div></div><span class="btn sec">Ma correction →</span></a>`;
     }
     const enCours = st && st.debut && !st.rendu, rendu = st && st.rendu;
     return `<a class="carte fl-tuile ${enCours || rendu || flashDe(auj) ? "a-faire" : "pret"}" href="#/flash/${auj}"><span class="fl-eclair" aria-hidden="true">⚡</span>
-      <div><div class="eyebrow">Flash du jour · noté</div><div class="fl-tuile-t">${enCours ? "Ton chrono tourne" : rendu ? "Copie rendue" : "Quand le prof le lance"}</div>
+      <div><div class="eyebrow">Flash du jour · noté${pass}</div><div class="fl-tuile-t">${enCours ? "Ton chrono tourne" : rendu ? "Copie rendue" : "Quand le prof le lance"}</div>
       <div class="discret">${enCours ? "Reviens vite à ta copie." : rendu ? "Vois ta correction." : "Ouvre-le et attends : il démarre avec le chrono du tableau."}</div></div>
       <span class="btn">${enCours ? "Reprendre →" : rendu ? "Ma correction →" : "Ouvrir →"}</span></a>`;
   }
@@ -192,33 +245,47 @@ window.SIP = window.SIP || {};
   function liste($app, niveau, hist) {
     arreter();
     const auj = SIP.aujourdhui();
-    const jours = new Set(tous().filter((f) => f.date <= auj && (!f.niveau || f.niveau === niveau)).map((f) => f.date));
-    (hist || []).forEach((h) => { const m = /^flash-(\d{4}-\d{2}-\d{2})$/.exec(h.module || ""); if (m) jours.add(m[1]); });
-    if (lire({ date: auj })) jours.add(auj);
-    const L = [...jours].sort((a, b) => b.localeCompare(a));
+    const ids = new Set(tous().filter((f) => f.date <= auj && (!f.niveau || f.niveau === niveau)).map((f) => f.date));
+    (hist || []).forEach((h) => { const m = /^flash-(\d{4}-\d{2}-\d{2}(?:-\d{1,3})?)$/.exec(h.module || ""); if (m) ids.add(m[1]); });
+    passagesDe(auj, hist).forEach((p) => ids.add(idDe(auj, p)));
+    const L = [...ids].map(lireId).filter(Boolean).sort((a, b) => b.jour.localeCompare(a.jour) || (b.passage || 1) - (a.passage || 1));
     $app.innerHTML = `<p class="no-print"><a href="#/tableau">← Tableau de bord</a></p><h1>Mes flashs</h1>
       <p class="discret">Le flash du début de séance : quelques questions en quelques minutes, sur ce qu'on a déjà vu. Chaque flash garde ta correction et le corrigé : relis-les avant le DS.</p>
-      ${L.length ? `<div class="nb-liste">${L.map((jour) => { const base = { date: jour }, fait = faits(base, hist)[0], st = lire(base), F = seanceDuJour(jour);
-        const rendu = !!(fait || (st && st.rendu)), fini = chronoFini(jour);
+      ${L.length ? `<div class="nb-liste">${L.map(({ jour, passage }) => { const p = passage || 1, id = idDe(jour, p), base = { id, date: jour }, fait = faits(base, hist)[0], st = lire(base), F = seanceDeId(id);
+        const rendu = !!(fait || (st && st.rendu)), fini = chronoFini(id);
         const n = rendu && (fini || visible(jour)) ? noteDe(F, st, fait) : null;
-        return `<a class="nb-row fl-ligne" href="#/flash/${jour}"><span class="nb-rk">⚡</span>
-          <span class="nb-nm"><b>${esc(jourLong(jour))}</b><span class="discret">${F ? F.questions.map((q) => esc(q.theme || "")).join(" · ") : "copie faite sur un autre appareil"}</span></span>
+        return `<a class="nb-row fl-ligne" href="#/flash/${jour}-${p}"><span class="nb-rk">⚡</span>
+          <span class="nb-nm"><b>${esc(jourLong(jour))}${p > 1 ? ` · ${eme(p)} passage` : ""}</b><span class="discret">${F ? F.questions.map((q) => esc(q.theme || "")).join(" · ") : "copie faite sur un autre appareil"}</span></span>
           ${n !== null ? `<span class="etiquette ${classeNote(n)}">${nb(n)}/20</span>` : rendu ? `<span class="etiquette" title="${fini ? "Ta note s'affichera quand ta copie sera corrigée" : "Ta note s'affichera à la fin du chrono"}">rendu ✓</span>` : jour === auj ? `<span class="etiquette alerte">à faire</span>` : `<span class="etiquette">pas fait</span>`}<span class="nb-go" aria-hidden="true">→</span></a>`; }).join("")}</div>`
         : `<p class="discret">Pas encore de flash.</p>`}`;
   }
 
   // ---------- vue élève : le flash d'un jour ----------
-  function eleve($app, jour, ctx) {
+  // un passage lancé aujourd'hui que l'élève n'a ni commencé ni rendu (sur cet appareil ou un autre)
+  const aRejoindre = (ctx, sauf) => { const L = lanceOuvert(); return L && L.id !== sauf && !lire({ id: L.id }) && !faits({ id: L.id }, ctx && ctx.hist).length ? L : null; };
+  // sur une page du flash d'aujourd'hui : si le prof lance un nouveau passage, l'élève y part tout seul (vérifié toutes les 5 s)
+  function guetter($app, jour, ctx, sauf) {
+    if (jour !== SIP.aujourdhui()) return;
+    const vue = VUE;
+    MINUTERIE = setInterval(async () => { await majCorrigees(); if (vue === VUE && aRejoindre(ctx, sauf)) intro($app, jour, ctx); }, 5000);
+  }
+
+  function eleve($app, id, ctx) {
     arreter();
-    const auj = SIP.aujourdhui();
-    if (!estDate(jour)) jour = auj;
-    const base = { date: jour }, st = lire(base), F = seanceDuJour(jour), fait = faits(base, ctx.hist);
+    const auj = SIP.aujourdhui(), x = lireId(id) || { jour: auj, passage: 0 }, jour = x.jour;
+    let p = x.passage;
+    if (!p) {   // « Flash du jour » : le passage lancé si l'élève ne l'a pas encore fait, sinon le dernier passage fait
+      if (jour === auj && aRejoindre(ctx)) return intro($app, jour, ctx);
+      const P = passagesDe(jour, ctx.hist);
+      p = P.length ? P[P.length - 1] : 1;
+    }
+    const fid = idDe(jour, p), base = { id: fid, date: jour }, st = lire(base), F = seanceDeId(fid), fait = faits(base, ctx.hist);
     if (st && st.rendu && F) return visible(jour) ? correction($app, F, st, ctx) : copieRendue($app, F, st, ctx);
     if (st && st.debut && F) return reste(F, st) > 0 ? repondre($app, F, st, ctx) : rendre($app, F, st, ctx, true);
-    if (fait.length) return dejaFait($app, F, fait[0], jour);
+    if (fait.length) return dejaFait($app, F, fait[0], fid, ctx);
     if (jour > auj) { $app.innerHTML = `${retour()}<div class="carte"><h1>Flash du ${esc(jourLong(jour))}</h1><p>Il n'est pas encore ouvert.</p></div>`; return; }
     if (jour < auj) {
-      if (F) return revoir($app, F, "Tu n'as pas fait ce flash en classe. Voici les questions et le corrigé : cherche d'abord, puis ouvre le corrigé.");
+      if (F) return revoir($app, F, "Tu n'as pas fait ce flash en classe. Voici les questions et le corrigé : cherche d'abord, puis ouvre le corrigé.", ctx);
       $app.innerHTML = `${retour()}<div class="carte"><p>Pas de flash ce jour-là.</p></div>`; return;
     }
     intro($app, jour, ctx);
@@ -248,18 +315,23 @@ window.SIP = window.SIP || {};
       try {
         const r = await SIP.api.flashEtat();
         if (r && r.corrigees) CORRIGEES = new Set(r.corrigees);
+        noterLance(r);
         if (vue !== VUE) return;
         // un lancement d'un autre jour (resté dans la base) ne compte pas
         if (r && r.lance && SIP.jourTahiti(r.debut) === jour) {
           const F = seanceDe(r.flash, jour, niveau);
           if (!F) { etat.textContent = "Ce flash n'est pas encore sur ton appareil : recharge la page."; boite.classList.add("ko"); return; }
+          // ce passage, l'élève l'a déjà commencé ou rendu : on lui montre sa copie (elle guette le passage suivant)
+          const deja = lire(F), fait = faits(F, ctx.hist)[0];
+          if (deja && deja.debut) { arreter(); return eleve($app, `${F.date}-${F.passage}`, ctx); }
+          if (fait) { arreter(); return dejaFait($app, F, fait, F.id, ctx); }
           const decal = Date.now() - Date.parse(r.maintenant), fin = Date.parse(r.fin) + decal, debut = Date.parse(r.debut) + decal;
           if (fin - Date.now() > 1500) {
             arreter();
-            const st = { debut, fin, source: r.flash, refs: F.refs, duree_s: F.duree_s, reponses: F.questions.map(() => ""), rendu: null, cor: {} };
+            const st = { debut, fin, lanceLe: r.debut, source: r.flash, passage: F.passage, refs: F.refs, duree_s: F.duree_s, reponses: F.questions.map(() => ""), rendu: null, cor: {} };
             garder(F, st); repondre($app, F, st, ctx); return;
           }
-          arreter(); revoir($app, F, "Le flash est terminé et tu ne l'as pas commencé à temps. Voici les questions et le corrigé : cherche d'abord, puis ouvre le corrigé."); return;
+          arreter(); revoir($app, F, "Le flash est terminé et tu ne l'as pas commencé à temps. Voici les questions et le corrigé : cherche d'abord, puis ouvre le corrigé.", ctx); return;
         }
         etat.textContent = "En attente du lancement par le prof…"; boite.classList.remove("ko");
       } catch (e) {
@@ -285,9 +357,23 @@ window.SIP = window.SIP || {};
     const zones = [...$app.querySelectorAll("textarea[data-k]")];
     const lireZones = () => zones.forEach((z) => (st.reponses[+z.dataset.k] = z.value.slice(0, 2000)));
     zones.forEach((z) => z.addEventListener("input", () => { lireZones(); garder(f, st); }));
-    const t = document.getElementById("fl-t");
+    const t = document.getElementById("fl-t"), lab = $app.querySelector(".fl-barre-t");
+    // toutes les 2 s : le prof a-t-il ajouté du temps ? (la fin de la copie suit celle du lancement)
+    let n = 0, enVol = false;
+    const suivre = async () => {
+      if (enVol) return;
+      enVol = true;
+      try {
+        const r = await SIP.api.flashEtat();
+        if (vue === VUE && caler(f, st, r) && lab) {
+          lab.innerHTML = `<span aria-hidden="true">⏱</span> Temps ajouté`;
+          setTimeout(() => { if (vue === VUE) lab.innerHTML = `<span aria-hidden="true">⚡</span> Flash`; }, 6000);
+        }
+      } catch (e) { /* pas de réseau : le chrono continue */ } finally { enVol = false; }
+    };
     const tic = () => {
       if (vue !== VUE) return;
+      if (++n % 8 === 0) suivre();
       const r = reste(f, st);
       t.textContent = mmss(r); t.classList.toggle("urgent", r <= 30);
       if (r <= 0) { lireZones(); rendre($app, f, st, ctx, true); }
@@ -321,7 +407,7 @@ window.SIP = window.SIP || {};
         elements: q.elements.map((e, i) => { const v = verdict(st, k, i) || {}; return { t: e.t, p: e.p, verdict: v.verdict, par: v.par }; }) };
     });
     try {
-      const ok = await ctx.ecrire("enregistrer", { module: moduleDe(f), titre: `Flash du ${jourLong(f.date)}`, type: "externe", score: s, score_max: m,
+      const ok = await ctx.ecrire("enregistrer", { module: moduleDe(f), titre: `Flash du ${jourLong(f.date)}${f.passage > 1 ? ` · ${eme(f.passage)} passage` : ""}`, type: "externe", score: s, score_max: m,
         duree_s: Math.max(1, Math.round((st.rendu - st.debut) / 1000)), details });
       st.envoye = true; ENVOIS.delete(cle(f)); garder(f, st);
       return ok ? "envoye" : "file";
@@ -336,7 +422,7 @@ window.SIP = window.SIP || {};
     st.cor = st.cor || {};
     let echec = false;   // l'IA n'a pas pu tout corriger : la note viendra avec la correction (l'élève coche lui-même)
     $app.innerHTML = `${retour()}
-      <div class="fl-res-tete"><div><div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}</div><h1>Copie rendue ✓</h1>
+      <div class="fl-res-tete"><div><div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}${f.passage > 1 ? ` · ${eme(f.passage)} passage` : ""}</div><h1>Copie rendue ✓</h1>
         ${st.auto ? `<p class="discret">Temps écoulé : ta copie a été rendue à 0:00.</p>` : ""}</div>
         <div class="fl-note" id="fl-note" aria-live="polite"></div></div>
       <div class="carte fl-cache"><p id="fl-note-info"></p>
@@ -379,16 +465,21 @@ window.SIP = window.SIP || {};
           else if (r && r.erreur) dire("Ta copie est corrigée ; elle partira au prof quand tu seras reconnecté.");
         });
     }
-    // chaque seconde : le compte à rebours de la note ; toutes les 5 s : la correction est-elle montrée ?
+    // chaque seconde : le compte à rebours de la note ; toutes les 5 s : du temps ajouté par le prof (la note attend
+    // la nouvelle fin), un nouveau passage lancé (l'élève y part), la correction montrée ?
     let tic = 0;
     MINUTERIE = setInterval(async () => {
       majNote();
       if (++tic % 5) return;
-      await majCorrigees(); if (vue === VUE && visible(jour)) correction($app, f, st, ctx);
+      const r = await majCorrigees();
+      if (vue !== VUE) return;
+      if (r) caler(f, st, r);
+      if (aRejoindre(ctx, f.id)) return intro($app, jour, ctx);
+      if (visible(jour)) correction($app, f, st, ctx);
     }, 1000);
     majNote();
     const rz = document.getElementById("fl-reset");
-    if (rz) rz.onclick = () => { effacer(f); eleve($app, f.date, ctx); };
+    if (rz) rz.onclick = () => { effacer(f); eleve($app, `${f.date}-${f.passage || 1}`, ctx); };
   }
 
   // ---------- correction ----------
@@ -397,7 +488,7 @@ window.SIP = window.SIP || {};
     const vue = VUE;
     st.cor = st.cor || {};
     $app.innerHTML = `${retour()}
-      <div class="fl-res-tete"><div><div class="eyebrow">⚡ Flash · ${esc(jourLong(f.date))}</div><h1>Ta correction</h1>
+      <div class="fl-res-tete"><div><div class="eyebrow">⚡ Flash · ${esc(jourLong(f.date))}${f.passage > 1 ? ` · ${eme(f.passage)} passage` : ""}</div><h1>Ta correction</h1>
         ${st.auto ? `<p class="discret">Temps écoulé : ta copie a été rendue à 0:00.</p>` : ""}</div>
         <div class="fl-note" id="fl-note" aria-live="polite"></div></div>
       ${iaInfo}
@@ -437,7 +528,8 @@ window.SIP = window.SIP || {};
     else Promise.all(f.questions.map((q, k) => (qComplete(f, st, k) || (st.cor[k] && st.cor[k].etat === "erreur") ? null : corrigerQ(f, st, k))))
       .then(() => { if (APRES) APRES(); });
     const rz = document.getElementById("fl-reset");
-    if (rz) rz.onclick = () => { effacer(f); eleve($app, f.date, ctx); };
+    if (rz) rz.onclick = () => { effacer(f); eleve($app, `${f.date}-${f.passage || 1}`, ctx); };
+    guetter($app, f.date, ctx, f.id);
   }
 
   function questionCorrigee(f, st, k) {
@@ -490,24 +582,27 @@ window.SIP = window.SIP || {};
   }
 
   // copie faite sur un autre appareil : la note du serveur, et le corrigé si on sait quelles questions
-  function dejaFait($app, F, h, jour) {
+  function dejaFait($app, F, h, id, ctx) {
+    const x = lireId(id) || { jour: SIP.aujourdhui(), passage: 1 }, jour = x.jour, pass = x.passage > 1 ? ` · ${eme(x.passage)} passage` : "";
     if (!visible(jour)) {
-      const n = chronoFini(jour) ? sur20(h.score, h.score_max) : null;
-      $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}</div><h1>Copie rendue ✓</h1><div class="carte fl-cache">
+      const n = chronoFini(id) ? sur20(h.score, h.score_max) : null;
+      $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}${pass}</div><h1>Copie rendue ✓</h1><div class="carte fl-cache">
         <p>Tu as rendu ce flash le ${esc(SIP.fmtDate(h.fait_le, true))}${n !== null ? ` : ta note est <b>${nb(n)}/20</b>` : ""}.</p>
         <p>${n !== null ? "" : "Ta note s'affichera à la fin du chrono. "}<b>Ta correction s'affichera quand le prof la montrera</b> (au plus tard demain).</p></div>`;
-      return;
+      return guetter($app, jour, ctx, idDe(jour, x.passage || 1));
     }
     const n = sur20(h.score, h.score_max);
     const chapeau = `Tu as rendu ce flash le ${esc(SIP.fmtDate(h.fait_le, true))} : <b>${nb(n)}/20</b>. Ta copie détaillée est sur l'appareil où tu l'as faite.`;
-    if (F) return revoir($app, F, chapeau + " Voici les questions et le corrigé.");
-    $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}</div><h1>Flash rendu</h1><p>${chapeau}</p>`;
+    if (F) return revoir($app, F, chapeau + " Voici les questions et le corrigé.", ctx);
+    $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(jour))}${pass}</div><h1>Flash rendu</h1><p>${chapeau}</p>`;
+    guetter($app, jour, ctx, idDe(jour, x.passage || 1));
   }
-  function revoir($app, f, chapeau) {
+  function revoir($app, f, chapeau, ctx) {
     const ok = visible(f.date);
-    $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(f.date))}</div><h1>${ok ? "Les questions et le corrigé" : "Les questions"}</h1>
+    $app.innerHTML = `${retour()}<div class="eyebrow">⚡ Flash · ${esc(jourLong(f.date))}${f.passage > 1 ? ` · ${eme(f.passage)} passage` : ""}</div><h1>${ok ? "Les questions et le corrigé" : "Les questions"}</h1>
       <p>${ok ? chapeau : "Le corrigé s'affichera quand le prof le montrera (au plus tard demain). En attendant, cherche les questions."}</p>
       ${f.questions.map((q, k) => `<section class="carte fl-q">${teteQ(q, k)}${corpsQ(q)}${ok ? `<details class="fl-corrige"><summary>Le corrigé</summary><div>${q.corrige}</div></details>` : ""}</section>`).join("")}`;
+    if (ctx) guetter($app, f.date, ctx, f.id);
   }
 
   // ---------- professeur : choisir le flash ----------
@@ -586,35 +681,41 @@ window.SIP = window.SIP || {};
     const auj = SIP.aujourdhui(), niveau = NIVEAU_PROF, F = seanceDe(source, auj, niveau);
     if (!F) { $app.innerHTML = `<p><a href="#/flash/projeter">← Choisir un flash</a></p><div class="carte"><p>Ce flash n'existe pas (ou plus).</p></div>`; return; }
     document.body.classList.add("projection");
-    const T = F.duree_s, vue = VUE;
+    const T = F.duree_s, vue = VUE, pass = F.passage > 1 ? ` · ${eme(F.passage)} passage` : "";
+    const nVar = F.refs.filter(varie).length, nQ = F.refs.length;   // questions dont les valeurs changent à la relance
     $app.innerHTML = `<div class="proj fl-proj">
-      <div class="proj-barre"><span class="proj-titre">Flash · ${esc(jourLong(auj))}</span>
+      <div class="proj-barre"><span class="proj-titre">Flash · ${esc(jourLong(auj))}${pass}</span>
         <button class="btn" type="button" id="flp-go">Lancer le flash</button>
+        <button class="btn sec" type="button" id="flp-plus" hidden title="Une minute de plus au chrono du tableau et à celui de chaque élève">+1 min</button>
+        <button class="btn sec" type="button" id="flp-autres"${nVar ? "" : " disabled"} title="${nVar ? "Les mêmes questions avec d'autres valeurs : chaque élève refait le flash, sur une nouvelle copie, avec une nouvelle note" : "Ces questions n'ont pas de valeurs qui changent"}">↻ Nouvelles valeurs</button>
         <button class="btn sec" type="button" id="flp-cor" aria-pressed="false" title="Afficher le corrigé au tableau (les élèves ne le voient pas sur leur page)">Corrigé au tableau</button>
         <button class="btn sec" type="button" id="flp-montrer" disabled>…</button><button class="btn sec" type="button" id="flp-fs">Plein écran</button>
         <a class="btn sec" href="#/flash/projeter">Changer</a><a class="btn sec" href="#/">Quitter</a></div>
       <p class="fl-pz-info" id="flp-info" role="status" aria-live="polite"></p>
       <div class="proj-zone fl-pz">
         <div class="fl-pz-tete">
-          <div><h1>Flash · ${esc(jourLong(auj))}</h1><p class="fl-pz-sous">${minutes(F)} · seul · en silence · calculatrice autorisée<br>Sur le site : ouvre <b>Flash du jour</b> et attends le lancement</p></div>
+          <div><h1>Flash · ${esc(jourLong(auj))}${pass}</h1><p class="fl-pz-sous">${minutes(F)} · seul · en silence · calculatrice autorisée<br>Sur le site : ouvre <b>Flash du jour</b> et attends le lancement</p></div>
           <div class="fl-pz-ch"><div class="fl-pz-t" id="flp-t">${mmss(T)}</div><div class="fl-pz-et" id="flp-et">pas lancé</div></div>
         </div>
         <ol class="fl-pz-qs">${F.questions.map((q, k) => `<li class="fl-pz-q"><span class="fl-num">${k + 1}</span><div class="fl-pz-qc">
           <div class="eyebrow">${esc(q.theme || "")}</div><div class="fl-pz-en">${q.enonce}</div>
           <div class="fl-pz-rep" hidden><b>Réponse :</b> ${q.corrige}</div></div>${q.fig ? `<div class="fl-pz-fig">${q.fig}</div>` : ""}</li>`).join("")}</ol>
-        <p class="fl-pz-aide">Espace : lancer · C : corrigé au tableau · F : plein écran · Échap : quitter · À 0:00, les élèves voient leur note · « Montrer la correction aux élèves » : leur page affiche alors leur correction</p>
+        <p class="fl-pz-aide">Espace : lancer · + : une minute de plus · C : corrigé au tableau · F : plein écran · Échap : quitter · À 0:00, les élèves voient leur note · « Montrer la correction aux élèves » : leur page affiche alors leur correction · « Nouvelles valeurs » : les mêmes questions avec d'autres nombres, une nouvelle copie et une nouvelle note pour chacun</p>
       </div></div>`;
     const ch = document.getElementById("flp-t"), et = document.getElementById("flp-et"), go = document.getElementById("flp-go"), cor = document.getElementById("flp-cor");
+    const bPlus = document.getElementById("flp-plus"), bAutres = document.getElementById("flp-autres");
+    const boutons = () => { bPlus.hidden = !enCours; bAutres.hidden = enCours; };
     const info = document.getElementById("flp-info");
     const dire = (t, cls) => { info.innerHTML = t; info.className = "fl-pz-info" + (cls ? " " + cls : ""); };
     let fin = null, enCours = false;
     const aff = () => {
       const r = fin ? Math.max(0, Math.ceil((fin - Date.now()) / 1000)) : T;
       ch.textContent = mmss(r); ch.classList.toggle("fin", !!fin && r <= 0); ch.classList.toggle("urgent", !!fin && r > 0 && r <= 30);
-      if (fin && r <= 0 && enCours) { enCours = false; if (MINUTERIE) clearInterval(MINUTERIE); MINUTERIE = null; et.textContent = "temps écoulé : copies rendues"; go.textContent = "Relancer"; go.disabled = false; }
+      if (fin && r <= 0 && enCours) { enCours = false; if (MINUTERIE) clearInterval(MINUTERIE); MINUTERIE = null; et.textContent = "temps écoulé : copies rendues"; relancer(); boutons(); }
     };
+    const relancer = () => { go.textContent = "Relancer"; go.title = "Mêmes questions, mêmes valeurs : seuls les élèves qui ne l'ont pas encore fait peuvent le faire"; go.disabled = false; };
     const tourner = (finLocal, quoi) => {
-      fin = finLocal; enCours = true; et.textContent = quoi; go.textContent = "Arrêter"; go.disabled = false;
+      fin = finLocal; enCours = true; et.textContent = quoi; go.textContent = "Arrêter"; go.title = ""; go.disabled = false; boutons();
       if (MINUTERIE) clearInterval(MINUTERIE); MINUTERIE = setInterval(aff, 200); aff();
     };
     // page rechargée pendant le flash : on reprend le chrono lancé depuis ce navigateur
@@ -628,7 +729,7 @@ window.SIP = window.SIP || {};
         try { await SIP.api.flashLancer(niveau, source, 0); } catch (e) { /* le chrono du tableau s'arrête quand même */ }
         if (vue !== VUE) return;
         enCours = false; fin = null; if (MINUTERIE) clearInterval(MINUTERIE); MINUTERIE = null; aff();
-        et.textContent = "arrêté"; go.textContent = "Relancer"; go.disabled = false;
+        et.textContent = "arrêté"; relancer(); boutons();
         dire("Flash arrêté : plus personne ne peut le commencer. Les élèves déjà partis gardent leur chrono.");
         return;
       }
@@ -647,13 +748,33 @@ window.SIP = window.SIP || {};
         else dire(`Le lancement n'est pas parti (${esc(e.message || "réseau ?")}) : réessaie.`, "ko");
       }
     };
+    // une minute de plus : pour le tableau et pour chaque élève (leur page relit la fin dans la base toutes les 2 s)
+    const plus = async () => {
+      if (!enCours || vue !== VUE || bPlus.disabled) return;
+      if (fin - Date.now() < 3000) { dire("Trop tard pour ajouter du temps : les copies partent. Relance le flash, ou lance de nouvelles valeurs.", "ko"); return; }
+      bPlus.disabled = true;
+      try {
+        const r = await SIP.api.flashRallonger(niveau, 60);
+        if (vue !== VUE) return;
+        if (r && r.lance) { tourner(Date.parse(r.fin) + (Date.now() - Date.parse(r.maintenant)), "en cours"); dire("✓ +1 min : le chrono de chaque élève se met à l'heure dans les 2 secondes.", "ok"); }
+        else dire("Le flash est déjà fini : on ne peut plus ajouter de temps. Relance-le, ou lance de nouvelles valeurs.", "ko");
+      } catch (e) {
+        if (vue !== VUE) return;
+        dire(/flash_rallonger|PGRST202|Could not find the function|schema cache/i.test(e.message || "") ? "La base n'a pas encore « +1 min » (supabase/flash.sql à jour à installer)."
+          : /NON_AUTORISE|JWT|permission/i.test(e.message || "") ? `Connecte-toi à <a href="prof.html">l'espace prof</a> dans ce navigateur pour ajouter du temps.` : "Pas de réponse de la base : réessaie.", "ko");
+      } finally { bPlus.disabled = false; }
+    };
+    // les mêmes questions avec d'autres valeurs : passage suivant (pas encore lancé : le prof voit les nouvelles valeurs, puis « Lancer »)
+    const autres = () => { if (enCours || !nVar || vue !== VUE) return; location.hash = "#/flash/projeter/" + encodeURIComponent(`${sansPassage(source)}@${F.passage + 1}`); };
     const corr = () => { const on = cor.getAttribute("aria-pressed") !== "true"; cor.setAttribute("aria-pressed", String(on)); $app.querySelectorAll(".fl-pz-rep").forEach((e) => (e.hidden = !on)); };
     const fs = () => { if (document.fullscreenElement) document.exitFullscreen(); else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); };
-    go.onclick = lancer; cor.onclick = corr; document.getElementById("flp-fs").onclick = fs;
-    montrer();
+    go.onclick = lancer; cor.onclick = corr; document.getElementById("flp-fs").onclick = fs; bPlus.onclick = plus; bAutres.onclick = autres;
+    montrer(); boutons();
+    if (F.passage > 1) dire(`${eme(F.passage)} passage : ${nVar === nQ ? "nouvelles valeurs pour toutes les questions" : `nouvelles valeurs pour ${nVar} question${nVar > 1 ? "s" : ""} sur ${nQ} (les autres ne changent pas)`}. Clique « Lancer » : chaque élève refait le flash sur une nouvelle copie, avec une nouvelle note (la précédente reste dans ta grille).`, "ok");
     CLAVIER = (ev) => {
       if (ev.target.closest && ev.target.closest("input,textarea,select,button,a")) { if (ev.key === " ") return; }
       if (ev.key === " ") { ev.preventDefault(); if (!enCours) lancer(); }
+      else if (ev.key === "+") plus();
       else if (ev.key === "c" || ev.key === "C") corr();
       else if (ev.key === "f" || ev.key === "F") fs();
       else if (ev.key === "Escape" && !document.fullscreenElement) location.hash = "#/";

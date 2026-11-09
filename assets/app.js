@@ -38,6 +38,10 @@
   const boutonDeco = () => (SIP.apercu.actif() ? `<button class="btn-lien" id="deco">Quitter l'aperçu</button>` : `<button class="btn-lien" id="deco">Se déconnecter</button>`);
   function entete() {
     const s = SIP.session.get(); const q = document.getElementById("qui");
+    // Terminale SI : le bouton « Mes DS », toujours en haut de l'écran (tous les DS de l'année, #/ds)
+    const ds = s && s.niveau === "TSI" && SIP.BAC;
+    q.classList.toggle("avec-ds", !!ds);
+    if (ds) { q.innerHTML = `<a class="qui-ds" href="#/ds"><span aria-hidden="true">📅</span> Mes DS</a><span class="qui-id"><b>${s.apercu ? "Aperçu prof" : esc(s.nom)}</b><span class="qui-niv">${esc(SIP.niveau(s.niveau).nom)}</span></span>`; return; }
     q.innerHTML = s ? (s.apercu ? `<b>Aperçu prof</b><br>${esc(SIP.niveau(s.niveau).nom)}` : `<b>${esc(s.nom)}</b><br>${esc(SIP.niveau(s.niveau).nom)}`) : esc(SIP.CFG.etablissement || "");
   }
 
@@ -176,6 +180,7 @@
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
       <div id="appli-bandeau"></div><div id="sig-nouvelles"></div>
       ${SIP.flash ? SIP.flash.tuile(s.niveau, hist) : ""}
+      ${friseDS()}
       ${prochainDS(hist)}
       ${dsPasses(hist)}
       <details class="sequence plus"><summary><span>Aller plus loin</span><span class="discret">révision du jour, parcours, sujet blanc, toutes les notions, mes résultats</span></summary>
@@ -411,6 +416,96 @@
           <ul>${avant.map((x) => `<li><span class="ds-nom"><b>${esc(x.ds)}</b><span class="discret">${esc(jour(x.date))}</span></span><span class="ds-btns">${liens(x, false)}${fiches(x)}</span></li>`).join("")}</ul></details>` : ""}
       </section>`;
   }
+  // ---------------- Mes DS (Terminale SI) : tous les DS de l'année, le prochain mis en avant ----------------
+  // Un DS = les notions du planning (SIP.BAC) qui portent son nom ; sa date est celle du planning, recalée par
+  // contenu/calendrier.js. On y arrive par le bouton « Mes DS » de l'en-tête, la frise du tableau de bord,
+  // #/ds (la liste) et #/ds/ds03 (tout pour un DS : le cours, les fiches, les séries, la préparation, le DS blanc).
+  function listeDS() {
+    const B = SIP.BAC; if (!B) return [];
+    const par = {};
+    B.notions.filter((n) => n.ds && n.ds_date).forEach((n) => {
+      const id = dsKey(n.ds);
+      (par[id] = par[id] || { id, ds: n.ds, date: n.ds_date, echeance: n.echeance || n.ds_date + "T06:00:00-10:00", notions: [] }).notions.push(n);
+    });
+    const now = Date.now(), L = Object.values(par).sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+    let prochain = null;
+    L.forEach((x) => {
+      x.notions.sort((a, b) => a.rang - b.rang);
+      const def = (window.SIP_PREP || {})[x.id];
+      x.b = dsBlanc(x.ds);
+      x.prep = x.notions.some((n) => n.enLigne) || !!(def && def.etapes && def.etapes.length);
+      x.passe = Date.parse(x.echeance) <= now;
+      if (!x.passe && !prochain) prochain = x;
+    });
+    L.forEach((x) => (x.prochain = x === prochain));
+    return L;
+  }
+  const jourDS = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone: "Pacific/Tahiti" });
+  function quandDS(x) {
+    const j = SIP.joursEntre(SIP.aujourdhui(), x.date);
+    return j === 0 ? "aujourd'hui" : j === 1 ? "demain" : j > 1 ? `dans ${j} jours` : "passé";
+  }
+  // la frise du tableau de bord : le dernier DS passé, le prochain, et ceux d'après
+  function friseDS() {
+    const L = listeDS(); if (!L.length) return "";
+    const i = L.findIndex((x) => x.prochain), k = i < 0 ? L.length : i;
+    const vus = L.slice(Math.max(0, k - 1), k + 4);
+    return `<section class="carte ds-frise" aria-label="Mes DS">
+        <div class="ds-frise-tete"><div class="eyebrow">Mes DS · touche un DS pour tout avoir</div><a href="#/ds">Tous les DS (${L.length}) →</a></div>
+        <ol class="ds-frise-l">${vus.map((x) => `<li><a class="ds-puce${x.prochain ? " prochain" : x.passe ? " passe" : ""}" href="#/ds/${x.id}"${x.prochain ? ' aria-current="true"' : ""}>
+          <span class="ds-puce-n">${esc(x.ds)}</span><span class="ds-puce-d">${esc(jourDS(x.date))}</span><span class="ds-puce-q">${x.prochain ? `prochain · ${quandDS(x)}` : quandDS(x)}</span></a></li>`).join("")}</ol>
+      </section>`;
+  }
+  // une notion du DS : son cours, sa fiche, sa série
+  function ligneNotionDS(n, hist) {
+    const C = coursBac(n.id), F = ficheBac(n.id), e = etatNotion(n, hist), fn = noteFiche(hist, n.id), comprise = fn !== null && fn >= 16;
+    const serie = n.enLigne ? `<a class="btn ${e.valide ? "sec fait" : "sec"}" href="${PAGE_BAC}#n=${n.id}">${e.valide ? "✓ Série" : "Série"}${!e.valide && e.txt.includes("/20") ? ` <small>${e.txt.replace(/^.*?(\d[\d,]*)\/20.*$/, "$1")}/20</small>` : ""}</a>` : `<span class="btn sec off">série bientôt</span>`;
+    return `<li class="${e.valide ? "ok" : ""}"><span class="ds-nom"><b>${esc(n.lab)}</b><span class="discret">${DOM_BAC[n.dom] || ""}${n.cours ? ` · vu en cours le ${jourCourt(n.cours)}` : ""}</span></span>
+      <span class="ds-btns">${C ? `<a class="btn sec" href="#/cours/${n.id}">▶ Cours</a>` : ""}${F ? `<a class="btn sec${comprise ? " fait" : ""}" href="#/fiche/${n.id}">${comprise ? "✓ " : ""}Fiche${fn !== null && !comprise ? ` <small>${SIP.nb(fn, 3)}/20</small>` : ""}</a>` : ""}${serie}</span></li>`;
+  }
+  async function vueDS(id) {
+    const s = SIP.session.get();
+    if (!SIP.BAC || s.niveau !== "TSI") { location.hash = "#/tableau"; return; }
+    $app.innerHTML = `<p class="discret">Chargement…</p>`;
+    await chargerEtat();
+    const hist = ETAT.historique || [], L = listeDS(), x = id ? L.find((d) => d.id === id) : null;
+    if (x) return pageDS(x, L, hist);
+    const ligne = (d) => `<li><a class="ds-ligne${d.prochain ? " prochain" : ""}" href="#/ds/${d.id}">
+        <span class="ds-l-txt"><span class="ds-l-t">${esc(d.ds)} <span>· ${esc(jourLong(d.date))}</span></span>
+          <span class="discret">${esc(d.notions.map((n) => n.lab).join(" · "))}</span></span>
+        <span class="etiquette ${d.prochain ? "alerte" : ""}">${d.prochain ? `prochain · ${quandDS(d)}` : quandDS(d)}</span></a></li>`;
+    const avenir = L.filter((d) => !d.passe), passes = L.filter((d) => d.passe).reverse();
+    $app.innerHTML = `<p class="no-print"><a href="#/tableau">← Tableau de bord</a></p>
+      <h1>Mes DS</h1>
+      <p class="discret">Tous les DS de l'année, avec leur date. Touche un DS pour tout avoir : le cours, les fiches, les séries, la préparation et le DS blanc.</p>
+      ${avenir.length ? `<h2>À venir</h2><ol class="ds-liste">${avenir.map(ligne).join("")}</ol>` : ""}
+      ${passes.length ? `<h2>Passés <span class="discret">pour revoir tes erreurs</span></h2><ol class="ds-liste">${passes.map(ligne).join("")}</ol>` : ""}`;
+  }
+  function pageDS(x, L, hist) {
+    const i = L.indexOf(x), av = L[i - 1], ap = L[i + 1];
+    const statut = x.prochain ? "Prochain DS" : x.passe ? "DS passé" : "DS à venir";
+    const nav = `<div class="ds-nav no-print">${av ? `<a class="btn sec" href="#/ds/${av.id}">← ${esc(av.ds)}</a>` : ""}<a class="btn sec" href="#/ds">Tous les DS</a>${ap ? `<a class="btn sec" href="#/ds/${ap.id}">${esc(ap.ds)} →</a>` : ""}</div>`;
+    let prep = "";
+    if (x.prochain) prep = `<h2>Préparer le DS</h2><div class="ds-page-prep">${prochainDS(hist)}</div>`;   // la carte du tableau de bord : le défi, les étapes, la revanche
+    else {
+      const E = x.b ? essaisDSB(hist, x.b) : [], best = E.length ? Math.max(...E.map((h) => sur20(h.score, h.score_max))) : null;
+      const liens = [
+        x.b ? `<a class="btn" href="${x.b.page}">DS blanc · ${esc(x.b.titre)}${best !== null ? ` <small>meilleur ${SIP.nb(best, 3)}/20</small>` : ""}</a>` : "",
+        x.prep ? `<a class="btn sec" href="${PAGE_BAC}#prep=${x.id}">Préparation en 3 étapes</a>` : "",
+      ].join("");
+      if (liens) prep = `<h2>${x.passe ? "Revoir le DS" : "Prendre de l'avance"}</h2><section class="carte ds-passe"><p class="discret">${x.passe
+        ? `${x.b ? "Refais le DS blanc question par question : la correction s'affiche après chaque réponse. " : ""}La préparation reste ouverte ; elle ne compte plus pour la validation.`
+        : "Ce n'est pas encore le prochain DS, mais tu peux déjà t'entraîner : les étapes de la préparation sont ouvertes dans l'ordre."}</p>
+        <div class="rang ds-passe-liens">${liens}</div></section>`;
+    }
+    $app.innerHTML = `<p class="no-print"><a href="#/ds">← Mes DS</a> · <a href="#/tableau">Tableau de bord</a></p>
+      <div class="ds-page-tete"><div><div class="eyebrow">${statut}</div><h1>${esc(x.ds)} <span>· ${esc(jourLong(x.date))}</span></h1>
+        <p class="discret">${x.prochain || !x.passe ? `${quandDS(x).replace(/^./, (c) => c.toUpperCase())} · ` : ""}${pluriel(x.notions.length, "notion")} au programme du DS</p></div>${nav}</div>
+      <h2>Ce qui tombe <span class="discret">le cours, la fiche et la série de chaque notion</span></h2>
+      <ul class="ds-lot ds-notions">${x.notions.map((n) => ligneNotionDS(n, hist)).join("")}</ul>
+      ${prep}`;
+  }
+
   // DS blancs de Terminale SI (entrainements/ds-blanc.html, liste dans contenu/ds-blancs.js)
   const dsBlanc = (ds) => (SIP.DS_BLANCS || []).find((b) => b.ds === ds) || null;
   const essaisDSB = (hist, b) => hist.filter((h) => h.type === "externe" && h.module === b.module);
@@ -953,6 +1048,7 @@
         case "fiche": return vueFicheBac(h[1]);
         case "cours": return vueCours(h[1], h[2]);
         case "flash": return await vueFlash(h[1]);
+        case "ds": return await vueDS(h[1]);
         case "fiches-bac": return vueFichesBac();
         default: location.hash = "#/tableau";
       }

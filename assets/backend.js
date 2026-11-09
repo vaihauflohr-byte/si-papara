@@ -119,6 +119,17 @@ window.SIP = window.SIP || {};
         }
         return Object.assign({ ok: true, lance: !!L[niveau], maintenant: new Date(d).toISOString() }, L[niveau] || {});
       },
+      async flashRallonger(niveau, secondes) {   // une minute de plus au flash en cours (1 heure au plus en tout)
+        const L = flashLocal(), x = L[niveau], d = Date.now();
+        if (!x || Date.parse(x.fin) <= d) return { ok: false, lance: false, maintenant: new Date(d).toISOString() };
+        x.fin = new Date(Math.min(Date.parse(x.fin) + Math.max(1, Math.min(secondes || 60, 600)) * 1000, Date.parse(x.debut) + 3600e3)).toISOString();
+        try { localStorage.setItem(FLASH_LOCAL, JSON.stringify(L)); } catch (e) {}
+        return Object.assign({ ok: true, lance: true, maintenant: new Date(d).toISOString() }, x);
+      },
+      async flashCaler(niveau, fin) {   // le signal de ce navigateur prend la fin donnée par la base (après « +1 min »)
+        const L = flashLocal(); if (!L[niveau] || !fin) return;
+        L[niveau].fin = fin; try { localStorage.setItem(FLASH_LOCAL, JSON.stringify(L)); } catch (e) {}
+      },
       async flashEtat() {
         const s = SIP.session.get(); if (!s) throw new Error("SESSION_EXPIREE");
         const r = flashLocal()[s.niveau], m = new Date(Date.now()).toISOString(), corrigees = flashCorr()[s.niveau] || [];
@@ -314,6 +325,7 @@ window.SIP = window.SIP || {};
       flashLancer: (niveau, flash, duree) => rpc("flash_lancer", { p_niveau: niveau, p_flash: flash, p_duree_s: duree }),
       flashEtat: () => rpc("flash_etat", { p_jeton: jeton() }),
       flashMontrer: (niveau, jour, montrer) => rpc("flash_montrer", { p_niveau: niveau, p_jour: jour, p_montrer: montrer }),
+      flashRallonger: (niveau, secondes) => rpc("flash_rallonger", { p_niveau: niveau, p_secondes: secondes }),
       enregistrer: (t) => rpc("enregistrer_entrainement", {
         p_jeton: jeton(), p_module: t.module, p_titre: t.titre || null, p_type: t.type || "entrainement",
         p_score: t.score, p_score_max: t.score_max, p_duree_s: t.duree_s || null, p_details: t.details || null, p_fait_le: t.fait_le || null
@@ -455,7 +467,7 @@ window.SIP = window.SIP || {};
     ["connexion", "etat", "enregistrer", "adopter", "lire", "signaler", "mesSignalements", "profConnexion", "profDonnees", "profSignalements",
       "traiterSignalement", "validerSignalement", "creerEleve", "changerPin", "basculerActif", "supprimerEleve", "profDeconnexion",
       "projetEtat", "projetEnregistrer", "profProjets", "profProjetMaj", "depotListe", "depotEnvoyer", "depotOuvrir", "depotRetirer",
-      "profDepots", "profDepotUrl", "profDepotBlob", "profDepotVu", "profDepotSupprimer", "flashLancer", "flashEtat", "flashMontrer"].forEach((f) => (api[f] = ko));
+      "profDepots", "profDepotUrl", "profDepotBlob", "profDepotVu", "profDepotSupprimer", "flashLancer", "flashEtat", "flashMontrer", "flashRallonger"].forEach((f) => (api[f] = ko));
     api.profSession = async () => false;
     api.profJeton = async () => null;
     api.profStatut = async () => "inconnu";
@@ -546,6 +558,7 @@ window.SIP = window.SIP || {};
     // le prof lance le flash dans la base (Supabase) et, pour l'aperçu dans ce navigateur, dans le signal local
     flashLancer: async (n, f, d) => { const r = await principal.flashLancer(n, f, d); if (principal !== locale) await locale.flashLancer(n, f, d).catch(() => null); return r; },
     // correction du flash montrée aux élèves : dans la base, et dans ce navigateur pour l'aperçu
+    flashRallonger: async (n, s) => { const r = await principal.flashRallonger(n, s); if (principal !== locale && r && r.lance) await locale.flashCaler(n, r.fin).catch(() => null); return r; },
     flashMontrer: async (n, j, m) => { const r = await principal.flashMontrer(n, j, m); if (principal !== locale && m !== null) await locale.flashMontrer(n, j, m).catch(() => null); return r; } });
 
   // ---------- Écritures élève avec file d'attente hors-ligne ----------
