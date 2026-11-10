@@ -1426,7 +1426,7 @@ function seenGet(key){ try{ return JSON.parse(localStorage.getItem("bacsi-seen-"
 function seenSet(key,v){ try{ localStorage.setItem("bacsi-seen-"+key,JSON.stringify(v)); }catch(e){} }
 /* Exécute le générateur i du niveau l : une question ou un groupe de questions liées (même situation). */
 function genGroup(key,l,i){
-  const r=POOLS[key][l][i](), arr=Array.isArray(r)?r:[r];
+  const G=POOLS[key][l], r=(G[i]||G[Math.floor(Math.random()*G.length)])(), arr=Array.isArray(r)?r:[r];
   arr.forEach((q,j)=>{
     q.lv=l; q.key=key; q.gi=i; q.gj=j; q.gl=arr.length;
     if(j>0){ const b=arr[0], p=arr[j-1]; if(q.fig==null) q.fig=p.fig; if(q.data==null) q.data=p.data; if(b.ctx&&q.ctx!==b.ctx&&!(q.ctx||"").includes(b.ctx)) q.ctx0=b.ctx; }
@@ -1512,6 +1512,25 @@ function d2Bdd(o){ return `<div class="d2-bdd">${o.blocs.map(b=>`<div class="d2-
 function d2Fiche(o){ return `<table class="d2-fiche">${o.titre?`<caption>${o.titre}</caption>`:""}<tbody>${o.lignes.map(l=>`<tr><th scope="row">${l[0]}</th><td>${l[1]}</td></tr>`).join("")}</tbody></table>`; }
 /* Choix multiple avec la raison de chaque mauvaise réponse : wrong = [[texte, pourquoi c'est faux], …] */
 function mcw(ok,wrong){ const sh=shuffle([[ok,""],...wrong].map((x,i)=>({c:x[0],w:x[1],i}))); return {ch:sh.map(x=>x.c),ok:sh.findIndex(x=>x.i===0),why:sh.map(x=>x.w)}; }
+/* Courbe sur quadrillage (lecture graphique). o.pts = [[x, y], …] reliés par des segments ; o.xm, o.ym = bouts des axes ;
+   o.xs, o.ys = pas des graduations ; o.sub = sous-divisions du quadrillage en x ; o.xl, o.yl = légendes des axes.
+   Schéma d'allure, sans valeurs : o.xt = [[x, "t1", hauteur], …] et o.yt = [[y, "V", longueur], …] remplacent les graduations. */
+function d2Courbe(o){
+  const H=o.h||240, x0=52, x1=384, y0=H-42, y1=24, X=x=>x0+(x1-x0)*x/o.xm, Y=y=>y0-(y0-y1)*y/o.ym, P=p=>`${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`;
+  let s="";
+  if(o.xt){
+    o.xt.forEach(t=>{ s+=L(X(t[0]),y0,X(t[0]),Y(t[2]!=null?t[2]:o.ym),"v-dash")+T(X(t[0]),y0+18,t[1],"v-lab s","middle"); });
+    (o.yt||[]).forEach(t=>{ s+=L(x0,Y(t[0]),X(t[2]!=null?t[2]:o.xm),Y(t[0]),"v-dash")+T(x0-8,Y(t[0])+4.5,t[1],"v-lab s","end"); });
+    s+=T(x0-8,y0+18,"0","v-lab s","end");
+  }else{
+    const n=o.sub||1;
+    for(let k=0;k*o.xs/n<=o.xm+1e-9;k++){ const x=X(k*o.xs/n).toFixed(1), g=k%n===0; s+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y1}" class="v-grid"${g?"":' style="opacity:.55"'}/>`+(g?T(x,y0+18,nf(k*o.xs/n,2),"v-lab s","middle"):""); }
+    for(let k=0;k*o.ys<=o.ym+1e-9;k++){ const y=Y(k*o.ys); s+=L(x0,y,x1,y,"v-grid")+T(x0-8,y+4.5,nf(k*o.ys,2),"v-lab s","end"); }
+  }
+  s+=L(x0,y0,x1+6,y0,"v-ink")+L(x0,y0,x0,y1-10,"v-ink")+T(x1+6,y0+36,o.xl,"v-cap","end")+T(8,y1-10,o.yl,"v-cap","start");
+  s+=`<polyline points="${o.pts.map(P).join(" ")}" class="v-curve" style="stroke-linejoin:round;stroke-linecap:round"/>`;
+  return svg(H,s,o.label||"Courbe");
+}
 
 /* Réservoirs : actions mécaniques (meca-actions) et cinématique (meca-cinematique).
    Tout est encapsulé : seules les entrées de POOLS sont ajoutées. */
@@ -2840,6 +2859,341 @@ POOLS["meca-cinematique"]={
           expl:"C appartient aussi au bras 1, en rotation autour de O : C décrit un arc de cercle de centre O et de rayon OC. Pour un point commun à deux pièces, on raisonne sur la pièce dont le mouvement est simple."}]; }
   ]
 };
+/* ======================================================================
+   v2 · Cinématique (meca-cinematique) : courbes et documents à lire, verbes de l'épreuve, conclusions rédigées.
+   Les questions de reconnaissance des mouvements et des trajectoires sur les schémas de mécanismes (déjà sans
+   données dans l'énoncé) sont gardées au niveau 1.
+   ====================================================================== */
+{
+const sb=(b,i)=>`${b}<sub>${i}</sub>`, TPI=2*Math.PI, sat=b=>b?"est satisfaite":"n'est pas satisfaite";
+const trou=(ok,wrong,m)=>{ const o=shuffle([...new Set([ok,...wrong])]); return {o,ok:o.indexOf(ok),m}; };
+/* réponses fausses typiques : on retire celles qui tombent sur la bonne réponse, et les doublons */
+const dgs=(ans,l)=>l.filter((d,i)=>d.v>0&&Math.abs(d.v-ans)>0.03*Math.abs(ans)&&l.findIndex(e=>Math.abs(e.v-d.v)<=1e-9*Math.abs(d.v))===i);
+const SYSC=[{n:"chariot de transfert",a:"Le chariot",le:"du chariot"},{n:"ascenseur",a:"La cabine",le:"de la cabine"},{n:"navette autonome",a:"La navette",le:"de la navette"},{n:"axe linéaire de machine",a:"Le chariot",le:"du chariot"}];
+/* profil de vitesse en trapèze, lisible sur le quadrillage : t1 fin de l'accélération, t2 début du freinage, t3 arrêt, V palier */
+const trap=()=>{ const t1=rnd([2,3,4]), tp=rnd([3,4,5,6,8]), td=rnd([2,3,4]), t2=t1+tp, t3=t2+td, pet=Math.random()<.5, V=pet?rnd([0.4,0.6,0.8,1,1.2]):rnd([1.5,2,2.5,3]), ys=pet?0.2:0.5, xs=t3<=10?1:2;
+  return {t1,t2,t3,tp,td,V,ys,xs,xm:Math.ceil((t3+0.5)/xs)*xs,ym:Number((V+ys).toFixed(1))}; };
+const figTrap=(p,n,titre)=>DOC(n,titre,d2Courbe({pts:[[0,0],[p.t1,p.V],[p.t2,p.V],[p.t3,0]],xm:p.xm,ym:p.ym,xs:p.xs,ys:p.ys,sub:p.xs===2?2:1,xl:"t (s)",yl:"v (m/s)",label:"Vitesse en fonction du temps : une montée, un palier, une descente jusqu'à l'arrêt"}));
+const donTrap=p=>`courbe v(t) : départ arrêté ; ${nf(p.V)} m/s de ${p.t1} s à ${p.t2} s ; arrêt à ${p.t3} s`;
+/* conclusion rédigée d'une étude, sur une exigence « au plus » : satisfaite si val ≤ lim */
+const conclure=o=>{ const phm=o.ph.charAt(0).toLowerCase()+o.ph.slice(1), oui=o.val<=o.lim, mot=oui?"inférieur":"supérieur", V=`${S3(o.val)} ${o.u}`, Lm=`${nf(o.lim,3)} ${o.u}`, pg=oui?"plus petit":"plus grand";
+  return {q:o.q,type:"red",don:o.don,
+    ...mcw(`L'exigence ${o.exi} ${sat(oui)} : ${phm} ${V}, ${oui?"moins":"plus"} que la limite de ${Lm}.`,[
+      [`L'exigence ${o.exi} ${sat(!oui)} : ${phm} ${V}, ${oui?"plus":"moins"} que la limite de ${Lm}.`,`compare les nombres : ${S3(o.val)} est ${pg} que ${nf(o.lim,3)}.`],
+      [`L'exigence ${o.exi} ${sat(oui)}, car ${o.faux}.`,o.fauxW],
+      [`On ne peut pas conclure : il manque une donnée.`,`les deux valeurs à comparer sont connues : ${V} (calculé) et ${Lm} (exigence ${o.exi}).`]]),
+    elements:[{t:`Donne ${o.quoi} (environ ${V})`,p:1},{t:`Donne la valeur exigée (${o.limTxt})`,p:1},{t:`Compare les deux valeurs`,p:1},{t:`Conclut que l'exigence ${o.exi} ${sat(oui)}`,p:2}],
+    modele:`${o.ph} ${V}. C'est ${mot} à la limite de ${Lm} : l'exigence ${o.exi} ${sat(oui)}.`,
+    iaPlus:`Résultat des questions précédentes : ${o.quoi} = ${V}. Exigence ${o.exi} : ${o.limTxt}.`,
+    expl:`${V} est ${mot} à ${Lm} : l'exigence ${o.exi} ${sat(oui)}.`,
+    lire:o.lire,
+    met:[`Une conclusion complète donne la valeur trouvée, la valeur exigée, la comparaison, puis la réponse.`,`Valeur trouvée : ${F(V)}. Valeur exigée : ${F(Lm)} au plus.`,`${S3(o.val)} est ${pg} que ${nf(o.lim,3)} : l'exigence ${o.exi} ${sat(oui)}${oui?"":". "+o.remede}.`],
+    piege:`Conclure sans citer les deux valeurs, ou comparer deux grandeurs qui n'ont pas la même unité.`,
+    ret:`Conclure = la valeur trouvée, la valeur exigée, la comparaison, la réponse.`}; };
+
+const C2N1=[
+  /* c0 · relever la vitesse du palier sur la courbe v(t) */
+  ()=>{ const p=trap(), s=rnd(SYSC), don=donTrap(p);
+    return {fig:figTrap(p,1,`vitesse ${s.le} pendant un déplacement (${s.n})`),don,q:`À l'aide de la figure 1, relève la vitesse ${s.le} pendant la phase à vitesse constante.`,type:"num",ans:p.V,tolR:0.02,unit:"m/s",
+      expl:`Entre ${p.t1} s et ${p.t2} s, la courbe est horizontale : ${F(`v = ${nf(p.V)} m/s`)}.`,
+      lire:`Figure 1 : le palier horizontal, entre ${p.t1} s et ${p.t2} s. Sa hauteur se lit sur l'axe vertical.`,
+      met:[`Repère la partie horizontale de la courbe : la vitesse n'y change pas.`,`Lis sa hauteur sur l'axe vertical : ${F(`v = ${nf(p.V)} m/s`)}.`],
+      piege:`Lire une valeur sur l'axe horizontal : c'est un temps, pas une vitesse.`,
+      ret:`Sur une courbe v(t), une partie horizontale est une phase à vitesse constante.`,
+      diag:dgs(p.V,[{v:p.t1,m:`tu as lu ${p.t1} sur l'axe horizontal : c'est l'instant où le palier commence, en secondes. La vitesse se lit sur l'axe vertical.`},{v:p.t2,m:`tu as lu ${p.t2} sur l'axe horizontal : c'est l'instant où le palier finit, en secondes. La vitesse se lit sur l'axe vertical.`},{v:p.tp,m:`tu as donné la durée du palier. La question demande la vitesse : elle se lit sur l'axe vertical.`},{v:p.ym,m:`tu as lu le haut de l'axe vertical. Lis la hauteur du palier.`}])}; },
+  /* c1 · relever la durée d'une phase */
+  ()=>{ const p=trap(), s=rnd(SYSC), k=rnd([0,1,2]), don=donTrap(p), PH=[["d'accélération",0,p.t1],["à vitesse constante",p.t1,p.t2],["de freinage",p.t2,p.t3]][k], d=PH[2]-PH[1];
+    return {fig:figTrap(p,1,`vitesse ${s.le} pendant un déplacement (${s.n})`),don,q:`À l'aide de la figure 1, relève la durée de la phase ${PH[0]}.`,type:"num",ans:d,tolR:0.02,unit:"s",
+      expl:`La phase ${PH[0]} va de ${PH[1]} s à ${PH[2]} s : elle dure ${F(`${PH[2]} − ${PH[1]} = ${d} s`)}.`,
+      lire:`Figure 1 : la phase ${PH[0]} est la partie ${["qui monte","horizontale","qui descend"][k]} de la courbe, de ${PH[1]} s à ${PH[2]} s.`,
+      met:[`Repère la partie ${["qui monte","horizontale","qui descend"][k]} de la courbe.`,`Lis l'instant où elle commence (${PH[1]} s) et l'instant où elle finit (${PH[2]} s) sur l'axe horizontal.`,`Durée : ${F(`${PH[2]} − ${PH[1]} = ${d} s`)}.`],
+      piege:`Donner l'instant de fin de la phase. Une durée est la différence entre deux instants.`,
+      ret:`Durée d'une phase = instant de fin − instant de début.`,
+      diag:dgs(d,[{v:PH[2],m:`tu as donné l'instant où la phase finit (${PH[2]} s). La durée est la différence entre la fin et le début.`},{v:PH[1],m:`tu as donné l'instant où la phase commence. La durée est la différence entre la fin et le début.`},{v:p.V,m:`tu as lu une vitesse, sur l'axe vertical. Une durée se lit sur l'axe horizontal.`},{v:p.t3,m:`tu as donné la durée de tout le déplacement. La question porte sur une seule phase.`}])}; },
+  /* c2 · nature du mouvement sur une phase */
+  ()=>{ const p=trap(), s=rnd(SYSC), k=rnd([0,1,2]), don=donTrap(p), I=[[0,p.t1],[p.t1,p.t2],[p.t2,p.t3]][k];
+    const NAT=[{t:"Uniformément accéléré : la vitesse augmente régulièrement.",w:"sur cet intervalle, la courbe ne monte pas."},{t:"Uniforme : la vitesse reste constante.",w:"sur cet intervalle, la courbe n'est pas horizontale : la vitesse change."},{t:"Uniformément décéléré : la vitesse diminue régulièrement.",w:"sur cet intervalle, la courbe ne descend pas."},{t:"À l'arrêt : la vitesse reste nulle.",w:"sur cet intervalle, la courbe n'est pas posée sur l'axe horizontal : la vitesse n'est pas nulle."}];
+    return {fig:figTrap(p,1,`vitesse ${s.le} pendant un déplacement en ligne droite (${s.n})`),don,q:`Entre ${I[0]} s et ${I[1]} s, quel est le mouvement ${s.le} ? Justifie avec la figure 1.`,type:"ch",
+      ...mcw(NAT[k].t,NAT.filter((x,i)=>i!==k).map(x=>[x.t,x.w])),
+      expl:`Entre ${I[0]} s et ${I[1]} s, la courbe ${["monte en ligne droite : la vitesse augmente régulièrement","est horizontale : la vitesse ne change pas","descend en ligne droite : la vitesse diminue régulièrement"][k]}.`,
+      lire:`Figure 1 : la partie de la courbe comprise entre ${I[0]} s et ${I[1]} s.`,
+      met:[`Repère l'intervalle sur l'axe horizontal, puis regarde la forme de la courbe au-dessus.`,`Droite qui monte : la vitesse augmente régulièrement. Droite horizontale : vitesse constante. Droite qui descend : la vitesse diminue régulièrement.`,`Ici la courbe ${["monte","est horizontale","descend"][k]} : le mouvement est ${["uniformément accéléré","uniforme","uniformément décéléré"][k]}.`],
+      piege:`Confondre la courbe v(t) avec la trajectoire : une courbe qui monte ne veut pas dire que l'objet monte.`,
+      ret:`Sur v(t) : droite inclinée = accélération constante ; droite horizontale = vitesse constante.`}; },
+  /* c3 · relever une vitesse dans le diagramme des exigences et la convertir en m/s */
+  ()=>{ const s=rnd([{n:"fauteuil roulant électrique",a:"Le fauteuil",V:[6,8,10]},{n:"trottinette électrique",a:"La trottinette",V:[20,25]},{n:"robot de livraison",a:"Le robot",V:[6,9,12]},{n:"scooter électrique",a:"Le scooter",V:[45,50]},{n:"vélo à assistance électrique",a:"Le vélo",V:[25,27]}]), Vk=rnd(s.V), v=Vk/3.6, au=rnd([15,20,30,40]);
+    return {fig:DOC(1,`extrait du diagramme des exigences du ${s.n}`,d2Exig({reqs:[{id:"1.1",nom:"Vitesse",txt:`${s.a} doit atteindre ${Vk} km/h sur le plat.`},{id:"1.2",nom:"Autonomie",txt:`${s.a} doit parcourir ${au} km sans recharge.`}]})),
+      don:`exigence 1.1 : ${Vk} km/h ; exigence 1.2 : ${au} km`,q:`À l'aide de la figure 1, relève la vitesse exigée et exprime-la en m/s.`,type:"num",ans:v,tolR:0.01,unit:"m/s",
+      expl:`Exigence 1.1 : ${Vk} km/h, soit ${FRAC(Vk,"3,6")} = ${U(v,"m/s")}.`,
+      lire:`Figure 1, exigence 1.1 « Vitesse » : ${Vk} km/h. L'exigence 1.2 donne une distance : elle ne sert pas ici.`,
+      met:[`Relève la vitesse dans l'exigence 1.1 : ${F(`${Vk} km/h`)}.`,`1 km = 1 000 m et 1 h = 3 600 s : pour passer des km/h aux m/s, on divise par 3,6.`,`${F(`v = ${FRAC(Vk,"3,6")} = ${S3(v)} m/s`)}.`],
+      piege:`Multiplier par 3,6 : c'est pour passer des m/s aux km/h.`,
+      ret:`km/h → m/s : on divise par 3,6. m/s → km/h : on multiplie par 3,6.`,
+      diag:dgs(v,[{v:Vk*3.6,m:`tu as multiplié par 3,6. Pour passer des km/h aux m/s, on divise par 3,6.`},{v:Vk,m:`tu as recopié la valeur en km/h. La question demande des m/s : divise par 3,6.`},{v:au,m:`tu as relevé l'exigence 1.2 : c'est une distance. La vitesse est dans l'exigence 1.1.`},{v:Vk/60,m:`tu as divisé par 60. Une heure vaut 3 600 s et un kilomètre 1 000 m : on divise par 3,6.`}])}; },
+  /* c4 · vitesse angulaire à partir de la fréquence de rotation lue dans les caractéristiques */
+  ()=>{ const N=rnd([750,1000,1450,1500,2800,3000]), Un=rnd([12,24,48]), P=rnd([90,120,180,250]), w=TPI*N/60;
+    return {fig:DOC(1,"caractéristiques du moteur",d2Fiche({lignes:[["Tension nominale",`${Un} V`],["Puissance utile",`${P} W`],["Fréquence de rotation nominale",`${nf(N,0)} tr/min`]]})),
+      don:`moteur : ${N} tr/min ; ${Un} V ; ${P} W`,q:`À l'aide de la figure 1, détermine la vitesse angulaire ω du moteur, en rad/s, à sa fréquence de rotation nominale.`,type:"num",ans:w,tolR:0.01,unit:"rad/s",
+      expl:`${F(`ω = ${FRAC("2π·N","60")}`)} = ${FRAC(`2π × ${nf(N,0)}`,"60")} = ${U(w,"rad/s")}.`,
+      lire:`Figure 1, ligne « Fréquence de rotation nominale » : ${nf(N,0)} tr/min. La tension et la puissance ne servent pas ici.`,
+      met:[`Relève la fréquence de rotation : ${F(`N = ${nf(N,0)} tr/min`)}.`,`Un tour vaut 2π radians et une minute vaut 60 secondes : ${F(`ω = ${FRAC("2π·N","60")}`)}.`,`${F(`ω = ${FRAC(`2π × ${nf(N,0)}`,"60")} = ${S3(w)} rad/s`)}.`],
+      piege:`Diviser seulement par 60 : on obtient des tours par seconde, pas des radians par seconde.`,
+      ret:`${F(`ω = ${FRAC("2π·N","60")}`)} (N en tr/min, ω en rad/s).`,
+      diag:dgs(w,[{v:N/60,m:`tu as divisé par 60 : ta valeur est en tours par seconde. Multiplie encore par 2π pour avoir des rad/s.`},{v:N*TPI,m:`tu as multiplié par 2π sans diviser par 60 : ta valeur est en radians par minute.`},{v:N,m:`tu as recopié la valeur en tr/min. La question demande des rad/s.`},{v:N*60/TPI,m:`tu as fait la conversion à l'envers. Des tr/min aux rad/s, on multiplie par 2π et on divise par 60.`}])}; },
+  /* c5 · reconnaître une conclusion complète : valeur trouvée, valeur exigée, comparaison, réponse */
+  ()=>{ const c=rnd([{d:"du diagramme des exigences d'un ascenseur",nom:"Confort",ex:x=>`L'accélération de la cabine ne doit pas dépasser ${x} m/s².`,g:"Accélération calculée",u:"m/s²",L:[0.8,1,1.2,1.5],ph:v=>`L'accélération de la cabine vaut ${v} m/s²`},
+      {d:"du diagramme des exigences d'un chariot autonome",nom:"Arrêt d'urgence",ex:x=>`Le chariot doit s'arrêter en moins de ${x} m.`,g:"Distance d'arrêt calculée",u:"m",L:[1.5,2,2.5,3],ph:v=>`Le chariot s'arrête en ${v} m`},
+      {d:"du diagramme des exigences d'une barrière levante",nom:"Durée d'ouverture",ex:x=>`La lisse doit s'ouvrir en moins de ${x} s.`,g:"Durée d'ouverture calculée",u:"s",L:[3,4,5,6],ph:v=>`La lisse s'ouvre en ${v} s`}]);
+    const X=rnd(c.L), oui=Math.random()<.5, val=Number((X*(oui?rnd([.72,.8,.86]):rnd([1.14,1.22,1.3]))).toPrecision(3)), v=nf(val,3), x=nf(X), mot=oui?"inférieur":"supérieur";
+    return {fig:DOC(1,`extrait ${c.d}`,d2Exig({reqs:[{id:"1.1",nom:c.nom,txt:c.ex(x)}]}))+DOC(2,"résultat de l'étude",d2Fiche({lignes:[[c.g,`${v} ${c.u}`]]})),
+      q:`Quatre élèves concluent sur l'exigence 1.1. Quelle copie donne une conclusion complète et juste ?`,type:"ch",
+      ...mcw(`« ${c.ph(v)}. C'est ${mot} à la limite de ${x} ${c.u} : l'exigence 1.1 ${sat(oui)}. »`,[
+        [`« L'exigence 1.1 ${sat(oui)}. »`,`la réponse est juste, mais aucune valeur ne la justifie. À l'écrit, une conclusion sans nombres ne rapporte pas tous les points.`],
+        [`« ${c.ph(v)} et l'exigence 1.1 fixe la limite à ${x} ${c.u}. »`,`les deux valeurs sont citées, mais la copie ne les compare pas et ne dit pas si l'exigence est satisfaite.`],
+        [`« ${c.ph(v)}. C'est ${mot} à la limite de ${x} ${c.u} : l'exigence 1.1 ${sat(!oui)}. »`,`la comparaison est juste, mais la réponse la contredit : ${v} ${c.u} ${oui?"reste sous":"dépasse"} la limite de ${x} ${c.u}.`]]),
+      don:`exigence 1.1 : ${x} ${c.u} au plus ; valeur calculée ${v} ${c.u}`,
+      expl:`${v} ${c.u} est ${mot} à ${x} ${c.u} : l'exigence 1.1 ${sat(oui)}. La bonne copie donne les deux valeurs, les compare et répond.`,
+      lire:`Figure 1, exigence 1.1 : ${x} ${c.u} au plus. Figure 2 : valeur calculée, ${v} ${c.u}.`,
+      met:[`Une conclusion complète contient quatre choses : la valeur trouvée, la valeur exigée, la comparaison, la réponse.`,`Valeur trouvée : ${F(`${v} ${c.u}`)}. Valeur exigée : ${F(`${x} ${c.u}`)} au plus.`,`${v} est ${oui?"plus petit":"plus grand"} que ${x} : l'exigence 1.1 ${sat(oui)}.`],
+      piege:`Répondre « oui » ou « non » sans les nombres : la réponse peut être juste, elle n'est pas justifiée.`,
+      ret:`Conclure = la valeur trouvée, la valeur exigée, la comparaison, la réponse.`}; }
+];
+
+const C2N2=[
+  /* d0 · accélération = pente de v(t), puis conclusion à compléter sur une exigence */
+  ()=>{ const o=draw(()=>{ const p=trap(), a=p.V/p.t1, Ax=rnd([0.2,0.3,0.4,0.5,0.6,0.8,1,1.2,1.5]); return {p,a,Ax}; },o=>far(o.a,o.Ax,0.1)&&o.a<2.2*o.Ax&&o.a>o.Ax/2.2);
+    const {p,a,Ax}=o, s=rnd(SYSC), oui=a<=Ax, don=`${donTrap(p)} ; exigence 1.2 : ${nf(Ax)} m/s² au plus`;
+    const fig=figTrap(p,1,`vitesse ${s.le} pendant un déplacement (${s.n})`)+DOC(2,`extrait du diagramme des exigences (${s.n})`,d2Exig({reqs:[{id:"1.2",nom:"Démarrage en douceur",txt:`L'accélération ${s.le} ne doit pas dépasser ${nf(Ax)} m/s².`}]}));
+    return [{fig,don,q:`À l'aide de la figure 1, détermine l'accélération ${s.le} pendant la phase de démarrage.`,nom:"a",type:"num",ans:a,tolR:0.015,unit:"m/s²",
+        expl:`${F(`a = ${FRAC("Δv","Δt")}`)} = ${FRAC(nf(p.V),p.t1)} = ${U(a,"m/s²")}.`,
+        lire:`Figure 1 : pendant le démarrage, la vitesse passe de 0 à ${nf(p.V)} m/s en ${p.t1} s.`,
+        met:[`L'accélération est la pente de la courbe v(t) : ${F(`a = ${FRAC("Δv","Δt")}`)}.`,`Pendant le démarrage : ${F(`Δv = ${nf(p.V)} m/s`)} et ${F(`Δt = ${p.t1} s`)}.`,`${F(`a = ${FRAC(nf(p.V),p.t1)} = ${S3(a)} m/s²`)}.`],
+        piege:`Diviser par la durée de tout le déplacement : seule la durée du démarrage compte.`,
+        ret:`Accélération = pente de v(t) : ${F(`a = ${FRAC("Δv","Δt")}`)}, en m/s².`,
+        diag:dgs(a,[{v:p.V*p.t1,m:`tu as multiplié la vitesse par la durée. L'accélération est une pente : on divise la variation de vitesse par la durée.`},{v:p.V/p.t3,m:`tu as divisé par la durée de tout le déplacement (${p.t3} s). Le démarrage ne dure que ${p.t1} s.`},{v:p.V/p.t2,m:`tu as divisé par ${p.t2} s. Le démarrage finit à ${p.t1} s.`},{v:p.t1/p.V,m:`tu as divisé la durée par la vitesse. C'est l'inverse : on divise la variation de vitesse par la durée.`},{v:p.V,m:`tu as donné la vitesse atteinte. L'accélération est la variation de vitesse divisée par la durée.`}])},
+      {q:`Complète la conclusion sur l'exigence 1.2 (figure 2).`,type:"trous",don,
+        phr:[`Pendant le démarrage, l'accélération ${s.le} vaut `,trou(`${S3(a)} m/s²`,[`${nf(p.V)} m/s²`,`${S3(p.V*p.t1)} m/s²`],`La valeur à citer est l'accélération que tu viens de calculer : ${S3(a)} m/s².`),`. C'est `,
+          trou(oui?"inférieur":"supérieur",[oui?"supérieur":"inférieur"],`Compare les deux valeurs : ${S3(a)} est ${oui?"plus petit":"plus grand"} que ${nf(Ax)}.`),` à la limite de ${nf(Ax)} m/s² : l'exigence 1.2 `,
+          trou(oui?"est":"n'est pas",[oui?"n'est pas":"est"],`L'accélération ne doit pas dépasser ${nf(Ax)} m/s² : avec ${S3(a)} m/s², l'exigence 1.2 ${sat(oui)}.`),` satisfaite.`],
+        expl:`${S3(a)} m/s² est ${oui?"inférieur":"supérieur"} à ${nf(Ax)} m/s² : l'exigence 1.2 ${sat(oui)}.`,
+        lire:`Figure 2, exigence 1.2 : ${nf(Ax)} m/s² au plus. Question précédente : ${S3(a)} m/s².`,
+        met:[`Une conclusion complète donne la valeur trouvée, la valeur exigée, la comparaison, puis la réponse.`,`Valeur trouvée : ${F(`${S3(a)} m/s²`)}. Valeur exigée : ${F(`${nf(Ax)} m/s²`)} au plus.`,`${S3(a)} est ${oui?"plus petit":"plus grand"} que ${nf(Ax)} : l'exigence 1.2 ${sat(oui)}${oui?"":". Il faudrait démarrer plus lentement : une phase d'accélération plus longue"}.`],
+        piege:`Citer la vitesse à la place de l'accélération : l'exigence porte sur une accélération, en m/s².`,
+        ret:`Conclure = la valeur trouvée, la valeur exigée, la comparaison, la réponse.`}]; },
+  /* d1 · distance = aire sous v(t) : triangle de l'accélération, puis trapèze entier */
+  ()=>{ const p=trap(), s=rnd(SYSC), don=donTrap(p), d1=p.V*p.t1/2, d2=p.V*p.tp, d3=p.V*p.td/2, D=d1+d2+d3;
+    return [{fig:figTrap(p,1,`vitesse ${s.le} pendant un déplacement (${s.n})`),don,q:`À l'aide de la figure 1, détermine la distance ${sb("d","1")} parcourue pendant la phase d'accélération.`,nom:sb("d","1"),type:"num",ans:d1,tolR:0.015,unit:"m",
+        expl:`Aire du triangle sous la courbe : ${F(`d<sub>1</sub> = ${FRAC(`${p.t1} × ${nf(p.V)}`,2)}`)} = ${U(d1,"m")}.`,
+        lire:`Figure 1 : pendant l'accélération, de 0 s à ${p.t1} s, la vitesse monte de 0 à ${nf(p.V)} m/s.`,
+        met:[`La distance parcourue est l'aire sous la courbe v(t).`,`Pendant l'accélération, cette aire est un triangle de base ${p.t1} s et de hauteur ${nf(p.V)} m/s.`,`${F(`d<sub>1</sub> = ${FRAC(`${p.t1} × ${nf(p.V)}`,2)} = ${S3(d1)} m`)}.`],
+        piege:`Oublier de diviser par 2 : on calcule alors l'aire d'un rectangle, comme si la vitesse était maximale dès le départ.`,
+        ret:`Distance parcourue = aire sous la courbe v(t).`,
+        diag:dgs(d1,[{v:p.V*p.t1,m:`tu as calculé v × t, l'aire d'un rectangle. Pendant l'accélération, l'aire est un triangle : divise par 2.`},{v:p.V/p.t1,m:`tu as calculé la pente de la courbe : c'est l'accélération. La distance est l'aire sous la courbe.`},{v:p.V*p.t3/2,m:`tu as pris la durée de tout le déplacement. L'accélération finit à ${p.t1} s.`}])},
+      {q:`Déduis-en la distance totale D parcourue pendant tout le déplacement.`,nom:"D",type:"num",ans:D,tolR:0.015,unit:"m",don,
+        expl:`${S3(d1)} + ${nf(p.V)} × ${p.tp} + ${FRAC(`${p.td} × ${nf(p.V)}`,2)} = ${U(D,"m")}.`,
+        lire:`Figure 1 : vitesse constante de ${p.t1} s à ${p.t2} s (${p.tp} s), freinage de ${p.t2} s à ${p.t3} s (${p.td} s).`,
+        met:[`On ajoute les aires des trois phases.`,`Vitesse constante : un rectangle, ${F(`${nf(p.V)} × ${p.tp} = ${S3(d2)} m`)}.`,`Freinage : un triangle, ${F(`${FRAC(`${p.td} × ${nf(p.V)}`,2)} = ${S3(d3)} m`)}.`,`${F(`D = ${S3(d1)} + ${S3(d2)} + ${S3(d3)} = ${S3(D)} m`)}.`],
+        piege:`Multiplier la vitesse maximale par la durée totale : pendant l'accélération et le freinage, la vitesse est plus petite.`,
+        ret:`Trapèze de vitesse : distance = triangle + rectangle + triangle.`,
+        diag:dgs(D,[{v:p.V*p.t3,m:`tu as multiplié la vitesse maximale par la durée totale. Pendant l'accélération et le freinage, la vitesse est plus petite : ces deux aires sont des triangles.`},{v:d2,m:`tu as compté seulement la phase à vitesse constante. Ajoute les distances de l'accélération et du freinage.`},{v:d1+d2,m:`tu as oublié la distance parcourue pendant le freinage.`},{v:2*d1+d2,m:`tu as compté le freinage comme l'accélération. Ici le freinage dure ${p.td} s.`}])}]; },
+  /* d2 · vitesse exigée et diamètre de roue : vitesse angulaire, puis fréquence de rotation */
+  ()=>{ const s=rnd([{n:"robot de livraison",a:"Le robot",V:[6,9,12],D:[200,250,300]},{n:"trottinette électrique",a:"La trottinette",V:[20,25],D:[200,250]},{n:"fauteuil roulant électrique",a:"Le fauteuil",V:[6,8,10],D:[300,320,350]},{n:"vélo à assistance électrique",a:"Le vélo",V:[25],D:[650,700]}]), Vk=rnd(s.V), D=rnd(s.D), v=Vk/3.6, R=D/2000, w=v/R, N=w*60/TPI;
+    const fig=DOC(1,`extrait du diagramme des exigences du ${s.n}`,d2Exig({reqs:[{id:"1.1",nom:"Vitesse",txt:`${s.a} doit rouler à ${Vk} km/h sur le plat.`}]}))+DOC(2,"caractéristiques d'une roue",d2Fiche({lignes:[["Diamètre",`${D} mm`],["Largeur",`${rnd([40,50,60])} mm`],["Masse",`${nf(rnd([1.2,1.8,2.5]))} kg`]]}));
+    const don=`exigence 1.1 : ${Vk} km/h ; roue de diamètre ${D} mm`;
+    return [{fig,don,q:`À l'aide des figures 1 et 2, détermine la vitesse angulaire ${sb("ω","r")} des roues, en rad/s, à la vitesse exigée. Les roues roulent sans glisser.`,nom:sb("ω","r"),type:"num",ans:w,tolR:0.01,unit:"rad/s",
+        expl:`${F(`v = ${FRAC(Vk,"3,6")} = ${S3(v)} m/s`)} ; ${F(`ω<sub>r</sub> = ${FRAC("v","R")}`)} = ${FRAC(S3(v),nf(R,3))} = ${U(w,"rad/s")}.`,
+        lire:`Figure 1, exigence 1.1 : ${Vk} km/h. Figure 2 : diamètre ${D} mm, donc ${F(`R = ${nf(R,3)} m`)}.`,
+        met:[`Convertis la vitesse en m/s : ${F(`v = ${FRAC(Vk,"3,6")} = ${S3(v)} m/s`)}.`,`Roulement sans glissement : ${F("v = R·ω<sub>r</sub>")}, donc ${F(`ω<sub>r</sub> = ${FRAC("v","R")}`)}, avec R en mètres.`,`${F(`ω<sub>r</sub> = ${FRAC(S3(v),nf(R,3))} = ${S3(w)} rad/s`)}.`],
+        piege:`Garder la vitesse en km/h, ou prendre le diamètre à la place du rayon.`,
+        ret:`${F("v = R·ω")} : v en m/s, R en m, ω en rad/s.`,
+        diag:dgs(w,[{v:Vk/R,m:`tu as gardé la vitesse en km/h. Convertis-la en m/s avant de diviser par le rayon.`},{v:v/(2*R),m:`tu as divisé par le diamètre. Dans v = R·ω, R est le rayon.`},{v:v*R,m:`tu as multiplié la vitesse par le rayon. On isole ω : on divise la vitesse par le rayon.`},{v:v/(R*1000),m:`tu as laissé le rayon en millimètres. Convertis-le en mètres.`}])},
+      {q:`Déduis-en la fréquence de rotation ${sb("N","r")} des roues, en tr/min.`,nom:sb("N","r"),type:"num",ans:N,tolR:0.01,unit:"tr/min",don,
+        expl:`${F(`N<sub>r</sub> = ${FRAC("60·ω<sub>r</sub>","2π")}`)} = ${FRAC(`60 × ${S3(w)}`,"2π")} = ${U(N,"tr/min")}.`,
+        lire:`Question précédente : ${F(`ω<sub>r</sub> = ${S3(w)} rad/s`)}.`,
+        met:[`Un tour vaut 2π radians : en une seconde, la roue fait ${FRAC("ω<sub>r</sub>","2π")} tours.`,`En une minute, elle en fait 60 fois plus : ${F(`N<sub>r</sub> = ${FRAC("60·ω<sub>r</sub>","2π")}`)}.`,`${F(`N<sub>r</sub> = ${FRAC(`60 × ${S3(w)}`,"2π")} = ${S3(N)} tr/min`)}.`],
+        piege:`Faire la conversion dans l'autre sens : multiplier par 2π et diviser par 60.`,
+        ret:`${F(`N = ${FRAC("60·ω","2π")}`)} (ω en rad/s, N en tr/min).`,
+        diag:dgs(N,[{v:w*TPI/60,m:`tu as fait la conversion à l'envers. Des rad/s aux tr/min, on multiplie par 60 et on divise par 2π.`},{v:w/TPI,m:`ta valeur est en tours par seconde. Multiplie par 60 pour avoir des tr/min.`},{v:w*60,m:`tu as multiplié par 60 sans diviser par 2π : ta valeur est en radians par minute.`}])}]; },
+  /* d3 · courbe x(t) : vitesse = pente, puis durée d'un parcours */
+  ()=>{ const ys=rnd([0.5,1,2]), X=rnd([3,4,5])*ys, T=rnd([4,5,6,8,10]), v=X/T, Lc=rnd([12,15,18,24,30]), xs=T<=6?1:2, t=Lc/v;
+    const fig=DOC(1,"position d'un colis sur le convoyeur, relevée par un capteur",d2Courbe({pts:[[0,0],[T,X]],xm:T+xs,ym:X+ys,xs,ys,sub:xs===2?2:1,xl:"t (s)",yl:"x (m)",label:"Position en fonction du temps : une droite qui part de l'origine"}))+DOC(2,"caractéristiques du convoyeur",d2Fiche({lignes:[["Longueur",`${Lc} m`],["Largeur de la bande",`${rnd([400,500,600])} mm`],["Charge maximale",`${rnd([30,50,80])} kg`]]}));
+    const don=`courbe x(t) : droite de 0 m à 0 s jusqu'à ${nf(X)} m à ${T} s ; convoyeur de longueur ${Lc} m`;
+    return [{fig,don,q:`À l'aide de la figure 1, détermine la vitesse v du colis.`,nom:"v",type:"num",ans:v,tolR:0.015,unit:"m/s",
+        expl:`${F(`v = ${FRAC("Δx","Δt")}`)} = ${FRAC(nf(X),T)} = ${U(v,"m/s")}.`,
+        lire:`Figure 1 : la droite passe par l'origine et par le point (${T} s ; ${nf(X)} m).`,
+        met:[`La courbe x(t) est une droite : la vitesse est constante, c'est la pente de la droite.`,`Lis un point de la droite : à ${F(`t = ${T} s`)}, ${F(`x = ${nf(X)} m`)}.`,`${F(`v = ${FRAC("Δx","Δt")} = ${FRAC(nf(X),T)} = ${S3(v)} m/s`)}.`],
+        piege:`Donner la position lue sur la courbe : une position est en mètres, la vitesse est une pente, en m/s.`,
+        ret:`Sur une courbe x(t), la vitesse est la pente : ${F(`v = ${FRAC("Δx","Δt")}`)}.`,
+        diag:dgs(v,[{v:X*T,m:`tu as multiplié la position par la durée. La vitesse est une pente : on divise la distance par la durée.`},{v:T/X,m:`tu as divisé la durée par la distance. C'est l'inverse : on divise la distance par la durée.`},{v:X,m:`tu as donné la position lue sur la courbe, en mètres. La vitesse est la pente de la droite.`}])},
+      {q:`Déduis-en la durée nécessaire pour qu'un colis parcoure toute la longueur du convoyeur (figure 2).`,type:"num",ans:t,tolR:0.015,unit:"s",don,
+        expl:`${F(`t = ${FRAC("L","v")}`)} = ${FRAC(Lc,S3(v))} = ${U(t,"s")}.`,
+        lire:`Figure 2, ligne « Longueur » : ${Lc} m. Question précédente : ${F(`v = ${S3(v)} m/s`)}.`,
+        met:[`À vitesse constante : ${F("L = v·t")}, donc ${F(`t = ${FRAC("L","v")}`)}.`,`${F(`t = ${FRAC(Lc,S3(v))} = ${S3(t)} s`)}.`],
+        piege:`Multiplier la longueur par la vitesse au lieu de diviser.`,
+        ret:`Mouvement uniforme : ${F("d = v·t")}.`,
+        diag:dgs(t,[{v:Lc*v,m:`tu as multiplié la longueur par la vitesse. On isole la durée : on divise la longueur par la vitesse.`},{v:v/Lc,m:`tu as divisé la vitesse par la longueur. C'est l'inverse : on divise la longueur par la vitesse.`},{v:T,m:`tu as relu la durée de la mesure sur la figure 1. Le convoyeur mesure ${Lc} m : calcule la durée avec la vitesse.`}])}]; },
+  /* d4 · démarrage à accélération constante : durée pour atteindre la vitesse, puis distance */
+  ()=>{ const s=rnd([{n:"tramway",a:"Le tramway",m:[38000,42000]},{n:"navette autonome",a:"La navette",m:[2800,3200]},{n:"bus électrique",a:"Le bus",m:[16000,18000]}]), Vk=rnd([18,27,36,45,54,72]), a=rnd([0.5,0.8,1,1.2,1.5]), v=Vk/3.6, t=v/a, d=a*t*t/2;
+    const fig=DOC(1,`caractéristiques du véhicule (${s.n})`,d2Fiche({lignes:[["Vitesse de croisière",`${Vk} km/h`],["Accélération au démarrage",`${nf(a)} m/s²`],["Masse en charge",`${nf(rnd(s.m),0)} kg`]]}));
+    const don=`vitesse de croisière ${Vk} km/h ; accélération ${nf(a)} m/s²`;
+    return [{fig,don,q:`${s.a} démarre, à l'arrêt, avec une accélération constante. À l'aide de la figure 1, détermine la durée t nécessaire pour atteindre la vitesse de croisière.`,nom:"t",type:"num",ans:t,tolR:0.01,unit:"s",
+        expl:`${F(`v = ${FRAC(Vk,"3,6")} = ${S3(v)} m/s`)} ; ${F(`t = ${FRAC("v","a")}`)} = ${FRAC(S3(v),nf(a))} = ${U(t,"s")}.`,
+        lire:`Figure 1 : vitesse de croisière ${Vk} km/h, accélération ${nf(a)} m/s². La masse ne sert pas ici.`,
+        met:[`Convertis la vitesse en m/s : ${F(`v = ${FRAC(Vk,"3,6")} = ${S3(v)} m/s`)}.`,`Départ arrêté, accélération constante : ${F("v = a·t")}, donc ${F(`t = ${FRAC("v","a")}`)}.`,`${F(`t = ${FRAC(S3(v),nf(a))} = ${S3(t)} s`)}.`],
+        piege:`Garder la vitesse en km/h : l'accélération est en m/s², il faut des m/s.`,
+        ret:`Départ arrêté, accélération constante : ${F("v = a·t")}.`,
+        diag:dgs(t,[{v:Vk/a,m:`tu as gardé la vitesse en km/h. Convertis-la en m/s (divise par 3,6) avant de diviser par l'accélération.`},{v:v*a,m:`tu as multiplié la vitesse par l'accélération. On isole la durée : on divise la vitesse par l'accélération.`},{v:a/v,m:`tu as divisé l'accélération par la vitesse. C'est l'inverse.`}])},
+      {q:`Déduis-en la distance d parcourue pendant ce démarrage.`,nom:"d",type:"num",ans:d,tolR:0.015,unit:"m",don,
+        expl:`${F(`d = ${FRAC("a·t²","2")}`)} = ${FRAC(`${nf(a)} × ${S3(t)}²`,2)} = ${U(d,"m")}.`,
+        lire:`Figure 1 : accélération ${nf(a)} m/s². Question précédente : ${F(`t = ${S3(t)} s`)}.`,
+        met:[`Départ arrêté, accélération constante : ${F(`d = ${FRAC("a·t²","2")}`)}.`,`${F(`d = ${FRAC(`${nf(a)} × ${S3(t)}²`,2)} = ${S3(d)} m`)}.`,`Autre façon : c'est l'aire du triangle sous v(t), ${F(`${FRAC("v·t","2")} = ${FRAC(`${S3(v)} × ${S3(t)}`,2)} = ${S3(d)} m`)}.`],
+        piege:`Calculer v × t : c'est la distance à vitesse constante. Pendant le démarrage, la vitesse moyenne est la moitié de v.`,
+        ret:`Départ arrêté : ${F(`d = ${FRAC("a·t²","2")}`)}.`,
+        diag:dgs(d,[{v:v*t,m:`tu as calculé v × t, comme si la vitesse de croisière était atteinte dès le départ. Pendant le démarrage, la distance est la moitié : divise par 2.`},{v:a*t/2,m:`tu as oublié le carré : la durée est au carré dans la relation.`},{v:Vk*Vk/(2*a),m:`tu as utilisé la vitesse en km/h. Prends la durée de la question précédente, ou la vitesse en m/s.`}])}]; },
+  /* d5 · rotation : vitesse angulaire moyenne (degrés → radians), puis vitesse de l'extrémité */
+  ()=>{ const th=rnd([90,100,110,120]), t=rnd([0.5,0.6,0.8,1]), Lb=rnd([40,45,50,55,60]), w=th*Math.PI/180/t, v=w*Lb/100;
+    const fig=DOC(1,"caractéristiques d'un essuie-glace",d2Fiche({lignes:[["Angle balayé pendant un aller",`${th}°`],["Durée d'un aller",`${nf(t)} s`],["Longueur du balai, de l'axe à l'extrémité",`${Lb} cm`],["Tension d'alimentation","12 V"]]}));
+    const don=`angle balayé ${th}° ; durée d'un aller ${nf(t)} s ; balai de longueur ${Lb} cm`;
+    return [{fig,don,q:`À l'aide de la figure 1, détermine la vitesse angulaire moyenne ω du balai pendant un aller, en rad/s.`,nom:"ω",type:"num",ans:w,tolR:0.01,unit:"rad/s",
+        expl:`${F(`θ = ${FRAC(`${th} × π`,180)} = ${S3(th*Math.PI/180)} rad`)} ; ${F(`ω = ${FRAC("θ","t")}`)} = ${FRAC(S3(th*Math.PI/180),nf(t))} = ${U(w,"rad/s")}.`,
+        lire:`Figure 1 : angle balayé ${th}°, durée d'un aller ${nf(t)} s. La tension ne sert pas ici.`,
+        met:[`Convertis l'angle en radians : ${F(`θ = ${FRAC(`${th} × π`,180)} = ${S3(th*Math.PI/180)} rad`)}.`,`Vitesse angulaire moyenne : ${F(`ω = ${FRAC("θ","t")}`)}.`,`${F(`ω = ${FRAC(S3(th*Math.PI/180),nf(t))} = ${S3(w)} rad/s`)}.`],
+        piege:`Laisser l'angle en degrés : on obtient des degrés par seconde.`,
+        ret:`180° = π rad ; ${F(`ω = ${FRAC("θ","t")}`)} avec θ en radians.`,
+        diag:dgs(w,[{v:th/t,m:`tu as laissé l'angle en degrés : ta valeur est en degrés par seconde. Convertis l'angle en radians (multiplie par π, divise par 180).`},{v:th*Math.PI/180*t,m:`tu as multiplié l'angle par la durée. On divise l'angle par la durée.`},{v:th*Math.PI/180,m:`tu as donné l'angle en radians. Divise-le par la durée d'un aller.`}])},
+      {q:`Déduis-en la vitesse moyenne v de l'extrémité du balai, en m/s.`,nom:"v",type:"num",ans:v,tolR:0.01,unit:"m/s",don,
+        expl:`${F("v = R·ω")} = ${nf(Lb/100)} × ${S3(w)} = ${U(v,"m/s")}.`,
+        lire:`Figure 1 : longueur du balai ${Lb} cm, soit ${F(`R = ${nf(Lb/100)} m`)}. Question précédente : ${F(`ω = ${S3(w)} rad/s`)}.`,
+        met:[`L'extrémité du balai décrit un arc de cercle de rayon ${F(`R = ${nf(Lb/100)} m`)}.`,`${F("v = R·ω")}, avec R en mètres.`,`${F(`v = ${nf(Lb/100)} × ${S3(w)} = ${S3(v)} m/s`)}.`],
+        piege:`Laisser la longueur en centimètres : la vitesse sortirait en cm/s.`,
+        ret:`Point d'un solide en rotation : ${F("v = R·ω")}.`,
+        diag:dgs(v,[{v:w*Lb,m:`tu as laissé la longueur en centimètres : ta valeur est en cm/s. Convertis la longueur en mètres.`},{v:w/(Lb/100),m:`tu as divisé par le rayon. La vitesse de l'extrémité vaut R·ω : on multiplie.`},{v:w*Lb/200,m:`tu as pris la moitié de la longueur. Le rayon de la trajectoire de l'extrémité est la longueur entière du balai.`}])}]; }
+];
+
+const C2N3=[
+  /* Étude A · ascenseur : durée d'un trajet (accélération, vitesse constante, freinage) et exigence de durée */
+  ()=>{ const o=draw(()=>{ const H=rnd([6,9,12,15,18,24]), V=rnd([1,1.5,2,2.5]), a=rnd([0.5,0.8,1,1.25]), t1=V/a, d1=V*t1/2, T=2*t1+(H-2*d1)/V, Tx=rnd([6,8,10,12,15,18,20,25]); return {H,V,a,t1,d1,T,Tx}; },o=>o.H-2*o.d1>=0.25*o.H&&far(o.T,o.Tx,0.08)&&o.T<1.7*o.Tx&&o.T>o.Tx/1.7);
+    const {H,V,a,t1,d1,T,Tx}=o, tc=(H-2*d1)/V;
+    const fig=DOC(1,"extrait du diagramme des exigences de l'ascenseur",d2Exig({reqs:[{id:"1.1",nom:"Durée du trajet",txt:`La cabine doit relier les deux niveaux en moins de ${Tx} s.`},{id:"1.2",nom:"Course",txt:`La distance entre les deux niveaux est de ${H} m.`}]}))+
+      DOC(2,"caractéristiques données par le constructeur",d2Fiche({lignes:[["Vitesse nominale de la cabine",`${nf(V)} m/s`],["Accélération au démarrage, décélération au freinage",`${nf(a)} m/s²`],["Charge utile",`${rnd([630,800,1000])} kg`]]}))+
+      DOC(3,"allure de la vitesse de la cabine pendant un trajet",d2Courbe({pts:[[0,0],[2,3],[7,3],[9,0]],xm:10,ym:4,xl:"t",yl:"v",xt:[[2,"t₁",3],[7,"t₂",3],[9,"T",0]],yt:[[3,"V",2]],h:190,label:"Trapèze de vitesse : accélération jusqu'à t1, vitesse constante V jusqu'à t2, arrêt à T"}));
+    const don=`exigence 1.1 : moins de ${Tx} s ; course ${H} m ; vitesse nominale ${nf(V)} m/s ; accélération ${nf(a)} m/s²`;
+    return [{fig,don,ctx0:`Étude d'un ascenseur : on vérifie la durée d'un trajet entre deux niveaux.`,q:`À l'aide de la figure 2, détermine la durée ${sb("t","1")} de la phase d'accélération : la cabine démarre, à l'arrêt, et atteint sa vitesse nominale (figure 3).`,nom:sb("t","1"),type:"num",ans:t1,tolR:0.01,unit:"s",
+        expl:`${F(`t<sub>1</sub> = ${FRAC("V","a")}`)} = ${FRAC(nf(V),nf(a))} = ${U(t1,"s")}.`,
+        lire:`Figure 2 : vitesse nominale ${nf(V)} m/s, accélération ${nf(a)} m/s². La charge utile ne sert pas ici.`,
+        met:[`Départ arrêté, accélération constante : ${F("V = a·t<sub>1</sub>")}.`,`On isole la durée : ${F(`t<sub>1</sub> = ${FRAC("V","a")}`)}.`,`${F(`t<sub>1</sub> = ${FRAC(nf(V),nf(a))} = ${S3(t1)} s`)}.`],
+        piege:`Multiplier la vitesse par l'accélération au lieu de diviser.`,
+        ret:`Départ arrêté, accélération constante : ${F("v = a·t")}.`,
+        diag:dgs(t1,[{v:V*a,m:`tu as multiplié la vitesse par l'accélération. On isole la durée : on divise la vitesse par l'accélération.`},{v:a/V,m:`tu as divisé l'accélération par la vitesse. C'est l'inverse.`},{v:H/V,m:`tu as calculé la durée de toute la course à la vitesse nominale. La question porte sur la phase d'accélération.`}])},
+      {q:`Détermine la distance ${sb("d","1")} parcourue par la cabine pendant cette phase d'accélération.`,nom:sb("d","1"),type:"num",ans:d1,tolR:0.015,unit:"m",don,
+        expl:`Aire du triangle sous v(t) : ${F(`d<sub>1</sub> = ${FRAC("V·t<sub>1</sub>","2")}`)} = ${FRAC(`${nf(V)} × ${S3(t1)}`,2)} = ${U(d1,"m")}.`,
+        lire:`Figure 3 : pendant l'accélération, l'aire sous la courbe est un triangle. Question précédente : ${F(`t<sub>1</sub> = ${S3(t1)} s`)}.`,
+        met:[`La distance parcourue est l'aire sous la courbe v(t).`,`Pendant l'accélération, c'est un triangle de base ${sb("t","1")} et de hauteur V : ${F(`d<sub>1</sub> = ${FRAC("V·t<sub>1</sub>","2")}`)}.`,`${F(`d<sub>1</sub> = ${FRAC(`${nf(V)} × ${S3(t1)}`,2)} = ${S3(d1)} m`)}.`],
+        piege:`Calculer V × t₁ : pendant l'accélération, la vitesse moyenne n'est que la moitié de V.`,
+        ret:`Départ arrêté : ${F(`d = ${FRAC("v·t","2")} = ${FRAC("a·t²","2")}`)}.`,
+        diag:dgs(d1,[{v:V*t1,m:`tu as calculé V × t₁, l'aire d'un rectangle. Pendant l'accélération, l'aire est un triangle : divise par 2.`},{v:a*t1/2,m:`tu as oublié le carré de la durée, ou utilisé l'accélération à la place de la vitesse.`},{v:H/2,m:`tu as pris la moitié de la course. La distance d'accélération se calcule avec la vitesse et la durée.`}])},
+      {q:`Le freinage dure autant que l'accélération et couvre la même distance. Détermine la durée totale T du trajet entre les deux niveaux.`,nom:"T",type:"num",ans:T,tolR:0.015,unit:"s",don,
+        expl:`Vitesse constante sur ${H} − 2 × ${S3(d1)} = ${S3(H-2*d1)} m, soit ${S3(tc)} s ; ${F(`T = 2 × ${S3(t1)} + ${S3(tc)}`)} = ${U(T,"s")}.`,
+        lire:`Figure 1, exigence 1.2 : course de ${H} m. Questions précédentes : ${F(`t<sub>1</sub> = ${S3(t1)} s`)} et ${F(`d<sub>1</sub> = ${S3(d1)} m`)}.`,
+        met:[`Accélération et freinage : ${F(`2 × ${S3(t1)} = ${S3(2*t1)} s`)} pour ${F(`2 × ${S3(d1)} = ${S3(2*d1)} m`)}.`,`Il reste ${F(`${H} − ${S3(2*d1)} = ${S3(H-2*d1)} m`)} à vitesse constante : ${F(`${FRAC(S3(H-2*d1),nf(V))} = ${S3(tc)} s`)}.`,`${F(`T = ${S3(2*t1)} + ${S3(tc)} = ${S3(T)} s`)}.`],
+        piege:`Diviser toute la course par la vitesse nominale : la cabine ne roule pas à cette vitesse pendant l'accélération et le freinage.`,
+        ret:`Trapèze de vitesse : on traite les trois phases l'une après l'autre.`,
+        diag:dgs(T,[{v:H/V,m:`tu as divisé toute la course par la vitesse nominale. Pendant l'accélération et le freinage, la cabine va moins vite : le trajet dure plus longtemps.`},{v:2*t1+H/V,m:`tu as compté toute la course à vitesse constante. Retire d'abord les distances parcourues pendant l'accélération et le freinage.`},{v:t1+(H-d1)/V,m:`tu as oublié la phase de freinage.`},{v:tc,m:`tu as donné la durée de la phase à vitesse constante. Ajoute les durées de l'accélération et du freinage.`}])},
+      conclure({q:`Conclus vis-à-vis de l'exigence 1.1. Rédige ta réponse.`,don,exi:"1.1",quoi:"la durée du trajet",val:T,u:"s",lim:Tx,limTxt:`moins de ${Tx} s`,ph:"La cabine relie les deux niveaux en",
+        lire:`Figure 1, exigence 1.1 : moins de ${Tx} s. Question précédente : ${S3(T)} s.`,faux:`la vitesse nominale de la cabine vaut ${nf(V)} m/s`,fauxW:`la vitesse nominale ne répond pas à l'exigence : on compare la durée du trajet (${S3(T)} s) à la durée exigée (${Tx} s).`,remede:`Il faudrait une vitesse nominale plus grande, ou une accélération plus forte`})]; },
+  /* Étude B · courbe de vitesse mesurée : vitesse, distance, décélération, exigence de freinage */
+  ()=>{ const o=draw(()=>{ const p=trap(), ad=p.V/p.td, Ax=rnd([0.2,0.3,0.4,0.5,0.6,0.8,1,1.2,1.5]); return {p,ad,Ax}; },o=>far(o.ad,o.Ax,0.1)&&o.ad<2.2*o.Ax&&o.ad>o.Ax/2.2);
+    const {p,ad,Ax}=o, D=p.V*(p.t3+p.tp)/2, s=rnd([{n:"chariot de transfert",le:"du chariot",c:"les pièces posées sur le chariot ne doivent pas glisser"},{n:"navette autonome",le:"de la navette",c:"les passagers debout ne doivent pas être déséquilibrés"},{n:"convoyeur à bande",le:"de la bande",c:"les colis ne doivent pas basculer"}]);
+    const fig=figTrap(p,1,`vitesse ${s.le} mesurée pendant un déplacement (${s.n})`)+DOC(2,`extrait du diagramme des exigences (${s.n})`,d2Exig({reqs:[{id:"1.1",nom:"Freinage",txt:`La décélération ${s.le} ne doit pas dépasser ${nf(Ax)} m/s² : ${s.c}.`}]}));
+    const don=`${donTrap(p)} ; exigence 1.1 : ${nf(Ax)} m/s² au plus`;
+    return [{fig,don,ctx0:`Étude d'un déplacement mesuré (${s.n}) : on vérifie que le freinage respecte l'exigence.`,q:`À l'aide de la figure 1, relève la vitesse maximale V ${s.le}.`,nom:"V",type:"num",ans:p.V,tolR:0.02,unit:"m/s",
+        expl:`Le palier de la courbe est à ${F(`V = ${nf(p.V)} m/s`)}.`,
+        lire:`Figure 1 : le palier horizontal, entre ${p.t1} s et ${p.t2} s.`,
+        met:[`La vitesse maximale est la hauteur du palier de la courbe.`,`On la lit sur l'axe vertical : ${F(`V = ${nf(p.V)} m/s`)}.`],
+        piege:`Lire une valeur sur l'axe horizontal : c'est un temps.`,
+        ret:`Sur v(t), la vitesse se lit sur l'axe vertical.`,
+        diag:dgs(p.V,[{v:p.t1,m:`tu as lu ${p.t1} sur l'axe horizontal : c'est un instant, en secondes. La vitesse se lit sur l'axe vertical.`},{v:p.t3,m:`tu as lu la durée du déplacement. La vitesse se lit sur l'axe vertical.`},{v:p.ym,m:`tu as lu le haut de l'axe vertical. Lis la hauteur du palier.`}])},
+      {q:`Détermine la distance totale D parcourue pendant ce déplacement.`,nom:"D",type:"num",ans:D,tolR:0.015,unit:"m",don,
+        expl:`Aire sous la courbe : ${FRAC(`${p.t1} × ${nf(p.V)}`,2)} + ${nf(p.V)} × ${p.tp} + ${FRAC(`${p.td} × ${nf(p.V)}`,2)} = ${U(D,"m")}.`,
+        lire:`Figure 1 : accélération de 0 s à ${p.t1} s, vitesse constante jusqu'à ${p.t2} s, freinage jusqu'à ${p.t3} s.`,
+        met:[`La distance parcourue est l'aire sous la courbe v(t) : un triangle, un rectangle, un triangle.`,`Accélération : ${F(`${FRAC(`${p.t1} × ${nf(p.V)}`,2)} = ${S3(p.V*p.t1/2)} m`)}. Vitesse constante : ${F(`${nf(p.V)} × ${p.tp} = ${S3(p.V*p.tp)} m`)}. Freinage : ${F(`${FRAC(`${p.td} × ${nf(p.V)}`,2)} = ${S3(p.V*p.td/2)} m`)}.`,`${F(`D = ${S3(p.V*p.t1/2)} + ${S3(p.V*p.tp)} + ${S3(p.V*p.td/2)} = ${S3(D)} m`)}.`],
+        piege:`Multiplier la vitesse maximale par la durée totale : pendant l'accélération et le freinage, la vitesse est plus petite.`,
+        ret:`Distance parcourue = aire sous la courbe v(t).`,
+        diag:dgs(D,[{v:p.V*p.t3,m:`tu as multiplié la vitesse maximale par la durée totale. Pendant l'accélération et le freinage, la vitesse est plus petite : ces deux aires sont des triangles.`},{v:p.V*p.tp,m:`tu as compté seulement la phase à vitesse constante. Ajoute les distances de l'accélération et du freinage.`},{v:p.V*p.t1/2+p.V*p.tp,m:`tu as oublié la distance parcourue pendant le freinage.`}])},
+      {q:`Détermine la décélération ${s.le} pendant le freinage. Donne une valeur positive.`,nom:"décélération",type:"num",ans:ad,tolR:0.015,unit:"m/s²",don,
+        expl:`Pendant le freinage, la vitesse passe de ${nf(p.V)} m/s à 0 en ${p.td} s : ${FRAC(nf(p.V),p.td)} = ${U(ad,"m/s²")}.`,
+        lire:`Figure 1 : le freinage va de ${p.t2} s à ${p.t3} s, il dure ${p.td} s. La vitesse passe de ${nf(p.V)} m/s à 0.`,
+        met:[`La décélération est la pente de la courbe pendant le freinage : ${FRAC("Δv","Δt")}, sans le signe.`,`${F(`Δv = ${nf(p.V)} m/s`)} et ${F(`Δt = ${p.t3} − ${p.t2} = ${p.td} s`)}.`,`${F(`${FRAC(nf(p.V),p.td)} = ${S3(ad)} m/s²`)}.`],
+        piege:`Diviser par l'instant de fin (${p.t3} s) au lieu de la durée du freinage (${p.td} s).`,
+        ret:`Accélération ou décélération = pente de v(t).`,
+        diag:dgs(ad,[{v:p.V/p.t3,m:`tu as divisé par l'instant de fin du freinage (${p.t3} s). Il faut la durée du freinage : ${p.t3} − ${p.t2} = ${p.td} s.`},{v:p.V/p.t1,m:`tu as calculé la pente de la phase d'accélération. Le freinage va de ${p.t2} s à ${p.t3} s.`},{v:p.V*p.td,m:`tu as multiplié la vitesse par la durée. Une décélération est une pente : on divise.`},{v:p.V/p.t2,m:`tu as divisé par ${p.t2} s, l'instant où le freinage commence. Il faut la durée du freinage : ${p.td} s.`}])},
+      conclure({q:`Conclus vis-à-vis de l'exigence 1.1 (figure 2). Rédige ta réponse.`,don,exi:"1.1",quoi:"la décélération pendant le freinage",val:ad,u:"m/s²",lim:Ax,limTxt:`${nf(Ax)} m/s² au plus`,ph:`Pendant le freinage, la décélération ${s.le} vaut`,
+        lire:`Figure 2, exigence 1.1 : ${nf(Ax)} m/s² au plus. Question précédente : ${S3(ad)} m/s².`,faux:`la vitesse maximale vaut ${nf(p.V)} m/s`,fauxW:`la vitesse maximale ne répond pas à l'exigence : on compare la décélération (${S3(ad)} m/s²) à la limite (${nf(Ax)} m/s²).`,remede:`Il faudrait freiner plus longtemps, pour la même vitesse`})]; },
+  /* Étude C · barrière levante : vitesse angulaire, vitesse de l'extrémité, durée d'ouverture, exigence */
+  ()=>{ const o=draw(()=>{ const N=rnd([2,2.5,3,4,5,6]), Lg=rnd([3,4,5,6]), w=TPI*N/60, v=w*Lg, t=(Math.PI/2)/w, Tx=rnd([2,3,4,5,6,8,10]); return {N,Lg,w,v,t,Tx}; },o=>far(o.t,o.Tx,0.08)&&o.t<1.8*o.Tx&&o.t>o.Tx/1.8);
+    const {N,Lg,w,v,t,Tx}=o;
+    const fig=DOC(1,"extrait du diagramme des exigences d'une barrière levante de parking",d2Exig({reqs:[{id:"1.1",nom:"Durée d'ouverture",txt:`La lisse doit s'ouvrir de 90° en moins de ${Tx} s.`},{id:"1.2",nom:"Largeur de passage",txt:`La lisse barre une voie de ${Lg} m.`}]}))+
+      DOC(2,"caractéristiques du motoréducteur et de la lisse",d2Fiche({lignes:[["Fréquence de rotation de la lisse",`${nf(N)} tr/min`],["Longueur de la lisse",`${Lg} m`],["Tension d'alimentation","230 V"]]}));
+    const don=`exigence 1.1 : 90° en moins de ${Tx} s ; lisse : ${nf(N)} tr/min, longueur ${Lg} m`;
+    return [{fig,don,ctx0:`Étude d'une barrière levante : la lisse tourne autour de son axe pour s'ouvrir. On vérifie la durée d'ouverture.`,q:`À l'aide de la figure 2, détermine la vitesse angulaire ω de la lisse, en rad/s.`,nom:"ω",type:"num",ans:w,tolR:0.01,unit:"rad/s",
+        expl:`${F(`ω = ${FRAC("2π·N","60")}`)} = ${FRAC(`2π × ${nf(N)}`,"60")} = ${U(w,"rad/s")}.`,
+        lire:`Figure 2, ligne « Fréquence de rotation de la lisse » : ${nf(N)} tr/min.`,
+        met:[`Un tour vaut 2π radians et une minute vaut 60 secondes : ${F(`ω = ${FRAC("2π·N","60")}`)}.`,`${F(`ω = ${FRAC(`2π × ${nf(N)}`,"60")} = ${S3(w)} rad/s`)}.`],
+        piege:`Diviser seulement par 60 : on obtient des tours par seconde.`,
+        ret:`${F(`ω = ${FRAC("2π·N","60")}`)} (N en tr/min, ω en rad/s).`,
+        diag:dgs(w,[{v:N/60,m:`tu as divisé par 60 : ta valeur est en tours par seconde. Multiplie encore par 2π.`},{v:N*TPI,m:`tu as multiplié par 2π sans diviser par 60 : ta valeur est en radians par minute.`},{v:N,m:`tu as recopié la valeur en tr/min. La question demande des rad/s.`}])},
+      {q:`Détermine la vitesse v de l'extrémité de la lisse pendant l'ouverture.`,nom:"v",type:"num",ans:v,tolR:0.01,unit:"m/s",don,
+        expl:`${F("v = R·ω")} = ${Lg} × ${S3(w)} = ${U(v,"m/s")}.`,
+        lire:`Figure 2 : longueur de la lisse ${Lg} m. Question précédente : ${F(`ω = ${S3(w)} rad/s`)}.`,
+        met:[`L'extrémité de la lisse décrit un arc de cercle de rayon ${F(`R = ${Lg} m`)}.`,`${F(`v = R·ω = ${Lg} × ${S3(w)} = ${S3(v)} m/s`)}.`],
+        piege:`Utiliser la fréquence de rotation en tr/min : dans v = R·ω, ω est en rad/s.`,
+        ret:`Point d'un solide en rotation : ${F("v = R·ω")}.`,
+        diag:dgs(v,[{v:N*Lg,m:`tu as utilisé la fréquence de rotation en tr/min. Dans v = R·ω, il faut ω en rad/s.`},{v:w/Lg,m:`tu as divisé par la longueur. La vitesse de l'extrémité vaut R·ω : on multiplie.`},{v:w*Lg/2,m:`tu as pris la moitié de la longueur : c'est la vitesse du milieu de la lisse. L'extrémité est à ${Lg} m de l'axe.`}])},
+      {q:`Détermine la durée t nécessaire pour ouvrir la lisse de 90°.`,nom:"t",type:"num",ans:t,tolR:0.01,unit:"s",don,
+        expl:`${F(`90° = ${FRAC("π","2")} rad`)} ; ${F(`t = ${FRAC("θ","ω")}`)} = ${FRAC("1,57",S3(w))} = ${U(t,"s")}.`,
+        lire:`Figure 1, exigence 1.1 : ouverture de 90°. Première question : ${F(`ω = ${S3(w)} rad/s`)}.`,
+        met:[`Convertis l'angle en radians : ${F(`90° = ${FRAC("π","2")} = 1,57 rad`)}.`,`À vitesse angulaire constante : ${F("θ = ω·t")}, donc ${F(`t = ${FRAC("θ","ω")}`)}.`,`${F(`t = ${FRAC("1,57",S3(w))} = ${S3(t)} s`)}.`],
+        piege:`Laisser l'angle en degrés alors que ω est en rad/s.`,
+        ret:`Rotation uniforme : ${F("θ = ω·t")}, avec θ en radians.`,
+        diag:dgs(t,[{v:90/w,m:`tu as laissé l'angle en degrés. Avec ω en rad/s, l'angle doit être en radians : 90° = π/2 rad.`},{v:(Math.PI/2)*w,m:`tu as multiplié l'angle par la vitesse angulaire. On isole la durée : on divise l'angle par ω.`},{v:TPI/w,m:`tu as pris un tour complet (2π rad). La lisse ne tourne que d'un quart de tour : π/2 rad.`},{v:Math.PI/w,m:`tu as pris un demi-tour (π rad). 90° est un quart de tour : π/2 rad.`}])},
+      conclure({q:`Conclus vis-à-vis de l'exigence 1.1. Rédige ta réponse.`,don,exi:"1.1",quoi:"la durée d'ouverture",val:t,u:"s",lim:Tx,limTxt:`moins de ${Tx} s`,ph:"La lisse s'ouvre de 90° en",
+        lire:`Figure 1, exigence 1.1 : moins de ${Tx} s. Question précédente : ${S3(t)} s.`,faux:`l'extrémité de la lisse se déplace à ${S3(v)} m/s`,fauxW:`la vitesse de l'extrémité ne répond pas à l'exigence : on compare la durée d'ouverture (${S3(t)} s) à la durée exigée (${Tx} s).`,remede:`Il faudrait un motoréducteur qui fait tourner la lisse plus vite`})]; },
+  /* Étude D · navette autonome : distance d'arrêt (temps de réaction, puis freinage) et exigence de sécurité */
+  ()=>{ const o=draw(()=>{ const Vk=rnd([18,27,36,45,54]), tr=rnd([0.2,0.3,0.5,0.8]), a=rnd([2,3,4,5,6]), v=Vk/3.6, d1=v*tr, d2=v*v/(2*a), D=d1+d2, Dx=rnd([5,8,10,12,15,20,25,30,40,50]); return {Vk,tr,a,v,d1,d2,D,Dx}; },o=>far(o.D,o.Dx,0.08)&&o.D<1.7*o.Dx&&o.D>o.Dx/1.7);
+    const {Vk,tr,a,v,d1,d2,D,Dx}=o, tf=v/a;
+    const fig=DOC(1,"extrait du diagramme des exigences d'une navette autonome",d2Exig({reqs:[{id:"1.1",nom:"Arrêt d'urgence",txt:`La navette doit s'arrêter en moins de ${Dx} m après la détection d'un obstacle.`}]}))+
+      DOC(2,"caractéristiques de la navette",d2Fiche({lignes:[["Vitesse de circulation",`${Vk} km/h`],["Temps de réaction du système",`${nf(tr)} s`],["Décélération au freinage",`${a} m/s²`],["Masse en charge",`${nf(rnd([2800,3200,3500]),0)} kg`]]}));
+    const don=`exigence 1.1 : arrêt en moins de ${Dx} m ; vitesse ${Vk} km/h ; temps de réaction ${nf(tr)} s ; décélération ${a} m/s²`;
+    return [{fig,don,ctx0:`Étude d'une navette autonome : un capteur détecte un obstacle. On vérifie la distance d'arrêt.`,q:`À l'aide de la figure 2, exprime la vitesse de circulation v de la navette en m/s.`,nom:"v",type:"num",ans:v,tolR:0.01,unit:"m/s",
+        expl:`${F(`v = ${FRAC(Vk,"3,6")}`)} = ${U(v,"m/s")}.`,
+        lire:`Figure 2, ligne « Vitesse de circulation » : ${Vk} km/h.`,
+        met:[`Pour passer des km/h aux m/s, on divise par 3,6.`,`${F(`v = ${FRAC(Vk,"3,6")} = ${S3(v)} m/s`)}.`],
+        piege:`Multiplier par 3,6 : c'est pour passer des m/s aux km/h.`,
+        ret:`km/h → m/s : on divise par 3,6.`,
+        diag:dgs(v,[{v:Vk*3.6,m:`tu as multiplié par 3,6. Pour passer des km/h aux m/s, on divise par 3,6.`},{v:Vk,m:`tu as recopié la valeur en km/h. Divise par 3,6.`},{v:Vk/60,m:`tu as divisé par 60. Une heure vaut 3 600 s et un kilomètre 1 000 m : on divise par 3,6.`}])},
+      {q:`Pendant le temps de réaction, la navette roule encore à cette vitesse. Détermine la distance ${sb("d","1")} parcourue pendant ce temps.`,nom:sb("d","1"),type:"num",ans:d1,tolR:0.015,unit:"m",don,
+        expl:`${F("d<sub>1</sub> = v·t")} = ${S3(v)} × ${nf(tr)} = ${U(d1,"m")}.`,
+        lire:`Figure 2 : temps de réaction ${nf(tr)} s. Question précédente : ${F(`v = ${S3(v)} m/s`)}.`,
+        met:[`Pendant le temps de réaction, la vitesse est constante : ${F("d<sub>1</sub> = v·t")}.`,`${F(`d<sub>1</sub> = ${S3(v)} × ${nf(tr)} = ${S3(d1)} m`)}.`],
+        piege:`Utiliser la vitesse en km/h : la distance sortirait fausse.`,
+        ret:`Mouvement uniforme : ${F("d = v·t")}.`,
+        diag:dgs(d1,[{v:Vk*tr,m:`tu as utilisé la vitesse en km/h. Prends la vitesse en m/s.`},{v:v/tr,m:`tu as divisé la vitesse par la durée. À vitesse constante, la distance vaut v × t.`},{v:v*tr/2,m:`tu as divisé par 2. Pendant le temps de réaction, la vitesse ne diminue pas encore : la distance vaut v × t.`}])},
+      {q:`La navette freine ensuite avec la décélération de la figure 2. Détermine la distance d'arrêt totale D, depuis la détection de l'obstacle.`,nom:"D",type:"num",ans:D,tolR:0.015,unit:"m",don,
+        expl:`Freinage : ${F(`t<sub>f</sub> = ${FRAC("v","a")} = ${S3(tf)} s`)}, ${F(`d<sub>2</sub> = ${FRAC("v·t<sub>f</sub>","2")} = ${S3(d2)} m`)} ; ${F(`D = ${S3(d1)} + ${S3(d2)}`)} = ${U(D,"m")}.`,
+        lire:`Figure 2 : décélération ${a} m/s². Questions précédentes : ${F(`v = ${S3(v)} m/s`)} et ${F(`d<sub>1</sub> = ${S3(d1)} m`)}.`,
+        met:[`Durée du freinage : la vitesse passe de v à 0, ${F(`t<sub>f</sub> = ${FRAC("v","a")} = ${FRAC(S3(v),a)} = ${S3(tf)} s`)}.`,`Distance de freinage, aire du triangle sous v(t) : ${F(`d<sub>2</sub> = ${FRAC("v·t<sub>f</sub>","2")} = ${FRAC(`${S3(v)} × ${S3(tf)}`,2)} = ${S3(d2)} m`)}.`,`Distance d'arrêt : ${F(`D = d<sub>1</sub> + d<sub>2</sub> = ${S3(d1)} + ${S3(d2)} = ${S3(D)} m`)}.`],
+        piege:`Oublier la distance parcourue pendant le temps de réaction : la navette avance avant de freiner.`,
+        ret:`Distance d'arrêt = distance de réaction + distance de freinage.`,
+        diag:dgs(D,[{v:d2,m:`tu as donné la distance de freinage seule. Ajoute la distance parcourue pendant le temps de réaction (${S3(d1)} m).`},{v:d1+2*d2,m:`tu as calculé v × t pour le freinage. Pendant le freinage, la vitesse diminue : l'aire est un triangle, divise par 2.`},{v:d1+tf,m:`tu as ajouté une durée à une distance. Calcule la distance de freinage, en mètres, puis ajoute-la.`},{v:d1,m:`tu as donné la distance de réaction seule. Ajoute la distance de freinage.`}])},
+      conclure({q:`Conclus vis-à-vis de l'exigence 1.1. Rédige ta réponse.`,don,exi:"1.1",quoi:"la distance d'arrêt",val:D,u:"m",lim:Dx,limTxt:`moins de ${Dx} m`,ph:"La navette s'arrête en",
+        lire:`Figure 1, exigence 1.1 : moins de ${Dx} m. Question précédente : ${S3(D)} m.`,faux:`le temps de réaction ne dure que ${nf(tr)} s`,fauxW:`le temps de réaction ne répond pas à l'exigence : on compare la distance d'arrêt (${S3(D)} m) à la distance exigée (${Dx} m).`,remede:`Il faudrait rouler moins vite, ou freiner plus fort`})]; }
+];
+
+/* Le réservoir : les reconnaissances de mouvements et de trajectoires d'avant (niveau 1, générateurs 0 à 8 ; niveau 3, générateur 12)
+   et les nouvelles questions. */
+{ const A=POOLS["meca-cinematique"]; POOLS["meca-cinematique"]={v2:true,count:{1:4,2:4,3:4},1:[...A[1].slice(0,9),...C2N1],2:[...C2N2,A[3][12]],3:C2N3}; }
+}
+
 })();
 
 /* ===== Réservoirs : Adhérence, frottement (lois de Coulomb) — séries 1 et 2 =====
@@ -12445,6 +12799,377 @@ const N3=[
 
 POOLS["phy-newton"]={count:{1:4,2:4,3:3},1:N1,2:N2,3:N3};
 
+/* ======================================================================
+   v2 · 2e loi de Newton (phy-newton) : bilan des forces à lire sur un schéma, documents, conclusions rédigées.
+   Les questions de cours sans calcul (somme des forces nulle, sens de l'accélération, unité, référentiel…) sont gardées au niveau 1.
+   ====================================================================== */
+{
+const sb=(b,i)=>`${b}<sub>${i}</sub>`, G0=9.81, sat=b=>b?"est satisfaite":"n'est pas satisfaite", U=(x,u)=>F(`${S3(x)}${u?" "+u:""}`);
+const tirer=(gen,ok)=>{ for(let i=0;i<2000;i++){ const v=gen(); if(ok(v)) return v; } throw new Error("tirage impossible"); };
+const loin=(x,ref,r)=>Math.abs(x-ref)/Math.abs(ref)>=r;
+const trou=(ok,wrong,m)=>{ const o=shuffle([...new Set([ok,...wrong])]); return {o,ok:o.indexOf(ok),m}; };
+const dgs=(ans,l)=>l.filter((d,i)=>d.v>0&&Math.abs(d.v-ans)>0.03*Math.abs(ans)&&l.findIndex(e=>Math.abs(e.v-d.v)<=1e-9*Math.abs(d.v))===i);
+const GTXT="On prend g = 9,81 N/kg.";
+/* flèche de force avec sa pointe, dans une couleur du thème (accent, coulomb, ink-2) */
+const fl=(x1,y1,x2,y2,c)=>{ const a=Math.atan2(y2-y1,x2-x1), h=10, bx=x2-h*Math.cos(a), by=y2-h*Math.sin(a), p=s=>`${(bx+s*4.5*Math.sin(a)).toFixed(1)},${(by-s*4.5*Math.cos(a)).toFixed(1)}`;
+  return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}" style="stroke:var(--${c});stroke-width:2.6;fill:none"/><polygon points="${x2.toFixed(1)},${y2.toFixed(1)} ${p(1)} ${p(-1)}" style="fill:var(--${c})"/>`; };
+/* Schéma des forces sur un chariot, sur le plat ou sur une pente (dessin sans échelle).
+   o.F, o.R, o.P, o.N : textes des étiquettes (rien = force non dessinée) ; o.pente : texte de l'angle ; o.mv : flèche « sens du mouvement » */
+function d2Forces(o){
+  const al=o.pente?14*Math.PI/180:0, O=[46,o.pente?176:150], u=[Math.cos(al),-Math.sin(al)], n=[-Math.sin(al),-Math.cos(al)], pt=(s,h)=>[O[0]+s*u[0]+h*n[0],O[1]+s*u[1]+h*n[1]], G=pt(168,30);
+  let s=L(O[0],O[1],...pt(322,0),"v-ink");
+  if(o.pente){ s+=L(O[0],O[1],O[0]+312,O[1],"v-dash")+`<path d="M${O[0]+70} ${O[1]} A70 70 0 0 0 ${(O[0]+70*u[0]).toFixed(1)} ${(O[1]+70*u[1]).toFixed(1)}" class="v-cote"/>`+T(O[0]+78,O[1]-6,o.pente,"v-lab s"); }
+  s+=`<g transform="translate(${G[0].toFixed(1)},${G[1].toFixed(1)}) rotate(${(-al*180/Math.PI).toFixed(1)})"><rect x="-46" y="-18" width="92" height="36" rx="5" class="v-block"/><circle cx="-27" cy="20" r="10" class="v-wheel"/><circle cx="27" cy="20" r="10" class="v-wheel"/><circle cx="0" cy="0" r="2.6" class="v-pt"/></g>`+T(G[0]-8,G[1]-5,"G","v-cap","end");
+  if(o.F){ const a=pt(216,30), b=pt(286,30); s+=fl(a[0],a[1],b[0],b[1],"accent")+T(a[0]+4,a[1]-12,o.F,"v-lab a","start"); }
+  if(o.R){ const a=pt(120,30), b=pt(62,30); s+=fl(a[0],a[1],b[0],b[1],"coulomb")+T(a[0]-4,a[1]-12,o.R,"v-lab c","end"); }
+  if(o.P){ s+=fl(G[0],G[1],G[0],G[1]+(o.pente?58:52),"ink-2")+T(G[0]+8,G[1]+(o.pente?56:50),o.P,"v-lab s"); }
+  if(o.N){ const b=pt(168,92); s+=fl(G[0],G[1],b[0],b[1],"ink-2")+T(b[0]+8,b[1]+8,o.N,"v-lab s"); }
+  if(o.mv){ const a=pt(140,o.pente?-16:-22), b=pt(210,o.pente?-16:-22); s+=L(a[0],a[1],b[0],b[1],"v-cote","d")+T(b[0]+6,b[1]+4,"sens du mouvement","v-cap"); }
+  return svg(o.pente?210:196,s,o.label||"Schéma des forces sur le chariot");
+}
+/* Cabine suspendue à un câble : tension vers le haut, poids vers le bas */
+function d2Cabine(o){
+  let s=hatch(150,14,100)+L(200,14,200,70,"v-ink")+`<rect x="165" y="70" width="70" height="78" rx="4" class="v-block"/><circle cx="200" cy="109" r="2.6" class="v-pt"/>`+T(192,106,"G","v-cap","end");
+  s+=fl(200,70,200,24,"accent")+T(210,40,o.T,"v-lab a")+fl(200,109,200,186,"ink-2")+T(210,182,o.P,"v-lab s");
+  if(o.a) s+=fl(120,140,120,90,"coulomb")+T(112,118,o.a,"v-lab c","end");
+  return svg(200,s,"Cabine suspendue à un câble : tension du câble vers le haut, poids vers le bas");
+}
+function hatch(x,y,w){ let s=L(x,y,x+w,y,"v-ink"); for(let k=6;k<w;k+=10) s+=L(x+k,y,x+k+7,y-8,"v-hatch"); return s; }
+const figF=(n,titre,o)=>DOC(n,titre,d2Forces(o));
+/* conclusion rédigée d'une étude, sur une exigence « au plus » : satisfaite si val ≤ lim */
+const conclure=o=>{ const phm=o.ph.charAt(0).toLowerCase()+o.ph.slice(1), oui=o.val<=o.lim, mot=oui?"inférieur":"supérieur", V=`${S3(o.val)} ${o.u}`, Lm=`${nf(o.lim,3)} ${o.u}`, pg=oui?"plus petit":"plus grand";
+  return {q:o.q,type:"red",don:o.don,
+    ...mcw(`L'exigence ${o.exi} ${sat(oui)} : ${phm} ${V}, ${oui?"moins":"plus"} que la limite de ${Lm}.`,[
+      [`L'exigence ${o.exi} ${sat(!oui)} : ${phm} ${V}, ${oui?"plus":"moins"} que la limite de ${Lm}.`,`compare les nombres : ${S3(o.val)} est ${pg} que ${nf(o.lim,3)}.`],
+      [`L'exigence ${o.exi} ${sat(oui)}, car ${o.faux}.`,o.fauxW],
+      [`On ne peut pas conclure : il manque une donnée.`,`les deux valeurs à comparer sont connues : ${V} (calculé) et ${Lm} (${o.ou}).`]]),
+    elements:[{t:`Donne ${o.quoi} (environ ${V})`,p:1},{t:`Donne la valeur limite (${o.limTxt})`,p:1},{t:`Compare les deux valeurs`,p:1},{t:`Conclut que l'exigence ${o.exi} ${sat(oui)}`,p:2}],
+    modele:`${o.ph} ${V}. C'est ${mot} ${o.aux||"à la limite de "+Lm} : l'exigence ${o.exi} ${sat(oui)}.`,
+    iaPlus:`Résultat des questions précédentes : ${o.quoi} = ${V}. Valeur limite : ${o.limTxt}.`,
+    expl:`${V} est ${mot} à ${Lm} : l'exigence ${o.exi} ${sat(oui)}.`,
+    lire:o.lire,
+    met:[`Une conclusion complète donne la valeur trouvée, la valeur limite, la comparaison, puis la réponse.`,`Valeur trouvée : ${F(V)}. Valeur limite : ${F(Lm)}.`,`${S3(o.val)} est ${pg} que ${nf(o.lim,3)} : l'exigence ${o.exi} ${sat(oui)}${oui?"":". "+o.remede}.`],
+    piege:`Conclure sans citer les deux valeurs, ou comparer deux grandeurs qui n'ont pas la même unité.`,
+    ret:`Conclure = la valeur trouvée, la valeur limite, la comparaison, la réponse.`}; };
+const SYSN=[{n:"chariot de manutention",a:"Le chariot",le:"du chariot"},{n:"robot de livraison",a:"Le robot",le:"du robot"},{n:"fauteuil roulant électrique",a:"Le fauteuil",le:"du fauteuil"},{n:"kart électrique",a:"Le kart",le:"du kart"}];
+const tirFR=()=>tirer(()=>{ const Fm=rnd([200,250,300,400,500,600,800]), R=rnd([40,50,60,80,100,120,150]), m=rnd([80,100,120,150,200,250,300,400]); return {Fm,R,m,a:(Fm-R)/m}; },o=>o.Fm-o.R>=0.25*o.Fm&&o.a>=0.3&&o.a<=3);
+
+const N2N1=[
+  /* n0 · somme des forces dans la direction du mouvement, lue sur le schéma */
+  ()=>{ const {Fm,R}=tirFR(), s=rnd(SYSN), S=Fm-R, don=`schéma : F = ${Fm} N vers l'avant ; R = ${R} N vers l'arrière`;
+    return {fig:figF(1,`forces exercées sur le ${s.n}, en ligne droite sur le plat`,{F:`F = ${Fm} N`,R:`R = ${R} N`,P:"P",N:"N",mv:1}),don,
+      q:`Sur la figure 1, F est la force motrice et R la somme des résistances. Détermine la somme des forces dans la direction du mouvement.`,type:"num",ans:S,tolR:0.005,unit:"N",
+      expl:`F et R sont de sens contraires : ${F(`ΣF = F − R = ${Fm} − ${R}`)} = ${U(S,"N")}.`,
+      lire:`Figure 1 : F = ${Fm} N vers l'avant, R = ${R} N vers l'arrière. P et N sont verticales : elles se compensent.`,
+      met:[`On choisit le sens du mouvement comme sens positif.`,`F est dans ce sens (on la compte +), R est dans l'autre sens (on la compte −).`,`${F(`ΣF = F − R = ${Fm} − ${R} = ${S} N`)}.`],
+      piege:`Ajouter les deux valeurs : deux forces de sens contraires se retranchent.`,
+      ret:`Sur un axe, une force dans le sens positif se compte +, une force dans l'autre sens se compte −.`,
+      diag:dgs(S,[{v:Fm+R,m:`tu as ajouté les deux forces. Elles sont de sens contraires : on retranche R.`},{v:Fm,m:`tu as oublié les résistances R : elles s'opposent au mouvement.`},{v:R,m:`tu as donné R seule. La somme des forces vaut F − R.`}])}; },
+  /* n1 · poids à partir de la masse lue dans les caractéristiques */
+  ()=>{ const s=rnd(SYSN), mv=rnd([35,48,60,75,90,110]), ch=rnd([20,40,60,80,100,120]), m=mv+ch, P=m*G0;
+    return {fig:DOC(1,`caractéristiques du ${s.n}`,d2Fiche({lignes:[["Masse à vide",`${mv} kg`],["Charge transportée",`${ch} kg`],["Vitesse maximale",`${rnd([6,8,10,12])} km/h`]]})),don:`masse à vide ${mv} kg ; charge ${ch} kg ; g = 9,81 N/kg`,
+      q:`À l'aide de la figure 1, détermine le poids ${s.le} chargé. ${GTXT}`,type:"num",ans:P,tolR:0.005,unit:"N",
+      expl:`${F(`m = ${mv} + ${ch} = ${m} kg`)} ; ${F("P = m·g")} = ${m} × 9,81 = ${U(P,"N")}.`,
+      lire:`Figure 1 : masse à vide ${mv} kg et charge ${ch} kg. La vitesse ne sert pas ici.`,
+      met:[`Masse totale : ${F(`m = ${mv} + ${ch} = ${m} kg`)}.`,`Le poids est une force, en newtons : ${F("P = m·g")}.`,`${F(`P = ${m} × 9,81 = ${S3(P)} N`)}.`],
+      piege:`Donner la masse en kilogrammes : le poids est une force, en newtons.`,
+      ret:`${F("P = m·g")} : m en kg, g en N/kg, P en N.`,
+      diag:dgs(P,[{v:m,m:`tu as donné la masse, en kilogrammes. Le poids vaut m × g, en newtons.`},{v:mv*G0,m:`tu as oublié la charge transportée : le véhicule est chargé.`},{v:m/G0,m:`tu as divisé par g. Le poids vaut m × g.`},{v:m*10,m:`tu as pris g = 10 N/kg. L'énoncé demande 9,81 N/kg.`}])}; },
+  /* n2 · le schéma des forces donne la nature du mouvement */
+  ()=>{ const k=rnd([0,1,2]), s=rnd(SYSN), R=rnd([60,80,100,120,150]), Fm=k===0?R+rnd([60,100,150,200]):k===1?R-rnd([20,30,40]):R;
+    const C=[{t:`${s.a} accélère : la somme des forces est dans le sens du mouvement.`,w:`F et R n'ont pas des valeurs qui donnent une somme vers l'avant : compare F et R.`},{t:`${s.a} ralentit : la somme des forces est opposée au mouvement.`,w:`R n'est pas plus grande que F sur ce schéma : compare les deux valeurs.`},{t:`${s.a} garde une vitesse constante : la somme des forces est nulle.`,w:`F et R n'ont pas la même valeur : la somme des forces n'est pas nulle.`},{t:`${s.a} s'arrête tout de suite : une résistance s'exerce sur lui.`,w:`une résistance ne stoppe pas un véhicule d'un coup : elle modifie sa vitesse peu à peu, selon la somme des forces.`}];
+    return {fig:figF(1,`forces exercées sur le ${s.n}, qui roule en ligne droite sur le plat`,{F:`F = ${Fm} N`,R:`R = ${R} N`,P:"P",N:"N",mv:1}),don:`schéma : F = ${Fm} N vers l'avant ; R = ${R} N vers l'arrière`,
+      q:`À l'aide de la figure 1, que peut-on dire du mouvement ${s.le} ? Justifie.`,type:"ch",...mcw(C[k].t,C.filter((x,i)=>i!==k).map(x=>[x.t,x.w])),
+      expl:`${F(`ΣF = F − R = ${Fm} − ${R} = ${Fm-R} N`)} : la somme des forces est ${k===0?"dans le sens du mouvement, le véhicule accélère":k===1?"opposée au mouvement, le véhicule ralentit":"nulle, la vitesse ne change pas"}.`,
+      lire:`Figure 1 : F = ${Fm} N vers l'avant, R = ${R} N vers l'arrière.`,
+      met:[`Calcule la somme des forces dans la direction du mouvement : ${F(`ΣF = F − R = ${Fm-R} N`)}.`,`2e loi de Newton : ${F("ΣF = m·a")}. L'accélération a le sens de la somme des forces.`,k===0?`ΣF est dans le sens du mouvement : la vitesse augmente.`:k===1?`ΣF est opposée au mouvement : la vitesse diminue.`:`ΣF = 0 donc a = 0 : la vitesse reste constante.`],
+      piege:`Croire qu'il faut une force vers l'avant pour avancer à vitesse constante : à vitesse constante, la somme des forces est nulle.`,
+      ret:`${F("ΣF = m·a")} : somme nulle = vitesse constante ; somme vers l'avant = accélération ; somme vers l'arrière = ralentissement.`}; },
+  /* n3 · somme des forces nécessaire : masse dans les caractéristiques, accélération dans l'exigence */
+  ()=>{ const s=rnd(SYSN), a=rnd([0.5,0.8,1,1.2,1.5,2]), m=rnd([60,80,100,120,150,200]), S=m*a;
+    return {fig:DOC(1,`extrait du diagramme des exigences du ${s.n}`,d2Exig({reqs:[{id:"1.1",nom:"Démarrage",txt:`${s.a} doit démarrer avec une accélération de ${nf(a)} m/s².`}]}))+DOC(2,`caractéristiques du ${s.n}`,d2Fiche({lignes:[["Masse en charge",`${m} kg`],["Tension de la batterie",`${rnd([24,36,48])} V`]]})),
+      don:`exigence 1.1 : accélération ${nf(a)} m/s² ; masse ${m} kg`,q:`À l'aide des figures 1 et 2, détermine la somme des forces nécessaire pour obtenir l'accélération exigée.`,type:"num",ans:S,tolR:0.005,unit:"N",
+      expl:`${F("ΣF = m·a")} = ${m} × ${nf(a)} = ${U(S,"N")}.`,
+      lire:`Figure 1, exigence 1.1 : ${nf(a)} m/s². Figure 2 : masse ${m} kg. La tension ne sert pas ici.`,
+      met:[`2e loi de Newton : ${F("ΣF = m·a")}.`,`${F(`ΣF = ${m} × ${nf(a)} = ${S3(S)} N`)}.`],
+      piege:`Diviser la masse par l'accélération, ou utiliser le poids à la place de la masse.`,
+      ret:`${F("ΣF = m·a")} : m en kg, a en m/s², ΣF en N.`,
+      diag:dgs(S,[{v:m/a,m:`tu as divisé la masse par l'accélération. La 2e loi de Newton donne ΣF = m × a.`},{v:m*G0,m:`tu as calculé le poids (m × g). La question demande la somme des forces qui donne l'accélération : m × a.`},{v:m*G0*a,m:`tu as utilisé le poids à la place de la masse. Dans ΣF = m·a, m est en kilogrammes.`}])}; },
+  /* n4 · reconnaître une conclusion complète */
+  ()=>{ const c=rnd([{d:"du diagramme des exigences d'un monte-charge",nom:"Sécurité du câble",ex:x=>`La tension du câble ne doit pas dépasser ${x} N.`,g:"Tension calculée au démarrage",u:"N",L:[5000,6000,8000,10000],ph:v=>`Au démarrage, la tension du câble vaut ${v} N`},
+      {d:"du diagramme des exigences d'un robot de livraison",nom:"Motorisation",ex:x=>`La force motrice nécessaire ne doit pas dépasser ${x} N.`,g:"Force motrice calculée dans la pente",u:"N",L:[150,200,250,300],ph:v=>`Dans la pente, il faut une force motrice de ${v} N`},
+      {d:"du diagramme des exigences d'une navette autonome",nom:"Freinage d'urgence",ex:x=>`La navette doit s'arrêter sur moins de ${x} m.`,g:"Distance de freinage calculée",u:"m",L:[6,8,10,12],ph:v=>`La navette s'arrête sur ${v} m`}]);
+    const X=rnd(c.L), oui=Math.random()<.5, val=Number((X*(oui?rnd([.72,.8,.86]):rnd([1.14,1.22,1.3]))).toPrecision(3)), v=nf(val,3), x=nf(X,0), mot=oui?"inférieur":"supérieur";
+    return {fig:DOC(1,`extrait ${c.d}`,d2Exig({reqs:[{id:"1.1",nom:c.nom,txt:c.ex(x)}]}))+DOC(2,"résultat de l'étude",d2Fiche({lignes:[[c.g,`${v} ${c.u}`]]})),
+      q:`Quatre élèves concluent sur l'exigence 1.1. Quelle copie donne une conclusion complète et juste ?`,type:"ch",
+      ...mcw(`« ${c.ph(v)}. C'est ${mot} à la limite de ${x} ${c.u} : l'exigence 1.1 ${sat(oui)}. »`,[
+        [`« L'exigence 1.1 ${sat(oui)}. »`,`la réponse est juste, mais aucune valeur ne la justifie. À l'écrit, une conclusion sans nombres ne rapporte pas tous les points.`],
+        [`« ${c.ph(v)} et l'exigence 1.1 fixe la limite à ${x} ${c.u}. »`,`les deux valeurs sont citées, mais la copie ne les compare pas et ne dit pas si l'exigence est satisfaite.`],
+        [`« ${c.ph(v)}. C'est ${mot} à la limite de ${x} ${c.u} : l'exigence 1.1 ${sat(!oui)}. »`,`la comparaison est juste, mais la réponse la contredit : ${v} ${c.u} ${oui?"reste sous":"dépasse"} la limite de ${x} ${c.u}.`]]),
+      don:`exigence 1.1 : ${X} ${c.u} au plus ; valeur calculée ${v} ${c.u}`,
+      expl:`${v} ${c.u} est ${mot} à ${x} ${c.u} : l'exigence 1.1 ${sat(oui)}. La bonne copie donne les deux valeurs, les compare et répond.`,
+      lire:`Figure 1, exigence 1.1 : ${x} ${c.u} au plus. Figure 2 : valeur calculée, ${v} ${c.u}.`,
+      met:[`Une conclusion complète contient quatre choses : la valeur trouvée, la valeur exigée, la comparaison, la réponse.`,`Valeur trouvée : ${F(`${v} ${c.u}`)}. Valeur exigée : ${F(`${x} ${c.u}`)} au plus.`,`${v} est ${oui?"plus petit":"plus grand"} que ${x} : l'exigence 1.1 ${sat(oui)}.`],
+      piege:`Répondre « oui » ou « non » sans les nombres : la réponse peut être juste, elle n'est pas justifiée.`,
+      ret:`Conclure = la valeur trouvée, la valeur exigée, la comparaison, la réponse.`}; }
+];
+
+const N2N2=[
+  /* m0 · sur le plat : somme des forces lue sur le schéma, puis accélération */
+  ()=>{ const {Fm,R,m,a}=tirFR(), s=rnd(SYSN), S=Fm-R, don=`schéma : F = ${Fm} N vers l'avant ; R = ${R} N vers l'arrière ; masse ${m} kg`;
+    const fig=figF(1,`forces exercées sur le ${s.n} au démarrage, sur le plat`,{F:`F = ${Fm} N`,R:`R = ${R} N`,P:"P",N:"N",mv:1})+DOC(2,`caractéristiques du ${s.n}`,d2Fiche({lignes:[["Masse en charge",`${m} kg`],["Diamètre des roues",`${rnd([200,250,300])} mm`]]}));
+    return [{fig,don,q:`Sur la figure 1, F est la force motrice et R la somme des résistances. Détermine la somme des forces ΣF dans la direction du mouvement.`,nom:"ΣF",type:"num",ans:S,tolR:0.005,unit:"N",
+        expl:`${F(`ΣF = F − R = ${Fm} − ${R}`)} = ${U(S,"N")}.`,
+        lire:`Figure 1 : F = ${Fm} N vers l'avant, R = ${R} N vers l'arrière. P et N sont verticales : elles se compensent.`,
+        met:[`On choisit le sens du mouvement comme sens positif : F se compte +, R se compte −.`,`${F(`ΣF = F − R = ${Fm} − ${R} = ${S} N`)}.`],
+        piege:`Ajouter les deux valeurs : deux forces de sens contraires se retranchent.`,
+        ret:`Sur un axe, une force dans le sens positif se compte +, une force dans l'autre sens se compte −.`,
+        diag:dgs(S,[{v:Fm+R,m:`tu as ajouté les deux forces. Elles sont de sens contraires : on retranche R.`},{v:Fm,m:`tu as oublié les résistances R : elles s'opposent au mouvement.`}])},
+      {q:`À l'aide de la figure 2, déduis-en l'accélération a ${s.le}.`,nom:"a",type:"num",ans:a,tolR:0.01,unit:"m/s²",don,
+        expl:`${F(`a = ${FRAC("ΣF","m")}`)} = ${FRAC(S,m)} = ${U(a,"m/s²")}.`,
+        lire:`Figure 2 : masse en charge ${m} kg. Question précédente : ${F(`ΣF = ${S} N`)}.`,
+        met:[`2e loi de Newton : ${F("ΣF = m·a")}, donc ${F(`a = ${FRAC("ΣF","m")}`)}.`,`${F(`a = ${FRAC(S,m)} = ${S3(a)} m/s²`)}.`],
+        piege:`Diviser la force motrice seule par la masse : c'est la somme des forces qui donne l'accélération.`,
+        ret:`${F(`a = ${FRAC("ΣF","m")}`)} : ΣF en N, m en kg, a en m/s².`,
+        diag:dgs(a,[{v:Fm/m,m:`tu as divisé la force motrice seule par la masse. C'est la somme des forces (F − R) qui donne l'accélération.`},{v:S*m,m:`tu as multiplié par la masse. On isole a : on divise la somme des forces par la masse.`},{v:m/S,m:`tu as divisé la masse par la somme des forces. C'est l'inverse.`},{v:S/(m*G0),m:`tu as divisé par le poids. Dans ΣF = m·a, m est la masse, en kilogrammes.`}])}]; },
+  /* m1 · accélération exigée : somme des forces, force motrice nécessaire, puis conclusion à compléter sur le moteur */
+  ()=>{ const o=tirer(()=>{ const a=rnd([0.5,0.8,1,1.2,1.5,2]), m=rnd([60,80,100,120,150,200]), R=rnd([20,30,40,50,60,80]), S=m*a, Fn=S+R, Fx=rnd([80,100,120,150,200,250,300,400,500]); return {a,m,R,S,Fn,Fx}; },o=>loin(o.Fn,o.Fx,0.1)&&o.Fn<1.8*o.Fx&&o.Fn>o.Fx/1.8);
+    const {a,m,R,S,Fn,Fx}=o, s=rnd(SYSN), oui=Fn<=Fx;
+    const fig=DOC(1,`extrait du diagramme des exigences du ${s.n}`,d2Exig({reqs:[{id:"1.1",nom:"Démarrage",txt:`${s.a} doit démarrer avec une accélération de ${nf(a)} m/s².`}]}))+
+      figF(2,`forces exercées sur le ${s.n} au démarrage, sur le plat`,{F:"F = ?",R:`R = ${R} N`,P:"P",N:"N",mv:1})+
+      DOC(3,`caractéristiques du ${s.n}`,d2Fiche({lignes:[["Masse en charge",`${m} kg`],["Force motrice maximale aux roues",`${Fx} N`]]}));
+    const don=`exigence 1.1 : accélération ${nf(a)} m/s² ; masse ${m} kg ; schéma : R = ${R} N vers l'arrière ; force motrice maximale ${Fx} N`;
+    return [{fig,don,q:`À l'aide des figures 1 et 3, détermine la somme des forces ΣF nécessaire pour obtenir l'accélération exigée.`,nom:"ΣF",type:"num",ans:S,tolR:0.005,unit:"N",
+        expl:`${F("ΣF = m·a")} = ${m} × ${nf(a)} = ${U(S,"N")}.`,
+        lire:`Figure 1, exigence 1.1 : ${nf(a)} m/s². Figure 3 : masse en charge ${m} kg.`,
+        met:[`2e loi de Newton : ${F("ΣF = m·a")}.`,`${F(`ΣF = ${m} × ${nf(a)} = ${S3(S)} N`)}.`],
+        piege:`Utiliser le poids à la place de la masse.`,
+        ret:`${F("ΣF = m·a")} : m en kg, a en m/s², ΣF en N.`,
+        diag:dgs(S,[{v:m/a,m:`tu as divisé la masse par l'accélération. La 2e loi de Newton donne ΣF = m × a.`},{v:m*G0,m:`tu as calculé le poids. La somme des forces qui donne l'accélération vaut m × a.`},{v:Fx,m:`tu as recopié la force motrice maximale. La question demande la somme des forces nécessaire : m × a.`}])},
+      {q:`À l'aide de la figure 2, déduis-en la force motrice F nécessaire.`,nom:"F",type:"num",ans:Fn,tolR:0.005,unit:"N",don,
+        expl:`${F("ΣF = F − R")}, donc ${F(`F = ΣF + R = ${S3(S)} + ${R}`)} = ${U(Fn,"N")}.`,
+        lire:`Figure 2 : R = ${R} N, opposée au mouvement. Question précédente : ${F(`ΣF = ${S3(S)} N`)}.`,
+        met:[`Dans la direction du mouvement : ${F("ΣF = F − R")}.`,`On isole F : ${F("F = ΣF + R")}. Le moteur doit vaincre les résistances et, en plus, accélérer le véhicule.`,`${F(`F = ${S3(S)} + ${R} = ${S3(Fn)} N`)}.`],
+        piege:`Retrancher R : les résistances s'ajoutent à ce que le moteur doit fournir.`,
+        ret:`Pour accélérer : ${F("F = m·a + R")}.`,
+        diag:dgs(Fn,[{v:S,m:`tu as oublié les résistances. Le moteur doit fournir m·a et, en plus, vaincre R.`},{v:S-R,m:`tu as retranché R. Les résistances s'opposent au mouvement : le moteur doit fournir ΣF + R.`},{v:R,m:`tu as donné R seule. La force motrice vaut ΣF + R.`}])},
+      {q:`À l'aide de la figure 3, complète la conclusion sur le choix du moteur.`,type:"trous",don,
+        phr:[`Pour démarrer avec l'accélération exigée, il faut une force motrice de `,trou(`${S3(Fn)} N`,[`${S3(S)} N`,`${R} N`],`La valeur à citer est la force motrice que tu viens de calculer : ${S3(Fn)} N.`),`. C'est `,
+          trou(oui?"inférieur":"supérieur",[oui?"supérieur":"inférieur"],`Compare les deux valeurs : ${S3(Fn)} est ${oui?"plus petit":"plus grand"} que ${Fx}.`),` à la force motrice maximale (${Fx} N) : l'exigence 1.1 `,
+          trou(oui?"est":"n'est pas",[oui?"n'est pas":"est"],`Le moteur fournit au plus ${Fx} N : avec ${S3(Fn)} N à fournir, l'exigence 1.1 ${sat(oui)}.`),` satisfaite.`],
+        expl:`${S3(Fn)} N est ${oui?"inférieur":"supérieur"} à ${Fx} N : l'exigence 1.1 ${sat(oui)}.`,
+        lire:`Figure 3 : force motrice maximale ${Fx} N. Question précédente : ${S3(Fn)} N.`,
+        met:[`Une conclusion complète donne la valeur trouvée, la valeur limite, la comparaison, puis la réponse.`,`Force nécessaire : ${F(`${S3(Fn)} N`)}. Force maximale : ${F(`${Fx} N`)}.`,`${S3(Fn)} est ${oui?"plus petit":"plus grand"} que ${Fx} : l'exigence 1.1 ${sat(oui)}${oui?"":". Il faudrait un moteur plus fort, ou un véhicule plus léger"}.`],
+        piege:`Comparer la somme des forces (m·a) à la force maximale : c'est la force motrice, résistances comprises, qu'il faut comparer.`,
+        ret:`Conclure = la valeur trouvée, la valeur limite, la comparaison, la réponse.`}]; },
+  /* m2 · pente à vitesse constante : composante du poids le long de la pente, puis force motrice */
+  ()=>{ const al=rnd([3,4,5,6,8,10,12]), m=rnd([60,80,100,120,150,200,250]), R=rnd([15,20,30,40,50]), s=rnd(SYSN), Px=m*G0*Math.sin(al*Math.PI/180), Fn=Px+R;
+    const fig=figF(1,`forces exercées sur le ${s.n}, qui monte la pente à vitesse constante`,{F:"F",R:`R = ${R} N`,P:"P",N:"N",pente:`α = ${al}°`,mv:1})+DOC(2,`caractéristiques du ${s.n}`,d2Fiche({lignes:[["Masse en charge",`${m} kg`],["Vitesse dans la pente",`${rnd([3,4,5,6])} km/h`]]}));
+    const don=`pente α = ${al}° ; masse ${m} kg ; R = ${R} N ; g = 9,81 N/kg`;
+    return [{fig,don,q:`À l'aide des figures 1 et 2, détermine la composante du poids parallèle à la pente, notée ${sb("P","x")}. ${GTXT}`,nom:sb("P","x"),type:"num",ans:Px,tolR:0.01,unit:"N",
+        expl:`${F("P<sub>x</sub> = m·g·sin α")} = ${m} × 9,81 × sin ${al}° = ${U(Px,"N")}.`,
+        lire:`Figure 1 : pente d'angle α = ${al}°. Figure 2 : masse en charge ${m} kg.`,
+        met:[`Le poids est vertical : ${F(`P = m·g = ${m} × 9,81 = ${S3(m*G0)} N`)}.`,`Sur une pente d'angle α, la part du poids qui tire le véhicule vers le bas de la pente vaut ${F("P<sub>x</sub> = m·g·sin α")}.`,`${F(`P<sub>x</sub> = ${S3(m*G0)} × sin ${al}° = ${S3(Px)} N`)}.`],
+        piege:`Prendre le cosinus : m·g·cos α est la part du poids qui appuie sur la pente, pas celle qui retient le véhicule.`,
+        ret:`Sur une pente d'angle α : ${F("P<sub>x</sub> = m·g·sin α")} le long de la pente.`,
+        diag:dgs(Px,[{v:m*G0*Math.cos(al*Math.PI/180),m:`tu as pris le cosinus : c'est la part du poids perpendiculaire à la pente. Le long de la pente, on prend le sinus.`},{v:m*G0,m:`tu as donné le poids entier. Seule une part du poids agit le long de la pente : multiplie par sin α.`},{v:m*Math.sin(al*Math.PI/180),m:`tu as oublié g : le poids vaut m × g.`},{v:Math.abs(m*G0*Math.sin(al)),m:`ta calculatrice est en radians. Mets-la en degrés pour calculer sin ${al}°.`}])},
+      {q:`Le véhicule monte à vitesse constante. Déduis-en la force motrice F nécessaire.`,nom:"F",type:"num",ans:Fn,tolR:0.01,unit:"N",don,
+        expl:`Vitesse constante : ΣF = 0, donc ${F(`F = P<sub>x</sub> + R = ${S3(Px)} + ${R}`)} = ${U(Fn,"N")}.`,
+        lire:`Figure 1 : R = ${R} N, opposée au mouvement. Question précédente : ${F(`P<sub>x</sub> = ${S3(Px)} N`)}.`,
+        met:[`À vitesse constante, l'accélération est nulle : la somme des forces le long de la pente est nulle.`,`Vers le haut de la pente : F. Vers le bas : ${sb("P","x")} et R. Donc ${F("F − P<sub>x</sub> − R = 0")}.`,`${F(`F = P<sub>x</sub> + R = ${S3(Px)} + ${R} = ${S3(Fn)} N`)}.`],
+        piege:`Oublier les résistances R, ou croire qu'à vitesse constante il ne faut aucune force.`,
+        ret:`Vitesse constante : ΣF = 0. Les forces qui poussent compensent celles qui retiennent.`,
+        diag:dgs(Fn,[{v:Px,m:`tu as oublié les résistances R : elles s'opposent aussi à la montée.`},{v:Px-R,m:`tu as retranché R. Dans la montée, R et la composante du poids retiennent toutes les deux le véhicule : elles s'ajoutent.`},{v:m*G0+R,m:`tu as pris le poids entier. Le long de la pente, seule la composante m·g·sin α compte.`}])}]; },
+  /* m3 · courbe v(t) d'un démarrage : accélération, somme des forces, puis phase à vitesse constante */
+  ()=>{ const t1=rnd([2,3,4,5]), t2=t1+rnd([3,4,5]), pet=Math.random()<.5, V=pet?rnd([0.4,0.6,0.8,1,1.2]):rnd([1.5,2,2.5,3]), ys=pet?0.2:0.5, m=rnd([80,100,150,200,300,500]), a=V/t1, S=m*a, s=rnd(SYSN);
+    const fig=DOC(1,`vitesse ${s.le} pendant un démarrage en ligne droite`,d2Courbe({pts:[[0,0],[t1,V],[t2,V]],xm:t2+1,ym:Number((V+ys).toFixed(1)),xs:1,ys,xl:"t (s)",yl:"v (m/s)",label:"Vitesse en fonction du temps : une montée puis un palier"}))+DOC(2,`caractéristiques du ${s.n}`,d2Fiche({lignes:[["Masse en charge",`${m} kg`],["Autonomie",`${rnd([2,4,6,8])} h`]]}));
+    const don=`courbe v(t) : départ arrêté ; ${nf(V)} m/s à ${t1} s, puis vitesse constante jusqu'à ${t2} s ; masse ${m} kg`;
+    return [{fig,don,q:`À l'aide de la figure 1, détermine l'accélération a ${s.le} pendant le démarrage.`,nom:"a",type:"num",ans:a,tolR:0.015,unit:"m/s²",
+        expl:`${F(`a = ${FRAC("Δv","Δt")}`)} = ${FRAC(nf(V),t1)} = ${U(a,"m/s²")}.`,
+        lire:`Figure 1 : pendant le démarrage, la vitesse passe de 0 à ${nf(V)} m/s en ${t1} s.`,
+        met:[`L'accélération est la pente de la courbe v(t) : ${F(`a = ${FRAC("Δv","Δt")}`)}.`,`${F(`a = ${FRAC(nf(V),t1)} = ${S3(a)} m/s²`)}.`],
+        piege:`Diviser par la durée de toute la mesure : seule la durée du démarrage compte.`,
+        ret:`Accélération = pente de v(t).`,
+        diag:dgs(a,[{v:V/t2,m:`tu as divisé par ${t2} s, la durée de toute la mesure. Le démarrage ne dure que ${t1} s.`},{v:V*t1,m:`tu as multiplié la vitesse par la durée. L'accélération est une pente : on divise.`},{v:V,m:`tu as donné la vitesse atteinte. L'accélération est la variation de vitesse divisée par la durée.`}])},
+      {q:`À l'aide de la figure 2, déduis-en la somme des forces ΣF exercées sur le véhicule pendant le démarrage.`,nom:"ΣF",type:"num",ans:S,tolR:0.015,unit:"N",don,
+        expl:`${F("ΣF = m·a")} = ${m} × ${S3(a)} = ${U(S,"N")}.`,
+        lire:`Figure 2 : masse en charge ${m} kg. Question précédente : ${F(`a = ${S3(a)} m/s²`)}.`,
+        met:[`2e loi de Newton : ${F("ΣF = m·a")}.`,`${F(`ΣF = ${m} × ${S3(a)} = ${S3(S)} N`)}.`],
+        piege:`Calculer le poids (m × g) : la question demande la somme des forces, m × a.`,
+        ret:`${F("ΣF = m·a")}.`,
+        diag:dgs(S,[{v:m*G0,m:`tu as calculé le poids. La somme des forces vaut m × a.`},{v:m*V,m:`tu as multiplié la masse par la vitesse. Dans la 2e loi de Newton, c'est l'accélération qui compte.`},{v:m/a,m:`tu as divisé la masse par l'accélération. ΣF = m × a.`}])},
+      {q:`Entre ${t1} s et ${t2} s, que vaut la somme des forces exercées sur le véhicule ? Justifie avec la figure 1.`,type:"ch",don,
+        ...mcw(`Elle est nulle : la vitesse est constante, donc l'accélération est nulle.`,[[`Elle vaut encore ${S3(S)} N : le véhicule avance toujours.`,`avancer ne demande pas une somme des forces non nulle. Entre ${t1} s et ${t2} s la vitesse ne change pas : a = 0, donc ΣF = 0.`],
+          [`Elle est égale au poids du véhicule.`,`le poids est vertical et compensé par la réaction du sol. Dans la direction du mouvement, la vitesse ne change pas : ΣF = 0.`],
+          [`Elle est dirigée vers l'arrière : le véhicule n'accélère plus.`,`une somme des forces vers l'arrière ferait ralentir le véhicule. Ici la vitesse reste constante.`]]),
+        expl:`Entre ${t1} s et ${t2} s, la courbe est horizontale : a = 0, donc ΣF = m·a = 0. La force motrice compense exactement les résistances.`,
+        lire:`Figure 1 : entre ${t1} s et ${t2} s, la courbe est horizontale.`,
+        met:[`Courbe horizontale : la vitesse est constante, l'accélération est nulle.`,`2e loi de Newton : ${F("ΣF = m·a = 0")}.`,`Le moteur pousse encore, mais sa force compense exactement les résistances.`],
+        piege:`Croire qu'il faut une somme des forces vers l'avant pour avancer. Elle ne sert qu'à changer la vitesse.`,
+        ret:`Vitesse constante en ligne droite : ΣF = 0.`}]; },
+  /* m4 · freinage : décélération nécessaire, puis force de freinage */
+  ()=>{ const Vk=rnd([18,27,36,45,54]), t=rnd([2,2.5,3,4,5]), m=rnd([300,500,800,1200,1500,2800]), v=Vk/3.6, a=v/t, Ff=m*a, s=rnd([{n:"navette autonome",a:"La navette"},{n:"voiturette électrique",a:"La voiturette"},{n:"chariot de golf",a:"Le chariot"}]);
+    const fig=DOC(1,`extrait du diagramme des exigences (${s.n})`,d2Exig({reqs:[{id:"1.1",nom:"Freinage",txt:`${s.a} doit pouvoir s'arrêter en ${nf(t)} s lorsqu'elle roule à ${Vk} km/h.`.replace("elle roule",s.a.startsWith("Le")?"il roule":"elle roule")}]}))+DOC(2,`caractéristiques (${s.n})`,d2Fiche({lignes:[["Masse en charge",`${nf(m,0)} kg`],["Nombre de places",`${rnd([2,4,6])}`]]}));
+    const don=`exigence 1.1 : arrêt en ${nf(t)} s depuis ${Vk} km/h ; masse ${m} kg`;
+    return [{fig,don,q:`À l'aide de la figure 1, détermine la décélération nécessaire pour respecter l'exigence 1.1. Donne une valeur positive.`,nom:"décélération",type:"num",ans:a,tolR:0.01,unit:"m/s²",
+        expl:`${F(`v = ${FRAC(Vk,"3,6")} = ${S3(v)} m/s`)} ; ${FRAC("Δv","Δt")} = ${FRAC(S3(v),nf(t))} = ${U(a,"m/s²")}.`,
+        lire:`Figure 1, exigence 1.1 : passer de ${Vk} km/h à l'arrêt en ${nf(t)} s.`,
+        met:[`Convertis la vitesse en m/s : ${F(`v = ${FRAC(Vk,"3,6")} = ${S3(v)} m/s`)}.`,`La vitesse passe de v à 0 en ${nf(t)} s : la décélération vaut ${FRAC("Δv","Δt")}.`,`${F(`${FRAC(S3(v),nf(t))} = ${S3(a)} m/s²`)}.`],
+        piege:`Garder la vitesse en km/h.`,
+        ret:`Décélération = variation de vitesse divisée par la durée, avec la vitesse en m/s.`,
+        diag:dgs(a,[{v:Vk/t,m:`tu as gardé la vitesse en km/h. Convertis-la en m/s (divise par 3,6).`},{v:v*t,m:`tu as multiplié la vitesse par la durée. On divise la variation de vitesse par la durée.`},{v:t/v,m:`tu as divisé la durée par la vitesse. C'est l'inverse.`}])},
+      {q:`À l'aide de la figure 2, déduis-en la force de freinage nécessaire. On néglige les autres résistances.`,nom:"force de freinage",type:"num",ans:Ff,tolR:0.01,unit:"N",don,
+        expl:`${F("F = m·a")} = ${nf(m,0)} × ${S3(a)} = ${U(Ff,"N")}.`,
+        lire:`Figure 2 : masse en charge ${nf(m,0)} kg. Question précédente : ${S3(a)} m/s².`,
+        met:[`Pendant le freinage, la seule force dans la direction du mouvement est la force de freinage.`,`2e loi de Newton : ${F("F = m·a")}.`,`${F(`F = ${nf(m,0)} × ${S3(a)} = ${S3(Ff)} N`)}.`],
+        piege:`Utiliser le poids à la place de la masse.`,
+        ret:`${F("ΣF = m·a")} : pour freiner plus fort ou un véhicule plus lourd, il faut plus de force.`,
+        diag:dgs(Ff,[{v:m*G0,m:`tu as calculé le poids. La force de freinage vaut m × a.`},{v:m*v,m:`tu as multiplié la masse par la vitesse. Dans la 2e loi de Newton, c'est la décélération qui compte.`},{v:m/a,m:`tu as divisé la masse par la décélération. F = m × a.`}])}]; },
+  /* m5 · cabine suspendue : poids, puis tension du câble au démarrage en montée */
+  ()=>{ const m=rnd([400,500,630,800,1000,1200]), a=rnd([0.5,0.8,1,1.2,1.5]), P=m*G0, Tn=m*(G0+a);
+    const fig=DOC(1,"forces exercées sur la cabine du monte-charge, au démarrage en montée",d2Cabine({T:"T",P:"P",a:"a"}))+DOC(2,"extrait du diagramme des exigences du monte-charge",d2Exig({reqs:[{id:"1.1",nom:"Démarrage",txt:`La cabine doit démarrer en montée avec une accélération de ${nf(a)} m/s².`}]}))+DOC(3,"caractéristiques du monte-charge",d2Fiche({lignes:[["Masse de la cabine chargée",`${nf(m,0)} kg`],["Course",`${rnd([6,9,12])} m`]]}));
+    const don=`masse ${m} kg ; exigence 1.1 : accélération ${nf(a)} m/s² ; g = 9,81 N/kg`;
+    return [{fig,don,q:`À l'aide de la figure 3, détermine le poids P de la cabine chargée. ${GTXT}`,nom:"P",type:"num",ans:P,tolR:0.005,unit:"N",
+        expl:`${F("P = m·g")} = ${nf(m,0)} × 9,81 = ${U(P,"N")}.`,
+        lire:`Figure 3 : masse de la cabine chargée ${nf(m,0)} kg.`,
+        met:[`${F("P = m·g")}.`,`${F(`P = ${nf(m,0)} × 9,81 = ${S3(P)} N`)}.`],
+        piege:`Donner la masse en kilogrammes : le poids est une force, en newtons.`,
+        ret:`${F("P = m·g")}.`,
+        diag:dgs(P,[{v:m,m:`tu as donné la masse, en kilogrammes. Le poids vaut m × g.`},{v:m/G0,m:`tu as divisé par g. Le poids vaut m × g.`},{v:m*10,m:`tu as pris g = 10 N/kg. L'énoncé demande 9,81 N/kg.`}])},
+      {q:`À l'aide des figures 1 et 2, détermine la tension T du câble pendant le démarrage en montée.`,nom:"T",type:"num",ans:Tn,tolR:0.005,unit:"N",don,
+        expl:`${F("T − P = m·a")}, donc ${F(`T = P + m·a = ${S3(P)} + ${nf(m,0)} × ${nf(a)}`)} = ${U(Tn,"N")}.`,
+        lire:`Figure 1 : T vers le haut, P vers le bas, accélération vers le haut. Figure 2 : ${nf(a)} m/s².`,
+        met:[`On choisit le sens positif vers le haut, celui de l'accélération : T se compte +, P se compte −.`,`2e loi de Newton : ${F("T − P = m·a")}, donc ${F("T = P + m·a")}.`,`${F(`T = ${S3(P)} + ${nf(m,0)} × ${nf(a)} = ${S3(Tn)} N`)}.`],
+        piege:`Écrire T = P : c'est vrai à l'arrêt ou à vitesse constante, pas pendant le démarrage.`,
+        ret:`Pour accélérer vers le haut, le câble doit tirer plus fort que le poids : ${F("T = m·(g + a)")}.`,
+        diag:dgs(Tn,[{v:P,m:`tu as donné le poids. Pendant le démarrage, le câble doit en plus accélérer la cabine : T = P + m·a.`},{v:m*a,m:`tu as donné m·a seul : c'est la somme des forces. La tension vaut P + m·a.`},{v:m*(G0-a),m:`tu as retranché m·a. L'accélération est vers le haut : le câble tire plus fort que le poids.`}])}]; }
+];
+
+const N2N3=[
+  /* Étude A · montée d'une pente à vitesse constante : angle, composante du poids, force motrice, exigence */
+  ()=>{ const o=tirer(()=>{ const p=rnd([5,8,10,12,15,18,20]), m=rnd([90,110,120,140,160,180]), R=rnd([15,20,25,30,40]), al=Math.atan(p/100), Px=m*G0*Math.sin(al), Fn=Px+R, Fx=rnd([80,100,120,150,180,200,250,300,350,400]); return {p,m,R,al,Px,Fn,Fx}; },o=>loin(o.Fn,o.Fx,0.08)&&o.Fn<1.7*o.Fx&&o.Fn>o.Fx/1.7);
+    const {p,m,R,al,Px,Fn,Fx}=o, ad=al*180/Math.PI, s=rnd([{n:"fauteuil roulant électrique",a:"Le fauteuil"},{n:"robot de livraison",a:"Le robot"},{n:"vélo cargo à assistance électrique",a:"Le vélo"}]);
+    const fig=DOC(1,`extrait du diagramme des exigences du ${s.n}`,d2Exig({reqs:[{id:"1.1",nom:"Franchissement",txt:`${s.a} doit monter une pente de ${p} % à vitesse constante.`}]}))+
+      DOC(2,`caractéristiques du ${s.n}`,d2Fiche({lignes:[["Masse en charge",`${m} kg`],["Résistance au roulement R",`${R} N`],["Force motrice maximale aux roues",`${Fx} N`]]}))+
+      figF(3,`forces exercées sur le ${s.n} dans la pente`,{F:"F",R:"R",P:"P",N:"N",pente:"α",mv:1});
+    const don=`exigence 1.1 : pente de ${p} % ; masse ${m} kg ; R = ${R} N ; force motrice maximale ${Fx} N ; g = 9,81 N/kg`;
+    return [{fig,don,ctx0:`Étude d'un ${s.n} : on vérifie que le moteur permet de monter la pente exigée.`,q:`À l'aide de la figure 1, détermine l'angle α de la pente, en degrés. Une pente de ${p} % monte de ${p} m pour 100 m parcourus à l'horizontale.`,nom:"α",type:"num",ans:ad,tolR:0.01,unit:"°",
+        expl:`${F(`tan α = ${FRAC(p,100)}`)}, donc ${F(`α = arctan(${nf(p/100)})`)} = ${U(ad,"°")}.`,
+        lire:`Figure 1, exigence 1.1 : pente de ${p} %.`,
+        met:[`Une pente de ${p} % : on monte de ${p} m pour 100 m à l'horizontale. C'est la tangente de l'angle : ${F(`tan α = ${FRAC(p,100)} = ${nf(p/100)}`)}.`,`${F(`α = arctan(${nf(p/100)}) = ${S3(ad)}°`)}, calculatrice en degrés.`],
+        piege:`Lire ${p} % comme un angle de ${p}°.`,
+        ret:`Pente en % : ${F(`tan α = ${FRAC("pente","100")}`)}.`,
+        diag:dgs(ad,[{v:p,m:`tu as pris ${p} % pour ${p}°. Le pourcentage est la tangente de l'angle : α = arctan(${nf(p/100)}).`},{v:Math.atan(p)*180/Math.PI,m:`tu as calculé arctan(${p}). Il faut diviser le pourcentage par 100 : arctan(${nf(p/100)}).`},{v:al,m:`ta calculatrice est en radians. Mets-la en degrés.`},{v:p/100,m:`tu as donné la tangente de l'angle. Il reste à calculer l'angle : α = arctan(${nf(p/100)}).`}])},
+      {q:`À l'aide des figures 2 et 3, détermine la composante du poids parallèle à la pente, notée ${sb("P","x")}. ${GTXT}`,nom:sb("P","x"),type:"num",ans:Px,tolR:0.01,unit:"N",don,
+        expl:`${F("P<sub>x</sub> = m·g·sin α")} = ${m} × 9,81 × sin ${S3(ad)}° = ${U(Px,"N")}.`,
+        lire:`Figure 2 : masse en charge ${m} kg. Question précédente : α = ${S3(ad)}°.`,
+        met:[`Le poids est vertical : ${F(`P = m·g = ${m} × 9,81 = ${S3(m*G0)} N`)}.`,`La part du poids qui retient le véhicule le long de la pente vaut ${F("P<sub>x</sub> = m·g·sin α")}.`,`${F(`P<sub>x</sub> = ${S3(m*G0)} × sin ${S3(ad)}° = ${S3(Px)} N`)}.`],
+        piege:`Prendre le cosinus : m·g·cos α est la part du poids qui appuie sur la pente.`,
+        ret:`Sur une pente d'angle α : ${F("P<sub>x</sub> = m·g·sin α")} le long de la pente.`,
+        diag:dgs(Px,[{v:m*G0*Math.cos(al),m:`tu as pris le cosinus : c'est la part du poids perpendiculaire à la pente. Le long de la pente, on prend le sinus.`},{v:m*G0,m:`tu as donné le poids entier. Seule une part du poids agit le long de la pente : multiplie par sin α.`},{v:m*Math.sin(al),m:`tu as oublié g : le poids vaut m × g.`}])},
+      {q:`Le véhicule monte à vitesse constante. Détermine la force motrice F nécessaire.`,nom:"F",type:"num",ans:Fn,tolR:0.01,unit:"N",don,
+        expl:`Vitesse constante : ΣF = 0, donc ${F(`F = P<sub>x</sub> + R = ${S3(Px)} + ${R}`)} = ${U(Fn,"N")}.`,
+        lire:`Figure 2 : R = ${R} N. Figure 3 : F vers le haut de la pente, R vers le bas. Question précédente : ${F(`P<sub>x</sub> = ${S3(Px)} N`)}.`,
+        met:[`À vitesse constante, la somme des forces le long de la pente est nulle.`,`Vers le haut : F. Vers le bas : ${sb("P","x")} et R. Donc ${F("F − P<sub>x</sub> − R = 0")}.`,`${F(`F = ${S3(Px)} + ${R} = ${S3(Fn)} N`)}.`],
+        piege:`Oublier la résistance au roulement, ou la retrancher.`,
+        ret:`Vitesse constante : ΣF = 0.`,
+        diag:dgs(Fn,[{v:Px,m:`tu as oublié la résistance au roulement R : elle s'oppose aussi à la montée.`},{v:Px-R,m:`tu as retranché R. Dans la montée, R et la composante du poids retiennent toutes les deux le véhicule : elles s'ajoutent.`},{v:m*G0+R,m:`tu as pris le poids entier. Le long de la pente, seule la composante m·g·sin α compte.`}])},
+      conclure({q:`À l'aide de la figure 2, conclus vis-à-vis de l'exigence 1.1. Rédige ta réponse.`,don,exi:"1.1",quoi:"la force motrice nécessaire dans la pente",val:Fn,u:"N",lim:Fx,limTxt:`${Fx} N, force motrice maximale`,ou:"force motrice maximale, figure 2",aux:`à la force motrice maximale du moteur (${Fx} N)`,ph:"Pour monter la pente, il faut une force motrice de",
+        lire:`Figure 2 : force motrice maximale ${Fx} N. Question précédente : ${S3(Fn)} N.`,faux:`la résistance au roulement ne vaut que ${R} N`,fauxW:`la résistance au roulement seule ne répond pas à l'exigence : on compare la force motrice nécessaire (${S3(Fn)} N) à la force motrice maximale (${Fx} N).`,remede:`Il faudrait un moteur plus fort, ou un véhicule plus léger`})]; },
+  /* Étude B · démarrage sur le plat : somme des forces, accélération, durée pour atteindre la vitesse, exigence */
+  ()=>{ const o=tirer(()=>{ const f=tirFR(), V=rnd([1,1.5,2,2.5,3]), t=V/f.a, Tx=rnd([1,1.5,2,3,4,5,6,8,10]); return {...f,V,t,Tx}; },o=>loin(o.t,o.Tx,0.08)&&o.t<1.8*o.Tx&&o.t>o.Tx/1.8);
+    const {Fm,R,m,a,V,t,Tx}=o, S=Fm-R, s=rnd(SYSN);
+    const fig=DOC(1,`extrait du diagramme des exigences du ${s.n}`,d2Exig({reqs:[{id:"1.1",nom:"Démarrage",txt:`${s.a} doit atteindre ${nf(V)} m/s en moins de ${nf(Tx)} s, départ arrêté.`}]}))+
+      figF(2,`forces exercées sur le ${s.n} pendant le démarrage, sur le plat`,{F:`F = ${Fm} N`,R:`R = ${R} N`,P:"P",N:"N",mv:1})+DOC(3,`caractéristiques du ${s.n}`,d2Fiche({lignes:[["Masse en charge",`${m} kg`],["Tension de la batterie",`${rnd([24,36,48])} V`]]}));
+    const don=`exigence 1.1 : ${nf(V)} m/s en moins de ${nf(Tx)} s ; schéma : F = ${Fm} N vers l'avant ; R = ${R} N vers l'arrière ; masse ${m} kg`;
+    return [{fig,don,ctx0:`Étude du démarrage d'un ${s.n} : on vérifie qu'il atteint sa vitesse assez vite.`,q:`Sur la figure 2, F est la force motrice et R la somme des résistances. Détermine la somme des forces ΣF dans la direction du mouvement.`,nom:"ΣF",type:"num",ans:S,tolR:0.005,unit:"N",
+        expl:`${F(`ΣF = F − R = ${Fm} − ${R}`)} = ${U(S,"N")}.`,
+        lire:`Figure 2 : F = ${Fm} N vers l'avant, R = ${R} N vers l'arrière.`,
+        met:[`On choisit le sens du mouvement comme sens positif : F se compte +, R se compte −.`,`${F(`ΣF = ${Fm} − ${R} = ${S} N`)}.`],
+        piege:`Ajouter les deux valeurs : deux forces de sens contraires se retranchent.`,
+        ret:`Sur un axe : une force dans le sens positif se compte +, dans l'autre sens −.`,
+        diag:dgs(S,[{v:Fm+R,m:`tu as ajouté les deux forces. Elles sont de sens contraires : on retranche R.`},{v:Fm,m:`tu as oublié les résistances R.`}])},
+      {q:`À l'aide de la figure 3, déduis-en l'accélération a pendant le démarrage.`,nom:"a",type:"num",ans:a,tolR:0.01,unit:"m/s²",don,
+        expl:`${F(`a = ${FRAC("ΣF","m")}`)} = ${FRAC(S,m)} = ${U(a,"m/s²")}.`,
+        lire:`Figure 3 : masse en charge ${m} kg. Question précédente : ${F(`ΣF = ${S} N`)}.`,
+        met:[`2e loi de Newton : ${F("ΣF = m·a")}, donc ${F(`a = ${FRAC("ΣF","m")}`)}.`,`${F(`a = ${FRAC(S,m)} = ${S3(a)} m/s²`)}.`],
+        piege:`Diviser la force motrice seule par la masse.`,
+        ret:`${F(`a = ${FRAC("ΣF","m")}`)}.`,
+        diag:dgs(a,[{v:Fm/m,m:`tu as divisé la force motrice seule par la masse. C'est la somme des forces (F − R) qui donne l'accélération.`},{v:S*m,m:`tu as multiplié par la masse. On divise la somme des forces par la masse.`},{v:m/S,m:`tu as divisé la masse par la somme des forces. C'est l'inverse.`}])},
+      {q:`L'accélération reste constante. Détermine la durée t nécessaire pour atteindre la vitesse de l'exigence 1.1, départ arrêté.`,nom:"t",type:"num",ans:t,tolR:0.01,unit:"s",don,
+        expl:`${F(`t = ${FRAC("v","a")}`)} = ${FRAC(nf(V),S3(a))} = ${U(t,"s")}.`,
+        lire:`Figure 1, exigence 1.1 : vitesse à atteindre ${nf(V)} m/s. Question précédente : ${F(`a = ${S3(a)} m/s²`)}.`,
+        met:[`Départ arrêté, accélération constante : ${F("v = a·t")}, donc ${F(`t = ${FRAC("v","a")}`)}.`,`${F(`t = ${FRAC(nf(V),S3(a))} = ${S3(t)} s`)}.`],
+        piege:`Multiplier la vitesse par l'accélération au lieu de diviser.`,
+        ret:`Départ arrêté, accélération constante : ${F("v = a·t")}.`,
+        diag:dgs(t,[{v:V*a,m:`tu as multiplié la vitesse par l'accélération. On isole la durée : on divise la vitesse par l'accélération.`},{v:a/V,m:`tu as divisé l'accélération par la vitesse. C'est l'inverse.`},{v:Tx,m:`tu as recopié la durée de l'exigence. Calcule la durée réelle avec l'accélération trouvée.`}])},
+      conclure({q:`Conclus vis-à-vis de l'exigence 1.1. Rédige ta réponse.`,don,exi:"1.1",quoi:`la durée pour atteindre ${nf(V)} m/s`,val:t,u:"s",lim:Tx,limTxt:`moins de ${nf(Tx)} s`,ou:"exigence 1.1",ph:`${s.a} atteint ${nf(V)} m/s en`,
+        lire:`Figure 1, exigence 1.1 : moins de ${nf(Tx)} s. Question précédente : ${S3(t)} s.`,faux:`la force motrice vaut ${Fm} N`,fauxW:`la force motrice seule ne répond pas à l'exigence : on compare la durée du démarrage (${S3(t)} s) à la durée exigée (${nf(Tx)} s).`,remede:`Il faudrait une force motrice plus grande, ou un véhicule plus léger`})]; },
+  /* Étude C · freinage d'urgence : vitesse, décélération donnée par la force de freinage, distance, exigence */
+  ()=>{ const o=tirer(()=>{ const Vk=rnd([18,27,36,45,54]), m=rnd([500,800,1000,1200,1500]), Ff=rnd([1500,2000,2500,3000,4000,5000,6000]), v=Vk/3.6, a=Ff/m, d=v*v/(2*a), Dx=rnd([3,4,5,6,8,10,12,15,20,25,30,40]); return {Vk,m,Ff,v,a,d,Dx}; },o=>o.a>=1.5&&o.a<=8&&loin(o.d,o.Dx,0.08)&&o.d<1.7*o.Dx&&o.d>o.Dx/1.7);
+    const {Vk,m,Ff,v,a,d,Dx}=o, tf=v/a;
+    const fig=DOC(1,"extrait du diagramme des exigences d'une navette autonome",d2Exig({reqs:[{id:"1.1",nom:"Freinage d'urgence",txt:`La navette doit s'arrêter sur moins de ${Dx} m après le début du freinage.`}]}))+
+      DOC(2,"caractéristiques de la navette",d2Fiche({lignes:[["Vitesse de circulation",`${Vk} km/h`],["Masse en charge",`${nf(m,0)} kg`],["Force de freinage",`${nf(Ff,0)} N`],["Nombre de places",`${rnd([6,8,12])}`]]}))+
+      figF(3,"forces exercées sur la navette pendant le freinage",{R:"force de freinage",P:"P",N:"N",mv:1});
+    const don=`exigence 1.1 : arrêt sur moins de ${Dx} m ; vitesse ${Vk} km/h ; masse ${m} kg ; force de freinage ${Ff} N`;
+    return [{fig,don,ctx0:`Étude du freinage d'urgence d'une navette autonome : on vérifie la distance de freinage.`,q:`À l'aide de la figure 2, exprime la vitesse de circulation v en m/s.`,nom:"v",type:"num",ans:v,tolR:0.01,unit:"m/s",
+        expl:`${F(`v = ${FRAC(Vk,"3,6")}`)} = ${U(v,"m/s")}.`,
+        lire:`Figure 2, ligne « Vitesse de circulation » : ${Vk} km/h.`,
+        met:[`Pour passer des km/h aux m/s, on divise par 3,6.`,`${F(`v = ${FRAC(Vk,"3,6")} = ${S3(v)} m/s`)}.`],
+        piege:`Multiplier par 3,6 : c'est pour passer des m/s aux km/h.`,
+        ret:`km/h → m/s : on divise par 3,6.`,
+        diag:dgs(v,[{v:Vk*3.6,m:`tu as multiplié par 3,6. Pour passer des km/h aux m/s, on divise par 3,6.`},{v:Vk,m:`tu as recopié la valeur en km/h. Divise par 3,6.`}])},
+      {q:`Pendant le freinage, la force de freinage est la seule force dans la direction du mouvement (figure 3). Détermine la décélération de la navette. Donne une valeur positive.`,nom:"décélération",type:"num",ans:a,tolR:0.01,unit:"m/s²",don,
+        expl:`${F(`a = ${FRAC("F","m")}`)} = ${FRAC(nf(Ff,0),nf(m,0))} = ${U(a,"m/s²")}.`,
+        lire:`Figure 2 : force de freinage ${nf(Ff,0)} N, masse en charge ${nf(m,0)} kg.`,
+        met:[`2e loi de Newton dans la direction du mouvement : ${F("F = m·a")}, donc ${F(`a = ${FRAC("F","m")}`)}.`,`${F(`a = ${FRAC(nf(Ff,0),nf(m,0))} = ${S3(a)} m/s²`)}.`],
+        piege:`Diviser par le poids au lieu de la masse.`,
+        ret:`${F(`a = ${FRAC("ΣF","m")}`)}.`,
+        diag:dgs(a,[{v:Ff/(m*G0),m:`tu as divisé par le poids. Dans ΣF = m·a, m est la masse, en kilogrammes.`},{v:m/Ff,m:`tu as divisé la masse par la force. C'est l'inverse.`},{v:Ff*m,m:`tu as multiplié la force par la masse. On divise la force par la masse.`}])},
+      {q:`Détermine la distance d parcourue pendant le freinage, jusqu'à l'arrêt.`,nom:"d",type:"num",ans:d,tolR:0.015,unit:"m",don,
+        expl:`Durée du freinage ${F(`t = ${FRAC("v","a")} = ${S3(tf)} s`)} ; ${F(`d = ${FRAC("v·t","2")}`)} = ${FRAC(`${S3(v)} × ${S3(tf)}`,2)} = ${U(d,"m")}.`,
+        lire:`Questions précédentes : ${F(`v = ${S3(v)} m/s`)} et décélération ${S3(a)} m/s².`,
+        met:[`Durée du freinage : la vitesse passe de v à 0, ${F(`t = ${FRAC("v","a")} = ${FRAC(S3(v),S3(a))} = ${S3(tf)} s`)}.`,`La vitesse diminue régulièrement : la distance est l'aire du triangle sous v(t), ${F(`d = ${FRAC("v·t","2")}`)}.`,`${F(`d = ${FRAC(`${S3(v)} × ${S3(tf)}`,2)} = ${S3(d)} m`)}.`],
+        piege:`Calculer v × t : pendant le freinage, la vitesse moyenne n'est que la moitié de v.`,
+        ret:`Freinage jusqu'à l'arrêt : ${F(`d = ${FRAC("v·t","2")} = ${FRAC("v²","2·a")}`)}.`,
+        diag:dgs(d,[{v:v*tf,m:`tu as calculé v × t, comme si la navette roulait à vitesse constante. Pendant le freinage, la distance est la moitié : divise par 2.`},{v:tf,m:`tu as donné la durée du freinage, en secondes. La distance vaut v × t divisé par 2.`},{v:Vk*Vk/(2*a),m:`tu as utilisé la vitesse en km/h. Prends la vitesse en m/s.`}])},
+      conclure({q:`Conclus vis-à-vis de l'exigence 1.1. Rédige ta réponse.`,don,exi:"1.1",quoi:"la distance de freinage",val:d,u:"m",lim:Dx,limTxt:`moins de ${Dx} m`,ou:"exigence 1.1",ph:"La navette s'arrête sur",
+        lire:`Figure 1, exigence 1.1 : moins de ${Dx} m. Question précédente : ${S3(d)} m.`,faux:`la décélération vaut ${S3(a)} m/s²`,fauxW:`la décélération seule ne répond pas à l'exigence : on compare la distance de freinage (${S3(d)} m) à la distance exigée (${Dx} m).`,remede:`Il faudrait une force de freinage plus grande, ou une vitesse de circulation plus faible`})]; },
+  /* Étude D · monte-charge : poids, somme des forces au démarrage, tension du câble, exigence de sécurité */
+  ()=>{ const o=tirer(()=>{ const m=rnd([400,500,630,800,1000]), a=rnd([0.5,0.8,1,1.2,1.5]), P=m*G0, S=m*a, Tn=P+S, Tx=rnd([4000,5000,6000,8000,10000,12000,15000]); return {m,a,P,S,Tn,Tx}; },o=>loin(o.Tn,o.Tx,0.08)&&o.Tn<1.6*o.Tx&&o.Tn>o.Tx/1.6);
+    const {m,a,P,S,Tn,Tx}=o;
+    const fig=DOC(1,"extrait du diagramme des exigences du monte-charge",d2Exig({reqs:[{id:"1.1",nom:"Démarrage",txt:`La cabine doit démarrer en montée avec une accélération de ${nf(a)} m/s².`},{id:"1.2",nom:"Sécurité du câble",txt:`La tension du câble ne doit pas dépasser ${nf(Tx,0)} N.`}]}))+
+      DOC(2,"forces exercées sur la cabine, au démarrage en montée",d2Cabine({T:"T",P:"P",a:"a"}))+DOC(3,"caractéristiques du monte-charge",d2Fiche({lignes:[["Masse de la cabine chargée",`${nf(m,0)} kg`],["Course",`${rnd([6,9,12])} m`]]}));
+    const don=`exigence 1.1 : accélération ${nf(a)} m/s² ; exigence 1.2 : tension ${Tx} N au plus ; masse ${m} kg ; g = 9,81 N/kg`;
+    return [{fig,don,ctx0:`Étude d'un monte-charge : on vérifie que le câble supporte le démarrage en montée.`,q:`À l'aide de la figure 3, détermine le poids P de la cabine chargée. ${GTXT}`,nom:"P",type:"num",ans:P,tolR:0.005,unit:"N",
+        expl:`${F("P = m·g")} = ${nf(m,0)} × 9,81 = ${U(P,"N")}.`,
+        lire:`Figure 3 : masse de la cabine chargée ${nf(m,0)} kg.`,
+        met:[`${F("P = m·g")}.`,`${F(`P = ${nf(m,0)} × 9,81 = ${S3(P)} N`)}.`],
+        piege:`Donner la masse en kilogrammes : le poids est une force, en newtons.`,
+        ret:`${F("P = m·g")}.`,
+        diag:dgs(P,[{v:m,m:`tu as donné la masse, en kilogrammes. Le poids vaut m × g.`},{v:m/G0,m:`tu as divisé par g. Le poids vaut m × g.`},{v:m*10,m:`tu as pris g = 10 N/kg. L'énoncé demande 9,81 N/kg.`}])},
+      {q:`À l'aide de la figure 1, détermine la somme des forces ΣF nécessaire pour obtenir l'accélération de l'exigence 1.1.`,nom:"ΣF",type:"num",ans:S,tolR:0.005,unit:"N",don,
+        expl:`${F("ΣF = m·a")} = ${nf(m,0)} × ${nf(a)} = ${U(S,"N")}.`,
+        lire:`Figure 1, exigence 1.1 : ${nf(a)} m/s². Figure 3 : masse ${nf(m,0)} kg.`,
+        met:[`2e loi de Newton : ${F("ΣF = m·a")}.`,`${F(`ΣF = ${nf(m,0)} × ${nf(a)} = ${S3(S)} N`)}.`],
+        piege:`Utiliser le poids à la place de la masse.`,
+        ret:`${F("ΣF = m·a")}.`,
+        diag:dgs(S,[{v:P*a,m:`tu as utilisé le poids à la place de la masse. Dans ΣF = m·a, m est en kilogrammes.`},{v:m/a,m:`tu as divisé la masse par l'accélération. ΣF = m × a.`},{v:P,m:`tu as redonné le poids. La somme des forces vaut m × a.`}])},
+      {q:`À l'aide de la figure 2, déduis-en la tension T du câble pendant le démarrage.`,nom:"T",type:"num",ans:Tn,tolR:0.005,unit:"N",don,
+        expl:`${F("T − P = ΣF")}, donc ${F(`T = P + ΣF = ${S3(P)} + ${S3(S)}`)} = ${U(Tn,"N")}.`,
+        lire:`Figure 2 : T vers le haut, P vers le bas, accélération vers le haut. Questions précédentes : ${F(`P = ${S3(P)} N`)} et ${F(`ΣF = ${S3(S)} N`)}.`,
+        met:[`On choisit le sens positif vers le haut, celui de l'accélération : T se compte +, P se compte −.`,`${F("ΣF = T − P")}, donc ${F("T = P + ΣF")}.`,`${F(`T = ${S3(P)} + ${S3(S)} = ${S3(Tn)} N`)}.`],
+        piege:`Écrire T = P : c'est vrai à l'arrêt ou à vitesse constante, pas pendant le démarrage.`,
+        ret:`Pour accélérer vers le haut, le câble doit tirer plus fort que le poids : ${F("T = m·(g + a)")}.`,
+        diag:dgs(Tn,[{v:P,m:`tu as donné le poids. Pendant le démarrage, le câble doit en plus accélérer la cabine : T = P + ΣF.`},{v:P-S,m:`tu as retranché ΣF. L'accélération est vers le haut : le câble tire plus fort que le poids.`},{v:S,m:`tu as redonné la somme des forces. La tension vaut P + ΣF.`}])},
+      conclure({q:`Conclus vis-à-vis de l'exigence 1.2. Rédige ta réponse.`,don,exi:"1.2",quoi:"la tension du câble au démarrage",val:Tn,u:"N",lim:Tx,limTxt:`${nf(Tx,0)} N au plus`,ou:"exigence 1.2",ph:"Au démarrage, la tension du câble vaut",
+        lire:`Figure 1, exigence 1.2 : ${nf(Tx,0)} N au plus. Question précédente : ${S3(Tn)} N.`,faux:`le poids de la cabine vaut ${S3(P)} N`,fauxW:`le poids seul ne répond pas à l'exigence : au démarrage, la tension est plus grande que le poids. On compare la tension (${S3(Tn)} N) à la limite (${nf(Tx,0)} N).`,remede:`Il faudrait un câble plus résistant, ou un démarrage plus doux`})]; }
+];
+
+/* Le réservoir : les questions de cours sans calcul d'avant (niveau 1) et les nouvelles questions. */
+{ const A=POOLS["phy-newton"]; POOLS["phy-newton"]={v2:true,count:{1:4,2:4,3:4},1:[...[1,2,3,4,6,8,10,11].map(i=>A[1][i]),...N2N1],2:N2N2,3:N2N3}; }
+}
+
 })();
 
 /* ===== Réservoir : info-numerisation (séparé de modele_chaines_can.js pour l'illustration ; les outils et figures communs sont recopiés en tête) =====
@@ -21097,6 +21822,6 @@ window.addEventListener("hashchange",()=>{ if(location.hash.length>1) route(); }
 <script src="../assets/backend.js"></script>
 <script src="../assets/appli.js"></script>
 <script src="../assets/signaler.js"></script>
-<script>/* page d'essai : les résultats ne partent pas dans le suivi */ (function(){ var b=document.getElementById("sip-bandeau"); if(b){ b.hidden=false; b.className="essai-b"; b.innerHTML="<b>Page d'essai</b> · nouvelle présentation de la notion « Transmetteurs ». Rien n'est transmis au professeur. <a href=\"#n=meca-transmission\">Ouvrir la notion</a>"; document.body.insertBefore(b,document.body.firstChild); } })();</script>
+<script>/* page d'essai : les résultats ne partent pas dans le suivi */ (function(){ var b=document.getElementById("sip-bandeau"); if(b){ b.hidden=false; b.className="essai-b"; b.innerHTML="<b>Page d'essai</b> · nouvelle présentation des notions du DS 04. Rien n'est transmis au professeur. <a href=\"#n=meca-transmission\">Transmetteurs</a> · <a href=\"#n=meca-cinematique\">Cinématique</a> · <a href=\"#n=phy-newton\">2e loi de Newton</a>"; document.body.insertBefore(b,document.body.firstChild); } })();</script>
 </body>
 </html>
