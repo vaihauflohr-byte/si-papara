@@ -6,6 +6,32 @@ La page d'essai n'est reliée à aucune page des élèves et n'envoie rien dans 
 
     python3 outils/bac-v2/build_essai.py entrainements/bac-si.html entrainements/bac-si-essai.html
 
+## Bascule sur la vraie page (prévue après le DS 03 du jeudi 12 novembre 2026)
+
+Avec `--prod`, le même script fabrique la vraie page des élèves : mêmes ajouts, mais `pont-bac.js` reste chargé
+(les résultats partent dans le suivi) et il n'y a ni bandeau d'essai ni « noindex ». À faire ensemble, dans cet ordre :
+
+1. garder la page d'avant comme base : copier `entrainements/bac-si.html` vers `outils/bac-v2/bac-si.base.html` ;
+2. `python3 outils/bac-v2/build_essai.py outils/bac-v2/bac-si.base.html entrainements/bac-si.html --prod` ;
+3. remplacer `contenu/prep-ds.js` par `outils/bac-v2/prep-ds.ds04.js` (les trois étapes du DS 04, avec les numéros
+   des générateurs des notions réécrites : à ne pas publier avant la page, les numéros ne correspondent qu'à elle) ;
+4. vérifier, puis publier les trois fichiers.
+
+Après la bascule, les deux pages se fabriquent à partir de la base :
+
+    python3 outils/bac-v2/build_essai.py outils/bac-v2/bac-si.base.html entrainements/bac-si.html --prod
+    python3 outils/bac-v2/build_essai.py outils/bac-v2/bac-si.base.html entrainements/bac-si-essai.html
+
+## Vérifications
+
+`test_v2.py` (Transmetteurs), `test_cin.py` (Cinématique), `test_new.py` (2e loi de Newton), avec `v2test.py` : chaque
+question est tirée N fois et sa réponse recalculée séparément à partir des données des figures ; les courbes sont relues
+sur leur quadrillage ; les conclusions (phrase à compléter, modèle rédigé, barème, choix de repli) sont comparées au
+recalcul. Il faut Python, Playwright et le site servi en local :
+
+    python3 -m http.server 8765 &                 (à la racine du dépôt)
+    PAGE=bac-si.html python3 outils/bac-v2/test_cin.py 200
+
 ## Ce qui change
 
 - **Documents comme à l'écrit du bac.** Les données ne sont plus dans l'énoncé : l'élève les relève dans des documents
@@ -48,6 +74,7 @@ s'affiche comme avant.
 
 ## Pour généraliser
 
-Appliquer les mêmes remplacements à `bac-si.html` (en gardant `pont-bac.js`, qui envoie les résultats) et à
-`evaluation.html` (qui embarque les mêmes générateurs), et décrire le DS dans `contenu/prep-ds.js` (une mini-étude
-compte pour quatre questions).
+Reste `entrainements/evaluation.html` (sujets papier pour la classe) : elle embarque encore les anciennes questions des
+trois notions ; il faut lui donner les mêmes réservoirs et lui apprendre à imprimer une phrase à compléter et une
+conclusion à rédiger. Pour une autre notion : écrire `<notion>.js`, l'ajouter à la liste de `build_essai.py`, et décrire
+son DS dans `contenu/prep-ds.js` (une mini-étude compte pour quatre questions).

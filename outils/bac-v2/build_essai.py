@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Fabrique entrainements/bac-si-essai.html : la page d'entraînement du site + l'affichage v2 (documents, correction détaillée)
-+ les notions réécrites (v2/<notion>.js). Usage : python3 build_essai.py <bac-si.html> <sortie.html>"""
++ les notions réécrites (v2/<notion>.js). Usage : python3 build_essai.py <bac-si.html> <sortie.html> [--prod]
+Avec --prod : la vraie page des élèves (pont-bac.js gardé, pas de bandeau d'essai). Voir LISEZMOI.md."""
 import sys, pathlib, re
 src, out = sys.argv[1], sys.argv[2]
 V = pathlib.Path(__file__).resolve().parent
@@ -74,9 +75,10 @@ rep1('sigCur=()=>sigData(q,null,"blanc","bac-blanc"); sigFill();', 'sigCur=()=>s
 # 6. données des figures dans le suivi du professeur et les signalements
 rep1('q:txt((r.q.ctx?r.q.ctx+" · ":"")+r.q.q).slice(0,400)', 'q:txt((r.q.ctx?r.q.ctx+" · ":"")+r.q.q+(r.q.don?" [figures : "+r.q.don+"]":"")).slice(0,400)')
 rep1('+(q.data?"\\nDonnées : "+txt(q.data):"")+ch', '+(q.data?"\\nDonnées : "+txt(q.data):"")+(q.don?"\\nDonnées des figures : "+q.don:"")+ch')
-# 7. page d'essai : rien n'est transmis, bandeau
-rep1('<script src="../assets/pont-bac.js"></script>', '<script>/* page d\'essai : les résultats ne partent pas dans le suivi */ (function(){ var b=document.getElementById("sip-bandeau"); if(b){ b.hidden=false; b.className="essai-b"; b.innerHTML="<b>Page d\'essai</b> · nouvelle présentation des notions du DS 04. Rien n\'est transmis au professeur. <a href=\\"#n=meca-transmission\\">Transmetteurs</a> · <a href=\\"#n=meca-cinematique\\">Cinématique</a> · <a href=\\"#n=phy-newton\\">2e loi de Newton</a>"; document.body.insertBefore(b,document.body.firstChild); } })();</script>')
-rep1('<title>Bac SI · entraînement</title>', '<title>Bac SI · page d\'essai</title><meta name="robots" content="noindex">')
+# 7. page d'essai : rien n'est transmis, bandeau. Avec --prod (la vraie page des élèves), on garde pont-bac.js, qui envoie les résultats.
+if "--prod" not in sys.argv:
+    rep1('<script src="../assets/pont-bac.js"></script>', '<script>/* page d\'essai : les résultats ne partent pas dans le suivi */ (function(){ var b=document.getElementById("sip-bandeau"); if(b){ b.hidden=false; b.className="essai-b"; b.innerHTML="<b>Page d\'essai</b> · nouvelle présentation des notions du DS 04. Rien n\'est transmis au professeur. <a href=\\"#n=meca-transmission\\">Transmetteurs</a> · <a href=\\"#n=meca-cinematique\\">Cinématique</a> · <a href=\\"#n=phy-newton\\">2e loi de Newton</a>"; document.body.insertBefore(b,document.body.firstChild); } })();</script>')
+    rep1('<title>Bac SI · entraînement</title>', '<title>Bac SI · page d\'essai</title><meta name="robots" content="noindex">')
 # barème affiché en bas de page : rédaction et étude finale
 rep1('Barème : la note part de 20 et perd 2 points par réponse fausse.', 'Barème : la note part de 20 et perd 2 points par réponse fausse ; une réponse rédigée incomplète perd 1 point. Après un sans-faute sur une notion réécrite, une étude finale s\'ajoute : il faut la réussir pour garder 20.')
 if "--debug" in sys.argv:   # copie de test seulement : accès à la question en cours (jamais sur le site)

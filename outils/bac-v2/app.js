@@ -85,7 +85,7 @@ function redFin(q,rep,v,conseil,par){
   const tot=q.elements.reduce((a,e)=>a+(e.p||1),0), pts=q.elements.reduce((a,e,i)=>a+POIDS_RED[v[i].verdict]*(e.p||1),0), r=tot?pts/tot:0;
   const ok=r>=.8, pen=ok?0:r>=.5?1:2, MOT={present:"présent",partiel:"en partie",absent:"absent"};
   const lignes=q.elements.map((e,i)=>`<li class="${v[i].verdict}"><span class="pic" title="${MOT[v[i].verdict]}">${v[i].verdict==="present"?"✓":v[i].verdict==="partiel"?"≈":"✗"}</span><span>${e.t}<small>${MOT[v[i].verdict]}${v[i].raison?" : "+esc(v[i].raison):""}</small></span></li>`).join("");
-  feedback(ok,q.modele,`${rep} [${par==="eleve"?"vérifiée par l'élève":"vérifiée par l'IA"} : ${nf(pts)}/${tot}]`,{pen,cls:ok?"ok":pen===1?"mi":"ko",tete:ok?"Réponse complète":pen===1?"Réponse incomplète · −1 point":"Réponse insuffisante · −2 points",sansAttendu:true,
+  feedback(ok,q.modele,`[${par==="eleve"?"vérifiée par l'élève":"vérifiée par l'IA"} : ${nf(pts)}/${tot}] ${rep}`,{pen,cls:ok?"ok":pen===1?"mi":"ko",tete:ok?"Réponse complète":pen===1?"Réponse incomplète · −1 point":"Réponse insuffisante · −2 points",sansAttendu:true,
     avant:`<ul class="els">${lignes}</ul>${conseil?`<p class="cx-dg"><b>Pour progresser :</b> ${esc(conseil)}</p>`:""}<p class="cx-mod"><b>Une réponse complète :</b> ${q.modele}</p>${par==="eleve"?`<p class="ia-info">Tu as vérifié ta réponse toi-même.</p>`:""}`});
 }
 function redAuto(q,rep,msg){
