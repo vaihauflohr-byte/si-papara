@@ -56,3 +56,80 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("keydown",e=>{ if(!document.querySelector(".zoomdoc")) return; if(e.key==="Escape") d2ZoomClose(); if(e.key!=="Tab") e.stopPropagation(); },true);
 window.BACSI_V2={numOk:(q,v)=>numOk(q,v),corrDiag,corrHTML};
+
+/* ===== v2 · réponses rédigées =====
+   type "trous" : phrase-réponse à compléter. q.phr = ["texte", {o:[choix…], ok:indice, m:"remarque si faux"}, "texte", …]
+   type "red"   : rédaction libre, vérifiée par l'IA du site (SIP.ia.corriger, fonction Supabase « corriger ») avec le barème
+                  q.elements = [{t, p}] et la réponse modèle q.modele. Sans IA (pas connecté, quota, réseau), l'élève vérifie
+                  lui-même sa réponse avec le modèle et coche les éléments présents. Note : complète (≥ 80 % du barème) → 0 ;
+                  incomplète (≥ 50 %) → −1 ; sinon −2. Une question "red" garde ses choix (ch, ok) pour le sujet blanc. */
+const POIDS_RED={present:1,partiel:.5,absent:0};
+const iaDispo=()=>{ try{ return !!(window.SIP&&SIP.ia&&SIP.ia.actif()&&SIP.session.get()); }catch(e){ return false; } };
+const brut=h=>String(h==null?"":h).replace(/<span class="sr">[^<]*<\/span>/g,"/").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();
+function attenduTxt(q){ return q.type==="ch"?q.ch[q.ok]:q.type==="red"?q.modele:q.type==="trous"?q.phr.map(x=>typeof x==="string"?x:`<b>${esc(x.o[x.ok])}</b>`).join(""):shownAns(q); }
+function ansV2(q){
+  if(q.type==="trous") return `<p class="trous">${q.phr.map((x,i)=>typeof x==="string"?x:`<select class="trou" data-g="${i}" aria-label="Élément manquant"><option value="">choisir…</option>${x.o.map((o,k)=>`<option value="${k}">${esc(o)}</option>`).join("")}</select>`).join("")}</p><div class="num"><button class="btn primary" id="val" type="button">Valider</button></div><div class="warnmsg" id="wm" hidden></div>`;
+  return `<textarea id="red" class="red" rows="4" maxlength="700" placeholder="Rédige ta réponse en une ou deux phrases : les valeurs avec leurs unités, la comparaison, la conclusion." aria-label="Ta réponse rédigée"></textarea><div class="num"><button class="btn primary" id="val" type="button">Valider ma réponse</button></div><div class="warnmsg" id="wm" hidden></div><p class="ia-info">${iaDispo()?"Ta réponse est vérifiée par une IA (Claude) à partir du corrigé et du barème du professeur. Elle ne reçoit que la question, le corrigé et ta réponse : ni ton nom, ni ton identifiant.":"Tu vérifieras toi-même ta réponse avec le corrigé (pour la vérification par l'IA, connecte-toi sur le site)."}</p>`;
+}
+function answerTrous(){
+  if(st.answered) return; const q=st.qs[st.i], sel=[...app.querySelectorAll("select.trou")];
+  if(sel.some(s=>s.value==="")){ const w=$("#wm"); w.hidden=false; w.textContent="Complète tous les éléments de la phrase avant de valider."; return; }
+  let ok=true; const rem=[];
+  sel.forEach(s=>{ const g=q.phr[+s.dataset.g], bon=+s.value===g.ok; s.disabled=true; s.classList.add(bon?"ok":"ko"); if(!bon){ ok=false; if(g.m) rem.push(g.m); } });
+  $("#val").disabled=true; $("#wm").hidden=true;
+  const rep=q.phr.map((x,i)=>typeof x==="string"?brut(x):"["+x.o[+app.querySelector(`select.trou[data-g="${i}"]`).value]+"]").join(" ");
+  feedback(ok,attenduTxt(q),rep,{tete:ok?"Phrase exacte":"Phrase à corriger · −2 points",sansAttendu:true,avant:ok?"":`<p class="cx-mod"><b>Phrase attendue :</b> ${attenduTxt(q)}</p>${rem.length?`<p class="cx-dg"><b>À corriger :</b> ${rem.join(" ")}</p>`:""}`});
+}
+const redQuestion=q=>[brut(q.ctx0),brut(q.ctx),brut(q.q),q.don?"Données des documents : "+q.don:"",q.iaPlus||""].filter(Boolean).join("\n").slice(0,1800);
+function redFin(q,rep,v,conseil,par){
+  const tot=q.elements.reduce((a,e)=>a+(e.p||1),0), pts=q.elements.reduce((a,e,i)=>a+POIDS_RED[v[i].verdict]*(e.p||1),0), r=tot?pts/tot:0;
+  const ok=r>=.8, pen=ok?0:r>=.5?1:2, MOT={present:"présent",partiel:"en partie",absent:"absent"};
+  const lignes=q.elements.map((e,i)=>`<li class="${v[i].verdict}"><span class="pic" title="${MOT[v[i].verdict]}">${v[i].verdict==="present"?"✓":v[i].verdict==="partiel"?"≈":"✗"}</span><span>${e.t}<small>${MOT[v[i].verdict]}${v[i].raison?" : "+esc(v[i].raison):""}</small></span></li>`).join("");
+  feedback(ok,q.modele,`${rep} [${par==="eleve"?"vérifiée par l'élève":"vérifiée par l'IA"} : ${nf(pts)}/${tot}]`,{pen,cls:ok?"ok":pen===1?"mi":"ko",tete:ok?"Réponse complète":pen===1?"Réponse incomplète · −1 point":"Réponse insuffisante · −2 points",sansAttendu:true,
+    avant:`<ul class="els">${lignes}</ul>${conseil?`<p class="cx-dg"><b>Pour progresser :</b> ${esc(conseil)}</p>`:""}<p class="cx-mod"><b>Une réponse complète :</b> ${q.modele}</p>${par==="eleve"?`<p class="ia-info">Tu as vérifié ta réponse toi-même.</p>`:""}`});
+}
+function redAuto(q,rep,msg){
+  st.attente=false;
+  $("#fb").innerHTML=`<div class="fb auto">${msg?`<p class="warnmsg">${esc(msg)}</p>`:""}<span class="t">Vérifie ta réponse</span><p>Une réponse complète :</p><blockquote class="modele">${q.modele}</blockquote><p>Coche ce que ta réponse contient vraiment :</p>${q.elements.map((e,i)=>`<label class="chk"><input type="checkbox" data-e="${i}"><span>${e.t}</span></label>`).join("")}<div class="num"><button class="btn primary" id="auto-ok" type="button">Valider ma vérification</button></div></div>`;
+  $("#auto-ok").onclick=()=>{ const v={}; q.elements.forEach((e,i)=>{ v[i]={verdict:app.querySelector(`input[data-e="${i}"]`).checked?"present":"absent",raison:""}; }); redFin(q,rep,v,"","eleve"); };
+}
+const RED_ERR={QUOTA:"Tu as atteint le nombre de vérifications par l'IA pour aujourd'hui.",IA_RESEAU:"L'IA n'a pas répondu (réseau ?).",SESSION_EXPIREE:"Ta session a expiré : reconnecte-toi sur le site pour la vérification par l'IA."};
+async function answerRed(){
+  if(st.answered||st.attente) return; const q=st.qs[st.i], ta=$("#red"), rep=ta.value.trim();
+  if(rep.replace(/\s+/g," ").length<20){ const w=$("#wm"); w.hidden=false; w.textContent="Rédige une phrase complète : les valeurs, la comparaison, la conclusion."; return; }
+  ta.disabled=true; $("#val").disabled=true; $("#wm").hidden=true;
+  if(!iaDispo()) return redAuto(q,rep,"");
+  st.attente=true; $("#fb").innerHTML=`<div class="fb att" role="status">Vérification de ta réponse par l'IA…</div>`;
+  const ici=st, k=st.i;
+  try{
+    const d=await SIP.ia.corriger({question:redQuestion(q),corrige:brut(q.modele)+" "+brut(q.expl),elements:q.elements.map((e,i)=>({i,t:brut(e.t),p:e.p||1})),reponse:rep.slice(0,2000)});
+    if(st!==ici||st.i!==k) return;
+    const v={}; (d.elements||[]).forEach(x=>{ if(q.elements[x.i]&&POIDS_RED[x.verdict]!=null) v[x.i]={verdict:x.verdict,raison:x.raison||""}; });
+    st.attente=false;
+    if(Object.keys(v).length<q.elements.length) return redAuto(q,rep,"L'IA n'a pas jugé tous les points : vérifie ta réponse toi-même.");
+    redFin(q,rep,v,d.conseil||"","ia");
+  }catch(e){ if(st!==ici||st.i!==k) return; redAuto(q,rep,(RED_ERR[e&&e.code]||"L'IA n'a pas pu vérifier ta réponse.")+" Vérifie-la toi-même avec le corrigé."); }
+}
+
+/* ===== v2 · la difficulté suit le niveau de l'élève, le 20 se mérite =====
+   - Série renforcée : si l'élève maîtrise déjà la notion (maîtrise ≥ 80 %), sa série a moins de questions de niveau 1
+     et deux études de niveau 3 au lieu d'une.
+   - Étude finale : après un sans-faute, une étude de niveau 3 de plus s'ajoute ; il faut la réussir pour garder 20.
+   Seulement pour les notions réécrites (POOLS[clé].v2), en série (pas en préparation de DS ni en parcours). */
+const SERIE_FORTE={1:2,2:4,3:8};
+function meriteDispo(){
+  if(!st||st.mode!=="s"||st.prep||st.merite||st.note<20) return null;
+  const key=st.S&&st.S.key, P=key&&POOLS[key]; if(!P||!P.v2) return null;
+  const pris=new Set(st.qs.filter(q=>q.lv===3).map(q=>q.gi)), libres=[...Array(P[3].length).keys()].filter(i=>!pris.has(i));
+  return libres.length?{key,libres}:null;
+}
+function merite(){
+  const m=meriteDispo(); if(!m) return false;
+  const arr=genGroup(m.key,3,m.libres[Math.floor(Math.random()*m.libres.length)]); arr.forEach(q=>{ q.merite=true; });
+  st.merite=true; st.qs.push(...arr); return true;
+}
+function banniereV2(q){
+  if(q.merite&&q.gj===0) return `<div class="ctx merite"><b>Sans-faute jusqu'ici.</b> Une dernière étude, plus exigeante : réussis-la pour garder ton 20.</div>`;
+  if(st.fort&&st.i===0) return `<div class="ctx merite"><b>Série renforcée.</b> Tu maîtrises les bases de cette notion : moins de questions simples, deux études complètes.</div>`;
+  return "";
+}

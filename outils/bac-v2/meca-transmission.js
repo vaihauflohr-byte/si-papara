@@ -10,6 +10,8 @@
 const sb=(b,i)=>`${b}<sub>${i}</sub>`;
 const R1=k=>`r = ${FRAC("1",k)}`;
 const TPI=2*Math.PI;
+const trou=(ok,wrong,m)=>{ const o=shuffle([...new Set([ok,...wrong])]); return {o,ok:o.indexOf(ok),m}; };   /* élément à choisir dans une phrase à compléter */
+const cmp=(a,b)=>a<=b?"inférieur":"supérieur";
 const SYSR=[{n:"robot de livraison",a:"Le robot",le:"du robot"},{n:"chariot autonome d'entrepôt",a:"Le chariot",le:"du chariot"},{n:"robot tondeuse",a:"Le robot",le:"du robot"},{n:"fauteuil de plage motorisé",a:"Le fauteuil",le:"du fauteuil"}];
 const LCH=[["U","I"],[sb("C","m"),sb("ω","m")],[sb("C","r"),sb("ω","r")],["F","V"]];
 
@@ -114,14 +116,36 @@ const V2N1=[
         `La puissance se conserve aux pertes près (${F("P = C·ω")}) : si la vitesse ${mult?"augmente, le couple diminue":"diminue, le couple augmente"}.`],
       piege:`Croire qu'un transmetteur peut augmenter à la fois la vitesse et le couple : il faudrait créer de la puissance.`,
       ret:`r < 1 : réducteur (moins de vitesse, plus de couple). r > 1 : multiplicateur (plus de vitesse, moins de couple).`}; }
+  ,
+  /* g6 · reconnaître une conclusion complète : valeur trouvée, valeur exigée, comparaison, réponse */
+  ()=>{ const c=rnd([{d:"du diagramme des exigences d'un portail coulissant",nom:"Durée d'ouverture",ex:x=>`Le portail doit s'ouvrir complètement en moins de ${x} s.`,g:"Durée d'ouverture calculée",u:"s",L:[15,20,25,30],ph:v=>`Le portail s'ouvre en ${v} s`,lim:x=>`aux ${x} s exigées`},
+      {d:"du diagramme des exigences d'un store de terrasse",nom:"Durée de déploiement",ex:x=>`Le store doit se déployer complètement en moins de ${x} s.`,g:"Durée de déploiement calculée",u:"s",L:[20,30,40,45],ph:v=>`Le store se déploie en ${v} s`,lim:x=>`aux ${x} s exigées`},
+      {d:"du diagramme des exigences d'un chariot autonome",nom:"Sécurité",ex:x=>`Le chariot ne doit pas dépasser ${x} km/h.`,g:"Vitesse maximale calculée",u:"km/h",L:[4,5,6,8],ph:v=>`Le chariot roule au plus à ${v} km/h`,lim:x=>`à la limite de ${x} km/h`}]);
+    const X=rnd(c.L), oui=Math.random()<.5, val=Number((X*(oui?rnd([.72,.8,.86]):rnd([1.14,1.22,1.3]))).toPrecision(3)), v=nf(val,3);
+    const sat=o=>o?"est satisfaite":"n'est pas satisfaite", mot=oui?"inférieur":"supérieur";
+    const ok=`« ${c.ph(v)}. C'est ${mot} ${c.lim(X)} : l'exigence 1.1 ${sat(oui)}. »`;
+    return {fig:DOC(1,`extrait ${c.d}`,d2Exig({reqs:[{id:"1.1",nom:c.nom,txt:c.ex(X)}]}))+DOC(2,"résultat de l'étude",d2Fiche({lignes:[[c.g,`${v} ${c.u}`]]})),
+      q:`Quatre élèves concluent sur l'exigence 1.1. Quelle copie donne une conclusion complète et juste ?`,type:"ch",
+      ...mcw(ok,[[`« L'exigence 1.1 ${sat(oui)}. »`,`la réponse est juste, mais aucune valeur ne la justifie. À l'écrit, une conclusion sans nombres ne rapporte pas tous les points.`],
+        [`« ${c.ph(v)} et l'exigence 1.1 fixe la limite à ${X} ${c.u}. »`,`les deux valeurs sont citées, mais la copie ne les compare pas et ne dit pas si l'exigence est satisfaite.`],
+        [`« ${c.ph(v)}. C'est ${mot} ${c.lim(X)} : l'exigence 1.1 ${sat(!oui)}. »`,`la comparaison est juste, mais la réponse la contredit : ${v} ${c.u} ${oui?"reste sous":"dépasse"} la limite de ${X} ${c.u}.`]]),
+      don:`exigence 1.1 : ${X} ${c.u} au plus ; valeur calculée ${v} ${c.u}`,
+      expl:`${v} ${c.u} est ${mot} à ${X} ${c.u} : l'exigence 1.1 ${sat(oui)}. La bonne copie donne les deux valeurs, les compare et répond.`,
+      lire:`Figure 1, exigence 1.1 : ${X} ${c.u} au plus. Figure 2 : valeur calculée, ${v} ${c.u}.`,
+      met:[`Une conclusion complète tient en quatre éléments : la valeur trouvée, la valeur exigée, la comparaison, la réponse.`,
+        `Ici : ${v} ${c.u} (trouvé), ${X} ${c.u} (exigé), ${v} est ${mot} à ${X}, donc l'exigence 1.1 ${sat(oui)}.`,
+        `La copie complète est la seule qui contient ces quatre éléments sans se contredire.`],
+      piege:`Écrire seulement « l'exigence est satisfaite ». Le correcteur attend les deux valeurs et la comparaison.`,
+      ret:`Conclure = la valeur trouvée, la valeur exigée, la comparaison, la réponse.`}; }
 ];
 
 const V2N2=[
-  /* g0 · du moteur à la vitesse du véhicule : vitesse angulaire de la roue, puis vitesse en km/h */
-  ()=>{ const s=rnd(SYSR), Nm=rnd([2400,3000,3600,4200]), k=rnd([20,25,30,40,50]), D=rnd([20,25,30,40]), eta=rnd([0.8,0.85,0.9]), P=rnd([150,200,250,350]);
-    const wm=TPI*Nm/60, wr=wm/k, v=wr*D/200, vk=v*3.6;
-    const fig=DOC(1,`chaîne de puissance d'une roue motrice du ${s.n}`,d2Chaine({blocs:[{t:"Moteur",l:[`${P} W`,`${nf(Nm,0)} tr/min`]},{t:"Réducteur",l:[R1(k),`Rendement ${nf(eta)}`]},{t:"Roue motrice",l:[`Diamètre ${D} cm`]}],liens:LCH}));
-    const don=`moteur ${Nm} tr/min ; r = 1/${k} ; rendement ${nf(eta)} ; diamètre de roue ${D} cm`;
+  /* g0 · du moteur à la vitesse du véhicule : vitesse angulaire de la roue, vitesse en km/h, puis conclusion à compléter */
+  ()=>{ const o=draw(()=>{ const Nm=rnd([2400,3000,3600,4200]), k=rnd([20,25,30,40,50]), D=rnd([20,25,30,40]), Vx=rnd([4,5,6,8,10,12,15]), wm=TPI*Nm/60, wr=wm/k, v=wr*D/200, vk=v*3.6; return {Nm,k,D,Vx,wm,wr,v,vk}; }, o=>far(o.vk,o.Vx,0.08)&&o.vk<3*o.Vx&&o.vk>o.Vx/3);
+    const {Nm,k,D,Vx,wm,wr,v,vk}=o, s=rnd(SYSR), eta=rnd([0.8,0.85,0.9]), P=rnd([150,200,250,350]), oui=vk<=Vx;
+    const fig=DOC(1,`chaîne de puissance d'une roue motrice du ${s.n}`,d2Chaine({blocs:[{t:"Moteur",l:[`${P} W`,`${nf(Nm,0)} tr/min`]},{t:"Réducteur",l:[R1(k),`Rendement ${nf(eta)}`]},{t:"Roue motrice",l:[`Diamètre ${D} cm`]}],liens:LCH}))+
+      DOC(2,`extrait du diagramme des exigences du ${s.n}`,d2Exig({reqs:[{id:"1.3",nom:"Sécurité",txt:`${s.a} ne doit pas dépasser ${Vx} km/h.`}]}));
+    const don=`moteur ${Nm} tr/min ; r = 1/${k} ; rendement ${nf(eta)} ; diamètre de roue ${D} cm ; exigence 1.3 : ${Vx} km/h au plus`;
     return [{fig,don,q:`À l'aide de la figure 1, détermine la vitesse angulaire ${sb("ω","r")} de la roue, en rad/s, lorsque le moteur tourne à sa fréquence de rotation nominale.`,nom:sb("ω","r"),type:"num",ans:wr,tolR:0.01,unit:"rad/s",
         expl:`${F(`ω<sub>m</sub> = ${FRAC("2π·N<sub>m</sub>","60")}`)} = ${S3(wm)} rad/s ; ${F("ω<sub>r</sub> = r·ω<sub>m</sub>")} = ${U(wr,"rad/s")}.`,
         lire:`Bloc « Moteur » : ${nf(Nm,0)} tr/min. Bloc « Réducteur » : ${R1(k)}. Le rendement et la puissance ne servent pas pour une vitesse.`,
@@ -130,7 +154,7 @@ const V2N2=[
         piege:`Rester en tr/min. Un tour vaut 2π radians et une minute vaut 60 secondes.`,
         ret:`${F(`ω = ${FRAC("2π·N","60")}`)} (N en tr/min, ω en rad/s).`,
         diag:[{v:Nm/k,m:`ta valeur est en tr/min : c'est la fréquence de rotation de la roue. Pour l'avoir en rad/s, multiplie par 2π et divise par 60.`},{v:wm,m:`tu as calculé la vitesse angulaire du moteur. Il reste à appliquer le rapport du réducteur.`},{v:wm*k,m:`tu as multiplié par ${k}. Un réducteur de rapport ${R1(k)} divise la vitesse par ${k}.`},{v:wr*eta,m:`tu as multiplié par le rendement. Il agit sur le couple et la puissance, pas sur la vitesse.`}]},
-      {q:`Déduis-en la vitesse de déplacement ${s.le}, en km/h. Les roues roulent sans glisser.`,type:"num",ans:vk,tolR:0.015,unit:"km/h",don,
+      {q:`Déduis-en la vitesse de déplacement ${s.le}, en km/h. Les roues roulent sans glisser.`,nom:"V",type:"num",ans:vk,tolR:0.015,unit:"km/h",don,
         expl:`${F("V = R·ω<sub>r</sub>")} = ${nf(D/200,3)} × ${S3(wr)} = ${S3(v)} m/s, soit ${U(vk,"km/h")}.`,
         lire:`Bloc « Roue motrice » : diamètre ${D} cm, donc ${F(`R = ${nf(D/200,3)} m`)}.`,
         met:[`Roulement sans glissement : ${F("V = R·ω<sub>r</sub>")}, avec le rayon en mètres.`,
@@ -138,14 +162,27 @@ const V2N2=[
           `Conversion : ${F(`V = ${S3(v)} × 3,6 = ${S3(vk)} km/h`)}.`],
         piege:`Oublier la dernière conversion : la relation V = R·ω donne des m/s.`,
         ret:`${F("V = R·ω")} ; 1 m/s = 3,6 km/h.`,
-        diag:[{v,m:`ta valeur est en m/s. La question demande des km/h : multiplie par 3,6.`},{v:vk*2,m:`tu as utilisé le diamètre. Dans V = R·ω, R est le rayon.`},{v:v/3.6,m:`tu as divisé par 3,6. Pour passer des m/s aux km/h, on multiplie par 3,6.`}]}]; },
+        diag:[{v,m:`ta valeur est en m/s. La question demande des km/h : multiplie par 3,6.`},{v:vk*2,m:`tu as utilisé le diamètre. Dans V = R·ω, R est le rayon.`},{v:v/3.6,m:`tu as divisé par 3,6. Pour passer des m/s aux km/h, on multiplie par 3,6.`}]},
+      {q:`Complète la conclusion sur l'exigence 1.3 (figure 2).`,type:"trous",don,
+        phr:[`À la fréquence de rotation nominale du moteur, ${s.a.toLowerCase()} roule à `,trou(`${S3(vk)} km/h`,[`${S3(v)} km/h`,`${S3(wr)} km/h`],`La valeur à citer est la vitesse que tu viens de calculer, en km/h : ${S3(vk)} km/h.`),
+          `. C'est `,trou(oui?"inférieur":"supérieur",[oui?"supérieur":"inférieur"],`Compare les deux valeurs : ${S3(vk)} est ${oui?"plus petit":"plus grand"} que ${Vx}.`),
+          ` à la limite de ${Vx} km/h : l'exigence 1.3 `,trou(oui?"est":"n'est pas",[oui?"n'est pas":"est"],`${s.a} ne doit pas dépasser ${Vx} km/h : avec ${S3(vk)} km/h, l'exigence ${oui?"est":"n'est pas"} satisfaite.`),` satisfaite.`],
+        expl:`${S3(vk)} km/h est ${oui?"inférieur":"supérieur"} à ${Vx} km/h : l'exigence 1.3 ${oui?"est":"n'est pas"} satisfaite.`,
+        lire:`Figure 2, exigence 1.3 : ${Vx} km/h au plus. Question précédente : ${S3(vk)} km/h.`,
+        met:[`Une conclusion complète donne la valeur trouvée, la valeur exigée, la comparaison, puis la réponse.`,
+          `Valeur trouvée : ${F(`${S3(vk)} km/h`)}. Valeur exigée : ${F(`${Vx} km/h`)} au plus.`,
+          `${S3(vk)} est ${oui?"plus petit":"plus grand"} que ${Vx} : l'exigence 1.3 ${oui?"est":"n'est pas"} satisfaite${oui?"":". Il faudrait limiter la vitesse du moteur, ou réduire davantage"}.`],
+        piege:`Citer une valeur dans la mauvaise unité : l'exigence est en km/h, on compare des km/h.`,
+        ret:`Conclure = la valeur trouvée, la valeur exigée, la comparaison, la réponse.`}]; },
 
-  /* g1 · couple à la roue, puis « montre que » le couple moteur vaut environ… */
-  ()=>{ const o=draw(()=>{ const Fm=rnd([60,80,100,120,150,180]), D=rnd([20,24,30,40]), k=rnd([20,25,30,35,40]), eta=rnd([0.8,0.85,0.9]), Cr=Fm*D/200, Cm=Cr/(k*eta), ap=Number(Cm.toPrecision(2)); return {Fm,D,k,eta,Cr,Cm,ap}; },
-      o=>o.Cm>0.1&&o.Cm<3&&Math.abs(o.ap-Number(o.Cm.toPrecision(3)))/o.Cm>0.008);
-    const s=rnd(SYSR), {Fm,D,k,eta,Cr,Cm,ap}=o;
-    const fig=DOC(1,`chaîne de puissance d'une roue motrice du ${s.n}, dans une pente`,d2Chaine({blocs:[{t:"Moteur",l:[`${rnd([24,36])} V`]},{t:"Réducteur",l:[R1(k),`Rendement ${nf(eta)}`]},{t:"Roue motrice",l:[`Diamètre ${D} cm`]}],liens:[["U","I"],[sb("C","m"),sb("ω","m")],[sb("C","r"),sb("ω","r")],[`F = ${Fm} N`,"V"]]}));
-    const don=`F = ${Fm} N ; diamètre de roue ${D} cm ; r = 1/${k} ; rendement ${nf(eta)}`;
+  /* g1 · couple à la roue, « montre que » le couple moteur vaut environ…, puis conclusion à compléter sur le choix du moteur */
+  ()=>{ const o=draw(()=>{ const Fm=rnd([60,80,100,120,150,180]), D=rnd([20,24,30,40]), k=rnd([20,25,30,35,40]), eta=rnd([0.8,0.85,0.9]), Cr=Fm*D/200, Cm=Cr/(k*eta), ap=Number(Cm.toPrecision(2));
+        const Cn=Number((Cm*rnd([0.6,0.72,0.84,1.25,1.5,1.8])).toPrecision(2)), Cd=Number((Cn*rnd([2.5,3,4])).toPrecision(2)); return {Fm,D,k,eta,Cr,Cm,ap,Cn,Cd}; },
+      o=>o.Cm>0.1&&o.Cm<3&&Math.abs(o.ap-Number(o.Cm.toPrecision(3)))/o.Cm>0.008&&far(o.Cm,o.Cn,0.1)&&far(o.Cm,o.Cd,0.1)&&o.Cm<o.Cd);
+    const s=rnd(SYSR), {Fm,D,k,eta,Cr,Cm,ap,Cn,Cd}=o, oui=Cm<=Cn, U0=rnd([24,36]);
+    const fig=DOC(1,`chaîne de puissance d'une roue motrice du ${s.n}, dans une pente`,d2Chaine({blocs:[{t:"Moteur",l:["voir figure 2"]},{t:"Réducteur",l:[R1(k),`Rendement ${nf(eta)}`]},{t:"Roue motrice",l:[`Diamètre ${D} cm`]}],liens:[["U","I"],[sb("C","m"),sb("ω","m")],[sb("C","r"),sb("ω","r")],[`F = ${Fm} N`,"V"]]}))+
+      DOC(2,"caractéristiques du moteur",d2Fiche({lignes:[["Tension nominale",`${U0} V`],["Couple nominal",`${nf(Cn,3)} N·m`],["Couple de démarrage",`${nf(Cd,3)} N·m`]]}));
+    const don=`F = ${Fm} N ; diamètre de roue ${D} cm ; r = 1/${k} ; rendement ${nf(eta)} ; moteur : couple nominal ${nf(Cn,3)} N·m, couple de démarrage ${nf(Cd,3)} N·m`;
     return [{fig,don,q:`Pour monter la pente, la roue motrice doit exercer sur le sol l'effort F indiqué sur la figure 1. Détermine le couple ${sb("C","r")} que le réducteur doit fournir à la roue.`,nom:sb("C","r"),type:"num",ans:Cr,tolR:0.01,unit:"N·m",
         expl:`${F("C<sub>r</sub> = F·R")} = ${Fm} × ${nf(D/200,3)} = ${U(Cr,"N·m")}.`,
         lire:`À la sortie de la chaîne : ${F(`F = ${Fm} N`)}. Bloc « Roue motrice » : diamètre ${D} cm, donc ${F(`R = ${nf(D/200,3)} m`)}.`,
@@ -157,12 +194,24 @@ const V2N2=[
       {q:`Montre que le couple ${sb("C","m")} que le moteur doit fournir vaut environ ${nf(ap,3)} N·m. Écris la valeur que tu trouves, avec 3 chiffres significatifs.`,nom:sb("C","m"),type:"num",ans:Cm,tolR:0.006,unit:"N·m",don,
         expl:`${F(`C<sub>m</sub> = ${FRAC("r·C<sub>r</sub>","η")}`)} = ${FRAC(S3(Cr),`${k} × ${nf(eta)}`)} = ${U(Cm,"N·m")}.`,
         lire:`Bloc « Réducteur » : ${R1(k)} et rendement ${F(`η = ${nf(eta)}`)}.`,
-        met:[`Le réducteur multiplie le couple par ${FRAC("1","r")} et en perd une partie : ${F(`C<sub>r</sub> = ${FRAC("η·C<sub>m</sub>","r")}`)}.`,
+        met:[`Le réducteur multiplie le couple par ${k} et en perd une partie : ${F(`C<sub>r</sub> = ${FRAC("η·C<sub>m</sub>","r")}`)}.`,
           `On isole le couple moteur : ${F(`C<sub>m</sub> = ${FRAC("r·C<sub>r</sub>","η")}`)}.`,
           `${F(`C<sub>m</sub> = ${FRAC(S3(Cr),`${k} × ${nf(eta)}`)} = ${S3(Cm)} N·m`)}, soit environ ${nf(ap,3)} N·m.`],
         piege:`Multiplier par le rendement. Les pertes obligent le moteur à fournir plus : on divise par η.`,
         ret:`${F(`C<sub>s</sub> = ${FRAC("η·C<sub>e</sub>","r")}`)} : un réducteur augmente le couple, le rendement en retire une partie.`,
-        diag:[{v:Cr/k,m:`tu as oublié le rendement. Avec des pertes, le moteur doit fournir plus : divise encore par η = ${nf(eta)}.`},{v:Cr*eta/k,m:`tu as multiplié par le rendement. Les pertes obligent le moteur à fournir plus de couple : on divise par η.`},{v:Cr*k/eta,m:`tu as multiplié par ${k}. Côté moteur, le couple est ${k} fois plus petit qu'à la roue (aux pertes près).`},{v:ap,m:`tu as recopié la valeur approchée de l'énoncé. Fais le calcul et donne ton résultat avec 3 chiffres significatifs.`}]}]; },
+        diag:[{v:Cr/k,m:`tu as oublié le rendement. Avec des pertes, le moteur doit fournir plus : divise encore par η = ${nf(eta)}.`},{v:Cr*eta/k,m:`tu as multiplié par le rendement. Les pertes obligent le moteur à fournir plus de couple : on divise par η.`},{v:Cr*k/eta,m:`tu as multiplié par ${k}. Côté moteur, le couple est ${k} fois plus petit qu'à la roue (aux pertes près).`},{v:ap,m:`tu as recopié la valeur approchée de l'énoncé. Fais le calcul et donne ton résultat avec 3 chiffres significatifs.`}]},
+      {q:`À l'aide de la figure 2, complète la conclusion sur le choix du moteur. Il doit fournir ce couple pendant toute la montée.`,type:"trous",don,
+        phr:[`Le moteur doit fournir ${S3(Cm)} N·m pendant toute la montée. On compare cette valeur à son couple `,trou("nominal",["de démarrage"],`Le couple de démarrage n'est disponible qu'un court instant. Pour un effort qui dure, on compare au couple nominal.`),
+          `, qui vaut `,trou(`${nf(Cn,3)} N·m`,[`${nf(Cd,3)} N·m`],`Le couple nominal se lit dans la figure 2 : ${nf(Cn,3)} N·m.`),` : elle lui est `,
+          trou(oui?"inférieure":"supérieure",[oui?"supérieure":"inférieure"],`Compare les deux valeurs : ${S3(Cm)} est ${oui?"plus petit":"plus grand"} que ${nf(Cn,3)}.`),`, donc le moteur `,
+          trou(oui?"convient":"ne convient pas",[oui?"ne convient pas":"convient"],`Le moteur convient seulement si le couple demandé reste inférieur à son couple nominal.`),`.`],
+        expl:`${S3(Cm)} N·m est ${oui?"inférieur":"supérieur"} au couple nominal (${nf(Cn,3)} N·m) : le moteur ${oui?"convient":"ne convient pas"}.`,
+        lire:`Figure 2, ligne « Couple nominal » : ${nf(Cn,3)} N·m. Question précédente : ${S3(Cm)} N·m.`,
+        met:[`Un effort qui dure se compare au couple que le moteur peut fournir en permanence : son couple nominal.`,
+          `Couple demandé : ${F(`${S3(Cm)} N·m`)}. Couple nominal : ${F(`${nf(Cn,3)} N·m`)}.`,
+          `${S3(Cm)} est ${oui?"plus petit":"plus grand"} que ${nf(Cn,3)} : le moteur ${oui?"convient":"ne convient pas"}.`],
+        piege:`Comparer au couple de démarrage : il est plus grand, mais le moteur ne le tient que quelques secondes.`,
+        ret:`Un moteur convient si le couple demandé reste inférieur à son couple nominal.`}]; },
 
   /* g2 · réducteur à deux étages d'engrenages : fréquence de rotation de la sortie */
   ()=>{ const Z1=rnd([12,15,18]), Z2=rnd([36,45,48,54,60]), Z3=rnd([12,15,20]), Z4=rnd([40,48,50,60]), Nm=rnd([1500,3000]), Pn=rnd([90,120,180]);
@@ -282,7 +331,10 @@ const V2N3=[
         piege:`Diviser la vitesse de la roue par ${k} : c'est le moteur qui tourne le plus vite, pas la roue.`,
         ret:`${F(`N = ${FRAC("60·ω","2π")}`)} (ω en rad/s, N en tr/min).`,
         diag:[{v:w*k,m:`ta valeur est en rad/s. Pour l'avoir en tr/min, multiplie par 60 et divise par 2π.`},{v:w*60/TPI,m:`tu as calculé la fréquence de rotation de la roue. Le moteur, avant le réducteur, tourne ${k} fois plus vite.`},{v:w/k*60/TPI,m:`tu as divisé par ${k}. Le moteur tourne ${k} fois plus vite que la roue : on multiplie.`}]},
-      {q:`À l'aide de la figure 3, conclus : le moteur choisi permet-il de satisfaire l'exigence 1.1 ?`,type:"ch",...fin,don,
+      {q:`À l'aide de la figure 3, conclus : le moteur choisi permet-il de satisfaire l'exigence 1.1 ? Rédige ta réponse.`,...fin,type:"red",don,
+        elements:[{t:`Donne la fréquence de rotation que le moteur doit atteindre (environ ${S3(Nm)} tr/min)`,p:1},{t:`Donne la fréquence de rotation maximale du moteur (${nf(Nx,0)} tr/min)`,p:1},{t:`Compare les deux valeurs`,p:1},{t:`Conclut que l'exigence 1.1 ${oui?"est":"n'est pas"} satisfaite`,p:2}],
+        modele:`Pour rouler à ${Vk} km/h, le moteur doit tourner à ${S3(Nm)} tr/min. C'est ${cmp(Nm,Nx)} à sa fréquence de rotation maximale (${nf(Nx,0)} tr/min) : l'exigence 1.1 ${oui?"est":"n'est pas"} satisfaite.`,
+        iaPlus:`Résultat de la question précédente : le moteur doit tourner à ${S3(Nm)} tr/min. Figure 3 : fréquence de rotation maximale du moteur ${Nx} tr/min.`,
         expl:oui?`${S3(Nm)} tr/min < ${nf(Nx,0)} tr/min : le moteur peut atteindre la fréquence de rotation nécessaire, l'exigence 1.1 est satisfaite.`:`${S3(Nm)} tr/min > ${nf(Nx,0)} tr/min : le moteur ne peut pas atteindre la fréquence de rotation nécessaire, l'exigence 1.1 n'est pas satisfaite.`,
         lire:`Figure 3, ligne « Fréquence de rotation maximale » : ${nf(Nx,0)} tr/min. Question précédente : il faut ${S3(Nm)} tr/min.`,
         met:[`Pour conclure, on compare ce qu'il faut à ce que le composant peut donner, dans la même unité.`,
@@ -334,7 +386,10 @@ const V2N3=[
         piege:`Appliquer V = R·ω avec une vitesse en tr/min : ω doit être en rad/s.`,
         ret:`${F("V = R·ω")} avec ${F(`ω = ${FRAC("2π·N","60")}`)}.`,
         diag:[{v:Nn/k*D/2000,m:`tu as utilisé la fréquence de rotation en tr/min. Dans V = R·ω, ω est en rad/s : multiplie par 2π et divise par 60.`},{v:vc*k,m:`tu as oublié le réducteur : le tambour tourne ${k} fois moins vite que le moteur.`},{v:vc*2,m:`tu as utilisé le diamètre. Dans V = R·ω, R est le rayon.`},{v:vc*1000,m:`tu as laissé le rayon en millimètres : ta vitesse est en mm/s.`}]},
-      {q:`À l'aide de la figure 3, conclus : le moteur choisi convient-il pour satisfaire l'exigence 1.1 pendant toute la manœuvre ?`,type:"ch",...fin,don,
+      {q:`À l'aide de la figure 3, conclus : le moteur choisi convient-il pour satisfaire l'exigence 1.1 pendant toute la manœuvre ? Rédige ta réponse.`,...fin,type:"red",don,
+        elements:[{t:`Donne le couple que le moteur doit fournir (environ ${S3(Cm)} N·m)`,p:1},{t:`Donne le couple nominal du moteur (${nf(Cn,3)} N·m), et pas son couple de démarrage`,p:1},{t:`Compare les deux valeurs`,p:1},{t:`Conclut que le moteur ${oui?"convient":"ne convient pas"}`,p:2}],
+        modele:`Le moteur doit fournir ${S3(Cm)} N·m pendant toute la manœuvre. C'est ${cmp(Cm,Cn)} à son couple nominal (${nf(Cn,3)} N·m) : le moteur ${oui?"convient":"ne convient pas"}.`,
+        iaPlus:`Résultat des questions précédentes : couple nécessaire sur l'arbre du moteur ${S3(Cm)} N·m. Figure 3 : couple nominal ${nf(Cn,3)} N·m, couple de démarrage ${nf(Cd,2)} N·m (disponible un court instant seulement).`,
         expl:oui?`${S3(Cm)} N·m < ${nf(Cn,3)} N·m : le moteur peut fournir le couple nécessaire en permanence, il convient.`:`${S3(Cm)} N·m > ${nf(Cn,3)} N·m : le moteur ne peut pas fournir ce couple en permanence, il ne convient pas.`,
         lire:`Figure 3, ligne « Couple nominal » : ${nf(Cn,3)} N·m. Couple nécessaire sur l'arbre du moteur (deuxième question) : ${S3(Cm)} N·m.`,
         met:[`On compare le couple à fournir au couple que le moteur peut donner en permanence : son couple nominal.`,
@@ -380,7 +435,10 @@ const V2N3=[
         piege:`Multiplier la course par la vitesse.`,
         ret:`À vitesse constante : ${F("d = V·t")}.`,
         diag:[{v:Lc*v,m:`tu as multiplié la course par la vitesse. La durée est la course divisée par la vitesse.`},{v:Tx,m:`tu as recopié la durée de l'exigence. On te demande la durée réelle, calculée avec la vitesse du portail.`}]},
-      {q:`Conclus vis-à-vis de l'exigence 1.1.`,type:"ch",...fin,don,
+      {q:`Conclus vis-à-vis de l'exigence 1.1. Rédige ta réponse.`,...fin,type:"red",don,
+        elements:[{t:`Donne la durée d'ouverture calculée (environ ${S3(t)} s)`,p:1},{t:`Donne la durée exigée (moins de ${Tx} s)`,p:1},{t:`Compare les deux durées`,p:1},{t:`Conclut que l'exigence 1.1 ${oui?"est":"n'est pas"} satisfaite`,p:2}],
+        modele:`Le portail s'ouvre en ${S3(t)} s. C'est ${cmp(t,Tx)} aux ${Tx} s exigées : l'exigence 1.1 ${oui?"est":"n'est pas"} satisfaite.`,
+        iaPlus:`Résultat de la question précédente : durée d'une ouverture complète ${S3(t)} s. Exigence 1.1 : moins de ${Tx} s.`,
         expl:oui?`${S3(t)} s < ${Tx} s : l'exigence 1.1 est satisfaite.`:`${S3(t)} s > ${Tx} s : l'exigence 1.1 n'est pas satisfaite.`,
         lire:`Figure 1, exigence 1.1 : moins de ${Tx} s. Question précédente : ${S3(t)} s.`,
         met:[`On compare la durée calculée à la durée exigée, dans la même unité.`,`Durée d'ouverture : ${F(`${S3(t)} s`)} ; exigence : moins de ${F(`${Tx} s`)}.`,
@@ -425,7 +483,10 @@ const V2N3=[
         piege:`Mélanger les unités : la course est en mm, le déplacement par impulsion en µm.`,
         ret:`Nombre d'impulsions = course divisée par le déplacement entre deux impulsions.`,
         diag:[{v:Lc/res,m:`tu as divisé des millimètres par des micromètres. Mets les deux longueurs dans la même unité.`},{v:Lc/p*n,m:`tu as oublié le réducteur : le moteur (et le codeur) fait ${k} tours pour un tour de vis.`}]},
-      {q:`Conclus vis-à-vis de l'exigence 1.1.`,type:"ch",...fin,don,
+      {q:`Conclus vis-à-vis de l'exigence 1.1. Rédige ta réponse.`,...fin,type:"red",don,
+        elements:[{t:`Donne le déplacement du chariot entre deux impulsions (environ ${S3(res)} µm)`,p:1},{t:`Donne la valeur exigée (${ex} µm au plus)`,p:1},{t:`Compare les deux valeurs`,p:1},{t:`Conclut que l'exigence 1.1 ${oui?"est":"n'est pas"} satisfaite`,p:2}],
+        modele:`Le plus petit déplacement mesurable est de ${S3(res)} µm. C'est ${cmp(res,ex)} aux ${ex} µm exigés : l'exigence 1.1 ${oui?"est":"n'est pas"} satisfaite.`,
+        iaPlus:`Résultat des questions précédentes : déplacement du chariot entre deux impulsions ${S3(res)} µm. Exigence 1.1 : ${ex} µm au plus.`,
         expl:oui?`${S3(res)} µm ≤ ${ex} µm : l'exigence 1.1 est satisfaite.`:`${S3(res)} µm > ${ex} µm : l'exigence 1.1 n'est pas satisfaite.`,
         lire:`Figure 1, exigence 1.1 : ${ex} µm au plus. Deuxième question : ${S3(res)} µm entre deux impulsions.`,
         met:[`Le plus petit déplacement mesurable est celui qui sépare deux impulsions.`,`Il vaut ${F(`${S3(res)} µm`)} ; l'exigence demande ${F(`${ex} µm`)} au plus.`,
@@ -435,4 +496,4 @@ const V2N3=[
 ];
 
 { const fiche=POOLS["meca-transmission"].fiche;
-  POOLS["meca-transmission"]={titre:"Rapports, vitesses et couples",fiche,count:{1:4,2:4,3:4},1:V2N1,2:V2N2,3:V2N3}; }
+  POOLS["meca-transmission"]={titre:"Rapports, vitesses et couples",fiche,v2:true,count:{1:4,2:4,3:4},1:V2N1,2:V2N2,3:V2N3}; }

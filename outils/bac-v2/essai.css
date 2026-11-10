@@ -100,3 +100,24 @@
 .figbox.tabs .doc{display:none;margin-bottom:0}
 .figbox.tabs .doc.on{display:block}
 @media (max-width:560px){.d2-chaine.n4 .d2-bt{font-size:.92rem}.d2-chaine.n4 .d2-bl{font-size:.82rem}}
+/* ===== v2 · réponses rédigées : phrase à compléter, rédaction vérifiée par l'IA ===== */
+textarea.red{display:block;width:100%;min-height:6.5rem;font:inherit;font-size:1rem;line-height:1.45;border:1.5px solid var(--rule);border-radius:6px;padding:.55rem .7rem;background:var(--paper-2);color:var(--ink);resize:vertical;margin-bottom:8px}
+textarea.red:focus{outline:2px solid var(--accent);outline-offset:1px}
+.ia-info{font-size:.8rem;line-height:1.4;color:var(--ink-3);margin:.5rem 0 0}
+.trous{line-height:2.4;font-size:1rem;margin:.2rem 0 .7rem;padding:8px 12px;background:var(--paper-2);border:1px solid var(--rule);border-radius:6px}
+select.trou{font:inherit;font-size:.95rem;max-width:100%;border:1.5px solid var(--accent);border-radius:5px;padding:.25rem .3rem;background:var(--paper);color:var(--ink)}
+select.trou.ok{border-color:var(--good);background:var(--good-soft)} select.trou.ko{border-color:var(--bad);background:var(--bad-soft)}
+.fb.mi{background:var(--warn-soft)} .fb.mi .t{color:var(--warn)}
+.fb.att{background:var(--paper-2);color:var(--ink-2)}
+.fb.auto{background:var(--paper-2);border:1px solid var(--rule)} .fb.auto .t{color:var(--accent)}
+.els{list-style:none;margin:.5rem 0 0;padding:0}
+.els li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;padding:7px 0;border-top:1px solid var(--rule-2)}
+.els li:first-child{border-top:0}
+.els .pic{font-weight:700;text-align:center}
+.els .present .pic{color:var(--good)} .els .partiel .pic{color:var(--warn)} .els .absent .pic{color:var(--bad)}
+.els small{display:block;color:var(--ink-2);font-size:.86rem;margin-top:1px}
+.fb .cx-mod{margin-top:.6rem;padding:8px 10px;border-radius:5px;background:var(--paper);border:1px solid var(--rule);color:var(--ink)}
+blockquote.modele{margin:.4rem 0;padding:8px 10px;border-left:3px solid var(--accent);background:var(--paper)}
+.chk{display:flex;gap:8px;align-items:flex-start;padding:6px 0;font-size:.95rem;cursor:pointer}
+.chk input{margin-top:.2rem;width:18px;height:18px;flex:none}
+.ctx.merite{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 10px;border-radius:0 5px 5px 0}
