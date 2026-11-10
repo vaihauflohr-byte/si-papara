@@ -1,0 +1,102 @@
+/* ===== v2 · documents façon sujet de bac ===== */
+.figbox.docs{background:none;border:0;padding:0}
+.doc{margin:0 0 12px;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);overflow:hidden;box-shadow:0 1px 2px rgba(21,32,43,.05)}
+.doc:last-child{margin-bottom:0}
+.doc figcaption{display:flex;align-items:center;gap:8px;padding:6px 8px 6px 12px;border-bottom:1px solid var(--rule-2);background:var(--paper-2);font-size:.86rem;line-height:1.3;color:var(--ink-2)}
+.doc figcaption b{font-family:var(--f-disp);font-weight:700;font-size:.92rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
+.doc figcaption>span{min-width:0}
+.doc-zoom{margin-left:auto;flex:none;font:inherit;font-size:.78rem;color:var(--ink-2);background:var(--paper);border:1px solid var(--rule);border-radius:999px;padding:3px 10px;cursor:pointer;white-space:nowrap}
+.doc-zoom:hover,.doc-zoom:focus-visible{border-color:var(--accent);color:var(--accent)}
+.doc-c{padding:12px;background-color:var(--paper);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:20px 20px}
+.doc-c>svg{display:block;width:100%;height:auto;max-height:340px}
+.doc-c sub{font-size:.72em;line-height:0}
+
+/* chaîne de puissance en blocs */
+.d2-chaine{display:flex;align-items:stretch;justify-content:center;gap:0}
+.d2-b{flex:1 1 0;min-width:0;max-width:190px;display:flex;flex-direction:column;justify-content:center;background:var(--paper);border:1.5px solid var(--ink);border-radius:5px;padding:7px 9px;text-align:center}
+.d2-b.q{border-style:dashed;border-color:var(--warn);background:var(--warn-soft)}
+.d2-bt{font-weight:700;font-size:.92rem;line-height:1.25}
+.d2-bl{font-family:var(--f-mono);font-size:.82rem;line-height:1.35;color:var(--ink);margin-top:2px}
+.d2-bl .frac{font-size:.92em}
+.d2-bl{overflow-wrap:anywhere}
+.d2-chaine.n4 .d2-b{padding:7px 6px}
+.d2-chaine.n4 .d2-bt{font-size:.86rem}
+.d2-chaine.n4 .d2-bl{font-size:.74rem}
+.d2-chaine.n4 .d2-l{min-width:26px;padding:0 2px}
+.d2-chaine.n4 .d2-l i{min-width:20px}
+.d2-l{flex:0 0 auto;min-width:34px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0 3px;font-family:var(--f-mono);font-size:.78rem;font-weight:600;color:var(--coulomb);line-height:1.2;white-space:nowrap}
+.d2-l i{display:block;position:relative;width:100%;min-width:26px;height:2px;background:var(--coulomb);margin:3px 0}
+.d2-l i::after{content:"";position:absolute;right:-1px;top:-4px;border-left:7px solid var(--coulomb);border-top:5px solid transparent;border-bottom:5px solid transparent}
+@media (max-width:560px){
+  .d2-chaine{flex-direction:column;align-items:stretch}
+  .d2-b{max-width:none;flex:none;padding:6px 10px}
+  .d2-b .d2-bl{display:inline-block;margin:2px 7px 0}
+  .d2-l{flex-direction:row;min-width:0;gap:8px;padding:3px 0}
+  .d2-l i{width:2px;min-width:2px;height:16px;margin:0 2px}
+  .d2-l i::after{right:auto;left:-4px;top:auto;bottom:-1px;border-top:7px solid var(--coulomb);border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:0}
+}
+
+/* extrait de diagramme des exigences, diagramme de définition des blocs */
+.d2-exig{display:flex;flex-direction:column;align-items:center;gap:0}
+.d2-reqs,.d2-bdd{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;width:100%}
+.d2-req,.d2-blk{background:var(--paper);border:1.5px solid var(--ink);border-radius:3px;font-size:.84rem;line-height:1.35;min-width:0}
+.d2-req.top{width:min(100%,330px)}
+.d2-rh{padding:5px 8px;border-bottom:1.5px solid var(--ink);text-align:center}
+.d2-rh i{display:block;font-size:.76rem;color:var(--ink-3)}
+.d2-rh b{font-weight:700}
+.d2-rb{padding:6px 9px}
+.d2-rb>div+div{margin-top:2px}
+.d2-vt{padding:2px 9px;font-size:.72rem;font-style:italic;color:var(--ink-3);border-bottom:1px solid var(--rule)}
+.d2-blk .d2-rb{font-family:var(--f-mono);font-size:.8rem}
+.d2-sat{padding:4px 9px;border-top:1px dashed var(--ink-3);font-size:.78rem;color:var(--ink-2)}
+.d2-ref{height:22px;width:2px;background:var(--ink);position:relative;margin:0 auto}
+.d2-ref i{position:absolute;left:8px;top:2px;font-size:.74rem;color:var(--ink-3);white-space:nowrap}
+
+/* caractéristiques constructeur */
+.d2-fiche{width:100%;border-collapse:collapse;background:var(--paper);border:1.5px solid var(--ink);font-size:.86rem;line-height:1.35}
+.d2-fiche caption{caption-side:top;text-align:left;font-weight:700;padding:0 0 6px}
+.d2-fiche th,.d2-fiche td{padding:5px 9px;border-bottom:1px solid var(--rule);text-align:left;font-weight:400;vertical-align:top}
+.d2-fiche tr:last-child th,.d2-fiche tr:last-child td{border-bottom:0}
+.d2-fiche td{font-family:var(--f-mono);font-weight:600;white-space:nowrap;text-align:right}
+
+/* figure agrandie */
+.zoomdoc{position:fixed;inset:0;z-index:90;background:var(--ground);display:flex;flex-direction:column}
+.zd-bar{flex:none;display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--paper);border-bottom:1px solid var(--rule);font-size:.9rem}
+.zd-bar span{min-width:0;flex:1}
+.zd-bar b{font-family:var(--f-disp);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.zd-in{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:14px}
+.zd-doc{min-width:min(720px,160vw);max-width:1100px;margin:0 auto;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:16px;font-size:1.12rem}
+.zd-doc>svg{display:block;width:100%;height:auto}
+.zd-doc .d2-chaine{flex-direction:row;align-items:stretch}
+.zd-doc .d2-b{max-width:220px;flex:1 1 0;padding:8px 10px}
+.zd-doc .d2-b .d2-bl{display:block;margin:2px 0 0}
+.zd-doc .d2-l{flex-direction:column;min-width:40px;gap:1px;padding:0 4px}
+.zd-doc .d2-l i{width:100%;min-width:30px;height:2px;margin:3px 0}
+.zd-doc .d2-l i::after{left:auto;right:-1px;top:-4px;bottom:auto;border-left:7px solid var(--coulomb);border-top:5px solid transparent;border-bottom:5px solid transparent;border-right:0}
+
+/* ===== v2 · correction détaillée ===== */
+.fb .cx-dg{margin:.55rem 0 0;padding:8px 10px;border-radius:5px;background:var(--warn-soft);border-left:3px solid var(--warn);color:var(--ink)}
+.fb .cx{margin-top:10px;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:2px 12px 10px;color:var(--ink)}
+.cx-s{margin-top:10px}
+.cx-s+.cx-s{padding-top:10px;border-top:1px solid var(--rule-2)}
+.cx-t{font-family:var(--f-disp);font-weight:700;letter-spacing:.07em;text-transform:uppercase;font-size:.8rem;color:var(--accent)}
+.cx-s.cx-pg .cx-t{color:var(--coulomb)}
+.cx-s.cx-rt .cx-t{color:var(--good)}
+.fb .cx p{margin:.2rem 0 0}
+.cx ol{margin:.25rem 0 0;padding:0 0 0 1.25rem}
+.cx li{margin:.35rem 0;padding-left:.15rem}
+.cx li::marker{font-family:var(--f-mono);font-weight:600;color:var(--accent)}
+.cx .f{white-space:normal}
+.essai-b{background:var(--accent);color:var(--accent-ink);text-align:center;padding:7px 14px;font-size:.9rem;line-height:1.4}
+.essai-b a{color:inherit;font-weight:700}
+@media print{.zoomdoc,.doc-zoom,.essai-b{display:none}}
+/* rappel des résultats précédents, en court (questions v2) */
+.rappel.court ul{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:4px 14px}
+.rappel.court li{margin:0;font-family:var(--f-mono);font-size:.9rem}
+/* téléphone : une figure à la fois, onglets « Figure 1 », « Figure 2 »… */
+.doc-tabs{display:flex;gap:6px;margin:0 0 8px;overflow-x:auto}
+.doc-tabs button{flex:1 0 auto;font:inherit;font-family:var(--f-disp);font-weight:700;font-size:.92rem;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:7px 12px;cursor:pointer}
+.doc-tabs button.on{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
+.figbox.tabs .doc{display:none;margin-bottom:0}
+.figbox.tabs .doc.on{display:block}
+@media (max-width:560px){.d2-chaine.n4 .d2-bt{font-size:.92rem}.d2-chaine.n4 .d2-bl{font-size:.82rem}}
