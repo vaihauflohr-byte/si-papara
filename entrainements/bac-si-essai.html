@@ -538,6 +538,27 @@ details.corr .qtext{font-size:.98rem;margin:.4rem 0}
 .figbox.tabs .doc{display:none;margin-bottom:0}
 .figbox.tabs .doc.on{display:block}
 @media (max-width:560px){.d2-chaine.n4 .d2-bt{font-size:.92rem}.d2-chaine.n4 .d2-bl{font-size:.82rem}}
+/* ===== v2 · réponses rédigées : phrase à compléter, rédaction vérifiée par l'IA ===== */
+textarea.red{display:block;width:100%;min-height:6.5rem;font:inherit;font-size:1rem;line-height:1.45;border:1.5px solid var(--rule);border-radius:6px;padding:.55rem .7rem;background:var(--paper-2);color:var(--ink);resize:vertical;margin-bottom:8px}
+textarea.red:focus{outline:2px solid var(--accent);outline-offset:1px}
+.ia-info{font-size:.8rem;line-height:1.4;color:var(--ink-3);margin:.5rem 0 0}
+.trous{line-height:2.4;font-size:1rem;margin:.2rem 0 .7rem;padding:8px 12px;background:var(--paper-2);border:1px solid var(--rule);border-radius:6px}
+select.trou{font:inherit;font-size:.95rem;max-width:100%;border:1.5px solid var(--accent);border-radius:5px;padding:.25rem .3rem;background:var(--paper);color:var(--ink)}
+select.trou.ok{border-color:var(--good);background:var(--good-soft)} select.trou.ko{border-color:var(--bad);background:var(--bad-soft)}
+.fb.mi{background:var(--warn-soft)} .fb.mi .t{color:var(--warn)}
+.fb.att{background:var(--paper-2);color:var(--ink-2)}
+.fb.auto{background:var(--paper-2);border:1px solid var(--rule)} .fb.auto .t{color:var(--accent)}
+.els{list-style:none;margin:.5rem 0 0;padding:0}
+.els li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;padding:7px 0;border-top:1px solid var(--rule-2)}
+.els li:first-child{border-top:0}
+.els .pic{font-weight:700;text-align:center}
+.els .present .pic{color:var(--good)} .els .partiel .pic{color:var(--warn)} .els .absent .pic{color:var(--bad)}
+.els small{display:block;color:var(--ink-2);font-size:.86rem;margin-top:1px}
+.fb .cx-mod{margin-top:.6rem;padding:8px 10px;border-radius:5px;background:var(--paper);border:1px solid var(--rule);color:var(--ink)}
+blockquote.modele{margin:.4rem 0;padding:8px 10px;border-left:3px solid var(--accent);background:var(--paper)}
+.chk{display:flex;gap:8px;align-items:flex-start;padding:6px 0;font-size:.95rem;cursor:pointer}
+.chk input{margin-top:.2rem;width:18px;height:18px;flex:none}
+.ctx.merite{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 10px;border-radius:0 5px 5px 0}
 </style>
 <script src="../contenu/fiches-bac.js"></script>
 <script src="../contenu/calendrier.js"></script>
@@ -579,7 +600,7 @@ details.corr .qtext{font-size:.98rem;margin:.4rem 0}
 
 <main class="wrap" id="app"></main>
 
-<footer class="wrap">Probabilité : part des sujets de spécialité SI 2021-2026 où la notion est demandée au moins une fois, avec un poids renforcé pour les sessions 2024-2026. Maîtrise : réussite sur tes 10 dernières questions de la notion, une bonne réponse valant 60 % au niveau Découvrir, 85 % au niveau Appliquer et 100 % au niveau Approfondir (verte à partir de 80 %, orange de 50 à 80 %, rouge en dessous). Barème : la note part de 20 et perd 2 points par réponse fausse. Réponses numériques : 3 chiffres significatifs suffisent (virgule ou point). Touches 1 à 5 pour répondre, Entrée pour valider ou passer à la suite.</footer>
+<footer class="wrap">Probabilité : part des sujets de spécialité SI 2021-2026 où la notion est demandée au moins une fois, avec un poids renforcé pour les sessions 2024-2026. Maîtrise : réussite sur tes 10 dernières questions de la notion, une bonne réponse valant 60 % au niveau Découvrir, 85 % au niveau Appliquer et 100 % au niveau Approfondir (verte à partir de 80 %, orange de 50 à 80 %, rouge en dessous). Barème : la note part de 20 et perd 2 points par réponse fausse ; une réponse rédigée incomplète perd 1 point. Après un sans-faute sur une notion réécrite, une étude finale s'ajoute : il faut la réussir pour garder 20. Réponses numériques : 3 chiffres significatifs suffisent (virgule ou point). Touches 1 à 5 pour répondre, Entrée pour valider ou passer à la suite.</footer>
 
 <script>
 const RANK=[{"id": "ana-exigences", "dom": "ana", "lab": "Diagramme des exigences", "p_all": 1.0, "p_recent": 1.0, "nq": 153}, {"id": "info-programmation", "dom": "info", "lab": "Python, algorigramme", "p_all": 0.941, "p_recent": 0.941, "nq": 61}, {"id": "meca-actions", "dom": "meca", "lab": "Actions mécaniques, moments", "p_all": 0.912, "p_recent": 0.941, "nq": 79}, {"id": "meca-cinematique", "dom": "meca", "lab": "Cinématique, lois de mouvement", "p_all": 0.941, "p_recent": 0.882, "nq": 112}, {"id": "simu-modele", "dom": "simu", "lab": "Modèle multiphysique, simulation", "p_all": 0.853, "p_recent": 0.882, "nq": 72}, {"id": "phy-newton", "dom": "phy", "lab": "2e loi de Newton, mouvements", "p_all": 0.912, "p_recent": 0.824, "nq": 121}, {"id": "ener-puissance", "dom": "ener", "lab": "Puissance, énergie", "p_all": 0.853, "p_recent": 0.824, "nq": 85}, {"id": "info-numerisation", "dom": "info", "lab": "CAN / CNA, quantum", "p_all": 0.706, "p_recent": 0.824, "nq": 49}, {"id": "phy-mesure", "dom": "phy", "lab": "Mesure, incertitudes, graphes", "p_all": 0.765, "p_recent": 0.706, "nq": 60}, {"id": "ana-structure", "dom": "ana", "lab": "Blocs, chaînes de puissance / info", "p_all": 0.706, "p_recent": 0.647, "nq": 29}, {"id": "meca-transmission", "dom": "meca", "lab": "Transmetteurs, rapports de réduction", "p_all": 0.588, "p_recent": 0.765, "nq": 36}, {"id": "phy-ondes", "dom": "phy", "lab": "Ondes, son, interférences", "p_all": 0.706, "p_recent": 0.647, "nq": 113}, {"id": "info-codage", "dom": "info", "lab": "Binaire, hexadécimal", "p_all": 0.588, "p_recent": 0.706, "nq": 35}, {"id": "ener-stockage", "dom": "ener", "lab": "Batterie, autonomie", "p_all": 0.676, "p_recent": 0.588, "nq": 68}, {"id": "info-transmission", "dom": "info", "lab": "Trames, protocoles, réseaux", "p_all": 0.618, "p_recent": 0.647, "nq": 51}, {"id": "ener-rendement", "dom": "ener", "lab": "Rendement, pertes", "p_all": 0.588, "p_recent": 0.647, "nq": 29}, {"id": "meca-statique", "dom": "meca", "lab": "Principe fondamental de la statique", "p_all": 0.559, "p_recent": 0.647, "nq": 36}, {"id": "ana-ecarts", "dom": "ana", "lab": "Écarts attendu / mesuré / simulé", "p_all": 0.618, "p_recent": 0.529, "nq": 30}, {"id": "meca-dynamique", "dom": "meca", "lab": "Principe fondamental de la dynamique", "p_all": 0.5, "p_recent": 0.529, "nq": 27}, {"id": "phy-thermo", "dom": "phy", "lab": "Thermodynamique", "p_all": 0.647, "p_recent": 0.353, "nq": 133}, {"id": "ener-moteur", "dom": "ener", "lab": "Moteurs électriques", "p_all": 0.412, "p_recent": 0.529, "nq": 24}, {"id": "auto-performances", "dom": "auto", "lab": "Précision, rapidité, stabilité", "p_all": 0.441, "p_recent": 0.353, "nq": 24}, {"id": "meca-liaisons", "dom": "meca", "lab": "Liaisons, schéma cinématique", "p_all": 0.382, "p_recent": 0.412, "nq": 20}, {"id": "ener-circuits", "dom": "ener", "lab": "Circuits, lois de Kirchhoff", "p_all": 0.412, "p_recent": 0.353, "nq": 18}, {"id": "phy-gravitation", "dom": "phy", "lab": "Gravitation, satellites", "p_all": 0.412, "p_recent": 0.353, "nq": 82}, {"id": "meca-fluides", "dom": "meca", "lab": "Fluides : pression, portance, traînée", "p_all": 0.353, "p_recent": 0.353, "nq": 33}, {"id": "phy-energie-meca", "dom": "phy", "lab": "Énergie mécanique, travail", "p_all": 0.353, "p_recent": 0.294, "nq": 39}, {"id": "auto-correcteur", "dom": "auto", "lab": "Correcteurs P, PI, PID", "p_all": 0.324, "p_recent": 0.294, "nq": 14}, {"id": "ana-comportement", "dom": "ana", "lab": "Séquence, états-transitions", "p_all": 0.353, "p_recent": 0.118, "nq": 19}, {"id": "ener-sources", "dom": "ener", "lab": "Photovoltaïque, éolien, H₂", "p_all": 0.176, "p_recent": 0.235, "nq": 18}, {"id": "auto-schema-bloc", "dom": "auto", "lab": "Schéma-bloc, fonction de transfert", "p_all": 0.176, "p_recent": 0.176, "nq": 7}, {"id": "meca-frottement", "dom": "meca", "lab": "Adhérence, frottement (Coulomb)", "p_all": 0.176, "p_recent": 0.118, "nq": 9}, {"id": "innov-conception", "dom": "simu", "lab": "Innovation, conception", "p_all": 0.176, "p_recent": 0.118, "nq": 7}, {"id": "phy-optique", "dom": "phy", "lab": "Optique, photon", "p_all": 0.118, "p_recent": 0.176, "nq": 11}, {"id": "info-logique", "dom": "info", "lab": "Logique booléenne", "p_all": 0.088, "p_recent": 0.176, "nq": 4}, {"id": "ener-convertisseur", "dom": "ener", "lab": "Hacheur, onduleur, MLI", "p_all": 0.118, "p_recent": 0.059, "nq": 5}, {"id": "dd-environnement", "dom": "simu", "lab": "Impact environnemental", "p_all": 0.088, "p_recent": 0.059, "nq": 5}, {"id": "meca-rdm", "dom": "meca", "lab": "Résistance des matériaux", "p_all": 0.029, "p_recent": 0.059, "nq": 1}, {"id": "phy-fluides", "dom": "phy", "lab": "Fluides (Bernoulli, Archimède)", "p_all": 0.059, "p_recent": 0.0, "nq": 4}, {"id": "ener-thermique", "dom": "ener", "lab": "Thermique (partie SI)", "p_all": 0.029, "p_recent": 0.0, "nq": 4}, {"id": "phy-electricite", "dom": "phy", "lab": "Circuits RC, condensateur", "p_all": 0.0, "p_recent": 0.0, "nq": 0}];
@@ -1420,8 +1441,8 @@ function pickGen(key,l){
   s.add(i); seen[l]=[...s]; seenSet(key,seen); return i;
 }
 /* Tire une partie : par niveau, des générateurs au hasard, en privilégiant ceux que l'élève n'a pas encore vus. */
-function drawFrom(key){
-  const P=POOLS[key], cnt=P.count||{1:4,2:4,3:3}, out=[], seen=seenGet(key);
+function drawFrom(key,c){
+  const P=POOLS[key], cnt=c||P.count||{1:4,2:4,3:3}, out=[], seen=seenGet(key);
   [1,2,3].forEach(l=>{
     const n=P[l].length; let s=new Set(seen[l]||[]);
     if(n-s.size<cnt[l]) s=new Set();
@@ -17565,6 +17586,8 @@ POOLS["meca-transmission"]={
 const sb=(b,i)=>`${b}<sub>${i}</sub>`;
 const R1=k=>`r = ${FRAC("1",k)}`;
 const TPI=2*Math.PI;
+const trou=(ok,wrong,m)=>{ const o=shuffle([...new Set([ok,...wrong])]); return {o,ok:o.indexOf(ok),m}; };   /* élément à choisir dans une phrase à compléter */
+const cmp=(a,b)=>a<=b?"inférieur":"supérieur";
 const SYSR=[{n:"robot de livraison",a:"Le robot",le:"du robot"},{n:"chariot autonome d'entrepôt",a:"Le chariot",le:"du chariot"},{n:"robot tondeuse",a:"Le robot",le:"du robot"},{n:"fauteuil de plage motorisé",a:"Le fauteuil",le:"du fauteuil"}];
 const LCH=[["U","I"],[sb("C","m"),sb("ω","m")],[sb("C","r"),sb("ω","r")],["F","V"]];
 
@@ -17669,14 +17692,36 @@ const V2N1=[
         `La puissance se conserve aux pertes près (${F("P = C·ω")}) : si la vitesse ${mult?"augmente, le couple diminue":"diminue, le couple augmente"}.`],
       piege:`Croire qu'un transmetteur peut augmenter à la fois la vitesse et le couple : il faudrait créer de la puissance.`,
       ret:`r < 1 : réducteur (moins de vitesse, plus de couple). r > 1 : multiplicateur (plus de vitesse, moins de couple).`}; }
+  ,
+  /* g6 · reconnaître une conclusion complète : valeur trouvée, valeur exigée, comparaison, réponse */
+  ()=>{ const c=rnd([{d:"du diagramme des exigences d'un portail coulissant",nom:"Durée d'ouverture",ex:x=>`Le portail doit s'ouvrir complètement en moins de ${x} s.`,g:"Durée d'ouverture calculée",u:"s",L:[15,20,25,30],ph:v=>`Le portail s'ouvre en ${v} s`,lim:x=>`aux ${x} s exigées`},
+      {d:"du diagramme des exigences d'un store de terrasse",nom:"Durée de déploiement",ex:x=>`Le store doit se déployer complètement en moins de ${x} s.`,g:"Durée de déploiement calculée",u:"s",L:[20,30,40,45],ph:v=>`Le store se déploie en ${v} s`,lim:x=>`aux ${x} s exigées`},
+      {d:"du diagramme des exigences d'un chariot autonome",nom:"Sécurité",ex:x=>`Le chariot ne doit pas dépasser ${x} km/h.`,g:"Vitesse maximale calculée",u:"km/h",L:[4,5,6,8],ph:v=>`Le chariot roule au plus à ${v} km/h`,lim:x=>`à la limite de ${x} km/h`}]);
+    const X=rnd(c.L), oui=Math.random()<.5, val=Number((X*(oui?rnd([.72,.8,.86]):rnd([1.14,1.22,1.3]))).toPrecision(3)), v=nf(val,3);
+    const sat=o=>o?"est satisfaite":"n'est pas satisfaite", mot=oui?"inférieur":"supérieur";
+    const ok=`« ${c.ph(v)}. C'est ${mot} ${c.lim(X)} : l'exigence 1.1 ${sat(oui)}. »`;
+    return {fig:DOC(1,`extrait ${c.d}`,d2Exig({reqs:[{id:"1.1",nom:c.nom,txt:c.ex(X)}]}))+DOC(2,"résultat de l'étude",d2Fiche({lignes:[[c.g,`${v} ${c.u}`]]})),
+      q:`Quatre élèves concluent sur l'exigence 1.1. Quelle copie donne une conclusion complète et juste ?`,type:"ch",
+      ...mcw(ok,[[`« L'exigence 1.1 ${sat(oui)}. »`,`la réponse est juste, mais aucune valeur ne la justifie. À l'écrit, une conclusion sans nombres ne rapporte pas tous les points.`],
+        [`« ${c.ph(v)} et l'exigence 1.1 fixe la limite à ${X} ${c.u}. »`,`les deux valeurs sont citées, mais la copie ne les compare pas et ne dit pas si l'exigence est satisfaite.`],
+        [`« ${c.ph(v)}. C'est ${mot} ${c.lim(X)} : l'exigence 1.1 ${sat(!oui)}. »`,`la comparaison est juste, mais la réponse la contredit : ${v} ${c.u} ${oui?"reste sous":"dépasse"} la limite de ${X} ${c.u}.`]]),
+      don:`exigence 1.1 : ${X} ${c.u} au plus ; valeur calculée ${v} ${c.u}`,
+      expl:`${v} ${c.u} est ${mot} à ${X} ${c.u} : l'exigence 1.1 ${sat(oui)}. La bonne copie donne les deux valeurs, les compare et répond.`,
+      lire:`Figure 1, exigence 1.1 : ${X} ${c.u} au plus. Figure 2 : valeur calculée, ${v} ${c.u}.`,
+      met:[`Une conclusion complète tient en quatre éléments : la valeur trouvée, la valeur exigée, la comparaison, la réponse.`,
+        `Ici : ${v} ${c.u} (trouvé), ${X} ${c.u} (exigé), ${v} est ${mot} à ${X}, donc l'exigence 1.1 ${sat(oui)}.`,
+        `La copie complète est la seule qui contient ces quatre éléments sans se contredire.`],
+      piege:`Écrire seulement « l'exigence est satisfaite ». Le correcteur attend les deux valeurs et la comparaison.`,
+      ret:`Conclure = la valeur trouvée, la valeur exigée, la comparaison, la réponse.`}; }
 ];
 
 const V2N2=[
-  /* g0 · du moteur à la vitesse du véhicule : vitesse angulaire de la roue, puis vitesse en km/h */
-  ()=>{ const s=rnd(SYSR), Nm=rnd([2400,3000,3600,4200]), k=rnd([20,25,30,40,50]), D=rnd([20,25,30,40]), eta=rnd([0.8,0.85,0.9]), P=rnd([150,200,250,350]);
-    const wm=TPI*Nm/60, wr=wm/k, v=wr*D/200, vk=v*3.6;
-    const fig=DOC(1,`chaîne de puissance d'une roue motrice du ${s.n}`,d2Chaine({blocs:[{t:"Moteur",l:[`${P} W`,`${nf(Nm,0)} tr/min`]},{t:"Réducteur",l:[R1(k),`Rendement ${nf(eta)}`]},{t:"Roue motrice",l:[`Diamètre ${D} cm`]}],liens:LCH}));
-    const don=`moteur ${Nm} tr/min ; r = 1/${k} ; rendement ${nf(eta)} ; diamètre de roue ${D} cm`;
+  /* g0 · du moteur à la vitesse du véhicule : vitesse angulaire de la roue, vitesse en km/h, puis conclusion à compléter */
+  ()=>{ const o=draw(()=>{ const Nm=rnd([2400,3000,3600,4200]), k=rnd([20,25,30,40,50]), D=rnd([20,25,30,40]), Vx=rnd([4,5,6,8,10,12,15]), wm=TPI*Nm/60, wr=wm/k, v=wr*D/200, vk=v*3.6; return {Nm,k,D,Vx,wm,wr,v,vk}; }, o=>far(o.vk,o.Vx,0.08)&&o.vk<3*o.Vx&&o.vk>o.Vx/3);
+    const {Nm,k,D,Vx,wm,wr,v,vk}=o, s=rnd(SYSR), eta=rnd([0.8,0.85,0.9]), P=rnd([150,200,250,350]), oui=vk<=Vx;
+    const fig=DOC(1,`chaîne de puissance d'une roue motrice du ${s.n}`,d2Chaine({blocs:[{t:"Moteur",l:[`${P} W`,`${nf(Nm,0)} tr/min`]},{t:"Réducteur",l:[R1(k),`Rendement ${nf(eta)}`]},{t:"Roue motrice",l:[`Diamètre ${D} cm`]}],liens:LCH}))+
+      DOC(2,`extrait du diagramme des exigences du ${s.n}`,d2Exig({reqs:[{id:"1.3",nom:"Sécurité",txt:`${s.a} ne doit pas dépasser ${Vx} km/h.`}]}));
+    const don=`moteur ${Nm} tr/min ; r = 1/${k} ; rendement ${nf(eta)} ; diamètre de roue ${D} cm ; exigence 1.3 : ${Vx} km/h au plus`;
     return [{fig,don,q:`À l'aide de la figure 1, détermine la vitesse angulaire ${sb("ω","r")} de la roue, en rad/s, lorsque le moteur tourne à sa fréquence de rotation nominale.`,nom:sb("ω","r"),type:"num",ans:wr,tolR:0.01,unit:"rad/s",
         expl:`${F(`ω<sub>m</sub> = ${FRAC("2π·N<sub>m</sub>","60")}`)} = ${S3(wm)} rad/s ; ${F("ω<sub>r</sub> = r·ω<sub>m</sub>")} = ${U(wr,"rad/s")}.`,
         lire:`Bloc « Moteur » : ${nf(Nm,0)} tr/min. Bloc « Réducteur » : ${R1(k)}. Le rendement et la puissance ne servent pas pour une vitesse.`,
@@ -17685,7 +17730,7 @@ const V2N2=[
         piege:`Rester en tr/min. Un tour vaut 2π radians et une minute vaut 60 secondes.`,
         ret:`${F(`ω = ${FRAC("2π·N","60")}`)} (N en tr/min, ω en rad/s).`,
         diag:[{v:Nm/k,m:`ta valeur est en tr/min : c'est la fréquence de rotation de la roue. Pour l'avoir en rad/s, multiplie par 2π et divise par 60.`},{v:wm,m:`tu as calculé la vitesse angulaire du moteur. Il reste à appliquer le rapport du réducteur.`},{v:wm*k,m:`tu as multiplié par ${k}. Un réducteur de rapport ${R1(k)} divise la vitesse par ${k}.`},{v:wr*eta,m:`tu as multiplié par le rendement. Il agit sur le couple et la puissance, pas sur la vitesse.`}]},
-      {q:`Déduis-en la vitesse de déplacement ${s.le}, en km/h. Les roues roulent sans glisser.`,type:"num",ans:vk,tolR:0.015,unit:"km/h",don,
+      {q:`Déduis-en la vitesse de déplacement ${s.le}, en km/h. Les roues roulent sans glisser.`,nom:"V",type:"num",ans:vk,tolR:0.015,unit:"km/h",don,
         expl:`${F("V = R·ω<sub>r</sub>")} = ${nf(D/200,3)} × ${S3(wr)} = ${S3(v)} m/s, soit ${U(vk,"km/h")}.`,
         lire:`Bloc « Roue motrice » : diamètre ${D} cm, donc ${F(`R = ${nf(D/200,3)} m`)}.`,
         met:[`Roulement sans glissement : ${F("V = R·ω<sub>r</sub>")}, avec le rayon en mètres.`,
@@ -17693,14 +17738,27 @@ const V2N2=[
           `Conversion : ${F(`V = ${S3(v)} × 3,6 = ${S3(vk)} km/h`)}.`],
         piege:`Oublier la dernière conversion : la relation V = R·ω donne des m/s.`,
         ret:`${F("V = R·ω")} ; 1 m/s = 3,6 km/h.`,
-        diag:[{v,m:`ta valeur est en m/s. La question demande des km/h : multiplie par 3,6.`},{v:vk*2,m:`tu as utilisé le diamètre. Dans V = R·ω, R est le rayon.`},{v:v/3.6,m:`tu as divisé par 3,6. Pour passer des m/s aux km/h, on multiplie par 3,6.`}]}]; },
+        diag:[{v,m:`ta valeur est en m/s. La question demande des km/h : multiplie par 3,6.`},{v:vk*2,m:`tu as utilisé le diamètre. Dans V = R·ω, R est le rayon.`},{v:v/3.6,m:`tu as divisé par 3,6. Pour passer des m/s aux km/h, on multiplie par 3,6.`}]},
+      {q:`Complète la conclusion sur l'exigence 1.3 (figure 2).`,type:"trous",don,
+        phr:[`À la fréquence de rotation nominale du moteur, ${s.a.toLowerCase()} roule à `,trou(`${S3(vk)} km/h`,[`${S3(v)} km/h`,`${S3(wr)} km/h`],`La valeur à citer est la vitesse que tu viens de calculer, en km/h : ${S3(vk)} km/h.`),
+          `. C'est `,trou(oui?"inférieur":"supérieur",[oui?"supérieur":"inférieur"],`Compare les deux valeurs : ${S3(vk)} est ${oui?"plus petit":"plus grand"} que ${Vx}.`),
+          ` à la limite de ${Vx} km/h : l'exigence 1.3 `,trou(oui?"est":"n'est pas",[oui?"n'est pas":"est"],`${s.a} ne doit pas dépasser ${Vx} km/h : avec ${S3(vk)} km/h, l'exigence ${oui?"est":"n'est pas"} satisfaite.`),` satisfaite.`],
+        expl:`${S3(vk)} km/h est ${oui?"inférieur":"supérieur"} à ${Vx} km/h : l'exigence 1.3 ${oui?"est":"n'est pas"} satisfaite.`,
+        lire:`Figure 2, exigence 1.3 : ${Vx} km/h au plus. Question précédente : ${S3(vk)} km/h.`,
+        met:[`Une conclusion complète donne la valeur trouvée, la valeur exigée, la comparaison, puis la réponse.`,
+          `Valeur trouvée : ${F(`${S3(vk)} km/h`)}. Valeur exigée : ${F(`${Vx} km/h`)} au plus.`,
+          `${S3(vk)} est ${oui?"plus petit":"plus grand"} que ${Vx} : l'exigence 1.3 ${oui?"est":"n'est pas"} satisfaite${oui?"":". Il faudrait limiter la vitesse du moteur, ou réduire davantage"}.`],
+        piege:`Citer une valeur dans la mauvaise unité : l'exigence est en km/h, on compare des km/h.`,
+        ret:`Conclure = la valeur trouvée, la valeur exigée, la comparaison, la réponse.`}]; },
 
-  /* g1 · couple à la roue, puis « montre que » le couple moteur vaut environ… */
-  ()=>{ const o=draw(()=>{ const Fm=rnd([60,80,100,120,150,180]), D=rnd([20,24,30,40]), k=rnd([20,25,30,35,40]), eta=rnd([0.8,0.85,0.9]), Cr=Fm*D/200, Cm=Cr/(k*eta), ap=Number(Cm.toPrecision(2)); return {Fm,D,k,eta,Cr,Cm,ap}; },
-      o=>o.Cm>0.1&&o.Cm<3&&Math.abs(o.ap-Number(o.Cm.toPrecision(3)))/o.Cm>0.008);
-    const s=rnd(SYSR), {Fm,D,k,eta,Cr,Cm,ap}=o;
-    const fig=DOC(1,`chaîne de puissance d'une roue motrice du ${s.n}, dans une pente`,d2Chaine({blocs:[{t:"Moteur",l:[`${rnd([24,36])} V`]},{t:"Réducteur",l:[R1(k),`Rendement ${nf(eta)}`]},{t:"Roue motrice",l:[`Diamètre ${D} cm`]}],liens:[["U","I"],[sb("C","m"),sb("ω","m")],[sb("C","r"),sb("ω","r")],[`F = ${Fm} N`,"V"]]}));
-    const don=`F = ${Fm} N ; diamètre de roue ${D} cm ; r = 1/${k} ; rendement ${nf(eta)}`;
+  /* g1 · couple à la roue, « montre que » le couple moteur vaut environ…, puis conclusion à compléter sur le choix du moteur */
+  ()=>{ const o=draw(()=>{ const Fm=rnd([60,80,100,120,150,180]), D=rnd([20,24,30,40]), k=rnd([20,25,30,35,40]), eta=rnd([0.8,0.85,0.9]), Cr=Fm*D/200, Cm=Cr/(k*eta), ap=Number(Cm.toPrecision(2));
+        const Cn=Number((Cm*rnd([0.6,0.72,0.84,1.25,1.5,1.8])).toPrecision(2)), Cd=Number((Cn*rnd([2.5,3,4])).toPrecision(2)); return {Fm,D,k,eta,Cr,Cm,ap,Cn,Cd}; },
+      o=>o.Cm>0.1&&o.Cm<3&&Math.abs(o.ap-Number(o.Cm.toPrecision(3)))/o.Cm>0.008&&far(o.Cm,o.Cn,0.1)&&far(o.Cm,o.Cd,0.1)&&o.Cm<o.Cd);
+    const s=rnd(SYSR), {Fm,D,k,eta,Cr,Cm,ap,Cn,Cd}=o, oui=Cm<=Cn, U0=rnd([24,36]);
+    const fig=DOC(1,`chaîne de puissance d'une roue motrice du ${s.n}, dans une pente`,d2Chaine({blocs:[{t:"Moteur",l:["voir figure 2"]},{t:"Réducteur",l:[R1(k),`Rendement ${nf(eta)}`]},{t:"Roue motrice",l:[`Diamètre ${D} cm`]}],liens:[["U","I"],[sb("C","m"),sb("ω","m")],[sb("C","r"),sb("ω","r")],[`F = ${Fm} N`,"V"]]}))+
+      DOC(2,"caractéristiques du moteur",d2Fiche({lignes:[["Tension nominale",`${U0} V`],["Couple nominal",`${nf(Cn,3)} N·m`],["Couple de démarrage",`${nf(Cd,3)} N·m`]]}));
+    const don=`F = ${Fm} N ; diamètre de roue ${D} cm ; r = 1/${k} ; rendement ${nf(eta)} ; moteur : couple nominal ${nf(Cn,3)} N·m, couple de démarrage ${nf(Cd,3)} N·m`;
     return [{fig,don,q:`Pour monter la pente, la roue motrice doit exercer sur le sol l'effort F indiqué sur la figure 1. Détermine le couple ${sb("C","r")} que le réducteur doit fournir à la roue.`,nom:sb("C","r"),type:"num",ans:Cr,tolR:0.01,unit:"N·m",
         expl:`${F("C<sub>r</sub> = F·R")} = ${Fm} × ${nf(D/200,3)} = ${U(Cr,"N·m")}.`,
         lire:`À la sortie de la chaîne : ${F(`F = ${Fm} N`)}. Bloc « Roue motrice » : diamètre ${D} cm, donc ${F(`R = ${nf(D/200,3)} m`)}.`,
@@ -17712,12 +17770,24 @@ const V2N2=[
       {q:`Montre que le couple ${sb("C","m")} que le moteur doit fournir vaut environ ${nf(ap,3)} N·m. Écris la valeur que tu trouves, avec 3 chiffres significatifs.`,nom:sb("C","m"),type:"num",ans:Cm,tolR:0.006,unit:"N·m",don,
         expl:`${F(`C<sub>m</sub> = ${FRAC("r·C<sub>r</sub>","η")}`)} = ${FRAC(S3(Cr),`${k} × ${nf(eta)}`)} = ${U(Cm,"N·m")}.`,
         lire:`Bloc « Réducteur » : ${R1(k)} et rendement ${F(`η = ${nf(eta)}`)}.`,
-        met:[`Le réducteur multiplie le couple par ${FRAC("1","r")} et en perd une partie : ${F(`C<sub>r</sub> = ${FRAC("η·C<sub>m</sub>","r")}`)}.`,
+        met:[`Le réducteur multiplie le couple par ${k} et en perd une partie : ${F(`C<sub>r</sub> = ${FRAC("η·C<sub>m</sub>","r")}`)}.`,
           `On isole le couple moteur : ${F(`C<sub>m</sub> = ${FRAC("r·C<sub>r</sub>","η")}`)}.`,
           `${F(`C<sub>m</sub> = ${FRAC(S3(Cr),`${k} × ${nf(eta)}`)} = ${S3(Cm)} N·m`)}, soit environ ${nf(ap,3)} N·m.`],
         piege:`Multiplier par le rendement. Les pertes obligent le moteur à fournir plus : on divise par η.`,
         ret:`${F(`C<sub>s</sub> = ${FRAC("η·C<sub>e</sub>","r")}`)} : un réducteur augmente le couple, le rendement en retire une partie.`,
-        diag:[{v:Cr/k,m:`tu as oublié le rendement. Avec des pertes, le moteur doit fournir plus : divise encore par η = ${nf(eta)}.`},{v:Cr*eta/k,m:`tu as multiplié par le rendement. Les pertes obligent le moteur à fournir plus de couple : on divise par η.`},{v:Cr*k/eta,m:`tu as multiplié par ${k}. Côté moteur, le couple est ${k} fois plus petit qu'à la roue (aux pertes près).`},{v:ap,m:`tu as recopié la valeur approchée de l'énoncé. Fais le calcul et donne ton résultat avec 3 chiffres significatifs.`}]}]; },
+        diag:[{v:Cr/k,m:`tu as oublié le rendement. Avec des pertes, le moteur doit fournir plus : divise encore par η = ${nf(eta)}.`},{v:Cr*eta/k,m:`tu as multiplié par le rendement. Les pertes obligent le moteur à fournir plus de couple : on divise par η.`},{v:Cr*k/eta,m:`tu as multiplié par ${k}. Côté moteur, le couple est ${k} fois plus petit qu'à la roue (aux pertes près).`},{v:ap,m:`tu as recopié la valeur approchée de l'énoncé. Fais le calcul et donne ton résultat avec 3 chiffres significatifs.`}]},
+      {q:`À l'aide de la figure 2, complète la conclusion sur le choix du moteur. Il doit fournir ce couple pendant toute la montée.`,type:"trous",don,
+        phr:[`Le moteur doit fournir ${S3(Cm)} N·m pendant toute la montée. On compare cette valeur à son couple `,trou("nominal",["de démarrage"],`Le couple de démarrage n'est disponible qu'un court instant. Pour un effort qui dure, on compare au couple nominal.`),
+          `, qui vaut `,trou(`${nf(Cn,3)} N·m`,[`${nf(Cd,3)} N·m`],`Le couple nominal se lit dans la figure 2 : ${nf(Cn,3)} N·m.`),` : elle lui est `,
+          trou(oui?"inférieure":"supérieure",[oui?"supérieure":"inférieure"],`Compare les deux valeurs : ${S3(Cm)} est ${oui?"plus petit":"plus grand"} que ${nf(Cn,3)}.`),`, donc le moteur `,
+          trou(oui?"convient":"ne convient pas",[oui?"ne convient pas":"convient"],`Le moteur convient seulement si le couple demandé reste inférieur à son couple nominal.`),`.`],
+        expl:`${S3(Cm)} N·m est ${oui?"inférieur":"supérieur"} au couple nominal (${nf(Cn,3)} N·m) : le moteur ${oui?"convient":"ne convient pas"}.`,
+        lire:`Figure 2, ligne « Couple nominal » : ${nf(Cn,3)} N·m. Question précédente : ${S3(Cm)} N·m.`,
+        met:[`Un effort qui dure se compare au couple que le moteur peut fournir en permanence : son couple nominal.`,
+          `Couple demandé : ${F(`${S3(Cm)} N·m`)}. Couple nominal : ${F(`${nf(Cn,3)} N·m`)}.`,
+          `${S3(Cm)} est ${oui?"plus petit":"plus grand"} que ${nf(Cn,3)} : le moteur ${oui?"convient":"ne convient pas"}.`],
+        piege:`Comparer au couple de démarrage : il est plus grand, mais le moteur ne le tient que quelques secondes.`,
+        ret:`Un moteur convient si le couple demandé reste inférieur à son couple nominal.`}]; },
 
   /* g2 · réducteur à deux étages d'engrenages : fréquence de rotation de la sortie */
   ()=>{ const Z1=rnd([12,15,18]), Z2=rnd([36,45,48,54,60]), Z3=rnd([12,15,20]), Z4=rnd([40,48,50,60]), Nm=rnd([1500,3000]), Pn=rnd([90,120,180]);
@@ -17837,7 +17907,10 @@ const V2N3=[
         piege:`Diviser la vitesse de la roue par ${k} : c'est le moteur qui tourne le plus vite, pas la roue.`,
         ret:`${F(`N = ${FRAC("60·ω","2π")}`)} (ω en rad/s, N en tr/min).`,
         diag:[{v:w*k,m:`ta valeur est en rad/s. Pour l'avoir en tr/min, multiplie par 60 et divise par 2π.`},{v:w*60/TPI,m:`tu as calculé la fréquence de rotation de la roue. Le moteur, avant le réducteur, tourne ${k} fois plus vite.`},{v:w/k*60/TPI,m:`tu as divisé par ${k}. Le moteur tourne ${k} fois plus vite que la roue : on multiplie.`}]},
-      {q:`À l'aide de la figure 3, conclus : le moteur choisi permet-il de satisfaire l'exigence 1.1 ?`,type:"ch",...fin,don,
+      {q:`À l'aide de la figure 3, conclus : le moteur choisi permet-il de satisfaire l'exigence 1.1 ? Rédige ta réponse.`,...fin,type:"red",don,
+        elements:[{t:`Donne la fréquence de rotation que le moteur doit atteindre (environ ${S3(Nm)} tr/min)`,p:1},{t:`Donne la fréquence de rotation maximale du moteur (${nf(Nx,0)} tr/min)`,p:1},{t:`Compare les deux valeurs`,p:1},{t:`Conclut que l'exigence 1.1 ${oui?"est":"n'est pas"} satisfaite`,p:2}],
+        modele:`Pour rouler à ${Vk} km/h, le moteur doit tourner à ${S3(Nm)} tr/min. C'est ${cmp(Nm,Nx)} à sa fréquence de rotation maximale (${nf(Nx,0)} tr/min) : l'exigence 1.1 ${oui?"est":"n'est pas"} satisfaite.`,
+        iaPlus:`Résultat de la question précédente : le moteur doit tourner à ${S3(Nm)} tr/min. Figure 3 : fréquence de rotation maximale du moteur ${Nx} tr/min.`,
         expl:oui?`${S3(Nm)} tr/min < ${nf(Nx,0)} tr/min : le moteur peut atteindre la fréquence de rotation nécessaire, l'exigence 1.1 est satisfaite.`:`${S3(Nm)} tr/min > ${nf(Nx,0)} tr/min : le moteur ne peut pas atteindre la fréquence de rotation nécessaire, l'exigence 1.1 n'est pas satisfaite.`,
         lire:`Figure 3, ligne « Fréquence de rotation maximale » : ${nf(Nx,0)} tr/min. Question précédente : il faut ${S3(Nm)} tr/min.`,
         met:[`Pour conclure, on compare ce qu'il faut à ce que le composant peut donner, dans la même unité.`,
@@ -17889,7 +17962,10 @@ const V2N3=[
         piege:`Appliquer V = R·ω avec une vitesse en tr/min : ω doit être en rad/s.`,
         ret:`${F("V = R·ω")} avec ${F(`ω = ${FRAC("2π·N","60")}`)}.`,
         diag:[{v:Nn/k*D/2000,m:`tu as utilisé la fréquence de rotation en tr/min. Dans V = R·ω, ω est en rad/s : multiplie par 2π et divise par 60.`},{v:vc*k,m:`tu as oublié le réducteur : le tambour tourne ${k} fois moins vite que le moteur.`},{v:vc*2,m:`tu as utilisé le diamètre. Dans V = R·ω, R est le rayon.`},{v:vc*1000,m:`tu as laissé le rayon en millimètres : ta vitesse est en mm/s.`}]},
-      {q:`À l'aide de la figure 3, conclus : le moteur choisi convient-il pour satisfaire l'exigence 1.1 pendant toute la manœuvre ?`,type:"ch",...fin,don,
+      {q:`À l'aide de la figure 3, conclus : le moteur choisi convient-il pour satisfaire l'exigence 1.1 pendant toute la manœuvre ? Rédige ta réponse.`,...fin,type:"red",don,
+        elements:[{t:`Donne le couple que le moteur doit fournir (environ ${S3(Cm)} N·m)`,p:1},{t:`Donne le couple nominal du moteur (${nf(Cn,3)} N·m), et pas son couple de démarrage`,p:1},{t:`Compare les deux valeurs`,p:1},{t:`Conclut que le moteur ${oui?"convient":"ne convient pas"}`,p:2}],
+        modele:`Le moteur doit fournir ${S3(Cm)} N·m pendant toute la manœuvre. C'est ${cmp(Cm,Cn)} à son couple nominal (${nf(Cn,3)} N·m) : le moteur ${oui?"convient":"ne convient pas"}.`,
+        iaPlus:`Résultat des questions précédentes : couple nécessaire sur l'arbre du moteur ${S3(Cm)} N·m. Figure 3 : couple nominal ${nf(Cn,3)} N·m, couple de démarrage ${nf(Cd,2)} N·m (disponible un court instant seulement).`,
         expl:oui?`${S3(Cm)} N·m < ${nf(Cn,3)} N·m : le moteur peut fournir le couple nécessaire en permanence, il convient.`:`${S3(Cm)} N·m > ${nf(Cn,3)} N·m : le moteur ne peut pas fournir ce couple en permanence, il ne convient pas.`,
         lire:`Figure 3, ligne « Couple nominal » : ${nf(Cn,3)} N·m. Couple nécessaire sur l'arbre du moteur (deuxième question) : ${S3(Cm)} N·m.`,
         met:[`On compare le couple à fournir au couple que le moteur peut donner en permanence : son couple nominal.`,
@@ -17935,7 +18011,10 @@ const V2N3=[
         piege:`Multiplier la course par la vitesse.`,
         ret:`À vitesse constante : ${F("d = V·t")}.`,
         diag:[{v:Lc*v,m:`tu as multiplié la course par la vitesse. La durée est la course divisée par la vitesse.`},{v:Tx,m:`tu as recopié la durée de l'exigence. On te demande la durée réelle, calculée avec la vitesse du portail.`}]},
-      {q:`Conclus vis-à-vis de l'exigence 1.1.`,type:"ch",...fin,don,
+      {q:`Conclus vis-à-vis de l'exigence 1.1. Rédige ta réponse.`,...fin,type:"red",don,
+        elements:[{t:`Donne la durée d'ouverture calculée (environ ${S3(t)} s)`,p:1},{t:`Donne la durée exigée (moins de ${Tx} s)`,p:1},{t:`Compare les deux durées`,p:1},{t:`Conclut que l'exigence 1.1 ${oui?"est":"n'est pas"} satisfaite`,p:2}],
+        modele:`Le portail s'ouvre en ${S3(t)} s. C'est ${cmp(t,Tx)} aux ${Tx} s exigées : l'exigence 1.1 ${oui?"est":"n'est pas"} satisfaite.`,
+        iaPlus:`Résultat de la question précédente : durée d'une ouverture complète ${S3(t)} s. Exigence 1.1 : moins de ${Tx} s.`,
         expl:oui?`${S3(t)} s < ${Tx} s : l'exigence 1.1 est satisfaite.`:`${S3(t)} s > ${Tx} s : l'exigence 1.1 n'est pas satisfaite.`,
         lire:`Figure 1, exigence 1.1 : moins de ${Tx} s. Question précédente : ${S3(t)} s.`,
         met:[`On compare la durée calculée à la durée exigée, dans la même unité.`,`Durée d'ouverture : ${F(`${S3(t)} s`)} ; exigence : moins de ${F(`${Tx} s`)}.`,
@@ -17980,7 +18059,10 @@ const V2N3=[
         piege:`Mélanger les unités : la course est en mm, le déplacement par impulsion en µm.`,
         ret:`Nombre d'impulsions = course divisée par le déplacement entre deux impulsions.`,
         diag:[{v:Lc/res,m:`tu as divisé des millimètres par des micromètres. Mets les deux longueurs dans la même unité.`},{v:Lc/p*n,m:`tu as oublié le réducteur : le moteur (et le codeur) fait ${k} tours pour un tour de vis.`}]},
-      {q:`Conclus vis-à-vis de l'exigence 1.1.`,type:"ch",...fin,don,
+      {q:`Conclus vis-à-vis de l'exigence 1.1. Rédige ta réponse.`,...fin,type:"red",don,
+        elements:[{t:`Donne le déplacement du chariot entre deux impulsions (environ ${S3(res)} µm)`,p:1},{t:`Donne la valeur exigée (${ex} µm au plus)`,p:1},{t:`Compare les deux valeurs`,p:1},{t:`Conclut que l'exigence 1.1 ${oui?"est":"n'est pas"} satisfaite`,p:2}],
+        modele:`Le plus petit déplacement mesurable est de ${S3(res)} µm. C'est ${cmp(res,ex)} aux ${ex} µm exigés : l'exigence 1.1 ${oui?"est":"n'est pas"} satisfaite.`,
+        iaPlus:`Résultat des questions précédentes : déplacement du chariot entre deux impulsions ${S3(res)} µm. Exigence 1.1 : ${ex} µm au plus.`,
         expl:oui?`${S3(res)} µm ≤ ${ex} µm : l'exigence 1.1 est satisfaite.`:`${S3(res)} µm > ${ex} µm : l'exigence 1.1 n'est pas satisfaite.`,
         lire:`Figure 1, exigence 1.1 : ${ex} µm au plus. Deuxième question : ${S3(res)} µm entre deux impulsions.`,
         met:[`Le plus petit déplacement mesurable est celui qui sépare deux impulsions.`,`Il vaut ${F(`${S3(res)} µm`)} ; l'exigence demande ${F(`${ex} µm`)} au plus.`,
@@ -17990,7 +18072,7 @@ const V2N3=[
 ];
 
 { const fiche=POOLS["meca-transmission"].fiche;
-  POOLS["meca-transmission"]={titre:"Rapports, vitesses et couples",fiche,count:{1:4,2:4,3:4},1:V2N1,2:V2N2,3:V2N3}; }
+  POOLS["meca-transmission"]={titre:"Rapports, vitesses et couples",fiche,v2:true,count:{1:4,2:4,3:4},1:V2N1,2:V2N2,3:V2N3}; }
 
 })();
 
@@ -20079,6 +20161,83 @@ document.addEventListener("click",e=>{
 document.addEventListener("keydown",e=>{ if(!document.querySelector(".zoomdoc")) return; if(e.key==="Escape") d2ZoomClose(); if(e.key!=="Tab") e.stopPropagation(); },true);
 window.BACSI_V2={numOk:(q,v)=>numOk(q,v),corrDiag,corrHTML};
 
+/* ===== v2 · réponses rédigées =====
+   type "trous" : phrase-réponse à compléter. q.phr = ["texte", {o:[choix…], ok:indice, m:"remarque si faux"}, "texte", …]
+   type "red"   : rédaction libre, vérifiée par l'IA du site (SIP.ia.corriger, fonction Supabase « corriger ») avec le barème
+                  q.elements = [{t, p}] et la réponse modèle q.modele. Sans IA (pas connecté, quota, réseau), l'élève vérifie
+                  lui-même sa réponse avec le modèle et coche les éléments présents. Note : complète (≥ 80 % du barème) → 0 ;
+                  incomplète (≥ 50 %) → −1 ; sinon −2. Une question "red" garde ses choix (ch, ok) pour le sujet blanc. */
+const POIDS_RED={present:1,partiel:.5,absent:0};
+const iaDispo=()=>{ try{ return !!(window.SIP&&SIP.ia&&SIP.ia.actif()&&SIP.session.get()); }catch(e){ return false; } };
+const brut=h=>String(h==null?"":h).replace(/<span class="sr">[^<]*<\/span>/g,"/").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();
+function attenduTxt(q){ return q.type==="ch"?q.ch[q.ok]:q.type==="red"?q.modele:q.type==="trous"?q.phr.map(x=>typeof x==="string"?x:`<b>${esc(x.o[x.ok])}</b>`).join(""):shownAns(q); }
+function ansV2(q){
+  if(q.type==="trous") return `<p class="trous">${q.phr.map((x,i)=>typeof x==="string"?x:`<select class="trou" data-g="${i}" aria-label="Élément manquant"><option value="">choisir…</option>${x.o.map((o,k)=>`<option value="${k}">${esc(o)}</option>`).join("")}</select>`).join("")}</p><div class="num"><button class="btn primary" id="val" type="button">Valider</button></div><div class="warnmsg" id="wm" hidden></div>`;
+  return `<textarea id="red" class="red" rows="4" maxlength="700" placeholder="Rédige ta réponse en une ou deux phrases : les valeurs avec leurs unités, la comparaison, la conclusion." aria-label="Ta réponse rédigée"></textarea><div class="num"><button class="btn primary" id="val" type="button">Valider ma réponse</button></div><div class="warnmsg" id="wm" hidden></div><p class="ia-info">${iaDispo()?"Ta réponse est vérifiée par une IA (Claude) à partir du corrigé et du barème du professeur. Elle ne reçoit que la question, le corrigé et ta réponse : ni ton nom, ni ton identifiant.":"Tu vérifieras toi-même ta réponse avec le corrigé (pour la vérification par l'IA, connecte-toi sur le site)."}</p>`;
+}
+function answerTrous(){
+  if(st.answered) return; const q=st.qs[st.i], sel=[...app.querySelectorAll("select.trou")];
+  if(sel.some(s=>s.value==="")){ const w=$("#wm"); w.hidden=false; w.textContent="Complète tous les éléments de la phrase avant de valider."; return; }
+  let ok=true; const rem=[];
+  sel.forEach(s=>{ const g=q.phr[+s.dataset.g], bon=+s.value===g.ok; s.disabled=true; s.classList.add(bon?"ok":"ko"); if(!bon){ ok=false; if(g.m) rem.push(g.m); } });
+  $("#val").disabled=true; $("#wm").hidden=true;
+  const rep=q.phr.map((x,i)=>typeof x==="string"?brut(x):"["+x.o[+app.querySelector(`select.trou[data-g="${i}"]`).value]+"]").join(" ");
+  feedback(ok,attenduTxt(q),rep,{tete:ok?"Phrase exacte":"Phrase à corriger · −2 points",sansAttendu:true,avant:ok?"":`<p class="cx-mod"><b>Phrase attendue :</b> ${attenduTxt(q)}</p>${rem.length?`<p class="cx-dg"><b>À corriger :</b> ${rem.join(" ")}</p>`:""}`});
+}
+const redQuestion=q=>[brut(q.ctx0),brut(q.ctx),brut(q.q),q.don?"Données des documents : "+q.don:"",q.iaPlus||""].filter(Boolean).join("\n").slice(0,1800);
+function redFin(q,rep,v,conseil,par){
+  const tot=q.elements.reduce((a,e)=>a+(e.p||1),0), pts=q.elements.reduce((a,e,i)=>a+POIDS_RED[v[i].verdict]*(e.p||1),0), r=tot?pts/tot:0;
+  const ok=r>=.8, pen=ok?0:r>=.5?1:2, MOT={present:"présent",partiel:"en partie",absent:"absent"};
+  const lignes=q.elements.map((e,i)=>`<li class="${v[i].verdict}"><span class="pic" title="${MOT[v[i].verdict]}">${v[i].verdict==="present"?"✓":v[i].verdict==="partiel"?"≈":"✗"}</span><span>${e.t}<small>${MOT[v[i].verdict]}${v[i].raison?" : "+esc(v[i].raison):""}</small></span></li>`).join("");
+  feedback(ok,q.modele,`${rep} [${par==="eleve"?"vérifiée par l'élève":"vérifiée par l'IA"} : ${nf(pts)}/${tot}]`,{pen,cls:ok?"ok":pen===1?"mi":"ko",tete:ok?"Réponse complète":pen===1?"Réponse incomplète · −1 point":"Réponse insuffisante · −2 points",sansAttendu:true,
+    avant:`<ul class="els">${lignes}</ul>${conseil?`<p class="cx-dg"><b>Pour progresser :</b> ${esc(conseil)}</p>`:""}<p class="cx-mod"><b>Une réponse complète :</b> ${q.modele}</p>${par==="eleve"?`<p class="ia-info">Tu as vérifié ta réponse toi-même.</p>`:""}`});
+}
+function redAuto(q,rep,msg){
+  st.attente=false;
+  $("#fb").innerHTML=`<div class="fb auto">${msg?`<p class="warnmsg">${esc(msg)}</p>`:""}<span class="t">Vérifie ta réponse</span><p>Une réponse complète :</p><blockquote class="modele">${q.modele}</blockquote><p>Coche ce que ta réponse contient vraiment :</p>${q.elements.map((e,i)=>`<label class="chk"><input type="checkbox" data-e="${i}"><span>${e.t}</span></label>`).join("")}<div class="num"><button class="btn primary" id="auto-ok" type="button">Valider ma vérification</button></div></div>`;
+  $("#auto-ok").onclick=()=>{ const v={}; q.elements.forEach((e,i)=>{ v[i]={verdict:app.querySelector(`input[data-e="${i}"]`).checked?"present":"absent",raison:""}; }); redFin(q,rep,v,"","eleve"); };
+}
+const RED_ERR={QUOTA:"Tu as atteint le nombre de vérifications par l'IA pour aujourd'hui.",IA_RESEAU:"L'IA n'a pas répondu (réseau ?).",SESSION_EXPIREE:"Ta session a expiré : reconnecte-toi sur le site pour la vérification par l'IA."};
+async function answerRed(){
+  if(st.answered||st.attente) return; const q=st.qs[st.i], ta=$("#red"), rep=ta.value.trim();
+  if(rep.replace(/\s+/g," ").length<20){ const w=$("#wm"); w.hidden=false; w.textContent="Rédige une phrase complète : les valeurs, la comparaison, la conclusion."; return; }
+  ta.disabled=true; $("#val").disabled=true; $("#wm").hidden=true;
+  if(!iaDispo()) return redAuto(q,rep,"");
+  st.attente=true; $("#fb").innerHTML=`<div class="fb att" role="status">Vérification de ta réponse par l'IA…</div>`;
+  const ici=st, k=st.i;
+  try{
+    const d=await SIP.ia.corriger({question:redQuestion(q),corrige:brut(q.modele)+" "+brut(q.expl),elements:q.elements.map((e,i)=>({i,t:brut(e.t),p:e.p||1})),reponse:rep.slice(0,2000)});
+    if(st!==ici||st.i!==k) return;
+    const v={}; (d.elements||[]).forEach(x=>{ if(q.elements[x.i]&&POIDS_RED[x.verdict]!=null) v[x.i]={verdict:x.verdict,raison:x.raison||""}; });
+    st.attente=false;
+    if(Object.keys(v).length<q.elements.length) return redAuto(q,rep,"L'IA n'a pas jugé tous les points : vérifie ta réponse toi-même.");
+    redFin(q,rep,v,d.conseil||"","ia");
+  }catch(e){ if(st!==ici||st.i!==k) return; redAuto(q,rep,(RED_ERR[e&&e.code]||"L'IA n'a pas pu vérifier ta réponse.")+" Vérifie-la toi-même avec le corrigé."); }
+}
+
+/* ===== v2 · la difficulté suit le niveau de l'élève, le 20 se mérite =====
+   - Série renforcée : si l'élève maîtrise déjà la notion (maîtrise ≥ 80 %), sa série a moins de questions de niveau 1
+     et deux études de niveau 3 au lieu d'une.
+   - Étude finale : après un sans-faute, une étude de niveau 3 de plus s'ajoute ; il faut la réussir pour garder 20.
+   Seulement pour les notions réécrites (POOLS[clé].v2), en série (pas en préparation de DS ni en parcours). */
+const SERIE_FORTE={1:2,2:4,3:8};
+function meriteDispo(){
+  if(!st||st.mode!=="s"||st.prep||st.merite||st.note<20) return null;
+  const key=st.S&&st.S.key, P=key&&POOLS[key]; if(!P||!P.v2) return null;
+  const pris=new Set(st.qs.filter(q=>q.lv===3).map(q=>q.gi)), libres=[...Array(P[3].length).keys()].filter(i=>!pris.has(i));
+  return libres.length?{key,libres}:null;
+}
+function merite(){
+  const m=meriteDispo(); if(!m) return false;
+  const arr=genGroup(m.key,3,m.libres[Math.floor(Math.random()*m.libres.length)]); arr.forEach(q=>{ q.merite=true; });
+  st.merite=true; st.qs.push(...arr); return true;
+}
+function banniereV2(q){
+  if(q.merite&&q.gj===0) return `<div class="ctx merite"><b>Sans-faute jusqu'ici.</b> Une dernière étude, plus exigeante : réussis-la pour garder ton 20.</div>`;
+  if(st.fort&&st.i===0) return `<div class="ctx merite"><b>Série renforcée.</b> Tu maîtrises les bases de cette notion : moins de questions simples, deux études complètes.</div>`;
+  return "";
+}
+
 "use strict";
 const app=$("#app");
 const DOM={ana:"Analyse du système",meca:"Mécanique",ener:"Énergie",info:"Information",auto:"Automatique",simu:"Modélisation",phy:"Sciences physiques"};
@@ -20090,7 +20249,7 @@ const LS={get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.
 
 /* ---------- notions : réservoirs → séries ---------- */
 Object.keys(POOLS).forEach(key=>{ if(key.includes("#")||MODULES[key]||!POOLS[key].fiche) return; MODULES[key]={series:[{t:POOLS[key].titre||"Série d'entraînement"}],fiche:POOLS[key].fiche}; });
-Object.keys(MODULES).forEach(id=>MODULES[id].series.forEach((se,k)=>{ const key=MODULES[id].series.length>1?`${id}#${k+1}`:id; if(POOLS[key]){ se.key=key; se.b=()=>drawFrom(key); } }));
+Object.keys(MODULES).forEach(id=>MODULES[id].series.forEach((se,k)=>{ const key=MODULES[id].series.length>1?`${id}#${k+1}`:id; if(POOLS[key]){ se.key=key; se.b=c=>drawFrom(key,c); } }));
 const keysOf=id=>MODULES[id]?MODULES[id].series.map(se=>se.key).filter(Boolean):[];
 const reserve=id=>keysOf(id).reduce((a,k)=>a+poolSize(k),0);
 
@@ -20280,7 +20439,7 @@ function logAct(e){ const L=LS.get(JK,[]); L.push({t:new Date().toISOString(),..
 /* site SI Papara : chaque série, parcours ou révision du jour est aussi transmis au professeur (window.BACSI_HOOK) */
 const txt=h=>String(h==null?"":h).replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();
 function hook(ev){ try{ if(typeof window.BACSI_HOOK==="function") return window.BACSI_HOOK(ev); }catch(e){ console.warn(e); } return null; }
-function detailsOf(res){ return res.map(r=>({q:txt((r.q.ctx?r.q.ctx+" · ":"")+r.q.q+(r.q.don?" [figures : "+r.q.don+"]":"")).slice(0,400),rep:txt(r.rep).slice(0,80),attendu:txt(r.correct).slice(0,120),pts:r.ok?1:0,notion:r.q.nid||null,niveau:r.q.lv||1,
+function detailsOf(res){ return res.map(r=>({q:txt((r.q.ctx?r.q.ctx+" · ":"")+r.q.q+(r.q.don?" [figures : "+r.q.don+"]":"")).slice(0,400),rep:txt(r.rep).slice(0,r.q.type==="red"?500:r.q.type==="trous"?300:80),attendu:txt(r.correct).slice(0,r.q.type==="red"||r.q.type==="trous"?300:120),pts:r.ok?1:0,notion:r.q.nid||null,niveau:r.q.lv||1,
   g:r.q.key!=null&&r.q.gi!=null?`${r.q.key}:${r.q.lv||1}:${r.q.gi}`:null})); } // g : générateur de la question (l'évaluation en classe peut la reposer avec d'autres valeurs)
 /* site SI Papara : « Signaler une erreur » sous chaque question (window.BACSI_SIGNALER, défini par assets/pont-bac.js).
    La question part telle que l'élève l'a vue (valeurs tirées comprises) avec la référence de son générateur. */
@@ -20290,7 +20449,7 @@ function sigData(q,r,source,module){
   const ch=q.type==="ch"?"\nChoix : "+q.ch.map((c,k)=>`${k+1}) ${txt(c)}`).join(" ; "):"";
   return {source,notion:q.nid||(st&&st.id)||null,module,ref:q.key!=null&&q.gi!=null?`${q.key}:${q.lv||1}:${q.gi}`:null,
     question:[q.ctx0,q.ctx,q.q].filter(Boolean).map(txt).join("\n")+(q.data?"\nDonnées : "+txt(q.data):"")+(q.don?"\nDonnées des figures : "+q.don:"")+ch+(q.unit?"\nUnité attendue : "+q.unit:""),
-    figure:q.fig||"",reponse:r?txt(r.rep):"",attendu:q.type==="ch"?txt(q.ch[q.ok]):shownAns(q),correction:txt(q.expl)};
+    figure:q.fig||"",reponse:r?txt(r.rep):"",attendu:txt(attenduTxt(q)),correction:txt(q.expl)};
 }
 function sigFill(){
   if(!sigOn()) return;
@@ -20459,7 +20618,8 @@ function openNotion(id){
 }
 function start(id,k){
   const M=MODULES[id];
-  st={mode:"s",id,k,r:byId[id],M,S:M.series[k],qs:M.series[k].b(),i:0,note:20,res:[],answered:false,m0:mastery(id),t0:Date.now()};
+  const m0=mastery(id), fort=!!(M.series[k].key&&POOLS[M.series[k].key]&&POOLS[M.series[k].key].v2&&m0!=null&&m0>=.8);
+  st={mode:"s",id,k,r:byId[id],M,S:M.series[k],qs:M.series[k].b(fort?SERIE_FORTE:undefined),i:0,note:20,res:[],answered:false,m0,fort,t0:Date.now()};
   document.body.classList.add("playing"); draw(); window.scrollTo({top:0});
 }
 
@@ -20524,6 +20684,7 @@ function draw(){
   const dots=[...Array(total).keys()].map(k=>`<i class="${k<st.res.length?(st.res[k].ok?"ok":"ko"):(k===st.i?"cur":"")}"></i>`).join("");
   let ans="";
   if(q.type==="ch") ans=`<div class="choices${q.grid?" grid2":""}">${q.ch.map((c,k)=>`<button class="choice" data-k="${k}" type="button"><span class="k">${k+1}</span><span>${c}</span></button>`).join("")}</div>`;
+  else if(q.type==="red"||q.type==="trous") ans=ansV2(q);
   else ans=`<div class="num"><input id="ans" type="text" inputmode="decimal" autocomplete="off" aria-label="Ta réponse"${q.unit?"":' placeholder="ex. 0,35"'}>${q.unit?`<span class="u">${q.unit}</span>`:""}<button class="btn primary" id="val" type="button">Valider</button></div><div class="warnmsg" id="wm" hidden></div>`;
   const title=P?`Mon parcours · ${esc(r.lab)}`:(st.M.series.length>1?`${esc(st.r.lab)} · ${esc(st.S.t)}`:esc(st.r.lab));
   const fig=`${q.fig||""}${q.data?`<div class="data">${q.data}</div>`:""}`;
@@ -20531,11 +20692,11 @@ function draw(){
   <div class="play${fig?"":" nofig"}">
     ${fig?`<div class="figbox${/class="doc"/.test(fig)?" docs":""}">${fig}</div>`:""}
     <div class="qbox">
-      ${q.ctx0?`<div class="ctx">${q.ctx0}</div>`:""}${q.ctx?`<div class="ctx">${q.ctx}</div>`:""}${rappelPrecedent(st.qs,st.i)}
+      ${banniereV2(q)}${q.ctx0?`<div class="ctx">${q.ctx0}</div>`:""}${q.ctx?`<div class="ctx">${q.ctx}</div>`:""}${rappelPrecedent(st.qs,st.i)}
       <div class="qlabel">Question <span class="lvq" data-l="${q.lv||1}" title="Niveau ${q.lv||1} sur 3"><i></i><i></i><i></i></span>${LVN[q.lv||1]}${q.retry?`<span class="rt">nouvelle tentative · autres valeurs</span>`:""}</div><p class="qtext">${q.q}</p>
       ${ans}<div id="fb"></div><div class="next" id="nx" hidden><button class="btn primary big" id="next" type="button">${P?(st.i+1<st.qs.length+st.queue.length||st.qs.length<st.budget?"Question suivante →":"Voir le bilan →"):(st.i+1<st.qs.length?"Question suivante →":"Voir le bilan →")}</button></div>
       <div class="score"><span>Question <b>${st.i+1}</b> / ${total}</span><span class="note${st.note<10?" low":""}">Note <b>${st.note}</b> / 20</span></div>
-      <div class="hintk">${q.type==="ch"?"Touches 1 à "+q.ch.length+" pour répondre.":"Donne 3 chiffres significatifs (virgule ou point). Entrée pour valider."}</div>
+      <div class="hintk">${q.type==="ch"?"Touches 1 à "+q.ch.length+" pour répondre.":q.type==="red"?"Comme sur une copie : une conclusion sans valeurs ne rapporte pas tous les points.":q.type==="trous"?"Choisis chaque élément de la phrase, puis valide.":"Donne 3 chiffres significatifs (virgule ou point). Entrée pour valider."}</div>
       <span class="sig-place"></span>
     </div>
   </div>`;
@@ -20543,17 +20704,20 @@ function draw(){
   d2Tabs(q);
   $("#quit").onclick=()=>{ if(P){ st.retries.forEach(saveRev); home(); } else if(st.prep) prepView(st.prep.D.id); else if(st.M.series.length>1) openNotion(st.id); else home(); };
   if(q.type==="ch") app.querySelectorAll(".choice").forEach(b=>b.onclick=()=>answer(+b.dataset.k));
+  else if(q.type==="red") $("#val").onclick=answerRed;
+  else if(q.type==="trous") $("#val").onclick=answerTrous;
   else { $("#ans").focus({preventScroll:true}); $("#val").onclick=answerNum; }
 }
-function feedback(ok,correctTxt,rep){
+function feedback(ok,correctTxt,rep,o){ o=o||{};
   const q=st.qs[st.i], P=st.mode==="p";
   st.answered=true; st.res.push({ok,q,correct:correctTxt,rep});
-  if(!ok) st.note=Math.max(0,st.note-2);
+  { const pen=o.pen!=null?o.pen:(ok?0:2); if(pen) st.note=Math.max(0,st.note-pen); }
   record(P||st.prep?q.nid:st.id,q.lv,ok);
   const extra=P?adapt(q,ok):"";
-  $("#fb").innerHTML=`<div class="fb ${ok?"ok":"ko"}"><span class="t">${ok?"Exact":"Faux · −2 points"}</span>${ok?"":`<p>Réponse attendue : <b>${correctTxt}</b></p>`}${st.signe?`<p><b>Bonne valeur, mais pas le bon signe</b> : regarde dans quel sens la force fait tourner.</p>`:""}${corrHTML(q,ok,st.repX)}${extra}</div>`; st.repX=null;
+  $("#fb").innerHTML=`<div class="fb ${o.cls||(ok?"ok":"ko")}"><span class="t">${o.tete||(ok?"Exact":"Faux · −2 points")}</span>${ok||o.sansAttendu?"":`<p>${o.attendu||"Réponse attendue"} : <b>${correctTxt}</b></p>`}${o.avant||""}${st.signe?`<p><b>Bonne valeur, mais pas le bon signe</b> : regarde dans quel sens la force fait tourner.</p>`:""}${corrHTML(q,ok,st.repX)}${extra}</div>`; st.repX=null;
   st.signe=false;
   $("#nx").hidden=false; $("#next").onclick=next; $("#next").focus({preventScroll:true});
+  if(st.i+1>=st.qs.length&&meriteDispo()) $("#next").textContent="Étude finale : mérite ton 20 →";
   const sc=app.querySelector(".note b"); sc.textContent=st.note; if(st.note<10) sc.parentElement.classList.add("low");
 }
 function answer(k){
@@ -20582,7 +20746,7 @@ function answerNum(){
 function next(){
   st.i++; st.answered=false;
   if(st.mode==="p"){ if(st.i>=st.qs.length&&!pushNext()) return endParcours(); }
-  else if(st.i>=st.qs.length) return end();
+  else if(st.i>=st.qs.length&&!merite()) return end();
   draw(); window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -20600,7 +20764,7 @@ function end(){
   const v=mastery(st.id), s=mState(v);
   app.innerHTML=`<div class="bar"><span class="lv"><small>n° ${st.r.rank}</small>${esc(st.r.lab)}${st.M.series.length>1?` · ${esc(st.S.t)}`:""} · bilan</span></div>
   <div class="end">
-    <div class="panel"><div class="eyebrow">Note finale</div><div class="bignote">${note}<small> / 20</small></div><div class="verdict ${cls}">${verdict}</div>
+    <div class="panel"><div class="eyebrow">Note finale</div><div class="bignote">${note}<small> / 20</small></div><div class="verdict ${cls}">${verdict}</div>${st.merite?`<p><b>${note===20?"20 mérité : sans-faute, étude finale comprise.":"L'étude finale a fait la différence : c'est elle qui sépare un 20 d'une très bonne note."}</b></p>`:""}
       <p>${st.res.length-errs.length} bonne${st.res.length-errs.length>1?"s":""} réponse${st.res.length-errs.length>1?"s":""} sur ${st.res.length}.</p>
       <p class="mline">Maîtrise de la notion : <span class="mb" data-s="${s}">${MLAB[s]} · ${pct(v)}</span>${st.m0!=null?` <span class="soon">(avant : ${pct(st.m0)})</span>`:""}</p>
       <div class="actions"><button class="btn primary" id="again" type="button">Recommencer (nouvelles valeurs)</button>
@@ -20661,6 +20825,7 @@ function startBlanc(){
     const keys=keysOf(id); if(!keys.length) continue;
     const key=keys[Math.floor(Math.random()*keys.length)], lv=Math.random()<.5?2:3;
     const arr=genGroup(key,lv,pickGen(key,lv));
+    arr.forEach(q=>{ if(q.type==="red"&&q.ch) q.type="ch"; }); if(arr.some(q=>q.type==="red"||q.type==="trous")) continue;
     if(qs.length+arr.length>BL_N+1) continue;
     used[id]=(used[id]||0)+1; arr.forEach(q=>{ q.nid=id; q.grp=g; }); qs.push(...arr);
   }
@@ -20889,7 +21054,7 @@ function endPrep(){
   const errIds=[...new Set(errs.map(r=>r.q.nid))].filter(id=>MODULES[id]&&MODULES[id].fiche).slice(0,3);
   app.innerHTML=`<div class="bar"><span class="lv"><small>préparation du DS</small>${esc(D.ds)} · étape ${k} · ${esc(e.t)} · bilan</span></div>
   <div class="end">
-    <div class="panel"><div class="eyebrow">Note finale</div><div class="bignote">${note}<small> / 20</small></div><div class="verdict ${cls}">${verdict}</div>
+    <div class="panel"><div class="eyebrow">Note finale</div><div class="bignote">${note}<small> / 20</small></div><div class="verdict ${cls}">${verdict}</div>${st.merite?`<p><b>${note===20?"20 mérité : sans-faute, étude finale comprise.":"L'étude finale a fait la différence : c'est elle qui sépare un 20 d'une très bonne note."}</b></p>`:""}
       <p>${st.res.length-errs.length} bonne${st.res.length-errs.length>1?"s":""} réponse${st.res.length-errs.length>1?"s":""} sur ${st.res.length}.</p>
       <div class="actions">${ok&&suiv?(suiv.blanc?`<a class="btn primary" href="ds-blanc.html#${D.id}/revanche">La revanche →</a>`:`<button class="btn primary" id="nxp" type="button">Étape ${k+1} : ${esc(suiv.t)} →</button>`):""}
       <button class="btn${ok&&suiv?"":" primary"}" id="again" type="button">Recommencer (nouvelles valeurs)</button>
