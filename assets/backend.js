@@ -75,6 +75,8 @@ window.SIP = window.SIP || {};
   const lireFile = () => { try { return JSON.parse(localStorage.getItem(CLE_FILE)) || []; } catch (e) { return []; } };
   const ecrireFile = (f) => { try { localStorage.setItem(CLE_FILE, JSON.stringify(f)); } catch (e) {} };
   SIP.enAttente = () => lireFile().length;
+  /* résultats gardés sur cet appareil faute d'envoi : module, titre, dernière erreur (pour afficher « en attente d'envoi » au lieu de « reçue ») */
+  SIP.enAttenteOps = () => lireFile().filter((op) => op && op.f === "enregistrer" && op.a).map((op) => ({ module: op.a.module, titre: op.a.titre || "", score: op.a.score, err: op.err || null, essais: op.essais || 0 }));
 
   // =====================================================================
   //  Backend DÉMO
@@ -576,17 +578,24 @@ window.SIP = window.SIP || {};
     catch (e) {
       if (e.message === "SESSION_EXPIREE") throw e;
       if (f === "signaler" && !SIP.estReseau(e)) throw e;     // refus de la base (ex. trop de signalements) : on le dit tout de suite
+      op.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      op.err = SIP.estReseau(e) ? "reseau" : String((e && e.message) || e).slice(0, 160); op.essais = 1;
       const q = lireFile(); q.push(op); ecrireFile(q); return false;
     }
   };
-  SIP.viderFile = async () => {
+  /* un seul vidage à la fois ; un résultat mis en file pendant le vidage n'est pas perdu */
+  let vidage = null;
+  SIP.viderFile = () => vidage || (vidage = (async () => {
     if (SIP.apercu.actif()) return 0;   // résultats d'un élève en attente : envoyés quand sa session revient
     const q = lireFile(); if (!q.length) return 0;
-    const reste = [];
+    const reste = [], vus = new Set(q.map((op) => op.id).filter(Boolean));
     for (const op of q) {
       try { await envoyer(op); }
-      catch (e) { if (op.f !== "signaler" || SIP.estReseau(e)) reste.push(op); }   // un signalement refusé par la base n'est pas renvoyé sans fin
+      catch (e) {   // un signalement refusé par la base n'est pas renvoyé sans fin ; les autres gardent leur dernière erreur
+        if (op.f !== "signaler" || SIP.estReseau(e)) { op.err = SIP.estReseau(e) ? "reseau" : String((e && e.message) || e).slice(0, 160); op.essais = (op.essais || 0) + 1; reste.push(op); }
+      }
     }
-    ecrireFile(reste); return q.length - reste.length;
-  };
+    ecrireFile(reste.concat(lireFile().filter((op) => op.id && !vus.has(op.id))));
+    return q.length - reste.length;
+  })().finally(() => { vidage = null; }));
 })(window.SIP);
