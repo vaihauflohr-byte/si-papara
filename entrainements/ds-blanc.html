@@ -1785,7 +1785,7 @@ if (typeof window !== "undefined"){
   function etat() {
     const s = session();
     if (!SIPok()) return `<span class="sip ko">Hors site · copie gardée sur cet appareil</span>`;
-    if (s && s.apercu) return `<span class="sip ap"><b>Aperçu professeur</b> · rien n'est envoyé · <a href="${RACINE}index.html#/tableau">Tableau de bord</a></span>`;
+    if (s && s.apercu) return `<span class="sip ap"><b>Aperçu professeur</b> · rien n'est envoyé, l'IA vérifie avec ta session prof · <a href="${RACINE}prof.html">Espace prof</a> · <a href="${RACINE}index.html#/tableau">Tableau de bord</a></span>`;
     if (s) return `<span class="sip ok">Connecté(e) : <b>${esc(s.nom)}</b> · ta note part chez ton professeur · <a href="${RACINE}index.html#/tableau">Mon espace</a></span>`;
     return `<span class="sip ko">Non connecté(e) · <a href="${RACINE}index.html#/connexion/TSI">Me connecter</a> pour que ta note parte chez ton professeur</span>`;
   }
@@ -2400,9 +2400,44 @@ if (typeof window !== "undefined"){
     vider(); stopMinuteur(); nettoyer(); vueIA = null;
     const h = decodeURIComponent(location.hash.replace(/^#/, "")), [id, vue, n] = h.split("/");
     const S = id && sujet(id);
-    if (!S) return vueListe();
-    if (vue === "correction" && n) return vueCorrection(S, Number(n));
-    return vueSujet(S, vue === "q" ? n : null, vue === "defi" ? "pas" : vue === "revanche" ? "ds" : null);
+    if (!S) vueListe();
+    else if (vue === "correction" && n) vueCorrection(S, Number(n));
+    else vueSujet(S, vue === "q" ? n : null, vue === "defi" ? "pas" : vue === "revanche" ? "ds" : null);
+    proposerProf();
+  }
+
+  /* ---------- le professeur fait le DS blanc lui-même : aperçu professeur de la Terminale SI ----------
+     - lien de l'espace prof : ds-blanc.html?prof#ds03 → accès professeur vérifié dans ce navigateur, puis aperçu ;
+     - professeur connecté à l'espace prof, sans session élève : le bandeau lui propose l'aperçu.
+     En aperçu, rien n'est envoyé (base locale à ce navigateur) et l'IA vérifie les rédactions avec la session prof. */
+  let statutProfVu = null;
+  async function statutProf() {
+    if (statutProfVu === "oui" || statutProfVu === "non") return statutProfVu;
+    statutProfVu = SIPok() && SIP.statutProf ? await SIP.statutProf().catch(() => "inconnu") : "inconnu";
+    return statutProfVu;
+  }
+  function entrerApercu() { if (!apercu()) { vider(); SIP.apercu.demarrer("TSI"); } afficher(); }
+  function proposerProf() {
+    if (!SIPok() || !SIP.apercu || session()) return;
+    statutProf().then((st) => {
+      const z = document.getElementById("sip-etat");
+      if (st !== "oui" || !z || session()) return;
+      z.innerHTML = `<span class="sip ap"><b>Espace prof ouvert dans ce navigateur</b> · <button type="button" class="btn-lien" id="dsb-prof">Faire le DS blanc en aperçu professeur</button> : vérification par l'IA, rien n'est envoyé</span>`;
+      const b = document.getElementById("dsb-prof"); if (b) b.onclick = entrerApercu;
+    });
+  }
+  async function demarrerProf() {
+    try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) { /* adresse inchangée */ }
+    if (!SIPok() || !SIP.apercu) return afficher();
+    if (apercu()) return afficher();
+    $app.innerHTML = `<p class="discret">Vérification de l'accès professeur…</p>`;
+    const st = await statutProf();
+    if (st === "oui") return entrerApercu();
+    $app.innerHTML = `<div class="carte" style="max-width:620px"><h1>DS blanc en mode professeur</h1>
+      <p>${st === "inconnu" ? "Impossible de vérifier ton accès professeur (pas de réseau ?). Réessaie dans un instant." : "Connecte-toi d'abord à l'espace professeur <b>dans ce navigateur</b> (la connexion est gardée), puis rouvre le DS blanc depuis l'espace prof."}</p>
+      <div class="rang"><a class="btn" href="${RACINE}prof.html">Espace professeur</a><button class="btn sec" type="button" id="dsb-sans">Continuer sans aperçu</button>${st === "inconnu" ? `<button class="btn sec" type="button" id="dsb-re">Réessayer</button>` : ""}</div></div>`;
+    document.getElementById("dsb-sans").onclick = afficher;
+    const re = document.getElementById("dsb-re"); if (re) re.onclick = () => { statutProfVu = null; demarrerProf(); };
   }
   window.addEventListener("hashchange", afficher);
   window.addEventListener("pageshow", (e) => { if (e.persisted) afficher(); });
@@ -2410,7 +2445,7 @@ if (typeof window !== "undefined"){
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") vider(); });
   if (window.SIP && SIP.session && SIP.session.get() && SIP.viderFile) SIP.viderFile().catch(() => {});
   window.DSB = { afficher, noteEssai, verdict, lire, nb, instance, dossier, garder, sujet };
-  afficher();
+  if (/[?&]prof(=|&|$)/.test(location.search)) demarrerProf(); else afficher();
 })();
 
 </script>
