@@ -806,4 +806,7 @@ M.push({ id: "beauval-C", sujet: BV, partie: "C", court: "Beauval 2025 · C", ti
 M.push({ id: "beauval-D", sujet: BV, partie: "D", court: "Beauval 2025 · D", titre: "Contrôle de débit et économies d'énergie",
   resume: "Mode éco à 35 Hz, puissance absorbée, heures pleines et creuses, coût d'exploitation, temps de retour et choix de la solution.",
   duree_min: 55, gen: genD, valeurs: valeursD });
+
+/* outils partagés avec les sujets en morceaux des autres sessions (e4/morceaux/<sujet>.js, chargés après ce fichier) */
+E4.MORC_KIT = Object.assign({}, O, { M, r1, r2, r3, e2, pc, tanDe, tirer, page, tableau, tableauML, encadre, seul, empiler, ind, fleche, cote });
 })(window.E4);
