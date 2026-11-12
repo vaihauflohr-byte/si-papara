@@ -5705,5 +5705,7 @@ E4.tirerExpress = function (n) {
 E4.repereMinutes = (q) => (q.type === "redac" ? q.min || 4 : (q.lv === 1 ? 2 : q.lv === 2 ? 3.5 : 5) * (q.gj > 0 ? 0.6 : 1));
 E4.nbGenerateurs = (nid) => (B[nid] ? [1, 2, 3].reduce((a, l) => a + (B[nid].gens[l] || []).length, 0) + (B[nid].redac || []).length : 0);
 E4.nbRedaction = (nid) => (B[nid] && B[nid].redac ? B[nid].redac.length : 0);
+/* outils (données des DRES, dessin des figures) repris par les sujets en morceaux (e4/morceaux.js) */
+E4.MORC_OUTILS = Object.assign({}, E4.BANQUE_OUTILS, { T, Tv, Ln, Pl, Pg, Rc, Ci, Gr, SYM, hor, bloc, couper, figure, svg, afficheur, hAfficheur, recepteur, unifilaire, plaques, courbe, escA, sansBal, f1 });
 delete E4.BANQUE_OUTILS;
 })(window.E4);

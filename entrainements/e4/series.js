@@ -19,6 +19,9 @@
    réseau), l'élève coche lui-même, avec le corrigé, ce que sa réponse contient.
    La question vaut la part des éléments obtenus.
    Résultat transmis au suivi du professeur (module e4-serie-<notion> ou e4-express).
+   Sujets en morceaux (e4/morceaux.js) : #/morceaux (liste), #/morceau/<id> (une partie
+   d'un sujet d'annales, mêmes règles de notation ; 1er essai aux valeurs du sujet,
+   puis nouvelles valeurs) ; module e4-morceau-<id>.
    ===================================================================== */
 (function () {
   "use strict";
@@ -39,8 +42,15 @@
   /* figure de la question (banque : q.fig, SVG) ; sur téléphone, on la touche pour l'agrandir */
   const figHTML = (q) => (q.fig ? `<figure class="figbox" title="Touche la figure pour l'agrandir">${q.fig}</figure><p class="fig-aide">Touche la figure pour l'agrandir, puis fais-la glisser.</p>` : "");
   const figTexte = (q) => { const m = /aria-label="([^"]*)"/.exec(q.fig || ""); return m ? txt(m[1].replace(/&quot;/g, '"')) : ""; };
-  document.addEventListener("click", (e) => { const f = e.target.closest && e.target.closest(".figbox"); if (f) f.classList.toggle("zoom"); });
+  document.addEventListener("click", (e) => { const f = e.target.closest && e.target.closest(".figbox"); if (f) f.classList.toggle("zoom");
+    if (e.target.matches && e.target.matches("img.doc-page")) e.target.classList.toggle("zoom"); });
 
+  /* sujets en morceaux : identifiant de série « m:<id> » */
+  const morc = (id) => (typeof id === "string" && id.startsWith("m:") && E4.morceau ? E4.morceau(id.slice(2)) : null);
+  const moduleDe = (id) => (id === "express" ? "e4-express" : morc(id) ? "e4-morceau-" + id.slice(2) : "e4-serie-" + id);
+  const titreDe = (id) => { const m = morc(id); return id === "express" ? "Épreuve express" : m ? `${m.court} · ${m.titre}` : "Série · " + notion(id).nom; };
+  const lienDe = (id) => (id === "express" ? "#/express" : morc(id) ? "#/morceau/" + id.slice(2) : "#/serie/" + id);
+  const retourDe = (id) => (morc(id) ? "#/morceaux" : "#/series");
   let st = null, tmr = null;
   E4.stopSeries = () => { clearInterval(tmr); tmr = null; const b = document.getElementById("btn-docs"); if (b) b.hidden = true; };
 
@@ -50,6 +60,8 @@
     if (p[0] === "series") return vueListe(app);
     if (p[0] === "serie" && p[1] && B[p[1]]) return vueJeu(app, p[1]);
     if (p[0] === "express") return vueJeu(app, "express");
+    if (p[0] === "morceaux") return vueMorceaux(app);
+    if (p[0] === "morceau" && p[1] && E4.morceau && E4.morceau(p[1])) return vueJeu(app, "m:" + p[1]);
     if (p[0] === "bilan-serie" && st && st.fini) return vueBilan(app);
     location.hash = "#/series";
   };
@@ -86,27 +98,43 @@
       <p class="pied">Banque construite à partir des sujets E4 2022 à 2026 (Aérosol, Télésiège, Cogénération, Microcentrale, Stratus Packaging, Zooparc de Beauval, Marilyn). Les tableaux des documents ressources reprennent ceux des dossiers ressources des sujets (méthode Schneider Electric de la NF C 15-100, EN 50588…).</p>`;
   }
 
+  /* ---------- sujets en morceaux : liste ---------- */
+  function vueMorceaux(app) {
+    const best = lireMeilleurs(), L = E4.MORCEAUX || [], parSujet = {};
+    L.forEach((m) => (parSujet[m.sujet] = parSujet[m.sujet] || []).push(m));
+    app.innerHTML = `
+      <p><a href="#/">← Accueil E4</a></p>
+      <h1>Sujets en morceaux</h1>
+      <p class="discret" style="max-width:860px">Un sujet d'annales découpé par partie. Chaque partie se fait comme une série : une question à la fois, la correction tout de suite et <b>une note sur 20</b> : chaque erreur coûte des points. Le premier essai reprend les valeurs du sujet officiel ; ensuite, <b>de nouvelles valeurs à chaque essai</b>, avec les documents de l'installation redessinés. Les dossiers ressources sont ceux du sujet. Ta note part chez le professeur.</p>
+      ${Object.entries(parSujet).map(([sid, ms]) => { const s = (E4.SUJETS || []).find((x) => x.id === sid) || { titre: sid, session: "", parties: [] };
+        return `<h2>${esc(s.session)} · ${esc(s.titre)}</h2><div class="grille2">${ms.map((m) => { const b = best["m:" + m.id];
+          return `<div class="carte"><div class="eyebrow">Partie ${esc(m.partie)} · repère ≈ ${m.duree_min} min</div><h3 style="margin-top:4px">${esc(m.titre)}</h3><p class="discret">${esc(m.resume)}</p>
+            <div class="actions"><a class="btn plein" href="#/morceau/${m.id}">${b ? "Recommencer · nouvelles valeurs" : "Commencer · valeurs du sujet"}</a>${b ? `<span class="discret">Meilleur : <b>${nf(b.note, 1)} / 20</b> · ${b.n} essai${b.n > 1 ? "s" : ""}</span>` : ""}</div></div>`; }).join("")}</div>`; }).join("")}
+      <p class="pied">Les parties suivent l'ordre du sujet officiel et ses questions ; les valeurs des documents de l'installation changent d'un essai à l'autre, les relations et la démarche restent celles du corrigé.</p>`;
+  }
+
   /* ---------- série ---------- */
   function nouvelleSerie(id) {
-    const qs = id === "express" ? E4.tirerExpress(12) : E4.tirerSerie(id);
-    const repere = qs.reduce((a, q) => a + E4.repereMinutes(q), 0);
-    return { id, qs, i: 0, rep: [], debut: Date.now(), fini: false, indices: 0, repere,
+    const m = morc(id), officiel = !!m && !lireMeilleurs()[id];   // morceau : 1er essai aux valeurs du sujet officiel
+    const qs = id === "express" ? E4.tirerExpress(12) : m ? E4.tirerMorceau(m.id, officiel) : E4.tirerSerie(id);
+    const repere = m ? m.duree_min : qs.reduce((a, q) => a + E4.repereMinutes(q), 0);
+    return { id, qs, i: 0, rep: [], debut: Date.now(), fini: false, indices: 0, repere, officiel,
       limite: id === "express" ? Math.ceil(repere / 5) * 5 * 60e3 : null, transmis: false };
   }
   function vueJeu(app, id) {
     if (!st || st.id !== id || st.fini) st = nouvelleSerie(id);
-    if (!st.qs.length) { app.innerHTML = `<p>Aucune question disponible.</p><p><a href="#/series">← Retour</a></p>`; return; }
-    const titre = id === "express" ? "Épreuve express" : "Série · " + notion(id).nom;
+    if (!st.qs.length) { app.innerHTML = `<p>Aucune question disponible.</p><p><a href="${retourDe(id)}">← Retour</a></p>`; return; }
+    const titre = titreDe(id) + (morc(id) ? (st.officiel ? " · valeurs du sujet" : " · nouvelles valeurs") : "");
     app.innerHTML = `
       <div class="bandeau-jeu">
-        <a class="btn petit" href="#/series" id="s-quitter">← Quitter</a>
+        <a class="btn petit" href="${retourDe(id)}" id="s-quitter">← Quitter</a>
         <span class="titre">${esc(titre)}</span>
         <div class="progres"><div class="pts-serie" id="s-pts"></div><div class="discret" id="s-prog"></div></div>
         <span class="chrono" id="s-chrono" title="${st.limite ? "Temps restant" : "Temps écoulé"}">0:00</span>
         <span class="note-serie" id="s-note"></span>
       </div>
       <div class="jouer" id="s-jouer"><div id="s-docs"></div><div id="s-travail"></div></div>`;
-    document.getElementById("s-quitter").addEventListener("click", (e) => { if (st.rep.length && !st.fini && !confirm("Quitter la série ? Elle ne sera pas comptée.")) e.preventDefault(); else st = null; });
+    document.getElementById("s-quitter").addEventListener("click", (e) => { if (st.rep.length && !st.fini && !confirm(morc(st.id) ? "Quitter la partie ? Elle ne sera pas comptée." : "Quitter la série ? Elle ne sera pas comptée.")) e.preventDefault(); else st = null; });
     const tic = () => {
       const el = document.getElementById("s-chrono"); if (!el || !st) return;
       const ecoule = Date.now() - st.debut;
@@ -153,7 +181,7 @@
           <p class="discret redac-aide">${iaDispo() ? "Après « Valider », une IA compare ta réponse au corrigé, élément par élément du barème." : "Après « Valider », tu compareras ta réponse au corrigé et tu cocheras les éléments qu'elle contient."}</p></div>`
       : `<div class="champ"><span class="lab">Ta réponse</span><span class="saisie"><input type="text" id="s-val" inputmode="decimal" autocomplete="off" aria-label="Ta réponse"><span class="unite">${esc(q.unit || "")}</span></span></div>`;
     trav.innerHTML = `<div class="carte">
-        <div class="q-tete"><span class="q-num">Q${st.i + 1}</span>${q.type === "redac" ? `<span class="chip redac">✎ Rédaction</span>` : `<span class="chip niv${q.lv}">Niveau ${q.lv} · ${NIV[q.lv]}</span>`}${st.id === "express" ? `<span class="chip">${esc(notion(q.nid).nom)}</span>` : ""}<span class="discret">repère ≈ ${minutes(E4.repereMinutes(q))}</span></div>
+        <div class="q-tete"><span class="q-num">Q${st.i + 1}</span>${q.type === "redac" ? `<span class="chip redac">✎ Rédaction</span>` : morc(st.id) ? "" : `<span class="chip niv${q.lv}">Niveau ${q.lv} · ${NIV[q.lv]}</span>`}${morc(st.id) && q.ref ? `<span class="chip">Sujet · question ${esc(q.ref)}</span>` : ""}${st.id === "express" ? `<span class="chip">${esc(notion(q.nid).nom)}</span>` : ""}<span class="discret">repère ≈ ${minutes(E4.repereMinutes(q))}</span></div>
         ${prec}${q.ctx ? `<div class="contexte">${q.ctx}</div>` : ""}${q.rappel ? `<div class="rappel-q">${q.rappel}</div>` : ""}${figHTML(q)}${q.data ? `<div class="data-serie">${q.data}</div>` : ""}
         ${q.docs && q.docs.length ? `<p class="discret doc-rappel">📄 Données à chercher dans : ${q.docs.map((d) => `<b>${esc(d.nom)}</b>`).join(" · ")}</p>` : ""}
         <p class="q-enonce">${q.q}</p>
@@ -289,7 +317,7 @@
     const b = SIP.signaler.bouton(); hote.appendChild(b);
     b.addEventListener("click", () => {
       const r = st.rep[st.i] && st.qs[st.i] === q ? st.rep[st.i] : null;
-      SIP.signaler.ouvrir({ source: "serie", notion: q.nid, module: st.id === "express" ? "e4-express" : "e4-serie-" + st.id, ref: q.g + (q.gl > 1 ? "." + q.gj : ""),
+      SIP.signaler.ouvrir({ source: "serie", notion: q.nid, module: moduleDe(st.id), ref: q.g + (q.gl > 1 ? "." + q.gj : ""),
         question: txt((q.ctx ? q.ctx + " · " : "") + (q.data ? txt(q.data) + " · " : "") + q.q).slice(0, 1500), figure: q.fig || null,
         reponse: r ? String(r.rep).slice(0, 1500) : null, attendu: attenduDe(q).slice(0, 1500), correction: txt(q.expl).slice(0, 1500) },
         { lienConnexion: "../index.html#/connexion/BTS2-STI", surEnvoi: () => SIP.signaler.marquer(b) });
@@ -327,7 +355,8 @@
   }
   function vueBilan(app) {
     const n = st.qs.length, ok = st.rep.filter((r) => fracDe(r) >= 1).length, note = st.note, cls = note >= 16 ? "n3" : note >= 10 ? "n2" : "n1";
-    const verdict = note >= 16 ? (st.id === "express" ? "Très bonne gestion de l'épreuve" : "Notion validée") : note >= 10 ? "À consolider : recommence avec de nouvelles valeurs" : st.id === "express" ? "Travaille d'abord les notions fragiles en série" : "Relis la fiche, puis recommence";
+    const verdict = morc(st.id) ? (note >= 16 ? "Partie maîtrisée" : note >= 10 ? "À consolider : recommence avec de nouvelles valeurs" : "Relis les corrigés, puis recommence la partie")
+      : note >= 16 ? (st.id === "express" ? "Très bonne gestion de l'épreuve" : "Notion validée") : note >= 10 ? "À consolider : recommence avec de nouvelles valeurs" : st.id === "express" ? "Travaille d'abord les notions fragiles en série" : "Relis la fiche, puis recommence";
     const duree = (st.limite ? Math.min(st.fin - st.debut, st.limite) : st.fin - st.debut) / 60e3, N = st.id === "express" ? null : B[st.id];
     const parNotion = {}; st.qs.forEach((q, k) => { const p = parNotion[q.nid] || (parNotion[q.nid] = { n: 0, ok: 0 }); p.n++; p.ok += fracDe(st.rep[k]); });
     const erreurs = st.qs.map((q, k) => ({ q, r: st.rep[k], k })).filter((x) => fracDe(x.r) < 1);
@@ -338,8 +367,8 @@
          <div class="eyebrow" style="margin-top:8px">Corrigé</div><div class="corrige">${x.q.expl}</div>`
       : `<p>Ta réponse : <b>${esc(x.r.rep)}</b> · attendue : <b>${x.r.attendu}</b></p><div class="corrige">${x.q.expl}</div>`;
     app.innerHTML = `
-      <p><a href="#/series">← Toutes les séries</a></p>
-      <div class="eyebrow">${st.id === "express" ? "Épreuve express" : "Série · " + esc(notion(st.id).nom)} · bilan</div>
+      <p><a href="${retourDe(st.id)}">← ${morc(st.id) ? "Les sujets en morceaux" : "Toutes les séries"}</a></p>
+      <div class="eyebrow">${esc(titreDe(st.id))}${morc(st.id) ? (st.officiel ? " · valeurs du sujet" : " · nouvelles valeurs") : ""} · bilan</div>
       <h1>${esc(verdict)}</h1>
       <div class="bilan-grille">
         <div class="carte"><div class="score"><div class="grand ${cls}">${nf(note, 1)}<small> / 20</small></div>
@@ -347,13 +376,13 @@
           <div class="discret">Temps : <b>${minutes(duree)}</b> · repère de l'épreuve : ${minutes(st.repere)}${st.tempsEcoule ? " · <b>temps écoulé</b>" : ""}</div>
           ${st.indices ? `<div class="discret">« Où chercher ? » utilisé ${st.indices} fois</div>` : ""}</div></div>
           <p class="discret" style="margin-bottom:0">${duree > st.repere * 1.3 ? "Tu dépasses nettement le temps de référence : à l'épreuve, tu manquerais de temps. Repère plus vite le document et la ligne utiles, puis écris directement la relation." : duree < st.repere * 0.5 && note < 14 ? "Tu vas vite mais tu fais des erreurs : prends le temps de relire l'unité et la ligne du tableau avant de valider." : "Ton rythme est compatible avec la durée de l'épreuve."}</p>
-          <div class="actions"><button class="btn plein" id="b-encore">Recommencer (nouvelles valeurs)</button><a class="btn" href="#/series">Autre série</a>${N && (E4.SUJETS || []).some((s) => s.questions.some((qq) => qq.notion === st.id)) ? `<a class="btn" href="#/notion/${st.id}">Questions d'annales de la notion</a>` : ""}</div></div>
+          <div class="actions"><button class="btn plein" id="b-encore">Recommencer (nouvelles valeurs)</button><a class="btn" href="${retourDe(st.id)}">${morc(st.id) ? "Autre partie" : "Autre série"}</a>${N && (E4.SUJETS || []).some((s) => s.questions.some((qq) => qq.notion === st.id)) ? `<a class="btn" href="#/notion/${st.id}">Questions d'annales de la notion</a>` : ""}</div></div>
         ${N ? `<div class="carte"><h3>Fiche · ${esc(N.fiche.t)}</h3><ul class="fiche-serie">${N.fiche.l.map((l) => `<li>${l}</li>`).join("")}</ul></div>`
             : `<div class="carte"><h3>Par notion</h3><table><tbody>${Object.entries(parNotion).map(([id, p]) => `<tr><td>${esc(notion(id).nom)}</td><td class="num" style="white-space:nowrap">${nf(p.ok, 1)} / ${p.n}</td><td>${p.ok < p.n - 1e-9 ? `<a class="btn petit" href="#/serie/${id}">Série</a>` : "✓"}</td></tr>`).join("")}</tbody></table></div>`}
       </div>
       <h2>${erreurs.length ? "Questions à revoir" : "Aucune erreur"}</h2>
       ${erreurs.length ? erreurs.map((x) => `<details class="section"><summary>Q${x.k + 1} · ${x.q.type === "redac" ? "✎ " : ""}${esc(txt(x.q.q).slice(0, 140))}${x.r.horsTemps ? " · <i>non traitée</i>" : x.q.type === "redac" ? ` · ${nf(fracDe(x.r) * x.q.el.length, 1)} / ${x.q.el.length} élément${x.q.el.length > 1 ? "s" : ""}` : ""}</summary><div>${x.q.ctx ? `<div class="contexte">${x.q.ctx}</div>` : ""}${x.q.rappel ? `<div class="rappel-q">${x.q.rappel}</div>` : ""}${figHTML(x.q)}${revoir(x)}</div></details>`).join("") : `<p class="discret">Bravo. Refais une série dans quelques jours : les valeurs et les questions changent.</p>`}`;
-    document.getElementById("b-encore").addEventListener("click", () => { const id = st.id; st = null; location.hash = id === "express" ? "#/express" : "#/serie/" + id; });
+    document.getElementById("b-encore").addEventListener("click", () => { const id = st.id; st = null; location.hash = lienDe(id); });
   }
   async function transmettre() {
     if (st.transmis) return;
@@ -361,10 +390,10 @@
       const rep = q.type === "redac" && !r.horsTemps ? `✎ ${r.mode || "auto"} ${nf(f * q.el.length, 1)}/${q.el.length} · ${String(r.rep || "").replace(/\s+/g, " ")}` : String(r.rep || "");
       return { q: txt((q.ctx ? q.ctx + " · " : "") + q.q).slice(0, 400), rep: rep.slice(0, q.type === "redac" ? 300 : 80) + (r.indice ? " · indice" : ""), attendu: (q.type === "redac" ? attenduDe(q) : txt(r.attendu)).slice(0, q.type === "redac" ? 400 : 120),
         pts: Math.round(f * 100) / 100, erreurs: f >= 1 ? 0 : 1, notion: q.nid, niveau: q.lv, g: q.g, type: q.type === "redac" ? "redaction" : undefined }; });
-    const titre = st.id === "express" ? "E4 · Épreuve express (" + st.qs.length + " q.)" : "E4 · Série — " + notion(st.id).nom;
+    const titre = st.id === "express" ? "E4 · Épreuve express (" + st.qs.length + " q.)" : morc(st.id) ? "E4 · " + titreDe(st.id) + (st.officiel ? " (valeurs du sujet)" : "") : "E4 · Série — " + notion(st.id).nom;
     if (!window.SIP || !SIP.session || !SIP.session.get()) { toast("Tu n'es pas connecté(e) au site : résultat gardé sur cet appareil seulement."); return; }
     try {
-      const ok = await SIP.ecrire("enregistrer", { module: st.id === "express" ? "e4-express" : "e4-serie-" + st.id, titre, type: "externe", score: st.note, score_max: 20, duree_s: Math.round((st.fin - st.debut) / 1000), details });
+      const ok = await SIP.ecrire("enregistrer", { module: moduleDe(st.id), titre, type: "externe", score: st.note, score_max: 20, duree_s: Math.round((st.fin - st.debut) / 1000), details });
       st.transmis = true;
       toast(SIP.apercu && SIP.apercu.actif() ? "Aperçu : résultat gardé dans ce navigateur (rien n'est transmis)." : ok ? "Résultat transmis au professeur ✓" : "Hors ligne : résultat gardé, il partira au retour du réseau.");
     } catch (e) { toast(e.message === "SESSION_EXPIREE" ? "Ta connexion a expiré : reconnecte-toi sur le site." : "Transmission impossible : " + e.message); }
