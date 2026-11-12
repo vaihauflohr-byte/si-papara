@@ -20,8 +20,8 @@
    La question vaut la part des éléments obtenus.
    Résultat transmis au suivi du professeur (module e4-serie-<notion> ou e4-express).
    Sujets en morceaux (e4/morceaux.js) : #/morceaux (liste), #/morceau/<id> (une partie
-   d'un sujet d'annales, mêmes règles de notation ; 1er essai aux valeurs du sujet,
-   puis nouvelles valeurs) ; module e4-morceau-<id>.
+   d'un sujet d'annales, mêmes règles de notation ; valeurs tirées au hasard à chaque
+   essai, dès le premier : deux élèves n'ont pas les mêmes données) ; module e4-morceau-<id>.
    ===================================================================== */
 (function () {
   "use strict";
@@ -105,18 +105,28 @@
     app.innerHTML = `
       <p><a href="#/">← Accueil E4</a></p>
       <h1>Sujets en morceaux</h1>
-      <p class="discret" style="max-width:860px">Un sujet d'annales découpé par partie. Chaque partie se fait comme une série : une question à la fois, la correction tout de suite et <b>une note sur 20</b> : chaque erreur coûte des points. Le premier essai reprend les valeurs du sujet officiel ; ensuite, <b>de nouvelles valeurs à chaque essai</b>, avec les documents de l'installation redessinés. Les dossiers ressources sont ceux du sujet. Ta note part chez le professeur.</p>
+      <p class="discret" style="max-width:860px">Un sujet d'annales découpé par partie. Chaque partie se fait comme une série : une question à la fois, la correction tout de suite et <b>une note sur 20</b> : chaque erreur coûte des points. <b>Chaque essai a ses propres valeurs</b>, différentes d'un élève à l'autre et d'un essai à l'autre, avec les documents de l'installation redessinés. Les dossiers ressources sont ceux du sujet. Ta note part chez le professeur.</p>
       ${Object.entries(parSujet).map(([sid, ms]) => { const s = (E4.SUJETS || []).find((x) => x.id === sid) || { titre: sid, session: "", parties: [] };
         return `<h2>${esc(s.session)} · ${esc(s.titre)}</h2><div class="grille2">${ms.map((m) => { const b = best["m:" + m.id];
           return `<div class="carte"><div class="eyebrow">Partie ${esc(m.partie)} · repère ≈ ${m.duree_min} min</div><h3 style="margin-top:4px">${esc(m.titre)}</h3><p class="discret">${esc(m.resume)}</p>
-            <div class="actions"><a class="btn plein" href="#/morceau/${m.id}">${b ? "Recommencer · nouvelles valeurs" : "Commencer · valeurs du sujet"}</a>${b ? `<span class="discret">Meilleur : <b>${nf(b.note, 1)} / 20</b> · ${b.n} essai${b.n > 1 ? "s" : ""}</span>` : ""}</div></div>`; }).join("")}</div>`; }).join("")}
+            <div class="actions"><a class="btn plein" href="#/morceau/${m.id}">${b ? "Recommencer · nouvelles valeurs" : "Commencer"}</a>${b ? `<span class="discret">Meilleur : <b>${nf(b.note, 1)} / 20</b> · ${b.n} essai${b.n > 1 ? "s" : ""}</span>` : ""}</div></div>`; }).join("")}</div>`; }).join("")}
       <p class="pied">Les parties suivent l'ordre du sujet officiel et ses questions ; les valeurs des documents de l'installation changent d'un essai à l'autre, les relations et la démarche restent celles du corrigé.</p>`;
   }
 
   /* ---------- série ---------- */
+  /* morceau : l'ordre des propositions change d'un élève à l'autre ; une liste de valeurs
+     (« 80 A », « t < 10 ms »…) garde l'ordre croissant du sujet ; q.fixe : ordre imposé */
+  const ordonnee = (L) => L.every((c) => /^\s*(t\s*)?[<>≤≥≈~=]?\s*[−-]?\d/.test(txt(c)));
+  function melangerChoix(q) {
+    if (!q || q.type !== "ch" || !Array.isArray(q.ch) || q.ch.length < 2 || q.fixe || ordonnee(q.ch)) return;
+    const idx = q.ch.map((_, k) => k);
+    for (let k = idx.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [idx[k], idx[j]] = [idx[j], idx[k]]; }
+    q.ch = idx.map((k) => q.ch[k]); q.ok = idx.indexOf(q.ok);
+  }
   function nouvelleSerie(id) {
-    const m = morc(id), officiel = !!m && !lireMeilleurs()[id];   // morceau : 1er essai aux valeurs du sujet officiel
+    const m = morc(id), officiel = false;   // morceau : valeurs tirées au hasard dès le 1er essai (les élèves ne peuvent pas recopier les résultats d'un voisin)
     const qs = id === "express" ? E4.tirerExpress(12) : m ? E4.tirerMorceau(m.id, officiel) : E4.tirerSerie(id);
+    if (m) qs.forEach(melangerChoix);
     const repere = m ? m.duree_min : qs.reduce((a, q) => a + E4.repereMinutes(q), 0);
     return { id, qs, i: 0, rep: [], debut: Date.now(), fini: false, indices: 0, repere, officiel,
       limite: id === "express" ? Math.ceil(repere / 5) * 5 * 60e3 : null, transmis: false };
@@ -124,7 +134,7 @@
   function vueJeu(app, id) {
     if (!st || st.id !== id || st.fini) st = nouvelleSerie(id);
     if (!st.qs.length) { app.innerHTML = `<p>Aucune question disponible.</p><p><a href="${retourDe(id)}">← Retour</a></p>`; return; }
-    const titre = titreDe(id) + (morc(id) ? (st.officiel ? " · valeurs du sujet" : " · nouvelles valeurs") : "");
+    const titre = titreDe(id) + (morc(id) ? (st.officiel ? " · valeurs du sujet" : " · tes valeurs") : "");
     app.innerHTML = `
       <div class="bandeau-jeu">
         <a class="btn petit" href="${retourDe(id)}" id="s-quitter">← Quitter</a>
@@ -368,7 +378,7 @@
       : `<p>Ta réponse : <b>${esc(x.r.rep)}</b> · attendue : <b>${x.r.attendu}</b></p><div class="corrige">${x.q.expl}</div>`;
     app.innerHTML = `
       <p><a href="${retourDe(st.id)}">← ${morc(st.id) ? "Les sujets en morceaux" : "Toutes les séries"}</a></p>
-      <div class="eyebrow">${esc(titreDe(st.id))}${morc(st.id) ? (st.officiel ? " · valeurs du sujet" : " · nouvelles valeurs") : ""} · bilan</div>
+      <div class="eyebrow">${esc(titreDe(st.id))}${morc(st.id) ? (st.officiel ? " · valeurs du sujet" : " · tes valeurs") : ""} · bilan</div>
       <h1>${esc(verdict)}</h1>
       <div class="bilan-grille">
         <div class="carte"><div class="score"><div class="grand ${cls}">${nf(note, 1)}<small> / 20</small></div>
