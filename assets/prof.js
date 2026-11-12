@@ -235,8 +235,8 @@
     const cell = (v) => v ? `<td class="num">${tagNote(v.moy)}<div class="discret">${v.n}×</div></td>` : `<td class="num discret">—</td>`;
     const classe = codes.map((c) => { const v = pcs.map((p) => p[c]).filter(Boolean); return v.length ? { moy: v.reduce((a, b) => a + b.moy, 0) / v.length, n: v.length } : null; });
     cadre(`<p class="discret">Moyenne des notes /20 de chaque élève dans les entraînements rattachés à chaque compétence (sous la note : nombre d'entraînements). Survole un code pour son intitulé.</p>
-      <div class="table-defil"><table><thead><tr><th>Élève</th>${codes.map((c) => `<th class="num" title="${esc(SIP.COMPETENCES[c].dom + " — " + SIP.COMPETENCES[c].txt)}">${c}</th>`).join("")}</tr></thead><tbody>
-      ${liste.map((e, i) => `<tr class="cliquable" data-id="${e.id}"><td><b>${esc(e.nom)}</b></td>${codes.map((c) => cell(pcs[i][c])).join("")}</tr>`).join("")}
+      <div class="table-defil figee"><table class="fige"><thead><tr><th>Élève</th>${codes.map((c) => `<th class="num" title="${esc(SIP.COMPETENCES[c].dom + " — " + SIP.COMPETENCES[c].txt)}">${c}</th>`).join("")}</tr></thead><tbody>
+      ${liste.map((e, i) => `<tr class="cliquable" data-id="${e.id}" title="${esc(e.nom)}"><td><b>${esc(e.nom)}</b></td>${codes.map((c) => cell(pcs[i][c])).join("")}</tr>`).join("")}
       <tr><td><b>Classe</b></td>${classe.map((v) => v ? `<td class="num">${tagNote(v.moy)}<div class="discret">${v.n} él.</div></td>` : `<td class="num discret">—</td>`).join("")}</tr>
       </tbody></table></div>
       <h2>Légende</h2><div class="carte"><ul>${codes.map((c) => `<li><b>${c}</b> (${esc(SIP.COMPETENCES[c].dom)}, ${esc(SIP.COMPETENCES[c].classe)}) — ${esc(SIP.COMPETENCES[c].txt)}</li>`).join("")}</ul></div>`);
@@ -316,15 +316,15 @@
     const tete = cols.map((n) => `<th class="num" title="${esc(n.lab)} · ${esc(n.ds || "")} : échéance le ${SIP.fmtDate(n.ds_date)} à 6 h${n.enLigne ? "" : " · série pas encore en ligne"}">${esc(court(n.lab))}<div class="discret">${esc(n.ds || "")} · ${SIP.fmtDate(n.ds_date)}</div></th>`).join("");
     cadre(blocDSBlancs(true) + `<p class="discret">Une notion est <b>validée</b> quand l'élève atteint <b>${BAC.seuil}/20</b> à l'une de ses séries <b>avant l'échéance</b> : le jour de son DS, 6 h (heure de réception par le serveur). Sous la note : le nombre d'essais. « après » : meilleure note obtenue après l'échéance, qui ne compte pas. « fiche » : meilleure note /20 à la vérification « Ai-je compris ? » de la fiche de révision (✓ dès 16).
       <b>Préparation</b> : les trois étapes du DS (E1 les briques, E2 les calculs, E3 les chaînes), chacune validée à ${BAC.seuil}/20 avant l'échéance et ouvrant la suivante, puis le DS blanc (DSb : meilleure note en conditions de DS ou à son rythme ; q/q : meilleure note question par question, avec le corrigé après chaque question). Les trois étapes validées valident aussi les notions du DS (« ✓ prép. »).</p>
-      <div class="table-defil"><table class="grille-bac"><thead><tr><th>Élève</th>${tete}${tetePrep}<th class="num">Validées à temps</th><th class="num">Note /10</th><th class="num">Révision du jour (7&nbsp;j)</th><th class="num">Parcours (7&nbsp;j)</th><th class="num">Sujet blanc</th><th class="num" title="Dernier DS blanc fait (entrainements/ds-blanc.html) : dernière note, meilleure note et nombre d'essais sur ce DS">DS blanc</th><th class="num" title="Flash du début de séance : note du dernier flash rendu, sa date, et la moyenne de tous les flashs rendus">Flash</th></tr></thead><tbody>
-      ${lignes.map((l) => `<tr class="cliquable" data-id="${l.e.id}"><td><b>${esc(l.e.nom)}</b></td>${l.cells.map(cell).join("")}${l.preps.map(prep).join("")}
+      <div class="table-defil figee"><table class="grille-bac fige"><thead><tr><th>Élève</th>${tete}${tetePrep}<th class="num">Validées à temps</th><th class="num">Note /10</th><th class="num">Révision du jour (7&nbsp;j)</th><th class="num">Parcours (7&nbsp;j)</th><th class="num">Sujet blanc</th><th class="num" title="Dernier DS blanc fait (entrainements/ds-blanc.html) : dernière note, meilleure note et nombre d'essais sur ce DS">DS blanc</th><th class="num" title="Flash du début de séance : note du dernier flash rendu, sa date, et la moyenne de tous les flashs rendus">Flash</th></tr></thead><tbody>
+      ${lignes.map((l) => `<tr class="cliquable" data-id="${l.e.id}" title="${esc(l.e.nom)}"><td><b>${esc(l.e.nom)}</b></td>${l.cells.map(cell).join("")}${l.preps.map(prep).join("")}
         <td class="num">${l.echues ? `${l.valides} / ${l.echues}` : "—"}</td>
         <td class="num">${l.note10 === null ? "—" : `<span class="etiquette ${l.note10 >= 8 ? "ok" : l.note10 >= 5 ? "alerte" : "ko"}">${SIP.nb(l.note10, 3)}</span>`}</td>
         <td class="num"><span class="etiquette ${l.jours7 >= 5 ? "ok" : l.jours7 >= 3 ? "alerte" : "ko"}">${l.jours7} / 7 j</span></td>
         <td class="num">${l.parcours}</td>
-        <td class="num">${l.blanc ? `<span class="etiquette ${SIP.appreciation(l.blanc.dernier).cls}">${SIP.nb(l.blanc.dernier, 3)}</span><div class="discret">${SIP.fmtDate(l.blanc.le)}${l.blanc.n > 1 ? ` · meilleur ${SIP.nb(l.blanc.meilleur, 3)} · ${l.blanc.n} sujets` : ""}</div>` : `<span class="discret">—</span>`}</td>
-        <td class="num">${l.dsb ? `<span class="etiquette ${SIP.appreciation(l.dsb.dernier).cls}">${SIP.nb(l.dsb.dernier, 3)}</span><div class="discret">${esc(l.dsb.ds)}${l.dsb.pas ? " · q/q" : ""} · ${SIP.fmtDate(l.dsb.le)}${l.dsb.n > 1 ? ` · meilleur ${SIP.nb(l.dsb.meilleur, 3)} · ${l.dsb.n} essais` : ""}</div>` : `<span class="discret">—</span>`}</td>
-        <td class="num">${l.flash ? `<span class="etiquette ${SIP.appreciation(l.flash.dernier).cls}">${SIP.nb(l.flash.dernier, 3)}</span><div class="discret">${SIP.fmtDate(l.flash.le)}${l.flash.n > 1 ? ` · moy. ${SIP.nb(l.flash.moy, 3)} sur ${l.flash.n}` : ""}</div>` : `<span class="discret">—</span>`}</td></tr>`).join("")}
+        <td class="num">${l.blanc ? `<span class="etiquette ${SIP.appreciation(l.blanc.dernier).cls}">${SIP.nb(l.blanc.dernier, 3)}</span><div class="discret">${SIP.fmtDate(l.blanc.le)}</div>${l.blanc.n > 1 ? `<div class="discret">meilleur ${SIP.nb(l.blanc.meilleur, 3)} · ${l.blanc.n} sujets</div>` : ""}` : `<span class="discret">—</span>`}</td>
+        <td class="num">${l.dsb ? `<span class="etiquette ${SIP.appreciation(l.dsb.dernier).cls}">${SIP.nb(l.dsb.dernier, 3)}</span><div class="discret">${esc(l.dsb.ds)}${l.dsb.pas ? " · q/q" : ""} · ${SIP.fmtDate(l.dsb.le)}</div>${l.dsb.n > 1 ? `<div class="discret">meilleur ${SIP.nb(l.dsb.meilleur, 3)} · ${l.dsb.n} essais</div>` : ""}` : `<span class="discret">—</span>`}</td>
+        <td class="num">${l.flash ? `<span class="etiquette ${SIP.appreciation(l.flash.dernier).cls}">${SIP.nb(l.flash.dernier, 3)}</span><div class="discret">${SIP.fmtDate(l.flash.le)}</div>${l.flash.n > 1 ? `<div class="discret">moy. ${SIP.nb(l.flash.moy, 3)} sur ${l.flash.n}</div>` : ""}` : `<span class="discret">—</span>`}</td></tr>`).join("")}
       </tbody></table></div>
       <div class="rang no-print" style="margin-top:12px"><button class="btn sec" id="csv-bac">Exporter cette grille (CSV, pour Pronote)</button>
         <a class="btn sec" href="index.html#/flash/projeter" title="Le flash du jour à projeter : questions, code à taper par les élèves, chrono, correction">⚡ Projeter le flash du jour</a>
@@ -348,7 +348,7 @@
       const s = stats(D.parEleve[e.id]);
       const tx7 = s.attendu7 ? s.lu7 / s.attendu7 : 1;
       const alerte = (s.actives && tx7 < 0.6) || (!s.hebdoSem && s.actives + s.ancrees > 0);
-      return `<tr class="cliquable" data-id="${e.id}">
+      return `<tr class="cliquable" data-id="${e.id}" title="${esc(e.nom)}">
         <td><b>${esc(e.nom)}</b>${niveau ? "" : `<br><span class="discret">${esc(SIP.niveau(e.niveau).court)}</span>`}</td>
         <td class="num">${s.nb}${s.nb7 ? ` <span class="etiquette accent">+${s.nb7} sur 7 j</span>` : ""}</td>
         <td class="num">${s.moy === null ? "—" : tagNote(s.moy)}</td>
@@ -366,7 +366,7 @@
         <div class="carte"><span class="discret">Ont lu leurs fiches aujourd'hui</span><b>${tot.filter((x) => x.luAuj).length} / ${tot.filter((x) => x.actives).length}</b></div>
         <div class="carte"><span class="discret">Révision hebdo faite</span><b>${Math.round((100 * tot.filter((x) => x.hebdoSem).length) / n)} %</b></div>
       </div>
-      ${liste.length ? `<div class="table-defil"><table><thead><tr><th>Élève</th><th class="num">Entraînements</th><th class="num">Moyenne</th><th>Dernière activité</th><th class="num">Fiches en cours</th><th class="num">Lecture fiches (7 j)</th><th>Révision hebdo</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      ${liste.length ? `<div class="table-defil figee"><table class="fige"><thead><tr><th>Élève</th><th class="num">Entraînements</th><th class="num">Moyenne</th><th>Dernière activité</th><th class="num">Fiches en cours</th><th class="num">Lecture fiches (7 j)</th><th>Révision hebdo</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="discret">Clique sur un élève pour voir <b>tous</b> ses entraînements, question par question. ⚠︎ = lecture des fiches irrégulière (moins de 60 % des jours sur les 7 derniers) ou révision de la semaine non faite.</p>`
         : `<div class="carte"><p>Aucun élève. Crée-les dans l'onglet « Élèves et codes ».</p></div>`}`);
     document.querySelectorAll("tr[data-id]").forEach((tr) => (tr.onclick = () => vueDetail(tr.dataset.id)));
