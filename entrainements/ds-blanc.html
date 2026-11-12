@@ -1797,6 +1797,37 @@ if (typeof window !== "undefined"){
   const nomNotion = (id) => { const B = window.SIP && SIP.BAC; const n = B && B.notions.find((x) => x.id === id); return n ? n.lab : id; };
   const fmtDate = (ms) => new Date(ms).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Tahiti" });
 
+  /* ---------- notes restées sur l'appareil (pas de réseau au moment de l'envoi) ----------
+     SIP.ecrire garde la note dans une file d'attente quand le serveur ne répond pas : elle n'est « reçue »
+     qu'une fois partie. Numéros des essais de ce DS encore dans la file, avec la dernière erreur. */
+  function enFile(S) {
+    const m = new Map();
+    try { (SIPok() && SIP.enAttenteOps ? SIP.enAttenteOps() : []).forEach((o) => { if (o.module !== S.module) return; const r = /essai n° (\d+)/.exec(o.titre || ""); if (r) m.set(Number(r[1]), o); }); } catch (e) { /* file illisible */ }
+    return m;
+  }
+  const raisonFile = (o) => (!o || !o.err || o.err === "reseau" ? "pas de connexion avec le serveur au moment de l'envoi" : "le serveur a refusé l'envoi (" + o.err + ")");
+  function statutHTML(S, e, file) {
+    const s = session();
+    if (e.envoye && file.has(e.n)) return `<span class="etiquette alerte" title="Note gardée sur cet appareil : ${esc(raisonFile(file.get(e.n)))}. Elle part toute seule dès que la connexion revient.">en attente d'envoi</span>`;
+    if (e.envoye) return `<span class="etiquette ok">reçue</span>${e.compte && s && !s.apercu && e.compte !== s.nom ? ` <span class="discret">(compte ${esc(e.compte)})</span>` : ""}`;
+    return `<span class="etiquette alerte">à envoyer</span>`;
+  }
+  let majEnvoiCourant = null;     /* page de correction affichée : met à jour son état d'envoi */
+  function rafraichirStatuts() {
+    const id = decodeURIComponent(location.hash.replace(/^#/, "")).split("/")[0], S = id && sujet(id);
+    if (!S) return;
+    const file = enFile(S), d = dossier(S.id);
+    document.querySelectorAll("[data-statut]").forEach((td) => { const e = d.essais.find((x) => x.n === Number(td.dataset.statut)); if (e) td.innerHTML = statutHTML(S, e, file); });
+    if (majEnvoiCourant) majEnvoiCourant();
+  }
+  /* renvoie les notes en attente : au chargement, au retour du réseau, quand l'élève revient sur la page */
+  async function envoyerAttente() {
+    if (!SIPok() || !SIP.viderFile || !session() || apercu()) return 0;
+    const n = await SIP.viderFile().catch(() => 0);
+    rafraichirStatuts();
+    return n;
+  }
+
   /* ---------- vues ---------- */
   let minuteur = null;
   let aSauver = null;              /* sauvegarde de la frappe en cours, différée de 250 ms : écrite avant tout changement de vue */
@@ -1826,6 +1857,7 @@ if (typeof window !== "undefined"){
     const d = dossier(S.id), c = enCours(d), j = dateDS(S);
     if (c) return c.mode === "pas" ? vuePas(S, c, qn) : vueCopie(S, c);
     const faits = d.essais.filter((e) => e.rendu).sort((a, b) => b.n - a.n);
+    const sess = session(), file = enFile(S);
     /* conseil : d'abord question par question, puis en conditions de DS */
     const dejaPas = faits.some((e) => e.mode === "pas"), conseil = voulu || (dejaPas ? "ds" : "pas");
     const etiq = voulu === "pas" ? "le défi" : voulu === "ds" ? "la revanche" : dejaPas ? "conseillé maintenant" : "conseillé pour commencer";
@@ -1861,9 +1893,9 @@ if (typeof window !== "undefined"){
           ${mode("libre", "À mon rythme", "Toute la copie, sans chrono ; la correction à la fin.")}
         </div>
       </div>
-      ${faits.length ? `<h2>Mes essais</h2><div class="table-defil"><table class="essais"><thead><tr><th>Essai</th><th>Rendu le</th><th>Mode</th><th class="num">Note</th><th>Professeur</th><th></th></tr></thead><tbody>
+      ${faits.length ? `<h2>Mes essais</h2><p class="discret">Essais faits sur cet appareil (numérotés sur cet appareil).${sess && !sess.apercu ? ` Les notes partent sur le compte de <b>${esc(sess.nom)}</b>.` : ""}</p><div class="table-defil"><table class="essais"><thead><tr><th>Essai</th><th>Rendu le</th><th>Mode</th><th class="num">Note</th><th>Professeur</th><th></th></tr></thead><tbody>
         ${faits.map((e) => `<tr><td>n° ${e.n}</td><td>${fmtDate(e.fin)}</td><td>${nomMode(e.mode)}</td><td class="num"><b>${note20(e.note || 0)}</b> / 20</td>
-          <td>${e.envoye ? `<span class="etiquette ok">reçue</span>` : `<span class="etiquette alerte">à envoyer</span>`}</td><td><a href="#${S.id}/correction/${e.n}">${e.envoye ? "Voir la correction" : "Terminer la correction"}</a></td></tr>`).join("")}
+          <td data-statut="${e.n}">${statutHTML(S, e, file)}</td><td><a href="#${S.id}/correction/${e.n}">${e.envoye ? "Voir la correction" : "Terminer la correction"}</a></td></tr>`).join("")}
       </tbody></table></div>` : ""}`;
     $app.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => commencer(S, b.dataset.go)));
   }
@@ -2269,11 +2301,14 @@ if (typeof window !== "undefined"){
       if (!b || !et) return;
       b.disabled = iaEnCours();
       if (b.disabled) { et.textContent = "L'IA lit tes rédactions…"; return; }
-      if (essai.envoye) { b.textContent = "Renvoyer ma note"; b.classList.add("sec"); et.innerHTML = apercu() ? "Aperçu : rien n'est envoyé." : `Note reçue par ton professeur ✓ <span class="discret">(${note20(essai.noteEnvoyee)} / 20)</span>`; }
+      const att = !apercu() && enFile(S).get(essai.n);
+      if (essai.envoye && att) { b.textContent = "Réessayer l'envoi"; b.classList.remove("sec"); et.innerHTML = `<b>En attente d'envoi</b> : ta note (${note20(essai.noteEnvoyee)} / 20) est gardée sur cet appareil, ton professeur ne l'a pas encore reçue (${esc(raisonFile(att))}). Elle part toute seule dès que la connexion revient.`; }
+      else if (essai.envoye) { b.textContent = "Renvoyer ma note"; b.classList.add("sec"); et.innerHTML = apercu() ? "Aperçu : rien n'est envoyé." : `Note reçue par ton professeur ✓ <span class="discret">(${note20(essai.noteEnvoyee)} / 20${essai.compte ? ", compte de " + esc(essai.compte) : ""})</span>`; }
       else if (!s) { et.innerHTML = `<a href="${RACINE}index.html#/connexion/TSI">Connecte-toi</a> pour l'envoyer.`; }
       else et.textContent = "";
     };
     majEnvoi();
+    majEnvoiCourant = majEnvoi;
     on("change", (ev) => {
       const el = ev.target; if (!el.dataset.coche) return;
       const dd = dossier(S.id), e = dd.essais.find((x) => x.n === essai.n);
@@ -2354,6 +2389,13 @@ if (typeof window !== "undefined"){
       return boite(`<h2>L'IA lit encore tes rédactions</h2><p>Attends quelques secondes : ta note tiendra compte de ses verdicts.</p>`, [["D'accord", null]]);
     const s = session();
     if (!s) return boite(`<h2>Connecte-toi d'abord</h2><p>Sans connexion, ton professeur ne peut pas recevoir ta note. Ta copie corrigée reste sur ce téléphone.</p>`, [["Me connecter", () => { location.href = RACINE + "index.html#/connexion/TSI"; }], ["Plus tard", null]]);
+    if (!apercu() && enFile(S).has(essai.n)) {      /* déjà dans la file d'attente : on la renvoie, sans en créer une deuxième */
+      const et0 = document.getElementById("envoi-etat"); if (et0) et0.textContent = "Envoi…";
+      await envoyerAttente();
+      if (apres) apres();
+      if (enFile(S).has(essai.n) && et0) et0.innerHTML = `<b>Toujours en attente d'envoi</b> : ${esc(raisonFile(enFile(S).get(essai.n)))}. Ta note reste gardée sur cet appareil ; réessaie quand tu as du réseau.`;
+      return;
+    }
     const R = noteEssai(S, essai), I = R.I;
     const details = R.parQ.map(({ q, r }) => {
       const v = (essai.rep && essai.rep.v) || {}, t = ((essai.rep && essai.rep.t) || {})[q.n] || "";
@@ -2373,9 +2415,11 @@ if (typeof window !== "undefined"){
     try {
       const parti = await SIP.ecrire("enregistrer", { module: S.module, titre, type: "externe", score: R.note, score_max: 20, duree_s: Math.round(((essai.fin || Date.now()) - essai.debut) / 1000), details });
       const dd = dossier(S.id), e = dd.essais.find((x) => x.n === essai.n);
-      e.envoye = true; e.noteEnvoyee = R.note; essai.envoye = true; essai.noteEnvoyee = R.note; garder(S.id, dd);
+      e.envoye = true; e.noteEnvoyee = R.note; essai.envoye = true; essai.noteEnvoyee = R.note;
+      if (!apercu()) { e.compte = s.nom; essai.compte = s.nom; }
+      garder(S.id, dd);
       if (apres) apres();
-      if (et && !apercu()) et.innerHTML = parti ? `Note reçue par ton professeur ✓ <span class="discret">(${note20(R.note)} / 20)</span>` : "Pas de réseau : ta note partira dès que la connexion revient.";
+      if (et && !apercu() && parti) et.innerHTML = `Note reçue par ton professeur ✓ <span class="discret">(${note20(R.note)} / 20, compte de ${esc(s.nom)})</span>`;
     } catch (err) {
       if (et) et.textContent = err.message === "SESSION_EXPIREE" ? "Ta connexion a expiré : reconnecte-toi, puis renvoie ta note." : "Envoi impossible : " + err.message;
     }
@@ -2397,7 +2441,7 @@ if (typeof window !== "undefined"){
   function on(type, fn) { $app.addEventListener(type, fn); ecouteurs.push([type, fn]); }
   function nettoyer() { ecouteurs.forEach(([t, f]) => $app.removeEventListener(t, f)); ecouteurs = []; }
   function afficher() {
-    vider(); stopMinuteur(); nettoyer(); vueIA = null;
+    vider(); stopMinuteur(); nettoyer(); vueIA = null; majEnvoiCourant = null;
     const h = decodeURIComponent(location.hash.replace(/^#/, "")), [id, vue, n] = h.split("/");
     const S = id && sujet(id);
     if (!S) vueListe();
@@ -2443,7 +2487,9 @@ if (typeof window !== "undefined"){
   window.addEventListener("pageshow", (e) => { if (e.persisted) afficher(); });
   window.addEventListener("pagehide", vider);
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") vider(); });
-  if (window.SIP && SIP.session && SIP.session.get() && SIP.viderFile) SIP.viderFile().catch(() => {});
+  window.addEventListener("online", () => { envoyerAttente(); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") envoyerAttente(); });
+  envoyerAttente();
   window.DSB = { afficher, noteEssai, verdict, lire, nb, instance, dossier, garder, sujet };
   if (/[?&]prof(=|&|$)/.test(location.search)) demarrerProf(); else afficher();
 })();
