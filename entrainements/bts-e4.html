@@ -232,6 +232,8 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
 .docs-html{flex:1;overflow:auto;padding:12px 14px;background:var(--paper);font-size:.9rem}
 .docs-html .doc-titre{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:1rem;margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid var(--line-strong)}
 .docs-html p{margin:.45em 0}.docs-html ul{margin:.3em 0;padding-left:1.3em}
+.docs-html img.doc-page{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:4px;background:#fff;cursor:zoom-in}
+.docs-html img.doc-page.zoom{width:auto;max-width:none;min-width:200%;cursor:zoom-out}
 .t-doc{border-collapse:collapse;width:auto;min-width:60%;font-size:.84rem;margin:8px 0}
 .t-doc th,.t-doc td{border:1px solid var(--rule);padding:4px 6px;text-align:center;vertical-align:middle}
 .t-doc th{background:var(--paper-2);color:var(--ink-2);font-family:var(--f-body);font-weight:600;text-transform:none;letter-spacing:0;font-size:.8rem}
@@ -308,6 +310,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
 <script src="e4/sujets/2022nc-telesiege.js"></script>
 <script src="e4/sujets/2022-aerosol.js"></script>
 <script src="e4/banque.js"></script>
+<script src="e4/morceaux.js"></script>
 <script src="e4/series.js"></script>
 <script>
 /* =====================================================================
@@ -434,7 +437,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
     const h = location.hash.replace(/^#\/?/, ""), p = h.split("/");
     window.scrollTo(0, 0);
     if (E4.stopSeries) E4.stopSeries();
-    if (E4.routeSeries && ["series", "serie", "express", "bilan-serie"].includes(p[0])) return E4.routeSeries(app, p);
+    if (E4.routeSeries && ["series", "serie", "express", "bilan-serie", "morceaux", "morceau"].includes(p[0])) return E4.routeSeries(app, p);
     if (p[0] === "sujet" && p[1]) return vueSujet(p[1]);
     if (p[0] === "jouer" && p[1] && p[2]) return vueJouer(parcoursSujet(p[1], p[2]));
     if (p[0] === "notion" && p[1]) return vueJouer(parcoursNotion(p[1]));
@@ -475,7 +478,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
       ${E4.BANQUE ? `<div class="carte serie-hero" style="margin-top:14px"><div class="eyebrow">Banque de questions · ${Object.keys(E4.BANQUE).length} notions · ${Object.keys(E4.BANQUE).reduce((a, k) => a + E4.nbGenerateurs(k), 0)} types de questions</div>
         <h3 style="margin-top:4px">Avant les sujets complets : les séries par notion</h3>
         <p class="discret" style="margin:4px 0 0;max-width:860px">Les questions types des sujets 2022-2026, avec de nouvelles valeurs à chaque essai et les extraits de dossiers ressources où chercher les données. Note sur 20, résultat transmis au professeur. L'épreuve express (12 questions, temps limité) t'entraîne à gérer ton temps.</p>
-        <div class="actions"><a class="btn plein" href="#/series">Séries par notion</a><a class="btn" href="#/express">Épreuve express · temps limité</a><a class="btn" href="bts-u4-atelier.html" title="Sur les vraies pages des annales : trouver la donnée dans le dossier ressources, puis la reporter dans le document réponse">Atelier documents · lire le DRES</a></div></div>` : ""}
+        <div class="actions"><a class="btn plein" href="#/series">Séries par notion</a><a class="btn" href="#/express">Épreuve express · temps limité</a>${(E4.MORCEAUX || []).length ? `<a class="btn" href="#/morceaux">Sujets en morceaux · notés sur 20</a>` : ""}<a class="btn" href="bts-u4-atelier.html" title="Sur les vraies pages des annales : trouver la donnée dans le dossier ressources, puis la reporter dans le document réponse">Atelier documents · lire le DRES</a></div></div>` : ""}
       ${runs.length ? `<h2>Mes entraînements</h2><div class="carte" style="padding:8px 14px"><table class="t-runs"><thead><tr><th>Parcours</th><th>Mode</th><th>Avancement</th><th class="num">Note indicative</th><th></th></tr></thead><tbody>${runs.slice(0, 12).map(ligneRun).join("")}</tbody></table></div>` : ""}
       <h2>Les sujets</h2>
       <div class="grille2">${CARTE.map((c) => {
@@ -529,6 +532,9 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
           <h3 style="margin-top:14px">Les documents</h3><p class="discret">${Object.values(s.docs).map((d) => esc(d.titre) + " (" + d.pages + " p.)").join(" · ")}</p></div>
       </div>
       <h2>Comment t'entraîner</h2>
+      ${(E4.MORCEAUX || []).some((m) => m.sujet === id) ? `<div class="carte serie-hero" style="margin-bottom:14px"><div class="eyebrow">Le sujet en morceaux · une partie à la fois, notée sur 20</div>
+        <p class="discret" style="margin:4px 0 8px">Chaque partie se fait question par question, avec la correction tout de suite et une note sur 20 (chaque erreur coûte des points). Premier essai aux valeurs du sujet, puis de nouvelles valeurs à chaque essai.</p>
+        <div class="actions">${E4.MORCEAUX.filter((m) => m.sujet === id).map((m) => `<a class="btn" href="#/morceau/${m.id}">Partie ${esc(m.partie)} · ${esc(m.titre)}</a>`).join("")}</div></div>` : ""}
       <div class="grille2">
         <div class="carte"><h3>Mode guidé</h3><p class="discret">Question par question : tu réponds, tu vérifies, tu t'évalues avec la grille, puis tu passes à la suite. Indices « Où chercher ? » disponibles. Idéal pour découvrir le sujet.</p>
           <div class="actions">${rg && !rg.fini ? `<a class="btn plein" href="#/jouer/${id}/guide">Reprendre (${Object.values(rg.reponses).filter((r) => r.niveau != null).length} / ${s.questions.length})</a><button class="btn danger" data-reset="${id}:guide">Recommencer</button>` : `<a class="btn plein" href="#/jouer/${id}/guide">Commencer</a>`}${rg && rg.fini ? `<a class="btn" href="#/bilan/${id}/guide">Voir le bilan</a><button class="btn danger" data-reset="${id}:guide">Recommencer</button>` : ""}</div></div>
