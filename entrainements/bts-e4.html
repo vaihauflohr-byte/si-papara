@@ -534,7 +534,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
       </div>
       <h2>Comment t'entraîner</h2>
       ${(E4.MORCEAUX || []).some((m) => m.sujet === id) ? `<div class="carte serie-hero" style="margin-bottom:14px"><div class="eyebrow">Le sujet en morceaux · une partie à la fois, notée sur 20</div>
-        <p class="discret" style="margin:4px 0 8px">Chaque partie se fait question par question, avec la correction tout de suite et une note sur 20 (chaque erreur coûte des points). Premier essai aux valeurs du sujet, puis de nouvelles valeurs à chaque essai.</p>
+        <p class="discret" style="margin:4px 0 8px">Chaque partie se fait question par question, avec la correction tout de suite et une note sur 20 (chaque erreur coûte des points). Chaque élève a ses propres valeurs, et elles changent à chaque essai.</p>
         <div class="actions">${E4.MORCEAUX.filter((m) => m.sujet === id).map((m) => `<a class="btn" href="#/morceau/${m.id}">Partie ${esc(m.partie)} · ${esc(m.titre)}</a>`).join("")}</div></div>` : ""}
       <div class="grille2">
         <div class="carte"><h3>Mode guidé</h3><p class="discret">Question par question : tu réponds, tu vérifies, tu t'évalues avec la grille, puis tu passes à la suite. Indices « Où chercher ? » disponibles. Idéal pour découvrir le sujet.</p>
