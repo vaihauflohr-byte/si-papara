@@ -200,10 +200,26 @@
     });
   }
 
+  // ---------------- DS blancs : le prof les fait lui-même, en aperçu professeur (rien n'est transmis) ----------------
+  // Lien entrainements/ds-blanc.html?prof#dsXX : la page vérifie l'accès prof, passe en aperçu Terminale SI,
+  // et l'IA vérifie les rédactions avec la session prof de ce navigateur.
+  const lienDSB = (b) => `entrainements/ds-blanc.html?prof#${encodeURIComponent(b.id)}`;
+  function blocDSBlancs(compact) {
+    const L = (SIP.DS_BLANCS || []).slice().reverse();   // le plus récent (le prochain DS) en premier
+    if (!L.length) return "";
+    if (compact) return `<div class="carte rang no-print" style="align-items:center;gap:10px;flex-wrap:wrap"><b>Faire un DS blanc moi-même</b>
+      ${L.map((b, i) => `<a class="btn${i ? " sec" : ""}" href="${lienDSB(b)}" target="_blank" rel="noopener">${esc(b.ds)} blanc ↗</a>`).join("")}
+      <span class="discret">aperçu professeur : rien n'est transmis</span></div>`;
+    return `<section class="carte"><div class="eyebrow">Terminale SI</div><h2>Faire un DS blanc moi-même</h2>
+      <p class="discret">Le DS blanc s'ouvre comme pour un élève de Terminale SI, en aperçu professeur : question par question, en conditions de DS (chrono) ou à ton rythme, avec la correction, le barème et la vérification par l'IA des réponses rédigées. <b>Rien n'est transmis</b> : tes essais restent dans ce navigateur et n'apparaissent pas dans le suivi des élèves.</p>
+      <div class="grille">${L.map((b) => `<div class="carte tuile"><div class="discret">${esc(b.ds)} · ${b.duree_min} min</div><h3>${esc(b.titre)}</h3>
+        <a class="btn" style="margin-top:auto" href="${lienDSB(b)}" target="_blank" rel="noopener">Faire le DS blanc ↗</a></div>`).join("")}</div></section>`;
+  }
+
   // ---------------- Aperçu élève : le site tel que le voit chaque filière, sans compte élève ----------------
   function vueApercu() {
     const extra = { TSI: "Tableau de bord tourné vers le bac : prochain DS, fiches, séries notées, sujet blanc.", "BTS2-STI": "Avec l'entraînement E4 (sujets d'annales, auto-évaluation N0–N3) et la page « Mon projet » (dossiers 1-2-3).", "BTS2-ADM": "Avec l'entraînement E4 (sujets d'annales, auto-évaluation N0–N3) et la page « Mon projet » (dossiers 1-2-3)." };
-    cadre(`<p class="discret">Ouvre le site élève comme un élève de la filière choisie, sans identifiant. Tout fonctionne (séries, fiches du jour, révision de la semaine, bac SI, E4) mais <b>rien n'est transmis</b> : tes essais restent dans ce navigateur et n'apparaissent ni dans le suivi ni dans les grilles. Dans l'aperçu, un bandeau permet de changer de filière, d'effacer tes essais ou de quitter.</p>
+    cadre(blocDSBlancs() + `<p class="discret">Ouvre le site élève comme un élève de la filière choisie, sans identifiant. Tout fonctionne (séries, fiches du jour, révision de la semaine, bac SI, E4) mais <b>rien n'est transmis</b> : tes essais restent dans ce navigateur et n'apparaissent ni dans le suivi ni dans les grilles. Dans l'aperçu, un bandeau permet de changer de filière, d'effacer tes essais ou de quitter.</p>
       <div class="grille">${SIP.NIVEAUX.map((n) => `<div class="carte tuile"><div class="discret">${esc(n.groupe)}</div><h3>${esc(n.nom)}</h3>
         ${n.desc ? `<div class="discret">${esc(n.desc)}</div>` : ""}${extra[n.id] ? `<div class="discret">${esc(extra[n.id])}</div>` : ""}<span class="etiquette" style="margin:6px 0 12px">${SIP.modulesDu(n.id).length} modules</span>
         <a class="btn" style="margin-top:auto" href="index.html#/apercu/${n.id}" target="_blank" rel="noopener">Ouvrir l'aperçu ↗</a></div>`).join("")}</div>`);
@@ -298,7 +314,7 @@
       : c.pv ? `<td class="num"><span class="etiquette ok" title="Validée par les trois étapes de la préparation du DS">✓ prép.</span>${fiche(c)}</td>`
       : `<td class="num">${c.passe ? `<span class="etiquette ko">—</span>` : `<span class="discret">à faire</span>`}${fiche(c)}</td>`;
     const tete = cols.map((n) => `<th class="num" title="${esc(n.lab)} · ${esc(n.ds || "")} : échéance le ${SIP.fmtDate(n.ds_date)} à 6 h${n.enLigne ? "" : " · série pas encore en ligne"}">${esc(court(n.lab))}<div class="discret">${esc(n.ds || "")} · ${SIP.fmtDate(n.ds_date)}</div></th>`).join("");
-    cadre(`<p class="discret">Une notion est <b>validée</b> quand l'élève atteint <b>${BAC.seuil}/20</b> à l'une de ses séries <b>avant l'échéance</b> : le jour de son DS, 6 h (heure de réception par le serveur). Sous la note : le nombre d'essais. « après » : meilleure note obtenue après l'échéance, qui ne compte pas. « fiche » : meilleure note /20 à la vérification « Ai-je compris ? » de la fiche de révision (✓ dès 16).
+    cadre(blocDSBlancs(true) + `<p class="discret">Une notion est <b>validée</b> quand l'élève atteint <b>${BAC.seuil}/20</b> à l'une de ses séries <b>avant l'échéance</b> : le jour de son DS, 6 h (heure de réception par le serveur). Sous la note : le nombre d'essais. « après » : meilleure note obtenue après l'échéance, qui ne compte pas. « fiche » : meilleure note /20 à la vérification « Ai-je compris ? » de la fiche de révision (✓ dès 16).
       <b>Préparation</b> : les trois étapes du DS (E1 les briques, E2 les calculs, E3 les chaînes), chacune validée à ${BAC.seuil}/20 avant l'échéance et ouvrant la suivante, puis le DS blanc (DSb : meilleure note en conditions de DS ou à son rythme ; q/q : meilleure note question par question, avec le corrigé après chaque question). Les trois étapes validées valident aussi les notions du DS (« ✓ prép. »).</p>
       <div class="table-defil"><table class="grille-bac"><thead><tr><th>Élève</th>${tete}${tetePrep}<th class="num">Validées à temps</th><th class="num">Note /10</th><th class="num">Révision du jour (7&nbsp;j)</th><th class="num">Parcours (7&nbsp;j)</th><th class="num">Sujet blanc</th><th class="num" title="Dernier DS blanc fait (entrainements/ds-blanc.html) : dernière note, meilleure note et nombre d'essais sur ce DS">DS blanc</th><th class="num" title="Flash du début de séance : note du dernier flash rendu, sa date, et la moyenne de tous les flashs rendus">Flash</th></tr></thead><tbody>
       ${lignes.map((l) => `<tr class="cliquable" data-id="${l.e.id}"><td><b>${esc(l.e.nom)}</b></td>${l.cells.map(cell).join("")}${l.preps.map(prep).join("")}
