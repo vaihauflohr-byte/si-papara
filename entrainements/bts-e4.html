@@ -443,7 +443,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
     const h = location.hash.replace(/^#\/?/, ""), p = h.split("/");
     window.scrollTo(0, 0);
     if (E4.stopSeries) E4.stopSeries();
-    if (E4.routeSeries && ["series", "serie", "express", "bilan-serie", "morceaux", "morceau"].includes(p[0])) return E4.routeSeries(app, p);
+    if (E4.routeSeries && ["series", "serie", "express", "bilan-serie", "morceaux", "morceau", "annales"].includes(p[0])) return E4.routeSeries(app, p);
     if (p[0] === "sujet" && p[1]) return vueSujet(p[1]);
     if (p[0] === "jouer" && p[1] && p[2]) return vueJouer(parcoursSujet(p[1], p[2]));
     if (p[0] === "notion" && p[1]) return vueJouer(parcoursNotion(p[1]));
@@ -499,13 +499,13 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
       <h2>Carte des notions de l'épreuve <span class="discret" style="font-family:var(--f-body);font-weight:400;text-transform:none;font-size:.88rem">${TOTAL_CARTE} questions des ${CARTE.length} sujets ${TD ? TD.tout.label : "2022–2026"}, classées par notion</span></h2>
       <div class="carte">
         <p style="margin-top:0;max-width:900px">${phraseCarte}</p>
-        <p class="discret">${TD ? `Tendance : part des questions de la notion dans les sujets ${TD.avant.label} (${TD.avant.sujets} sujets), puis dans les sujets ${TD.recents.label} (${TD.recents.sujets} sujets). ` : ""}Une notion est « disponible » dès qu'un sujet transcrit la contient : l'entraînement par notion enchaîne alors ses questions, documents compris.</p>
+        <p class="discret">${TD ? `Tendance : part des questions de la notion dans les sujets ${TD.avant.label} (${TD.avant.sujets} sujets), puis dans les sujets ${TD.recents.label} (${TD.recents.sujets} sujets). ` : ""}Une notion est « disponible » dès qu'un sujet transcrit la contient : l'entraînement par notion enchaîne alors ses questions, documents compris. <b>Annales au hasard</b> : les questions des sujets sur cette notion, avec d'autres valeurs à chaque essai, corrigées tout de suite et notées sur 20.</p>
         <table class="t-notions"><thead><tr><th>Notion</th><th class="c-part" style="width:28%">Part des questions</th>${TD ? `<th class="c-tend">Tendance<span class="th-sous">${TD.avant.label} → ${TD.recents.label}</span></th>` : ""}<th class="num c-q">Questions</th><th class="num c-suj">Sujets</th><th></th></tr></thead><tbody>
-        ${NOTIONS.map((n) => { const ns = CARTE.filter((c) => c.notions[n.id]).length, k = nbParNotionDispo[n.id] || 0, td = tendHTML(n.id);
+        ${NOTIONS.map((n) => { const ns = CARTE.filter((c) => c.notions[n.id]).length, k = nbParNotionDispo[n.id] || 0, td = tendHTML(n.id), na = E4.nbAnnalesNotion ? E4.nbAnnalesNotion(n.id) : 0;
           return `<tr><td><b>${esc(n.nom)}</b><br><span class="discret">${esc(n.desc)}</span>${td ? `<div class="tend-m">${td}</div>` : ""}</td>
             <td class="c-part"><div class="barre" title="${n.nb} questions sur ${TOTAL_CARTE}"><span style="width:${Math.round(100 * n.nb / max)}%"></span></div><span class="discret">${Math.round(100 * n.nb / TOTAL_CARTE)} %</span></td>
             ${TD ? `<td class="c-tend">${td}</td>` : ""}<td class="num c-q">${n.nb}</td><td class="num c-suj">${ns} / ${CARTE.length}</td>
-            <td class="act">${E4.BANQUE && E4.BANQUE[n.id] ? `<a class="btn petit plein" href="#/serie/${n.id}">Série</a> ` : ""}${k ? `<a class="btn petit" href="#/notion/${n.id}">Annales · ${k} q.</a>` : `<span class="discret">annales à venir</span>`}</td></tr>`; }).join("")}
+            <td class="act">${E4.BANQUE && E4.BANQUE[n.id] ? `<a class="btn petit plein" href="#/serie/${n.id}">Série</a> ` : ""}${na ? `<a class="btn petit" href="#/annales/${n.id}" title="Questions des sujets 2022-2026 sur cette notion, avec d'autres valeurs à chaque essai : correction immédiate, note sur 20">Annales au hasard</a> ` : ""}${k ? `<a class="btn petit" href="#/notion/${n.id}" title="Questions d'annales avec les valeurs du sujet, auto-évaluation avec la grille du barème">Annales · ${k} q.</a>` : `<span class="discret">annales à venir</span>`}</td></tr>`; }).join("")}
         </tbody></table>
       </div>
       <p class="pied">Sujets officiels de l'épreuve E4 du BTS Électrotechnique (référentiel 2020), sessions 2022 à 2026. Grille d'indicateurs et niveaux N0–N3 : barème officiel de correction quand il est publié (2022, 2023) ; sinon grille reconstituée sur le même modèle. La note sur 20 est indicative : elle pondère chaque question par son nombre d'indicateurs.</p>`;
