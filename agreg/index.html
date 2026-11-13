@@ -1,0 +1,307 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Entraînement · agrégation SII ingénierie électrique</title>
+<style>
+body{font:16px/1.55 system-ui,Segoe UI,sans-serif;margin:0;color:#183047;background:#f4f7fa}
+main{max-width:980px;margin:0 auto;padding:34px 22px 60px}
+h1{font-size:32px;line-height:1.15;margin:8px 0 6px}
+h2{font-size:21px;margin:0 0 4px}
+h3{font-size:16px;margin:18px 0 6px}
+small,.muted{color:#587083;font-size:13px}
+a{color:#00679a}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#53738b}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:24px 0 18px}
+.tab{font:inherit;text-align:left;background:white;border:2px solid transparent;border-radius:10px;padding:12px 14px;cursor:pointer;color:inherit}
+.tab b{display:block}
+.tab.on{border-color:#12566f}
+.bar{height:6px;background:#e0e8ef;border-radius:4px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:#12566f;width:0}
+details.fiche{background:#e5f1f4;border-left:4px solid #0d849b;border-radius:0 8px 8px 0;padding:12px 18px;margin:0 0 18px}
+details.fiche summary{cursor:pointer;font-weight:700}
+details.fiche ul{padding-left:20px;margin:8px 0}
+details.fiche li{margin:5px 0}
+.qnav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.qb{font:inherit;width:42px;height:38px;border-radius:8px;border:1px solid #bbccd8;background:white;cursor:pointer;color:inherit;font-weight:600}
+.qb.on{background:#183047;color:white;border-color:#183047}
+.qb.ok{box-shadow:inset 0 -5px 0 #2f9e6e}.qb.half{box-shadow:inset 0 -5px 0 #e0a83a}
+.card{background:white;border-radius:12px;padding:22px 24px}
+.src{display:inline-block;font-size:12px;background:#eef2f5;color:#42596b;border-radius:20px;padding:2px 10px;margin-bottom:8px}
+.fig{margin:14px 0;overflow:auto}
+.fig svg{max-width:100%;height:auto;display:block}
+.fields{display:grid;gap:10px;margin:16px 0}
+.fld{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fld label{min-width:230px;flex:1}
+.fld input{font:inherit;padding:9px 10px;border:1px solid #bbccd8;border-radius:6px;width:130px;background:white;color:inherit}
+.fld .u{min-width:90px;color:#42596b}
+.fld.good input{border-color:#2f9e6e;background:#eaf7f1}
+.fld.bad input{border-color:#c9483b;background:#fdeeed}
+.fld .fb{font-size:13px;font-weight:600}
+.fld.good .fb{color:#1f7a53}.fld.bad .fb{color:#a8362b}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+button.b{font:inherit;padding:10px 18px;border-radius:8px;border:1px solid #183047;background:#183047;color:white;cursor:pointer}
+button.b.sec{background:white;color:#183047}
+.hint,.corr{border-radius:8px;padding:12px 16px;margin-top:14px}
+.hint{background:#fff6e2;border-left:4px solid #e0a83a}
+.corr{background:#f1f7f3;border-left:4px solid #2f9e6e}
+.corr p{margin:6px 0}
+.jury{background:#eef1f9;border-left:4px solid #4a5fa8;border-radius:8px;padding:12px 16px;margin-top:10px}.jury p{margin:6px 0}
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 3px;line-height:1.25}
+.fr>span:first-child{border-bottom:1.5px solid currentColor;padding:0 4px}
+.fr>span:last-child{padding:0 4px}
+.eq{margin:8px 0 8px 12px}
+i.v{font-style:italic;font-family:Georgia,serif}
+@media(max-width:640px){.tabs{grid-template-columns:repeat(2,1fr)}.fld label{min-width:100%}}
+
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin:22px 0}.stats div{background:white;padding:14px 22px;border-radius:10px;flex:1;min-width:150px}.stats strong{font-size:26px;display:block}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:14px}.mode{font:inherit;text-align:left;background:#183047;color:white;border:0;border-radius:12px;padding:18px 20px;cursor:pointer}.mode b{display:block;font-size:19px;margin-bottom:4px}.mode span{font-size:14px;opacity:.85}
+h2.sec{margin:34px 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.ncard{font:inherit;text-align:left;background:white;border:2px solid transparent;border-radius:12px;padding:16px 18px;color:inherit;cursor:pointer;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}.ncard:hover{border-color:#12566f}.ncard b{display:block;font-size:17px;margin-bottom:2px}.ncard.off{opacity:.55;cursor:default}.ncard.off:hover{border-color:transparent}
+.lv{margin:12px 0 8px;display:grid;gap:5px}.lv>div{display:grid;grid-template-columns:86px 1fr 34px;gap:8px;align-items:center;font-size:12px;color:#42596b}.lv .bar{margin:0}
+.jr{display:block;border-top:1px solid #e0e8ef;padding-top:8px}
+.back{display:inline-block;margin-bottom:6px;text-decoration:none;font-size:14px}
+.prog{height:8px;background:#e0e8ef;border-radius:5px;overflow:hidden;margin:14px 0}.prog i{display:block;height:100%;background:#12566f;width:0;transition:width .3s}
+.exbar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:14px 0}.exbar .qnav{margin:0;flex:1}#clock{font-weight:700;font-variant-numeric:tabular-nums;background:white;border-radius:8px;padding:8px 12px}
+a.b{display:inline-block;text-decoration:none;font:inherit;padding:10px 18px;border-radius:8px;background:#183047;color:white}
+details.res{background:white;border-radius:10px;padding:12px 18px;margin:10px 0;border-left:6px solid #c9483b}details.res.ok{border-left-color:#2f9e6e}details.res.half{border-left-color:#e0a83a}details.res summary{cursor:pointer;font-weight:600}details.res summary small{font-weight:400;margin-left:8px}
+.fld input:disabled{background:#f4f7fa}
+@media(max-width:640px){.modes{grid-template-columns:1fr}}
+.switch{display:inline-flex;background:#e0e8ef;border-radius:10px;padding:4px;margin:14px 0 4px}.switch button{font:inherit;border:0;background:none;padding:8px 22px;border-radius:7px;cursor:pointer;color:#42596b;font-weight:600}.switch button.on{background:white;color:#183047}
+.card.cours p{font-size:17px;max-width:760px}.card.cours h2{font-size:24px;margin-bottom:10px}
+.keep{background:#e5f1f4;border-left:4px solid #0d849b;border-radius:0 8px 8px 0;padding:10px 16px;margin-top:14px}.keep ul{margin:6px 0;padding-left:20px}.keep li{margin:4px 0}
+.sim{background:#f7fafc;border:1px solid #dbe5ec;border-radius:10px;padding:14px 16px;margin:14px 0}.sl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:4px 0 10px}.sl label{min-width:230px}.sl input{flex:1;min-width:200px;width:auto;padding:0}
+.simout{font-size:15px;background:white;border-radius:8px;padding:10px 14px}.simout b{color:#12566f}
+.cr{display:block;margin-bottom:6px;color:#12566f;font-weight:600}
+.lg{display:inline-block;width:22px;height:4px;border-radius:2px;vertical-align:middle;margin:0 5px 0 12px}
+details.redac{border:1px solid #c9d6e0;border-radius:10px;padding:12px 16px;margin-top:18px;background:#fbfcfd}details.redac>summary{cursor:pointer;font-weight:700;color:#12566f}
+textarea{font:inherit;width:100%;box-sizing:border-box;padding:12px;border:1px solid #bbccd8;border-radius:8px;background:white;color:inherit;resize:vertical;line-height:1.5}
+.filebtn{cursor:pointer}button.b:disabled{opacity:.5;cursor:default}
+.think{background:#eef1f9;border-left:4px solid #4a5fa8;border-radius:8px;padding:12px 16px;margin-top:14px}
+.aires{margin-top:16px}.aires h3{margin:18px 0 6px}.aires ul{padding-left:20px;margin:6px 0}.aires li{margin:7px 0}.aires q{font-style:italic;color:#42596b}
+.ainote{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;background:#183047;color:white;border-radius:10px;padding:14px 18px}.ainote strong{font-size:28px}
+.crit{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:14px 0}.crit>div{background:white;border:1px solid #e0e8ef;border-radius:8px;padding:10px 12px}.crit b{display:block;font-size:14px}.crit span{font-size:13px;font-weight:600}.crit small{display:block;margin-top:4px}
+pre.modele{font:inherit;white-space:pre-wrap;background:#f1f7f3;border-left:4px solid #2f9e6e;border-radius:8px;padding:12px 16px;margin:6px 0}
+</style></head><body><main id="app"></main>
+<!-- site SI Papara : accès professeur, progression Supabase, correction par l'IA (agreg/site.js) -->
+<script src="../config.js"></script>
+<script>
+  if (window.SIP_CONFIG && SIP_CONFIG.supabaseUrl && SIP_CONFIG.supabaseAnonKey)
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
+</script>
+<script src="site.js"></script>
+<script>
+/* ---------- outils ---------- */
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const fmt=(x,s=3)=>{if(!isFinite(x))return '—';const v=Number(Number(x).toPrecision(s));return v.toLocaleString('fr-FR',{maximumSignificantDigits:s+1});};
+const fr=(a,b)=>`<span class="fr"><span>${a}</span><span>${b}</span></span>`;
+const V=s=>`<i class="v">${s}</i>`;
+const deg=x=>x*180/Math.PI, rad=x=>x*Math.PI/180;
+/* tracé générique */
+function plot(o){const W=o.W||640,H=o.H||300,m={l:58,r:18,t:16,b:44},pw=W-m.l-m.r,ph=H-m.t-m.b;
+ const lx=o.logx,X=x=>m.l+(lx?(Math.log10(x)-Math.log10(o.x0))/(Math.log10(o.x1)-Math.log10(o.x0)):(x-o.x0)/(o.x1-o.x0))*pw,Y=y=>m.t+(1-(y-o.y0)/(o.y1-o.y0))*ph;
+ let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="${o.alt||'courbe'}"><rect x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="#fff" stroke="#9fb3c2"/>`;
+ if(lx){for(let d=Math.round(Math.log10(o.x0));d<=Math.round(Math.log10(o.x1));d++){for(let k=1;k<10;k++){const x=k*10**d;if(x<o.x0*0.999||x>o.x1*1.001)continue;s+=`<line x1="${X(x)}" x2="${X(x)}" y1="${m.t}" y2="${m.t+ph}" stroke="${k==1?'#9fb3c2':'#e3eaf0'}"/>`;if(k==1)s+=`<text x="${X(x)}" y="${m.t+ph+16}" font-size="12" text-anchor="middle" fill="#42596b">${fmt(x,2)}</text>`;}}}
+ else{for(let x=o.x0,i=0;x<=o.x1+1e-9;x+=o.dx,i++){const maj=!o.xmaj||i%o.xmaj==0;s+=`<line x1="${X(x)}" x2="${X(x)}" y1="${m.t}" y2="${m.t+ph}" stroke="${maj?'#c3d0da':'#e9eef2'}"/>`;if(maj)s+=`<text x="${X(x)}" y="${m.t+ph+16}" font-size="12" text-anchor="middle" fill="#42596b">${fmt(x,3)}</text>`;}}
+ for(let y=o.y0,i=0;y<=o.y1+1e-9;y+=o.dy,i++){const maj=!o.ymaj||i%o.ymaj==0;s+=`<line x1="${m.l}" x2="${m.l+pw}" y1="${Y(y)}" y2="${Y(y)}" stroke="${maj?'#c3d0da':'#e9eef2'}"/>`;if(maj)s+=`<text x="${m.l-7}" y="${Y(y)+4}" font-size="12" text-anchor="end" fill="#42596b">${fmt(y,4)}</text>`;}
+ for(const h of (o.hl||[]))s+=`<line x1="${m.l}" x2="${m.l+pw}" y1="${Y(h.y)}" y2="${Y(h.y)}" stroke="${h.c||'#c9483b'}" stroke-dasharray="6 4"/><text x="${m.l+pw-4}" y="${Y(h.y)-5}" font-size="12" text-anchor="end" fill="${h.c||'#c9483b'}">${h.t||''}</text>`;
+ for(const c of o.curves){let d='';c.pts.forEach((p,i)=>{const yy=Math.max(o.y0,Math.min(o.y1,p[1]));d+=(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(yy).toFixed(1);});s+=`<path d="${d}" fill="none" stroke="${c.c||'#12566f'}" stroke-width="${c.w||2.4}" ${c.dash?'stroke-dasharray="6 4"':''}/>`;}
+ s+=`<text x="${m.l+pw/2}" y="${H-6}" font-size="13" text-anchor="middle" fill="#183047">${o.xl||''}</text><text transform="translate(14 ${m.t+ph/2}) rotate(-90)" font-size="13" text-anchor="middle" fill="#183047">${o.yl||''}</text></svg>`;return s;}
+const step1=(K,tau,T,n=160)=>Array.from({length:n+1},(_,i)=>{const t=T*i/n;return [t,K*(1-Math.exp(-t/tau))];});
+function step2(K,xi,w0,T,n=300){const wd=w0*Math.sqrt(1-xi*xi),ph=Math.acos(xi);return Array.from({length:n+1},(_,i)=>{const t=T*i/n;return [t,K*(1-Math.exp(-xi*w0*t)/Math.sqrt(1-xi*xi)*Math.sin(wd*t+ph))];});}
+/* schéma-bloc */
+function bd(o){const W=680,H=o.fb?170:150;const box=(x,t)=>`<rect x="${x}" y="40" width="120" height="50" rx="6" fill="#eef5f8" stroke="#12566f" stroke-width="1.6"/><text x="${x+60}" y="70" font-size="14" text-anchor="middle" fill="#183047">${t}</text>`;
+ const ar=(x1,x2,y,l)=>`<line x1="${x1}" y1="${y}" x2="${x2-7}" y2="${y}" stroke="#183047" stroke-width="1.6"/><path d="M${x2-8} ${y-5}L${x2} ${y}L${x2-8} ${y+5}Z" fill="#183047"/>${l?`<text x="${(x1+x2)/2}" y="${y-9}" font-size="13" text-anchor="middle" fill="#183047">${l}</text>`:''}`;
+ let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="schéma-bloc de la boucle">`;
+ s+=ar(10,110,65,o.in)+`<circle cx="124" cy="65" r="14" fill="#fff" stroke="#183047" stroke-width="1.6"/><text x="112" y="56" font-size="13" fill="#183047">+</text><text x="130" y="92" font-size="15" fill="#183047">−</text>`;
+ s+=ar(138,210,65,o.err||'ε')+box(210,o.c)+ar(330,400,65,o.mid||'')+box(400,o.g)+ar(520,670,65,o.out);
+ s+=`<circle cx="590" cy="65" r="3.2" fill="#183047"/><line x1="590" y1="65" x2="590" y2="130" stroke="#183047" stroke-width="1.6"/>`;
+ if(o.fb){s+=`<line x1="590" y1="130" x2="420" y2="130" stroke="#183047" stroke-width="1.6"/><rect x="300" y="108" width="120" height="44" rx="6" fill="#eef5f8" stroke="#12566f" stroke-width="1.6"/><text x="360" y="135" font-size="14" text-anchor="middle" fill="#183047">${o.fb}</text><line x1="300" y1="130" x2="124" y2="130" stroke="#183047" stroke-width="1.6"/>`;}
+ else s+=`<line x1="590" y1="130" x2="124" y2="130" stroke="#183047" stroke-width="1.6"/>`;
+ s+=`<line x1="124" y1="130" x2="124" y2="87" stroke="#183047" stroke-width="1.6"/><path d="M119 87L124 79L129 87Z" fill="#183047"/></svg>`;return s;}
+/* Bode d'une FT produit de pôles réels, intégrateurs éventuels */
+function bodePts(K,taus,nint,w0,w1,n=240){const g=[],p=[];for(let i=0;i<=n;i++){const w=w0*(w1/w0)**(i/n);let mag=K/w**nint,phi=-90*nint;for(const t of taus){mag/=Math.sqrt(1+(w*t)**2);phi-=deg(Math.atan(w*t));}g.push([w,20*Math.log10(mag)]);p.push([w,phi]);}return {g,p};}
+function bodeFig(K,taus,nint,w0,w1,gr,pr){const b=bodePts(K,taus,nint,w0,w1);
+ return plot({W:660,H:270,logx:1,x0:w0,x1:w1,y0:gr[0],y1:gr[1],dy:5,ymaj:2,curves:[{pts:b.g}],hl:[{y:0,t:'0 dB',c:'#587083'}],xl:'',yl:'Gain (dB)',alt:'diagramme de Bode, gain'})+
+ plot({W:660,H:270,logx:1,x0:w0,x1:w1,y0:pr[0],y1:pr[1],dy:15,ymaj:3,curves:[{pts:b.p}],hl:[{y:-180,t:'−180°',c:'#587083'}],xl:'Pulsation ω (rad/s)',yl:'Phase (°)',alt:'diagramme de Bode, phase'});}
+function solve(f,a,b){let fa=f(a);for(let i=0;i<80;i++){const m=Math.sqrt(a*b),fm=f(m);if((fa<0)==(fm<0)){a=m;fa=fm;}else b=m;}return Math.sqrt(a*b);}
+
+
+/* ---------- figures supplémentaires ---------- */
+function bars(o){const W=o.W||600,H=o.H||260,m={l:58,r:16,t:14,b:44},pw=W-m.l-m.r,ph=H-m.t-m.b,n=o.items.length,bw=pw/n;
+ const Y=y=>m.t+(1-y/o.y1)*ph;let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="${o.alt||'spectre'}"><rect x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="#fff" stroke="#9fb3c2"/>`;
+ for(let y=0,i=0;y<=o.y1+1e-9;y+=o.dy,i++){const maj=!o.ymaj||i%o.ymaj==0;s+=`<line x1="${m.l}" x2="${m.l+pw}" y1="${Y(y)}" y2="${Y(y)}" stroke="${maj?'#c3d0da':'#e9eef2'}"/>`;if(maj)s+=`<text x="${m.l-7}" y="${Y(y)+4}" font-size="12" text-anchor="end" fill="#42596b">${fmt(y,4)}</text>`;}
+ o.items.forEach((it,i)=>{const x=m.l+i*bw+bw*.3;s+=`<rect x="${x}" y="${Y(it.y)}" width="${bw*.4}" height="${m.t+ph-Y(it.y)}" fill="#12566f"/><text x="${x+bw*.2}" y="${m.t+ph+16}" font-size="12" text-anchor="middle" fill="#42596b">${it.x}</text>`;});
+ s+=`<text x="${m.l+pw/2}" y="${H-6}" font-size="13" text-anchor="middle" fill="#183047">${o.xl||''}</text><text transform="translate(14 ${m.t+ph/2}) rotate(-90)" font-size="13" text-anchor="middle" fill="#183047">${o.yl||''}</text></svg>`;return s;}
+function wave(fn,T,o){const n=o.n||400,pts=[];for(let i=0;i<=n;i++){const t=T*i/n;pts.push([t,fn(t)]);}return plot(Object.assign({x0:0,x1:T,curves:[{pts}]},o));}
+function serie(parts,src,par){const n=parts.length,W=Math.max(420,150+n*140),H=par?230:170;let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="schéma du circuit"><g fill="none" stroke="#183047" stroke-width="1.6">`;
+ const y=40,yb=H-30,x0=60,x1=W-40;s+=`<path d="M${x0} ${y}H${x1}V${yb}H${x0}V${(y+yb)/2+18}M${x0} ${(y+yb)/2-18}V${y}"/><circle cx="${x0}" cy="${(y+yb)/2}" r="18" fill="#fff"/></g>`;
+ s+=`<text x="${x0}" y="${(y+yb)/2+5}" font-size="14" text-anchor="middle" fill="#183047">~</text><text x="${x0-26}" y="${(y+yb)/2+5}" font-size="13" text-anchor="end" fill="#183047">${src||'v'}</text>`;
+ parts.forEach((p,i)=>{const x=x0+60+i*140;s+=`<rect x="${x}" y="${y-16}" width="100" height="32" rx="5" fill="#eef5f8" stroke="#12566f" stroke-width="1.6"/><text x="${x+50}" y="${y+5}" font-size="13" text-anchor="middle" fill="#183047">${p}</text>`;});
+ if(par){const x=x1-70;s+=`<line x1="${x}" y1="${y}" x2="${x}" y2="${yb}" stroke="#183047" stroke-width="1.6"/><rect x="${x-45}" y="${(y+yb)/2-16}" width="90" height="32" rx="5" fill="#eef5f8" stroke="#12566f" stroke-width="1.6"/><text x="${x}" y="${(y+yb)/2+5}" font-size="13" text-anchor="middle" fill="#183047">${par}</text>`;}
+ return s+'</svg>';}
+function para(parts,src){const n=parts.length,W=170+n*130,H=190,y=30,yb=160;let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="schéma du circuit"><g fill="none" stroke="#183047" stroke-width="1.6"><path d="M60 ${y}H${W-60}M60 ${yb}H${W-60}M60 ${y}V${(y+yb)/2-18}M60 ${(y+yb)/2+18}V${yb}"/><circle cx="60" cy="${(y+yb)/2}" r="18" fill="#fff"/></g><text x="60" y="${(y+yb)/2+5}" font-size="14" text-anchor="middle">~</text><text x="34" y="${(y+yb)/2+5}" font-size="13" text-anchor="end">${src||'v'}</text>`;
+ parts.forEach((p,i)=>{const x=170+i*130;s+=`<line x1="${x}" y1="${y}" x2="${x}" y2="${yb}" stroke="#183047" stroke-width="1.6"/><rect x="${x-50}" y="${(y+yb)/2-16}" width="100" height="32" rx="5" fill="#eef5f8" stroke="#12566f" stroke-width="1.6"/><text x="${x}" y="${(y+yb)/2+5}" font-size="13" text-anchor="middle" fill="#183047">${p}</text>`;});return s+'</svg>';}
+function tri(p,q,s_){return `<svg viewBox="0 0 420 200" width="420" role="img" aria-label="triangle des puissances"><path d="M40 160H340V50Z" fill="#eef5f8" stroke="#12566f" stroke-width="2"/><text x="190" y="182" font-size="14" text-anchor="middle">${p}</text><text x="350" y="110" font-size="14">${q}</text><text x="170" y="92" font-size="14" text-anchor="middle" transform="rotate(-20 170 92)">${s_}</text><path d="M95 160A55 55 0 0 0 92 141" fill="none" stroke="#183047"/><text x="104" y="152" font-size="14">φ</text></svg>`;}
+
+/* ---------- moteur ---------- */
+const NOTIONS=[];
+const PLAN=[['asserv','Asservissement'],['puiss','Puissances, complexes et triphasé'],['fourier','Fourier, harmoniques, valeurs moyenne et efficace'],['elec','Électronique de base'],['bus','Bus et trames'],['machines','Machines asynchrone et synchrone'],['conv','Convertisseurs'],['python','Python et algorithmes'],['signal','Conversion et signal'],['meca','Mécanique de l’épreuve 1'],['thermo','Thermique et fluides de l’épreuve 1'],['magn','Électromagnétisme']];
+const KEY='agreg-ie-v2',DAY=864e5,INT=[1,3,7,14,30];
+let st={q:{},exams:[],c:{},r:{}};try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j&&j.q)st=j;}catch(e){}if(!st.c)st.c={};if(!st.r)st.r={};
+const HOOK=window.AGREG_HOOK||null;
+const save=()=>{st.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}if(HOOK&&HOOK.push)HOOK.push(st);};
+const $=s=>document.querySelector(s),app=()=>$('#app');
+const rec=k=>st.q[k]||(st.q[k]={ok:0,box:0,due:0,seen:0,fail:0});
+const allQ=()=>{const a=[];for(const N of NOTIONS)N.levels.forEach((L,li)=>L.qs.forEach((q,qi)=>a.push({N,L,li,qi,q,k:`${N.id}.${L.id}.${qi}`})));return a;};
+function parse(s){s=String(s).trim().replace(/\s/g,'').replace(',','.').replace('−','-');if(s==='')return NaN;return Number(s);}
+function okf(f,x){return Math.abs(x-f.a)<=Math.max((f.tol||0)*Math.abs(f.a),f.abs||0)+1e-12;}
+function mark(k,first){const r=rec(k);r.seen++;if(first){r.ok=Math.min(2,r.ok+1);r.box=Math.min(4,r.box+1);r.due=Date.now()+INT[r.box]*DAY;}else{r.fail++;r.box=0;r.due=Date.now()+DAY/2;}save();}
+const fieldsHTML=(inst,dis)=>`<div class="fields">${inst.fields.map((f,i)=>`<div class="fld" id="fd${i}"><label for="in${i}">${f.l}</label><input id="in${i}" inputmode="decimal" autocomplete="off"${dis?' disabled':''}><span class="u">${f.u}</span><span class="fb"></span></div>`).join('')}</div>`;
+const corrHTML=inst=>`<div class="corr"><b>Correction</b>${inst.corr}</div>${inst.jury?`<div class="jury"><b>Ce que dit le rapport du jury</b><p>${inst.jury}</p></div>`:''}`;
+
+/* ---------- correcteur IA : synthèse des rapports de jury 2022-2026 ---------- */
+const JURY_GENERAL=`Attentes constantes des jurys de l'agrégation SII ingénierie électrique (rapports 2022 à 2026, interne et externe) :
+- Application numérique en quatre temps : expression littérale d'abord, puis remplacement de chaque grandeur par sa valeur à la place qu'elle occupait, puis résultat avec son unité, mis en évidence (encadré). "Calculer" signifie donner un nombre avec son unité.
+- Un résultat donné sans calcul ni justification ne rapporte aucun point, même s'il est juste. Un calcul faux sans détail non plus.
+- Les hypothèses doivent être énoncées explicitement ; la démarche est valorisée même si la conclusion n'est pas atteinte.
+- L'homogénéité et l'ordre de grandeur doivent être vérifiés ; un résultat aberrant doit être signalé et commenté (c'est valorisé), sinon il est pénalisé.
+- Trop de chiffres significatifs est pénalisé ; trois chiffres significatifs conviennent en général.
+- Utiliser exclusivement les notations du sujet ; numéroter la question ; répondre précisément à ce qui est demandé, sans hors-sujet.
+- Conclure : comparer au cahier des charges ou à l'exigence, avec les valeurs. Les conclusions et synthèses sont rarement rédigées alors qu'elles rapportent.
+- Phrases complètes, français correct, orthographe soignée, vocabulaire technique exact (ne pas inventer de terminologie).
+- Les lacunes les plus reprochées : puissances active/réactive et notation complexe (oubli de j), séries de Fourier, valeurs moyenne et efficace, marges de gain et de phase, classe et écart statique, tracé de Bode asymptotique, théorème de Millman, bus I2C/CAN/SPI.`;
+let SAMPLE;const getSample=async()=>{if(SAMPLE!==undefined)return SAMPLE;try{SAMPLE=(window.claude&&window.claude.use)?await window.claude.use('sample'):(HOOK&&HOOK.sample)||null;}catch(e){SAMPLE=null;}return SAMPLE;};
+const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function plain(html){const d=document.createElement('div');d.innerHTML=html||'';d.querySelectorAll('svg,small').forEach(e=>e.remove());let f;while((f=[...d.querySelectorAll('.fr')].find(e=>!e.querySelector('.fr')))){const c=f.children;f.replaceWith(document.createTextNode(`(${c[0].textContent})/(${c[1].textContent})`));}
+ d.querySelectorAll('sub').forEach(e=>e.replaceWith(document.createTextNode('_'+e.textContent)));d.querySelectorAll('sup').forEach(e=>e.replaceWith(document.createTextNode('^'+e.textContent)));d.querySelectorAll('p,div,li').forEach(e=>e.append('\n'));return d.textContent.replace(/[ \t]+/g,' ').replace(/\n\s*\n+/g,'\n').trim();}
+function context(item,inst){return `## Ce que les rapports de jury attendent
+${JURY_GENERAL}
+
+## Constat du jury sur la notion « ${item.N?item.N.name:''} »
+${item.N?item.N.jury:''}
+
+## Question posée au candidat${item.L?` (palier ${item.L.name})`:''}
+${item.q.src?'Origine : '+item.q.src+'\n':''}${plain(inst.text)}
+${inst.fig?'(Une figure accompagne l’énoncé ; ses valeurs utiles figurent dans les éléments de correction.)':''}
+${inst.fields.length?'\n## Valeurs attendues\n'+inst.fields.map(f=>`- ${f.l} : ${fmt(f.a,4)} ${f.u}`).join('\n'):''}
+
+## Éléments de correction
+${plain(inst.corr)}
+${inst.jury?'\n## Ce que dit le rapport du jury sur cette question\n'+plain(inst.jury):''}`;}
+const AIERR=c=>({cancelled:'',rate_limited:'Trop de demandes pour l’instant. Réessaie dans un moment.',invalid_json:'La réponse de l’IA est arrivée incomplète. Relance la correction.',session_expired:'Session expirée : reconnecte-toi à Claude.',refused:'L’IA n’a pas pu traiter ce texte. Reformule ta réponse.',image_rejected:'Photo refusée : essaie une image plus petite, au format JPEG ou PNG.'}[c]??(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(c)?'La correction par l’IA n’est pas autorisée dans cette vue.':'Le service n’a pas répondu. Relance la correction.'));
+function gradeHTML(r){const cr=Array.isArray(r.criteres)?r.criteres:[],L=a=>Array.isArray(a)?a:[];
+ return `<div class="aires"><div class="ainote"><strong>${esc(fmt(Number(r.note)||0,3))} / 20</strong><span>${esc(r.verdict||'')}</span></div>${r.transcription?`<details><summary>Ce que l’IA a lu sur ta copie</summary><pre class="modele">${esc(r.transcription)}</pre></details>`:''}
+ <div class="crit">${cr.map(c=>`<div><b>${esc(c.nom)}</b><div class="bar"><i style="width:${Math.max(0,Math.min(5,Number(c.note)||0))*20}%"></i></div><span>${esc(c.note)} / 5</span><small>${esc(c.commentaire)}</small></div>`).join('')}</div>
+ ${L(r.points_forts).length?`<h3>Ce qui est bien</h3><ul>${L(r.points_forts).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
+ ${L(r.a_corriger).length?`<h3>À corriger</h3><ul>${L(r.a_corriger).map(x=>`<li>${x.extrait?`<q>${esc(x.extrait)}</q> `:''}${esc(x.probleme)}${x.correction?`<br><b>Écrire plutôt :</b> ${esc(x.correction)}`:''}</li>`).join('')}</ul>`:''}
+ ${r.avis_jury?`<div class="jury"><b>Ce qu’en dirait le jury</b><p>${esc(r.avis_jury)}</p></div>`:''}
+ ${r.reponse_modele?`<h3>La réponse parfaite, sur cet énoncé</h3><pre class="modele">${esc(r.reponse_modele)}</pre>`:''}
+ ${r.conseil?`<p><b>À travailler en priorité :</b> ${esc(r.conseil)}</p>`:''}</div>`;}
+
+/* carte question, commune au mode notion et à la séance */
+function card(el,item,o){const q=item.q;let inst=q.gen(),tries=0,done=false,marked=false,ctl=null;window.__cur=inst;
+ const isOpen=()=>!inst.fields.length;
+ function draw(){el.innerHTML=`${o.head||''}${q.src?`<span class="src">${q.src}</span>`:''}<h2>${o.title||q.t}</h2><p>${inst.text}</p>${inst.fig?`<div class="fig">${inst.fig}</div>`:''}${isOpen()?'':`<form id="f">${fieldsHTML(inst)}<div class="btns"><button class="b" type="submit">Vérifier</button><button class="b sec" type="button" data-a="hint">Indice</button><button class="b sec" type="button" data-a="show">Voir la correction</button>${o.next?'':'<button class="b sec" type="button" data-a="again">Nouvelles valeurs</button>'}</div></form>`}
+  <details class="redac"${isOpen()?' open':''}><summary>Rédiger ma réponse comme sur la copie</summary><p class="muted">Écris ta réponse complète, comme le jour de l’épreuve : expression littérale, application numérique avec unités, justification, conclusion. Ou rédige sur papier et joins la photo. L’IA corrige selon les attentes des rapports de jury.</p><textarea id="rd" rows="9" placeholder="Ma réponse rédigée…"></textarea>
+  <div class="btns"><button class="b" type="button" data-a="grade">Faire corriger ma copie</button><button class="b sec" type="button" data-a="coach">Un coup de pouce, sans la réponse</button><label class="b sec filebtn">Joindre une photo<input type="file" id="ph" accept="image/jpeg,image/png,image/webp" hidden></label><button class="b sec" type="button" data-a="stop" hidden>Arrêter</button>${isOpen()?`<button class="b sec" type="button" data-a="show">Voir la réponse attendue</button>${o.next?'':'<button class="b sec" type="button" data-a="again">Nouvelles valeurs</button>'}`:''}</div><small id="phn"></small><div id="ai"></div></details><div id="out"></div>`;}
+ function reveal(){done=true;let h=corrHTML(inst);if(isOpen()&&!marked)h+=`<div class="btns" style="margin-top:14px"><span class="muted">Par rapport à cette réponse :</span><button class="b sec" type="button" data-a="selfok">J’avais l’essentiel</button><button class="b sec" type="button" data-a="selfko">À revoir</button></div>`;if(o.next)h+=`<div class="btns" style="margin-top:14px"><button class="b" type="button" data-a="next">Question suivante</button></div>`;$('#out').innerHTML=h;inst.fields.forEach((f,i)=>{const d=$('#fd'+i);if(!d.classList.contains('good'))d.querySelector('.fb').textContent='Attendu : '+fmt(f.a)+(f.u?' '+f.u:'');});if(o.after)o.after();}
+ const setMark=ok=>{if(marked)return;marked=true;mark(item.k,ok);};
+ const busy=b=>{el.querySelectorAll('[data-a=grade],[data-a=coach]').forEach(x=>x.disabled=b);const s=el.querySelector('[data-a=stop]');if(s)s.hidden=!b;};
+ async function ai(kind){const txt=$('#rd').value.trim(),file=$('#ph').files[0],box=$('#ai');if(kind=='grade'&&!txt&&!file){box.innerHTML='<div class="hint">Écris d’abord ta réponse, ou joins la photo de ta copie.</div>';return;}
+  const s=await getSample();if(!s){box.innerHTML=`<div class="hint">${HOOK?'La correction par l’IA n’est pas disponible pour l’instant.':'La correction par l’IA fonctionne quand cette page est ouverte dans Claude.'} Compare ta rédaction à la correction ci-dessous.</div>`;if(!done){if(!isOpen())setMark(false);reveal();}return;}
+  ctl=new AbortController();busy(true);box.innerHTML=`<div class="think">${kind=='grade'?'L’IA lit ta copie et la confronte aux attentes du jury… (jusqu’à une minute)':'L’IA cherche le bon coup de pouce…'}</div>`;const opts={signal:ctl.signal,cache:false,modelTier:kind=='grade'?'complex':'default'};
+  try{if(file){const lim=await s.limits().catch(()=>null);if(lim&&lim.images)opts.images=[file];else if(!txt){box.innerHTML='<div class="hint">Cette vue ne permet pas d’envoyer une photo. Tape ta réponse dans le cadre.</div>';busy(false);return;}}
+   const ctx=context(item,inst),rep=`## Réponse du candidat\n${txt?'<<<\n'+txt.slice(0,6000)+'\n>>>':'(aucun texte tapé)'}${opts.images?'\nLa réponse manuscrite du candidat figure sur l’image jointe : transcris-la fidèlement avant de la juger.':''}`;
+   if(kind=='coach'){await s(`Tu es préparateur à l'agrégation SII option ingénierie électrique. Un candidat travaille la question ci-dessous et demande un coup de pouce.\n\n${ctx}\n\n${rep}\n\n## Consigne\nDonne UN seul coup de pouce, en trois phrases au plus, en le tutoyant : la prochaine étape à franchir ou l'erreur à corriger dans ce qu'il a déjà écrit. Ne donne ni le résultat numérique, ni la formule finale, ni la réponse rédigée. S'il n'a encore rien écrit, indique par où commencer. Texte simple, sans LaTeX ni Markdown.`,Object.assign(opts,{onText:({text})=>{box.innerHTML=`<div class="hint">${esc(text)}</div>`;}}));}
+   else{const r=await s.json(`Tu es correcteur de l'agrégation SII option ingénierie électrique. Corrige la réponse rédigée d'un candidat à une question, avec l'exigence du jury, puis aide-le à atteindre la réponse parfaite.\n\n${ctx}\n\n${rep}\n\n## Consignes de correction\n- Juge uniquement ce que le candidat a réellement écrit. Tolérance de 3 % sur les valeurs numériques.\n- Applique strictement les attentes du jury : pas de point pour un résultat non justifié ; expression littérale avant l'application numérique ; unités ; chiffres significatifs ; conclusion.\n- N'attribue au jury que ce qui figure dans les éléments fournis ci-dessus ; n'invente aucune citation.\n- Tutoie le candidat. Français simple et direct. Aucun LaTeX, aucun Markdown : écris les formules en texte clair (fractions a/b, racine √, indices avec _).\n- "reponse_modele" : la réponse telle qu'elle devrait figurer sur la copie pour avoir tous les points, avec les valeurs de CET énoncé : hypothèses utiles, expression littérale, application numérique posée, résultat avec unité, phrase de conclusion. Une ligne par étape.\n- Si la réponse est vide ou hors sujet, note 0 et explique par où commencer.\n\n## Format de sortie\nRéponds uniquement par un objet JSON de cette forme :\n{"transcription": "texte lu sur la photo, sinon chaîne vide", "note": nombre de 0 à 20, "verdict": "une phrase", "criteres": [{"nom": "Exactitude scientifique", "note": 0 à 5, "commentaire": "..."}, {"nom": "Expressions littérales et applications numériques", "note": 0 à 5, "commentaire": "..."}, {"nom": "Justification et hypothèses", "note": 0 à 5, "commentaire": "..."}, {"nom": "Rédaction, unités et conclusion", "note": 0 à 5, "commentaire": "..."}], "points_forts": ["..."], "a_corriger": [{"extrait": "passage de la copie", "probleme": "...", "correction": "..."}], "avis_jury": "ce que le jury reprocherait ou valoriserait, d'après les éléments fournis", "reponse_modele": "...", "conseil": "le point à travailler en priorité"}`,opts);
+    if(!r||typeof r!='object')throw {code:'invalid_json'};const n=Math.max(0,Math.min(20,Number(r.note)||0));r.note=n;box.innerHTML=gradeHTML(r);st.r[item.k]=Math.max(st.r[item.k]||0,n);save();if(isOpen()){setMark(n>=12);if(!done)reveal();}}
+  }catch(e){const m=(HOOK&&HOOK.err&&HOOK.err(e&&e.code))??AIERR(e&&e.code);box.innerHTML=m?`<div class="hint">${m}</div>`:(e&&e.text?`<div class="hint">${esc(e.text)}</div>`:'');}busy(false);}
+ el.onsubmit=e=>{e.preventDefault();if(done)return;tries++;let all=true;inst.fields.forEach((f,i)=>{const d=$('#fd'+i),x=parse($('#in'+i).value),g=!isNaN(x)&&okf(f,x);d.className='fld '+(g?'good':'bad');d.querySelector('.fb').textContent=g?'Juste':(isNaN(x)?'À compléter':'À revoir');if(!g)all=false;});
+  if(all){setMark(tries==1);reveal();}else if(tries>=2){setMark(false);reveal();}else $('#out').innerHTML=`<div class="hint">Encore un essai avant la correction. ${inst.hint}</div>`;};
+ el.onchange=e=>{if(e.target.id=='ph'){const f=e.target.files[0];$('#phn').textContent=f?'Photo jointe : '+f.name:'';}};
+ el.onclick=e=>{const a=e.target.dataset&&e.target.dataset.a;if(!a)return;if(a=='hint'&&!done)$('#out').innerHTML=`<div class="hint">${inst.hint}</div>`;if(a=='show'){if(!done&&!isOpen())setMark(false);reveal();}if(a=='again'){if(ctl)ctl.abort();inst=q.gen();window.__cur=inst;tries=0;done=false;marked=false;draw();}if(a=='next'){if(ctl)ctl.abort();o.next();}
+  if(a=='grade'||a=='coach')ai(a);if(a=='stop'&&ctl)ctl.abort();if(a=='selfok'||a=='selfko'){setMark(a=='selfok');e.target.parentElement.innerHTML=`<span class="muted">${a=='selfok'?'Noté comme réussi.':'Noté à revoir : la question reviendra demain.'}</span>`;if(o.after)o.after();}};
+ draw();}
+
+/* ---------- accueil ---------- */
+function home(){const Q=allQ(),val=Q.filter(x=>rec(x.k).ok>=2).length,due=Q.filter(x=>st.q[x.k]&&st.q[x.k].seen&&st.q[x.k].due<=Date.now()).length,last=st.exams[st.exams.length-1];
+ let h=`${HOOK?'<a class="back" href="../prof.html">← Espace professeur</a>':''}<div class="eyebrow">Agrégation SII · ingénierie électrique · session 2027</div><h1>Entraînement</h1><p class="muted">Un cours simple et illustré, des questions du bac pro à l’agrégation, et une IA qui corrige tes réponses rédigées selon les attentes des jurys. Les questions du dernier palier suivent les sujets et les éléments de correction des rapports de jury.</p>
+ <div class="stats"><div><strong>${val} / ${Q.length}</strong>questions validées</div><div><strong>${due}</strong>à réviser aujourd’hui</div><div><strong>${last?fmt(last.s,3)+' / 20':'—'}</strong>dernière épreuve blanche</div><div><strong>${Object.keys(st.r).length}</strong>${Object.keys(st.r).length>1?'rédactions corrigées par l’IA':'rédaction corrigée par l’IA'}</div></div>
+ <div class="modes"><button class="mode" data-go="seance"><b>Séance du jour</b><span>10 questions : d’abord celles à réviser, puis des nouvelles dans l’ordre des paliers.</span></button><button class="mode" data-go="epreuve"><b>Épreuve blanche</b><span>10 questions de niveau BTS et agrégation, 45 minutes, un seul essai, note sur 20.</span></button></div><h2 class="sec">Notions</h2><div class="grid">`;
+ for(const [id,name] of PLAN){const N=NOTIONS.find(n=>n.id==id);if(!N){h+=`<div class="ncard off"><b>${name}</b><small>À venir</small></div>`;continue;}
+  h+=`<button class="ncard" data-go="n-${N.id}"><b>${N.name}</b><small>${N.desc}</small><div class="lv">${N.levels.map(L=>{const n=L.qs.length,d=L.qs.filter((_,j)=>rec(`${N.id}.${L.id}.${j}`).ok>=2).length;return `<div><span>${L.name}</span><div class="bar"><i style="width:${100*d/n}%"></i></div><span>${d}/${n}</span></div>`;}).join('')}</div>${N.cours?`<small class="cr">Cours : ${(st.c[N.id]||[]).length} / ${N.cours.length} chapitres lus</small>`:''}<small class="jr">${N.jury}</small></button>`;}
+ h+=`</div><p class="muted" style="margin-top:22px">Une question est validée après deux réussites au premier essai sur deux tirages différents. Une question réussie revient à 1, 3, 7, 14 puis 30 jours ; une question ratée revient le lendemain. ${HOOK&&HOOK.synced&&HOOK.synced()?'La progression est enregistrée sur ton compte professeur et suit d’un appareil à l’autre.':'La progression est gardée dans ce navigateur.'}</p>`;app().innerHTML=h;app().onclick=e=>{const b=e.target.closest('[data-go]');if(b)location.hash=b.dataset.go;};app().onsubmit=null;}
+
+/* ---------- mode notion : cours et entraînement ---------- */
+const C2='#e0803a';
+function notion(N){const seen=N.levels.some(L=>L.qs.some((_,j)=>(st.q[`${N.id}.${L.id}.${j}`]||{}).seen));
+ let mode=(N.cours&&!seen)?'cours':'train',lv=N.levels.findIndex(L=>L.qs.some((_,j)=>rec(`${N.id}.${L.id}.${j}`).ok<2)),qi=0,ci=0;if(lv<0)lv=0;
+ app().innerHTML=`<a class="back" href="#accueil">← Toutes les notions</a><h1>${N.name}</h1><p class="muted">${N.desc}</p>${N.cours?`<div class="switch"><button data-m="cours">Cours</button><button data-m="train">Entraînement</button></div>`:''}<div id="zone"></div>`;
+ app().onclick=e=>{const b=e.target.closest('[data-m]');if(b){mode=b.dataset.m;go();}};
+ function go(){document.querySelectorAll('.switch button').forEach(b=>b.classList.toggle('on',b.dataset.m==mode));mode=='cours'?cours():train();}
+ function train(){$('#zone').innerHTML=`<div class="tabs" id="tabs"></div><div id="fiche"></div><div class="qnav" id="qnav"></div><div class="card" id="card"></div>`;
+  function tabs(){$('#tabs').innerHTML=N.levels.map((L,i)=>{const n=L.qs.length,d=L.qs.filter((_,j)=>rec(`${N.id}.${L.id}.${j}`).ok>=2).length;return `<button class="tab${i==lv?' on':''}" data-i="${i}"><b>${i+1}. ${L.name}</b><small>${L.sub}</small><div class="bar"><i style="width:${100*d/n}%"></i></div><small>${d} / ${n} validées</small></button>`;}).join('');
+   const L=N.levels[lv];$('#qnav').innerHTML=L.qs.map((_,j)=>{const r=rec(`${N.id}.${L.id}.${j}`);return `<button class="qb${j==qi?' on':''}${r.ok>=2?' ok':r.seen?' half':''}" data-j="${j}" aria-label="Question ${j+1}">${j+1}</button>`;}).join('');
+   $('#fiche').innerHTML=`<details class="fiche"><summary>Fiche · ${L.name}</summary><ul>${L.fiche.map(x=>`<li>${x}</li>`).join('')}</ul></details>`;}
+  function q(){const L=N.levels[lv];card($('#card'),{q:L.qs[qi],k:`${N.id}.${L.id}.${qi}`,N,L},{title:`${qi+1}. ${L.qs[qi].t}`,after:tabs});}
+  $('#tabs').onclick=e=>{const b=e.target.closest('.tab');if(!b)return;lv=+b.dataset.i;qi=0;tabs();q();};
+  $('#qnav').onclick=e=>{const b=e.target.closest('.qb');if(!b)return;qi=+b.dataset.j;tabs();q();};
+  window.__go=(l,j)=>{lv=l;qi=j;tabs();q();};tabs();q();}
+ function cours(){const C=N.cours,read=st.c[N.id]||(st.c[N.id]=[]);$('#zone').innerHTML=`<div class="qnav" id="cnav"></div><div class="card cours" id="cc"></div>`;
+  function show(){const ch=C[ci];if(!read.includes(ci)){read.push(ci);save();}
+   $('#cnav').innerHTML=C.map((c,j)=>`<button class="qb${j==ci?' on':''}${read.includes(j)?' ok':''}" data-j="${j}" aria-label="Chapitre ${j+1}">${j+1}</button>`).join('');
+   let h=`<span class="src">Chapitre ${ci+1} / ${C.length}</span><h2>${ch.t}</h2>${ch.p.map(x=>`<p>${x}</p>`).join('')}`;
+   if(ch.sim)h+=`<div class="sim">${ch.sim.s.map((x,j)=>`<div class="sl"><label for="sl${j}">${x.l} : <b id="sv${j}"></b></label><input type="range" id="sl${j}" min="${x.min}" max="${x.max}" step="${x.step}" value="${x.v}"></div>`).join('')}<div class="fig" id="simfig"></div><div class="simout" id="simout"></div></div>`;
+   else if(ch.fig)h+=`<div class="fig">${typeof ch.fig=='function'?ch.fig():ch.fig}</div>`;
+   if(ch.more)h+=ch.more.map(x=>`<p>${x}</p>`).join('');
+   if(ch.keep)h+=`<div class="keep"><b>À retenir</b><ul>${ch.keep.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+   h+=`<div class="btns" style="margin-top:16px">${ci?'<button class="b sec" data-c="-1" type="button">Précédent</button>':''}${ci<C.length-1?'<button class="b" data-c="1" type="button">Suivant</button>':'<button class="b" data-m="train" type="button">Passer à l’entraînement</button>'}${ch.go?`<button class="b sec" data-g="${ch.go[0]},${ch.go[1]}" type="button">M’entraîner sur ce point</button>`:''}</div>`;
+   $('#cc').innerHTML=h;
+   if(ch.sim){const upd=()=>{const v=ch.sim.s.map((x,j)=>{const val=+$('#sl'+j).value;$('#sv'+j).textContent=fmt(val,3)+(x.u?' '+x.u:'');return val;});$('#simfig').innerHTML=ch.sim.draw(...v);$('#simout').innerHTML=ch.sim.out?ch.sim.out(...v):'';};$('#cc').oninput=upd;upd();}else $('#cc').oninput=null;}
+  $('#cnav').onclick=e=>{const b=e.target.closest('.qb');if(b){ci=+b.dataset.j;show();}};
+  $('#cc').onclick=e=>{const d=e.target.dataset;if(d.c){ci+=+d.c;show();window.scrollTo(0,0);}if(d.g){const [l,j]=d.g.split(',').map(Number);lv=l;qi=j;mode='train';go();}};
+  window.__ch=j=>{ci=j;show();};show();}
+ window.__mode=m=>{mode=m;go();};go();}
+
+/* ---------- séance du jour ---------- */
+function seance(){const Q=allQ(),now=Date.now(),due=Q.filter(x=>st.q[x.k]&&st.q[x.k].seen&&st.q[x.k].due<=now).sort((a,b)=>st.q[a.k].box-st.q[b.k].box).slice(0,8);
+ const fresh=Q.filter(x=>!(st.q[x.k]&&st.q[x.k].seen)).sort((a,b)=>a.li-b.li||NOTIONS.indexOf(a.N)-NOTIONS.indexOf(b.N)||a.qi-b.qi);
+ const list=due.concat(fresh.slice(0,10-due.length));let i=0,good=0;
+ if(!list.length){app().innerHTML=`<a class="back" href="#accueil">← Accueil</a><h1>Séance du jour</h1><div class="card"><p>Rien à réviser aujourd’hui et toutes les questions ont été vues. Passe une épreuve blanche, ou reviens demain.</p></div>`;return;}
+ app().innerHTML=`<a class="back" href="#accueil">← Accueil</a><h1>Séance du jour</h1><div class="prog"><i id="pg"></i></div><div class="card" id="card"></div>`;app().onclick=null;
+ function step(){if(i>=list.length){app().innerHTML=`<a class="back" href="#accueil">← Accueil</a><h1>Séance terminée</h1><div class="card"><p><b>${good} / ${list.length}</b> au premier essai.</p><p>Les questions ratées reviendront demain, les autres selon leur intervalle.</p><div class="btns"><a class="b" href="#accueil">Retour à l’accueil</a></div></div>`;return;}
+  const it=list[i],f0=rec(it.k).fail;$('#pg').style.width=100*i/list.length+'%';
+  card($('#card'),it,{head:`<span class="src">${i+1} / ${list.length} · ${it.N.name} · ${it.L.name}${due.includes(it)?' · révision':''}</span> `,next(){i++;step();},after(){if(rec(it.k).fail==f0)good++;}});}
+ step();}
+
+/* ---------- épreuve blanche ---------- */
+function epreuve(){const pool=allQ().filter(x=>x.li>=2&&!x.q.open);for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+ const list=pool.slice(0,10).sort((a,b)=>NOTIONS.indexOf(a.N)-NOTIONS.indexOf(b.N)||a.li-b.li).map(x=>({x,inst:x.q.gen(),ans:[]}));let i=0,end=Date.now()+45*60e3,tm=null,over=false;
+ app().innerHTML=`<a class="back" href="#accueil">← Abandonner</a><h1>Épreuve blanche</h1><div class="exbar"><span id="clock"></span><div class="qnav" id="qnav"></div><button class="b" id="rendre" type="button">Rendre la copie</button></div><div class="card" id="card"></div>`;app().onclick=null;
+ const keep=()=>{list[i].inst.fields.forEach((_,j)=>{const e=$('#in'+j);if(e)list[i].ans[j]=e.value;});};
+ function show(){const it=list[i];$('#qnav').innerHTML=list.map((t,j)=>`<button class="qb${j==i?' on':''}${t.ans.some(v=>v&&v.trim())?' half':''}" data-j="${j}">${j+1}</button>`).join('');
+  $('#card').innerHTML=`<span class="src">${it.x.N.name} · ${it.x.L.name}</span><h2>${i+1}. ${it.x.q.t}</h2><p>${it.inst.text}</p>${it.inst.fig?`<div class="fig">${it.inst.fig}</div>`:''}${fieldsHTML(it.inst)}<div class="btns">${i?'<button class="b sec" data-d="-1" type="button">Précédente</button>':''}${i<list.length-1?'<button class="b" data-d="1" type="button">Suivante</button>':''}</div>`;
+  it.inst.fields.forEach((_,j)=>{if(it.ans[j]!=null)$('#in'+j).value=it.ans[j];});}
+ function finish(){if(over)return;over=true;keep();clearInterval(tm);let pts=0,tot=0,h='';list.forEach((it,n)=>{let g=0;const rows=it.inst.fields.map((f,j)=>{const x=parse(it.ans[j]||''),ok=!isNaN(x)&&okf(f,x);if(ok)g++;return `<div class="fld ${ok?'good':'bad'}"><label>${f.l}</label><input disabled value="${(it.ans[j]||'').replace(/"/g,'')}"><span class="u">${f.u}</span><span class="fb">${ok?'Juste':'Attendu : '+fmt(f.a)+(f.u?' '+f.u:'')}</span></div>`;}).join('');
+   const full=g==it.inst.fields.length;pts+=g/it.inst.fields.length;tot++;mark(it.x.k,full);
+   h+=`<details class="res ${full?'ok':g?'half':'ko'}"><summary>${n+1}. ${it.x.q.t} <small>${it.x.N.name} · ${it.x.L.name} · ${g} / ${it.inst.fields.length}</small></summary><p>${it.inst.text}</p>${it.inst.fig?`<div class="fig">${it.inst.fig}</div>`:''}<div class="fields">${rows}</div>${corrHTML(it.inst)}</details>`;});
+  const s=20*pts/tot;st.exams.push({d:Date.now(),s});save();
+  app().innerHTML=`<a class="back" href="#accueil">← Accueil</a><h1>Épreuve blanche : ${fmt(s,3)} / 20</h1><p class="muted">${s>=9?'Au-dessus de la barre d’admissibilité des quatre dernières sessions (entre 8,2 et 9).':'Sous la barre d’admissibilité des quatre dernières sessions (entre 8,2 et 9).'} Les questions incomplètes reviendront dans la séance de demain.</p>${h}<div class="btns" style="margin-top:18px"><a class="b" href="#accueil">Retour à l’accueil</a></div>`;}
+ $('#card').onclick=e=>{const d=e.target.dataset&&e.target.dataset.d;if(d){keep();i+=+d;show();}};
+ $('#qnav').onclick=e=>{const b=e.target.closest('.qb');if(b){keep();i=+b.dataset.j;show();}};
+ $('#rendre').onclick=finish;window.__exam={list,finish};
+ const tick=()=>{if(!$('#clock')){clearInterval(tm);return;}const r=Math.max(0,end-Date.now()),mm=Math.floor(r/60e3),ss=Math.floor(r%60e3/1e3);$('#clock').textContent=`${mm} min ${String(ss).padStart(2,'0')} s`;if(r<=0)finish();};tm=setInterval(tick,1000);tick();show();}
+
+function route(){const h=(location.hash||'#accueil').slice(1);window.scrollTo(0,0);if(h=='seance')return seance();if(h=='epreuve')return epreuve();if(h.startsWith('n-')){const N=NOTIONS.find(n=>n.id==h.slice(2));if(N)return notion(N);}home();}
+let PRET=!HOOK;
+async function demarrer(){if(HOOK){app().innerHTML='<p class="muted">Chargement…</p>';const ok=await HOOK.ready.catch(()=>false);if(!ok){app().innerHTML=`<div class="eyebrow">Agrégation SII · ingénierie électrique</div><h1>Espace réservé</h1><div class="card"><p>Cette partie du site est réservée au professeur. Connecte-toi d’abord dans l’espace professeur, puis reviens ici.</p><div class="btns"><a class="b" href="../prof.html">Ouvrir l’espace professeur</a></div></div>`;return;}
+  try{const r=await HOOK.pull();if(r&&r.q&&(r.t||0)>(st.t||0)){st=r;if(!st.c)st.c={};if(!st.r)st.r={};if(!st.exams)st.exams=[];try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}else if(r===undefined||(st.t&&(!r||(r.t||0)<st.t)))HOOK.push(st);}catch(e){}PRET=true;}route();}
+window.addEventListener('hashchange',()=>{if(PRET)route();});window.addEventListener('DOMContentLoaded',demarrer);
+
+</script>
+<script src="notions/asserv.js"></script>
+<script src="notions/puissances.js"></script>
+<script src="notions/fourier.js"></script>
+<script src="notions/redaction.js"></script>
+<script src="notions/cours-asserv.js"></script>
+<script src="notions/cours-puissances.js"></script>
+<script src="notions/cours-fourier.js"></script>
+</body></html>
