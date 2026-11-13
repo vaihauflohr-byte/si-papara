@@ -3,7 +3,7 @@
    (contenu/prep-ds.js), sans rien regénérer. Lu par le tableau de bord (index.html) et par la page
    d'entraînement (entrainements/bac-si.html).
 
-   Pour chaque DS (clé « ds02 », « ds03 »…), trois étapes, puis le DS blanc quand il existe (contenu/ds-blancs.js) :
+   Pour chaque DS (clé « ds02 », « ds03 », « ds04 »…), trois étapes, puis le DS blanc quand il existe (contenu/ds-blancs.js) :
      1. Les briques  · niveau 1 : reconnaître, lire, nommer, calculer une grandeur simple
      2. Les calculs  · niveau 2 : appliquer une formule sur un mécanisme
      3. Les chaînes  · niveau 3 : résoudre jusqu'au bout et conclure, comme au DS
@@ -56,6 +56,27 @@ window.SIP_PREP = {
         { k: "info-programmation", l: 3, g: [0, 3, 4, 7, 10, 11], n: 3 },
         { k: "info-codage", l: 3, g: [0, 4, 9, 10, 13, 14], n: 2 },
         { k: "meca-actions", l: 3, g: [4, 9], n: 1 } ] }
+    ]
+  },
+  /* DS 04 · mouvement et transmission : chaîne de puissance, courbe de vitesse, schéma des forces, conclusion rédigée.
+     Les trois notions sont réécrites (documents à lire, comme à l'écrit) : au niveau 3, un générateur donne une étude
+     de quatre questions qui finit par une conclusion à rédiger. */
+  ds04: {
+    etapes: [
+      { t: "Les briques", d: "lire une chaîne de puissance, une courbe de vitesse, un schéma des forces ; reconnaître un mouvement ; rapport de transmission, vitesse angulaire, poids ; reconnaître une conclusion complète", q: 10, blocs: [
+        { k: "meca-transmission", l: 1, g: [0, 1, 2, 3, 4, 5, 6], n: 3 },
+        { k: "meca-cinematique", l: 1, g: [0, 1, 2, 3, 4, 5, 6], n: 1 },
+        { k: "meca-cinematique", l: 1, g: [9, 10, 11, 12, 13, 14], n: 2 },
+        { k: "phy-newton", l: 1, g: [0, 1, 3, 4], n: 1 },
+        { k: "phy-newton", l: 1, g: [8, 9, 10, 11, 12], n: 2 } ] },
+      { t: "Les calculs", d: "enchaîner deux calculs : vitesse d'un véhicule, couple à la roue, pente et aire d'une courbe de vitesse, somme des forces et accélération ; compléter une phrase de conclusion", q: 13, blocs: [
+        { k: "meca-transmission", l: 2, g: [0, 1, 2, 3, 4, 5], n: 2 },
+        { k: "meca-cinematique", l: 2, g: [0, 1, 2, 3, 4, 5], n: 2 },
+        { k: "phy-newton", l: 2, g: [0, 1, 2, 3, 4, 5], n: 2 } ] },
+      { t: "Les chaînes", d: "une étude complète par notion, comme au DS : relever, calculer, puis rédiger la conclusion sur l'exigence", q: 12, blocs: [
+        { k: "meca-transmission", l: 3, g: [0, 1, 2, 3], n: 1 },
+        { k: "meca-cinematique", l: 3, g: [0, 1, 2, 3], n: 1 },
+        { k: "phy-newton", l: 3, g: [0, 1, 2, 3], n: 1 } ] }
     ]
   }
 };
