@@ -1,0 +1,154 @@
+(function(){
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const py=x=>Number.isInteger(x)?String(x):String(Math.round(x*1e4)/1e4);
+const lst=a=>'['+a.map(py).join(', ')+']';
+/* tableau de suivi des variables, en SVG */
+const trace=(head,rows,hi)=>{const w=Math.min(110,560/head.length),h=28;let s=K.frame(head.map(x=>[x,w,'#cfe6ef']),20,10,h);rows.forEach((r,i)=>{s+=K.frame(r.map(x=>[x,w,i===hi?'#f3d9bd':'#fff']),20,10+h*(i+1),h);});return K.svg(40+w*head.length,20+h*(rows.length+1),s,'suivi des variables');};
+const LV=[
+{id:'pro',name:'Bac pro',sub:'Variables, tests, boucles simples',fiche:[
+ `Une variable est une boîte avec une étiquette. ${V('a = a + b')} se lit : calculer ${V('a + b')}, puis ranger le résultat dans ${V('a')}.`,
+ `<code>if</code> / <code>elif</code> / <code>else</code> : une seule branche est exécutée, la première dont la condition est vraie.`,
+ `<code>range(n)</code> donne les entiers de 0 à ${V('n')} − 1 : ${V('n')} valeurs, la dernière est exclue.`,
+ `Dans une liste, le premier élément a l’indice 0 ; l’indice −1 désigne le dernier.`]},
+{id:'si',name:'Bac SI',sub:'Boucle while, fonctions, acquisition',fiche:[
+ `<code>while</code> : on répète tant que la condition est vraie. Dérouler à la main avec un tableau, une ligne par passage.`,
+ `Une fonction reçoit des arguments et renvoie un résultat avec <code>return</code>.`,
+ `Conversion d’une lecture analogique : tension = ${fr('N × V<sub>ref</sub>','2<sup>n</sup> − 1')}.`,
+ `Recherche d’un maximum : on garde en mémoire la meilleure valeur vue et son indice.`]},
+{id:'bts',name:'BTS',sub:'Intégrer, filtrer, manipuler des bits',fiche:[
+ `Intégration par rectangles : somme des valeurs × pas de temps. Une énergie est l’intégrale d’une puissance.`,
+ `Méthode d’Euler : ${V('u ← u + dt · u′')}. Pour un circuit RC : ${V('u′')} = ${fr('E − u','τ')}.`,
+ `Moyenne glissante sur 3 points : ${V('y[i]')} = ${fr('x[i] + x[i−1] + x[i−2]','3')}.`,
+ `Bits : <code>x &gt;&gt; 4</code> décale de 4 bits à droite ; <code>&amp;</code> masque ; <code>|</code> force un bit à 1 ; <code>&amp; ~</code> force un bit à 0.`,
+ `Dichotomie : l’intervalle est divisé par 2 à chaque tour.`]},
+{id:'agreg',name:'Agrégation',sub:'D’après annales et rapports de jury',fiche:[
+ `Valeur efficace d’un tableau : <code>np.sqrt(np.mean(x**2))</code>. Valeur moyenne : <code>np.mean(x)</code>.`,
+ `Filtre récursif du premier ordre ${V('y ← a · y + (1 − a) · x')} : réponse à un échelon 1 − ${V('a<sup>n</sup>')}, constante de temps τ = ${fr('−T<sub>e</sub>','ln a')}.`,
+ `Euler explicite sur ${V('u′')} = ${fr('−u','τ')} : ${V('u<sub>k+1</sub>')} = (1 − ${fr('dt','τ')}) ${V('u<sub>k</sub>')}, stable seulement si ${V('dt')} &lt; 2τ.`,
+ `Deux boucles imbriquées sur ${V('n')} : de l’ordre de ${V('n')}² opérations. Multiplier ${V('n')} par 10 multiplie le temps par 100.`,
+ `Trapèzes : ${V('S')} = Σ ${fr('(y<sub>k</sub> + y<sub>k+1</sub>) · dt','2')}.`,
+ `<b>Constat des jurys</b> (externe 2025 et 2026, interne 2023 et 2025) : lecture et écriture de Python, intégration numérique, boucles ; la moitié des candidats saute ces questions.`]}
+];
+const Q={pro:[],si:[],bts:[],agreg:[]};
+/* ----- Bac pro ----- */
+Q.pro.push({t:'Suivre des variables',gen(){const a=ri(8,20),b=ri(2,7),a2=a+b,b2=a2-b;
+ return {text:`Qu’affiche ce programme ?`,fig:K.code([`a = ${a}`,`b = ${b}`,`a = a + b`,`b = a - b`,`print(a * b)`]),fields:[{l:'Valeur affichée',u:'',a:a2*b2,abs:.1}],hint:`Dérouler ligne par ligne en notant le contenu de a et de b.`,
+ corr:trace(['ligne','a','b'],[[1,a,''],[2,a,b],[3,a2,b],[4,a2,b2]])+`<div class="eq">${a2} × ${b2} = <b>${a2*b2}</b></div><p>À la ligne 4, ${V('a')} vaut déjà ${a2} : c’est l’erreur classique d’utiliser l’ancienne valeur.</p>`};}});
+Q.pro.push({t:'Un test à trois branches',gen(){const t=pick([32,38,45,58,66,72,85]),v=t<40?0:t<70?50:100;
+ return {text:`Ce programme règle un ventilateur selon la température. Qu’affiche-t-il ?`,fig:K.code([`t = ${t}`,`if t < 40:`,`    v = 0`,`elif t < 70:`,`    v = 50`,`else:`,`    v = 100`,`print(v + t)`]),fields:[{l:'Valeur affichée',u:'',a:v+t,abs:.1}],hint:`Une seule branche est exécutée : la première dont la condition est vraie.`,
+ corr:`<p>${V('t')} = ${t}. ${t<40?'La première condition (t < 40) est vraie':t<70?'t < 40 est faux, t < 70 est vrai':'Les deux conditions sont fausses : on passe dans else'} : ${V('v')} = ${v}.</p><div class="eq">${v} + ${t} = <b>${v+t}</b></div>`};}});
+Q.pro.push({t:'Une boucle qui additionne',gen(){const n=ri(4,8),k=pick([1,2,3]),s=k*n*(n-1)/2;
+ return {text:`Qu’affiche ce programme ?`,fig:K.code([`s = 0`,`for i in range(${n}):`,`    s = s + ${k==1?'i':k+' * i'}`,`print(s)`]),fields:[{l:'Valeur affichée',u:'',a:s,abs:.1}],hint:`range(${n}) donne les entiers de 0 à ${n-1}.`,
+ corr:trace(['i','s'],Array.from({length:n},(_,i)=>[i,k*i*(i+1)/2]))+`<p>${V('i')} prend les valeurs 0 à ${n-1} (${n} est exclu). Résultat : <b>${s}</b>.</p>`};}});
+Q.pro.push({t:'Lire dans une liste',gen(){const t=Array.from({length:6},()=>ri(10,60)),k=ri(1,4);
+ return {text:`Qu’affichent les deux dernières lignes ?`,fig:K.code([`t = ${lst(t)}`,`print(len(t))`,`print(t[${k}] + t[-1])`]),fields:[{l:'Première valeur affichée',u:'',a:6,abs:.1},{l:'Seconde valeur affichée',u:'',a:t[k]+t[5],abs:.1}],hint:`Les indices commencent à 0 ; −1 désigne le dernier élément.`,
+ corr:trace(['indice',0,1,2,3,4,5],[['valeur'].concat(t)])+`<div class="eq">len(t) = <b>6</b> ; t[${k}] = ${t[k]}, t[−1] = ${t[5]} ; somme = <b>${t[k]+t[5]}</b></div>`};}});
+/* ----- Bac SI ----- */
+Q.si.push({t:'Boucle tant que',gen(){const u0=pick([100,200,500,1000]),s=pick([10,20,30]);let u=u0,n=0;const rows=[[0,u0]];while(u>s){u/=2;n++;rows.push([n,py(u)]);}
+ return {text:`Ce programme simule une tension divisée par deux à chaque étape. Qu’affiche-t-il ?`,fig:K.code([`u = ${u0}`,`n = 0`,`while u > ${s}:`,`    u = u / 2`,`    n = n + 1`,`print(n, u)`]),fields:[{l:'Valeur de n',u:'',a:n,abs:.1},{l:'Valeur de u',u:'',a:u,tol:.01}],hint:`Faire un tableau : une ligne par passage dans la boucle.`,
+ corr:trace(['n','u'],rows)+`<p>La boucle s’arrête dès que ${V('u')} n’est plus supérieur à ${s} : <b>n = ${n}</b>, <b>u = ${py(u)}</b>.</p>`};}});
+Q.si.push({t:'Une fonction de moyenne',gen(){const l=Array.from({length:5},()=>ri(12,30)),m=l.reduce((a,b)=>a+b)/5;
+ return {text:`Qu’affiche ce programme ?`,fig:K.code([`def moyenne(l):`,`    s = 0`,`    for x in l:`,`        s = s + x`,`    return s / len(l)`,``,`mesures = ${lst(l)}`,`m = moyenne(mesures)`,`print(m, max(mesures) - m)`]),fields:[{l:'Première valeur affichée',u:'',a:m,tol:.005},{l:'Seconde valeur affichée',u:'',a:Math.max(...l)-m,tol:.01,abs:.05}],hint:`La fonction additionne tous les éléments puis divise par leur nombre.`,
+ corr:`<div class="eq">${V('s')} = ${l.join(' + ')} = ${l.reduce((a,b)=>a+b)} ; ${V('m')} = ${fr(l.reduce((a,b)=>a+b),5)} = <b>${py(m)}</b></div><div class="eq">max = ${Math.max(...l)} ; ${Math.max(...l)} − ${py(m)} = <b>${py(Math.max(...l)-m)}</b></div>`};}});
+Q.si.push({t:'Convertir une lecture analogique',gen(){const N=ri(180,330),u=N*3.3/1023,t=(u-.5)*100;
+ return {text:`Un capteur de température (10 mV par °C, 0,5 V à 0 °C) est lu par un convertisseur 10 bits de référence 3,3 V. La lecture vaut N = ${N}. Qu’affiche le programme ?`,fig:K.code([`N = ${N}`,`u = N * 3.3 / 1023`,`t = (u - 0.5) * 100`,`print(round(t, 1))`]),fields:[{l:'Température affichée',u:'°C',a:t,abs:.15}],hint:`Calculer d’abord la tension, puis appliquer la loi du capteur.`,
+ corr:`<div class="eq">${V('u')} = ${fr(`${N} × 3,3`,1023)} = ${fmt(u,4)} V ; ${V('t')} = (${fmt(u,4)} − 0,5) × 100 = <b>${fmt(Math.round(t*10)/10,4)} °C</b></div>`};}});
+Q.si.push({t:'Chercher le maximum',gen(){let l;do{l=Array.from({length:7},()=>ri(10,95));}while(new Set(l).size<7);const im=l.indexOf(Math.max(...l));
+ return {text:`Ce programme cherche la pointe de courant dans une série de mesures. Qu’affiche-t-il ?`,fig:K.code([`i = ${lst(l)}`,`k = 0`,`for j in range(1, len(i)):`,`    if i[j] > i[k]:`,`        k = j`,`print(k, i[k])`]),fields:[{l:'Première valeur affichée',u:'',a:im,abs:.1},{l:'Seconde valeur affichée',u:'',a:l[im],abs:.1}],hint:`k mémorise l’indice de la plus grande valeur rencontrée.`,
+ corr:trace(['indice',0,1,2,3,4,5,6],[['valeur'].concat(l)])+`<p>La plus grande valeur, ${l[im]}, est à l’indice <b>${im}</b> (on compte à partir de 0). Affichage : <b>${im} ${l[im]}</b>.</p>`};}});
+/* ----- BTS ----- */
+Q.bts.push({t:'Énergie par la méthode des rectangles',gen(){const P=Array.from({length:6},()=>ri(2,12)/2),dt=pick([.25,.5]),E=P.reduce((a,b)=>a+b)*dt;
+ return {text:`Un compteur relève la puissance d’un atelier, en kW, toutes les ${dt==.25?'15':'30'} minutes. Que calcule ce programme, et qu’affiche-t-il ?`,fig:K.code([`P = ${lst(P)}   # kW`,`dt = ${dt}   # h`,`E = 0`,`for p in P:`,`    E = E + p * dt`,`print(E)`])+plot({W:560,H:200,x0:0,x1:6*dt,dx:dt,y0:0,y1:7,dy:1,curves:[{pts:P.flatMap((p,i)=>[[i*dt,0],[i*dt,p],[(i+1)*dt,p],[(i+1)*dt,0]])}],xl:'Temps (h)',yl:'Puissance (kW)',alt:'rectangles'}),fields:[{l:'Valeur affichée',u:'kWh',a:E,tol:.01}],hint:`Chaque passage ajoute l’aire d’un rectangle : puissance × durée.`,
+ corr:`<p>Le programme intègre la puissance par la méthode des rectangles : il calcule une <b>énergie</b>.</p><div class="eq">${V('E')} = (${P.map(py).join(' + ').replace(/\./g,',')}) × ${fmt(dt)} = ${fmt(P.reduce((a,b)=>a+b))} × ${fmt(dt)} = <b>${fmt(E,4)} kWh</b></div>`,
+ jury:`L’intégration numérique est citée nommément parmi les questions de programmation mal traitées (externe 2025 et 2026). Les rapports relèvent aussi la confusion entre puissance et énergie : préciser l’unité du résultat.`};}});
+Q.bts.push({t:'Méthode d’Euler sur un circuit RC',gen(){const E=pick([5,10,12]),r=pick([.1,.2,.25,.5]),k=pick([2,3,4]),tau=pick([.01,.02,.1]),dt=r*tau,u=E*(1-(1-r)**k),ex=E*(1-Math.exp(-k*r));
+ return {text:`Ce programme simule la charge d’un condensateur. Qu’affiche-t-il ? Comparer à la valeur exacte au même instant.`,fig:K.code([`E, tau, dt = ${E}, ${py(tau)}, ${py(dt)}`,`u = 0`,`for k in range(${k}):`,`    u = u + dt * (E - u) / tau`,`print(u)`]),fields:[{l:'Valeur affichée',u:'V',a:u,tol:.01},{l:'Valeur exacte au même instant',u:'V',a:ex,tol:.01}],hint:`À chaque pas : u ← u + (dt/τ)(E − u). Valeur exacte : E (1 − e^(−t/τ)).`,
+ corr:`<p>${fr('dt','τ')} = ${fmt(r)}. À chaque pas, ${V('u')} parcourt ${fmt(r*100)} % du chemin qui reste jusqu’à ${V('E')} :</p>`+trace(['pas','u (V)'],Array.from({length:k+1},(_,i)=>[i,fmt(E*(1-(1-r)**i),4)]))+`<div class="eq">Affichage : <b>${fmt(u,4)}</b>. Exact à ${V('t')} = ${k} ${V('dt')} : ${E} (1 − e<sup>−${fmt(k*r)}</sup>) = <b>${fmt(ex,4)} V</b></div><p>L’écart relatif est de ${fmt(100*Math.abs(u-ex)/ex)} % : il diminue quand on réduit le pas.</p>`};}});
+Q.bts.push({t:'Moyenne glissante',gen(){const x=Array.from({length:8},()=>ri(3,30)),y=[];for(let i=2;i<8;i++)y.push((x[i]+x[i-1]+x[i-2])/3);const k=ri(1,4);
+ return {text:`Ce programme lisse des mesures bruitées. Qu’affiche-t-il ?`,fig:K.code([`x = ${lst(x)}`,`y = []`,`for i in range(2, len(x)):`,`    y.append((x[i] + x[i-1] + x[i-2]) / 3)`,`print(len(y), y[${k}])`]),fields:[{l:'Première valeur affichée',u:'',a:6,abs:.1},{l:'Seconde valeur affichée',u:'',a:y[k],tol:.01}],hint:`y[0] correspond à i = 2.`,
+ corr:`<p>${V('i')} va de 2 à 7 : 6 valeurs calculées, <b>len(y) = 6</b>.</p><p>y[${k}] est calculé pour ${V('i')} = ${k+2} :</p><div class="eq">${fr(`${x[k+2]} + ${x[k+1]} + ${x[k]}`,3)} = <b>${fmt(y[k],4)}</b></div>`};}});
+Q.bts.push({t:'Manipuler des bits',gen(){const x=ri(0x41,0xF6),b1=pick([0,1,3]),b0=pick([2,4,5,6]);
+ return {text:`Un registre de 8 bits contient 0x${K.hex(x)}. Que valent ${V('a')}, ${V('c')} et ${V('d')} (en décimal) ?`,fig:K.code([`x = 0x${K.hex(x)}`,`a = (x >> 4) & 0x0F`,`c = x | (1 << ${b1})`,`d = x & ~(1 << ${b0})`,`print(a, c, d)`])+K.svg(408,96,K.frame(K.bin(x).split('').map((b,i)=>[b,46,b=='1'?'#cfe6ef':'#fff','bit '+(7-i)]),20,20,36),'registre'),fields:[{l:'a',u:'',a:x>>4,abs:.1},{l:'c',u:'',a:x|(1<<b1),abs:.1},{l:'d',u:'',a:x&~(1<<b0),abs:.1}],hint:`>> décale, & masque, | met à 1, & ~ met à 0.`,
+ corr:`<p>${V('x')} = ${K.bin(x).slice(0,4)} ${K.bin(x).slice(4)}.</p><div class="eq">${V('a')} : les 4 bits de gauche, ${K.bin(x).slice(0,4)} = <b>${x>>4}</b></div><div class="eq">${V('c')} : bit ${b1} forcé à 1, ${K.bin(x|(1<<b1))} = <b>${x|(1<<b1)}</b>${(x>>b1&1)?' (il y était déjà)':''}</div><div class="eq">${V('d')} : bit ${b0} forcé à 0, ${K.bin(x&~(1<<b0))} = <b>${x&~(1<<b0)}</b>${(x>>b0&1)?'':' (il y était déjà)'}</div>`};}});
+Q.bts.push({t:'Recherche par dichotomie',gen(){const b=pick([1,10,100]),e=pick([.01,.001,.1].filter(v=>v<b/20));let w=b,n=0;while(w>e){w/=2;n++;}
+ return {text:`Ce programme cherche le zéro d’une fonction croissante sur l’intervalle [0 ; ${b}]. Combien de fois la boucle est-elle exécutée ?`,fig:K.code([`a, b = 0, ${b}`,`n = 0`,`while b - a > ${py(e)}:`,`    m = (a + b) / 2`,`    if f(m) > 0:`,`        b = m`,`    else:`,`        a = m`,`    n = n + 1`,`print(n)`]),fields:[{l:'Valeur affichée',u:'',a:n,abs:.1}],hint:`La largeur de l’intervalle est divisée par 2 à chaque tour.`,
+ corr:`<p>Après ${V('n')} tours la largeur vaut ${fr(b,'2<sup>n</sup>')}. On s’arrête dès qu’elle n’est plus supérieure à ${fmt(e)} :</p><div class="eq">2<sup>n</sup> ≥ ${fr(b,fmt(e))} = ${fmt(b/e,6)}, donc ${V('n')} = <b>${n}</b> (2<sup>${n-1}</sup> = ${2**(n-1)}, 2<sup>${n}</sup> = ${2**n})</div><p>Gagner un facteur 1000 sur la précision ne coûte que 10 tours de plus.</p>`};}});
+/* ----- Agrégation ----- */
+Q.agreg.push({t:'Valeur efficace d’un tableau',src:'Python de l’épreuve commune : traitement de mesures',gen(){const A=pick([3,4,6]),o=pick([0,1,2]),x=[0,A,A,0,-A,-A].map(v=>v+o).concat([o,o]).sort(()=>Math.random()-.5),m=x.reduce((a,b)=>a+b)/8,ef=Math.sqrt(x.reduce((a,b)=>a+b*b,0)/8);
+ return {text:`Qu’affiche ce programme ? Les échantillons couvrent exactement une période.`,fig:K.code([`import numpy as np`,`x = np.array(${lst(x)})`,`moy = np.mean(x)`,`eff = np.sqrt(np.mean(x**2))`,`print(moy, eff)`]),fields:[{l:'moy',u:'',a:m,abs:.02},{l:'eff',u:'',a:ef,tol:.01}],hint:`x**2 élève chaque élément au carré ; np.mean en fait la moyenne.`,
+ corr:`<div class="eq">moy = ${fr(x.reduce((a,b)=>a+b),8)} = <b>${fmt(m)}</b></div><div class="eq">x² = ${lst(x.map(v=>v*v))} ; moyenne des carrés = ${fr(x.reduce((a,b)=>a+b*b,0),8)} = ${fmt(x.reduce((a,b)=>a+b*b,0)/8,4)} ; eff = √${fmt(x.reduce((a,b)=>a+b*b,0)/8,4)} = <b>${fmt(ef,4)}</b></div><p>Efficace : la racine de la moyenne du carré, dans cet ordre.</p>`,
+ jury:`Les rapports (externe 2025 et 2026, interne 2023 et 2025) notent que la moitié des candidats saute les questions de programmation. Elles demandent le plus souvent de lire un script court : ce sont des points accessibles.`};}});
+Q.agreg.push({t:'Filtre numérique récursif',src:'Filtrage numérique : thème de l’épreuve de modélisation',gen(){const a=pick([.5,.6,.8,.9]),n=pick([3,4,5]),Te=pick([1,2,10]),y=1-a**n;
+ return {text:`Ce filtre est exécuté toutes les ${Te} ms sur une entrée qui vient de passer de 0 à 1. Qu’affiche le programme, et quelle est la constante de temps du filtre ?`,fig:K.code([`a = ${a}`,`y = 0`,`for n in range(${n}):`,`    y = a * y + (1 - a) * 1.0`,`print(y)`]),fields:[{l:'Valeur affichée',u:'',a:y,tol:.01},{l:'Constante de temps',u:'ms',a:-Te/Math.log(a),tol:.03}],hint:`L’écart à la valeur finale est multiplié par a à chaque pas.`,
+ corr:`<p>En posant ${V('e = 1 − y')} : ${V('e ← a · e')}. L’écart est multiplié par ${fmt(a)} à chaque pas :</p><div class="eq">${V('y')} = 1 − ${V('a<sup>n</sup>')} = 1 − ${fmt(a)}<sup>${n}</sup> = <b>${fmt(y,4)}</b></div><p>Un premier ordre continu donne ${V('e')} = e<sup>−t/τ</sup>. Par identification, ${V('a')} = e<sup>−Te/τ</sup> :</p><div class="eq">τ = ${fr('−T<sub>e</sub>','ln a')} = ${fr(`−${Te}`,`ln ${fmt(a)}`)} = <b>${fmt(-Te/Math.log(a))} ms</b></div>`,
+ jury:`Le filtrage numérique et le lien entre une équation de récurrence et un comportement en fréquence sont cités comme non maîtrisés dans les rapports de l’externe 2023 à 2026.`};}});
+Q.agreg.push({t:'Stabilité de la méthode d’Euler',src:'Intégration numérique : notion citée par les jurys',gen(){const tau=pick([2,5,10,20]),r=pick([.5,1.5,2.5,3]),dt=r*tau,u=(1-r)**3;
+ return {text:`On simule la décharge ${V('u′')} = ${fr('−u','τ')} avec τ = ${tau} ms par la méthode d’Euler, à partir de ${V('u')} = 1. Quel est le pas maximal pour que la simulation reste stable ? Que vaut ${V('u')} après 3 pas de ${fmt(dt)} ms ?`,fig:K.code([`tau, dt = ${tau}e-3, ${py(dt)}e-3`,`u = 1.0`,`for k in range(3):`,`    u = u + dt * (-u / tau)`,`print(u)`]),fields:[{l:'Pas maximal (limite de stabilité)',u:'ms',a:2*tau,tol:.01},{l:'Valeur affichée (signée)',u:'',a:u,abs:.02,tol:.01}],hint:`Écrire u(k+1) en fonction de u(k) : c’est une suite géométrique.`,
+ corr:`<div class="eq">${V('u<sub>k+1</sub>')} = (1 − ${fr('dt','τ')}) ${V('u<sub>k</sub>')}</div><p>Suite géométrique : elle ne diverge pas si |1 − ${fr('dt','τ')}| &lt; 1, soit ${V('dt')} &lt; 2τ = <b>${2*tau} ms</b>.</p><div class="eq">Ici 1 − ${fr(fmt(dt),tau)} = ${fmt(1-r)} ; ${V('u<sub>3</sub>')} = (${fmt(1-r)})³ = <b>${fmt(u,4)}</b></div><p>${r>2?'Le pas dépasse 2τ : la solution calculée oscille en grandissant, alors que la vraie décharge tend vers 0.':r>1?'Le pas est compris entre τ et 2τ : la simulation ne diverge pas mais oscille autour de 0, ce que le système réel ne fait pas.':'Le pas est inférieur à τ : la simulation décroît sans osciller.'} En pratique on prend ${V('dt')} inférieur à ${fr('τ',10)}.</p>`};}});
+Q.agreg.push({t:'Coût de deux boucles imbriquées',src:'Algorithmique de l’épreuve commune',gen(){const n=pick([10,20,50,100]),c=n*(n-1)/2;
+ return {text:`Combien vaut ${V('c')} à la fin du programme ? Par combien le temps de calcul est-il multiplié, environ, si l’on multiplie ${V('n')} par 10 ?`,fig:K.code([`n = ${n}`,`c = 0`,`for i in range(n):`,`    for j in range(i):`,`        c = c + 1`,`print(c)`]),fields:[{l:'Valeur affichée',u:'',a:c,abs:.1},{l:'Facteur sur le temps de calcul',u:'',a:10*(10*n-1)/(n-1),tol:.12}],hint:`Pour chaque i, la boucle intérieure tourne i fois.`,
+ corr:`<div class="eq">${V('c')} = 0 + 1 + 2 + … + (${V('n')} − 1) = ${fr('n (n − 1)','2')} = ${fr(`${n} × ${n-1}`,2)} = <b>${c}</b></div><p>Le nombre d’opérations croît comme ${V('n')}² : multiplier ${V('n')} par 10 multiplie le temps par environ <b>100</b> (exactement ${fmt(10*(10*n-1)/(n-1),4)} ici).</p>`};}});
+Q.agreg.push({t:'Rectangles ou trapèzes',src:'Intégration numérique : notion citée par les jurys (externe 2025, 2026)',gen(){const v=[0];for(let i=0;i<4;i++)v.push(v[i]+ri(2,6));const dt=pick([.5,1,2]),R=v.slice(0,4).reduce((a,b)=>a+b)*dt,T=v.slice(0,4).reduce((a,b,i)=>a+(b+v[i+1])/2,0)*dt;
+ return {text:`La vitesse d’un chariot, en m/s, est relevée toutes les ${fmt(dt)} s. Que renvoient les deux fonctions ?`,fig:K.code([`v = ${lst(v)}   # m/s`,`dt = ${dt}   # s`,``,`def rect(y, dt):`,`    s = 0`,`    for k in range(len(y) - 1):`,`        s = s + y[k] * dt`,`    return s`,``,`def trap(y, dt):`,`    s = 0`,`    for k in range(len(y) - 1):`,`        s = s + (y[k] + y[k+1]) * dt / 2`,`    return s`,``,`print(rect(v, dt), trap(v, dt))`])+plot({W:560,H:200,x0:0,x1:4*dt,dx:dt,y0:0,y1:Math.ceil(v[4]/5)*5+5,dy:5,curves:[{pts:v.map((y,i)=>[i*dt,y])},{pts:v.slice(0,4).flatMap((y,i)=>[[i*dt,y],[(i+1)*dt,y]]),c:C2,w:1.6}],xl:'Temps (s)',yl:'Vitesse (m/s)',alt:'rectangles et trapèzes'}),fields:[{l:'rect(v, dt)',u:'m',a:R,tol:.01},{l:'trap(v, dt)',u:'m',a:T,tol:.01}],hint:`Les deux fonctions calculent une distance : l’aire sous la courbe de vitesse.`,
+ corr:`<div class="eq">rect : (${v.slice(0,4).join(' + ')}) × ${fmt(dt)} = <b>${fmt(R,4)} m</b></div><div class="eq">trap : (${v.slice(0,4).map((b,i)=>fr(`${b} + ${v[i+1]}`,2)).join(' + ')}) × ${fmt(dt)} = <b>${fmt(T,4)} m</b></div><p>La vitesse croît : les rectangles pris à gauche sous-estiment la distance. Les trapèzes suivent les segments entre les points et sont exacts ici. Les deux boucles s’arrêtent à <code>len(y) − 1</code> : il y a un intervalle de moins que de points.</p>`,
+ jury:`Rapports de l’externe 2025 et 2026 : l’intégration numérique et l’écriture d’une boucle sont les deux points de programmation les plus souvent manqués.`};}});
+Q.agreg.push({open:true,t:'Rédaction : écrire une fonction',src:'Attendu des rapports : savoir écrire quelques lignes de Python',gen(){const g=pick([['la valeur efficace d’une liste d’échantillons x','efficace(x)','def efficace(x):\n    s = 0\n    for v in x:\n        s = s + v**2\n    return (s / len(x)) ** 0.5','On additionne les carrés, on divise par le nombre d’échantillons, on prend la racine : racine de la moyenne du carré.'],['l’énergie, en joules, à partir d’une liste p de puissances en watts relevées toutes les dt secondes, par la méthode des trapèzes','energie(p, dt)','def energie(p, dt):\n    e = 0\n    for k in range(len(p) - 1):\n        e = e + (p[k] + p[k+1]) * dt / 2\n    return e','Chaque passage ajoute l’aire d’un trapèze. La boucle s’arrête à len(p) − 1 car il y a un intervalle de moins que de points.'],['le nombre de dépassements d’un seuil s dans une liste de mesures m (un dépassement est un passage de sous le seuil à au-dessus)','depassements(m, s)','def depassements(m, s):\n    n = 0\n    for k in range(1, len(m)):\n        if m[k-1] <= s and m[k] > s:\n            n = n + 1\n    return n','On compare chaque mesure à la précédente : on ne compte que les franchissements montants. La boucle commence à 1 pour que m[k−1] existe.']]);
+ return {text:`<b>Écrire en Python, sans bibliothèque, une fonction <code>${g[1]}</code> qui renvoie ${g[0]}. Expliquer en une ou deux phrases le rôle de la boucle et le choix de ses bornes.</b>`,fig:K.code([`def ${g[1]}:`,`    ...`,`    return ...`]),fields:[],hint:'',
+ corr:`<pre class="code">${g[2]}</pre><p>${g[3]}</p><p>Points vérifiés par un correcteur : l’initialisation de l’accumulateur avant la boucle, les bornes de la boucle, l’indentation, le <code>return</code> placé après la boucle et non dedans.</p>`,
+ jury:`Les rapports de l’externe 2025 et 2026 et de l’interne 2023 et 2025 relèvent que la moitié des candidats n’aborde pas les questions de programmation. Quelques lignes justes et commentées rapportent tous les points : on n’attend pas un code optimisé.`};}});
+NOTIONS.push({id:'python',name:'Python et algorithmes',desc:'Lire un script, boucles, listes, intégration numérique, méthode d’Euler, filtre numérique, bits.',jury:'Cité dans 4 rapports : la moitié des candidats saute les questions de Python. Ce sont des points que presque personne ne prend.',levels:LV.map(L=>({id:L.id,name:L.name,sub:L.sub,fiche:L.fiche,qs:Q[L.id]}))});
+
+/* ================= COURS ================= */
+const N=NOTIONS.find(n=>n.id=='python');
+const noise=i=>.35*Math.sin(i*12.9898)*Math.cos(i*4.1414+1)+.2*Math.sin(i*78.233);
+N.cours=[
+{t:'Des boîtes avec des étiquettes',p:[
+ `Un programme est une recette suivie ligne après ligne, sans jamais revenir en arrière ni deviner. Une <b>variable</b> est une boîte : son nom est l’étiquette, sa valeur est ce qu’il y a dedans.`,
+ `Le signe = ne veut pas dire « est égal à ». Il veut dire : <b>calcule ce qui est à droite, puis range-le dans la boîte de gauche</b>. C’est pourquoi <code>a = a + b</code> a un sens. Avance ligne par ligne.`],
+ sim:{s:[{l:'Lignes exécutées',min:1,max:4,step:1,v:1}],
+  draw:k=>{const L=['a = 12','b = 5','a = a + b','b = a - b'],va=[12,12,17,17][k-1],vb=['?',5,5,12][k-1];return K.svg(560,150,L.map((l,i)=>(i==k-1?`<rect x="14" y="${14+i*28}" width="190" height="26" rx="4" fill="#f3d9bd"/>`:'')+`<text x="22" y="${32+i*28}" font-size="15" font-family="ui-monospace,Menlo,Consolas,monospace" fill="${i<k?'#183047':'#9fb3c2'}">${l}</text>`).join('')+K.box(280,40,100,70,va,{f:'#cfe6ef',fs:22})+K.t(330,30,'a',{b:1,fs:15})+K.box(420,40,100,70,vb,{f:'#cfe6ef',fs:22})+K.t(470,30,'b',{b:1,fs:15}),'variables');},
+  out:k=>['On range 12 dans la boîte a. La boîte b n’existe pas encore.','On range 5 dans la boîte b.','On calcule a + b = 17 avec les contenus actuels, puis on remplace le contenu de a.','Attention : a vaut maintenant 17, donc b reçoit 17 − 5 = 12. La boîte b contient maintenant l’ancienne valeur de a.'][k-1]},
+ keep:[`Dérouler un script à la main : un tableau, une colonne par variable, une ligne par instruction.`,`C’est la méthode la plus sûre le jour de l’épreuve, et elle se montre sur la copie.`],go:[0,0]},
+{t:'Répéter : la boucle',p:[
+ `Une boucle <code>for</code> répète un bloc d’instructions en faisant prendre à un compteur toutes les valeurs d’une liste. Le bloc répété est celui qui est <b>décalé vers la droite</b> : en Python, l’indentation fait partie du programme.`,
+ `Piège permanent : <code>range(n)</code> commence à 0 et s’arrête <b>avant</b> ${V('n')}.`],
+ sim:{s:[{l:'n dans range(n)',min:1,max:8,step:1,v:5}],
+  draw:n=>trace(['passage','i','s = s + i'],Array.from({length:n},(_,i)=>[i+1,i,i*(i+1)/2])),
+  out:n=>`<code>for i in range(${n})</code> : ${n} passage${n>1?'s':''}, ${V('i')} va de 0 à ${n-1}. Somme finale : <b>${n*(n-1)/2}</b>.`},
+ keep:[`<code>range(n)</code> : 0, 1, …, ${V('n')} − 1. <code>range(a, b)</code> : de ${V('a')} à ${V('b')} − 1.`,`<code>while</code> répète tant qu’une condition est vraie : vérifier qu’elle finit par devenir fausse.`],go:[0,2]},
+{t:'Les listes : des casiers numérotés à partir de zéro',p:[
+ `Une liste range plusieurs valeurs dans des casiers numérotés. Le premier casier porte le numéro <b>0</b>. Pour le dernier, on peut écrire −1, ce qui évite de compter.`,
+ `Un tableau de mesures, un signal échantillonné, une courbe : tout cela est une liste.`],
+ sim:{s:[{l:'Indice demandé',min:-6,max:5,step:1,v:2}],
+  draw:k=>{const t=[18,25,31,27,22,40],j=(k+6)%6;return K.svg(520,110,K.frame(t.map((v,i)=>[v,76,i==j?'#f3d9bd':'#fff',`${i}  ou  ${i-6}`]),30,25,40),'liste');},
+  out:k=>`<code>t[${k}]</code> vaut <b>${[18,25,31,27,22,40][(k+6)%6]}</b>. <code>len(t)</code> vaut 6, mais <code>t[6]</code> provoque une erreur : le dernier indice est 5.`},
+ keep:[`Premier élément : indice 0. Dernier : indice −1 ou <code>len(t) − 1</code>.`,`Parcourir : <code>for x in t</code> (les valeurs) ou <code>for k in range(len(t))</code> (les indices).`],go:[0,3]},
+{t:'Intégrer, c’est additionner des rectangles',p:[
+ `L’aire sous une courbe se calcule en la découpant en bandes verticales. Chaque bande est presque un rectangle : hauteur = la valeur mesurée, largeur = le pas de temps. On additionne.`,
+ `C’est ainsi qu’un compteur passe d’une puissance à une énergie, ou d’une vitesse à une distance. Plus les bandes sont fines, plus le résultat est juste.`],
+ sim:{s:[{l:'Nombre de rectangles',min:2,max:40,step:1,v:6}],
+  draw:n=>plot({W:620,H:260,x0:0,x1:Math.PI,dx:Math.PI/8,xmaj:2,y0:0,y1:1.2,dy:.1,ymaj:2,curves:[{pts:Array.from({length:n},(_,i)=>{const a=i*Math.PI/n,b=(i+1)*Math.PI/n,y=Math.sin(a);return [[a,0],[a,y],[b,y],[b,0]];}).flat(),c:C2,w:1.4},{pts:Array.from({length:101},(_,i)=>[i*Math.PI/100,Math.sin(i*Math.PI/100)])}],xl:'t',yl:'sin t',alt:'rectangles sous la courbe'}),
+  out:n=>{const s=Array.from({length:n},(_,i)=>Math.sin(i*Math.PI/n)).reduce((a,b)=>a+b)*Math.PI/n;return `Somme des ${n} rectangles : <b>${fmt(s,4)}</b>. Valeur exacte : 2. Écart relatif : ${fmt(100*Math.abs(s-2)/2,2)} %.`;}},
+ keep:[`Rectangles : <code>s = s + y[k] * dt</code>. Trapèzes : <code>s = s + (y[k] + y[k+1]) * dt / 2</code>.`,`${V('n')} points donnent ${V('n')} − 1 intervalles.`],go:[2,0]},
+{t:'La méthode d’Euler : avancer à petits pas',p:[
+ `Une équation différentielle dit à quelle vitesse une grandeur change. Pour la simuler, on fait comme un marcheur dans le brouillard : on regarde la pente sous ses pieds, on avance d’un petit pas dans cette direction, et on recommence.`,
+ `Si le pas est trop grand, le marcheur dépasse la cible, revient trop fort, et finit par s’éloigner : la simulation diverge alors que le système réel est parfaitement stable.`],
+ sim:{s:[{l:'Pas dt / τ',min:.1,max:2.4,step:.1,v:.5}],
+  draw:r=>{const p=[];let u=0;for(let k=0;k*r<=6.001;k++){p.push([k*r,u]);u+=r*(1-u);}return plot({W:620,H:260,x0:0,x1:6,dx:.5,xmaj:2,y0:-.5,y1:2.5,dy:.25,ymaj:2,curves:[{pts:step1(1,1,6),c:'#9fb3c2'},{pts:p,c:C2}],xl:'Temps (en τ)',yl:'u / E',alt:'Euler et solution exacte'})+`<small>${K.lg('#9fb3c2','solution exacte')}${K.lg(C2,'Euler')}</small>`;},
+  out:r=>r<=1?`À chaque pas, ${V('u')} parcourt ${fmt(r*100)} % du chemin restant. La simulation suit la courbe, avec une petite avance.`:r<2?`Le pas dépasse τ : chaque pas dépasse la cible. La simulation oscille mais finit par converger.`:`Le pas dépasse 2τ : chaque erreur est plus grande que la précédente. La simulation diverge.`},
+ keep:[`<code>u = u + dt * derivee</code>.`,`Stable si ${V('dt')} &lt; 2τ ; précis si ${V('dt')} est de l’ordre de ${fr('τ',10)} ou moins.`],go:[2,1]},
+{t:'Filtrer avec une ligne de code',p:[
+ `Pour lisser une mesure bruitée, on ne remplace pas l’ancienne valeur par la nouvelle : on fait un mélange. On garde une part ${V('a')} de l’ancienne sortie et on ajoute une part 1 − ${V('a')} de la nouvelle mesure.`,
+ `Plus ${V('a')} est proche de 1, plus le filtre est lisse, et plus il est lent à réagir : c’est un passe-bas du premier ordre.`],
+ sim:{s:[{l:'Coefficient a',min:0,max:.95,step:.05,v:.8}],
+  draw:a=>{const x=Array.from({length:80},(_,i)=>(i>=10?1:0)+noise(i)),y=[];let v=0;x.forEach(e=>{v=a*v+(1-a)*e;y.push(v);});return plot({W:620,H:260,x0:0,x1:80,dx:5,xmaj:2,y0:-.5,y1:2,dy:.25,ymaj:2,curves:[{pts:x.map((e,i)=>[i,e]),c:'#9fb3c2',w:1.3},{pts:y.map((e,i)=>[i,e]),c:C2}],xl:'Échantillon',yl:'Signal',alt:'signal brut et filtré'})+`<small>${K.lg('#9fb3c2','mesure brute')}${K.lg(C2,'sortie du filtre')}</small>`;},
+  out:a=>a==0?'a = 0 : la sortie recopie la mesure, aucun filtrage.':`<code>y = ${fmt(a)} * y + ${fmt(1-a)} * x</code>. Constante de temps : ${fr('−1','ln a')} = <b>${fmt(-1/Math.log(a))} échantillons</b>.`},
+ keep:[`${V('y ← a · y + (1 − a) · x')} : passe-bas, τ = ${fr('−T<sub>e</sub>','ln a')}.`,`Moyenne glissante sur ${V('N')} points : autre passe-bas, qui annule les fréquences multiples de ${fr('f<sub>e</sub>','N')}.`],go:[3,1]},
+{t:'La méthode, et ce que voit le jury',p:[
+ `<b>1.</b> Lire tout le script avant de calculer : que reçoit-il, que renvoie-t-il, en quelle unité ?`,
+ `<b>2.</b> Dérouler à la main dans un tableau, en respectant l’ordre des lignes.`,
+ `<b>3.</b> Surveiller les trois pièges : indices qui commencent à 0, borne finale exclue, variable modifiée avant d’être réutilisée.`,
+ `<b>4.</b> Pour écrire : initialiser avant la boucle, accumuler dans la boucle, renvoyer après la boucle.`],
+ keep:[`Externe 2025 et 2026, interne 2023 et 2025 : la moitié des candidats saute ces questions. Les traiter suffit à passer devant eux.`]}
+];
+})();
