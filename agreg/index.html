@@ -8,7 +8,7 @@ h3{font-size:16px;margin:18px 0 6px}
 small,.muted{color:#587083;font-size:13px}
 a{color:#00679a}
 .eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#53738b}
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:24px 0 18px}
+.tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:24px 0 18px}
 .tab{font:inherit;text-align:left;background:white;border:2px solid transparent;border-radius:10px;padding:12px 14px;cursor:pointer;color:inherit}
 .tab b{display:block}
 .tab.on{border-color:#12566f}
@@ -274,7 +274,7 @@ function seance(){const Q=allQ(),now=Date.now(),due=Q.filter(x=>st.q[x.k]&&st.q[
  step();}
 
 /* ---------- épreuve blanche ---------- */
-function epreuve(){const pool=allQ().filter(x=>x.li>=2&&!x.q.open);for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+function epreuve(){const pool=allQ().filter(x=>x.li>=2&&!x.q.open&&x.L.id!='annale');for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
  const list=pool.slice(0,10).sort((a,b)=>NOTIONS.indexOf(a.N)-NOTIONS.indexOf(b.N)||a.li-b.li).map(x=>({x,inst:x.q.gen(),ans:[]}));let i=0,end=Date.now()+45*60e3,tm=null,over=false;
  app().innerHTML=`<a class="back" href="#accueil">← Abandonner</a><h1>Épreuve blanche</h1><div class="exbar"><span id="clock"></span><div class="qnav" id="qnav"></div><button class="b" id="rendre" type="button">Rendre la copie</button></div><div class="card" id="card"></div>`;app().onclick=null;
  const keep=()=>{list[i].inst.fields.forEach((_,j)=>{const e=$('#in'+j);if(e)list[i].ans[j]=e.value;});};
@@ -315,4 +315,5 @@ window.addEventListener('hashchange',()=>{if(PRET)route();});window.addEventList
 <script src="notions/meca.js"></script>
 <script src="notions/thermo.js"></script>
 <script src="notions/magn.js"></script>
+<script src="notions/annale-asserv.js"></script>
 </body></html>
