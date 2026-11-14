@@ -38,7 +38,7 @@ details.fiche li{margin:5px 0}
 .fld.good .fb{color:#1f7a53}.fld.bad .fb{color:#a8362b}
 .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
 button.b{font:inherit;padding:10px 18px;border-radius:8px;border:1px solid #183047;background:#183047;color:white;cursor:pointer}
-button.b.sec{background:white;color:#183047}
+button.b.sec,a.b.sec{background:white;color:#183047;border:1px solid #183047}
 .hint,.corr{border-radius:8px;padding:12px 16px;margin-top:14px}
 .hint{background:#fff6e2;border-left:4px solid #e0a83a}
 .corr{background:#f1f7f3;border-left:4px solid #2f9e6e}
@@ -52,7 +52,7 @@ i.v{font-style:italic;font-family:Georgia,serif}
 @media(max-width:640px){.tabs{grid-template-columns:repeat(2,1fr)}.fld label{min-width:100%}}
 
 .stats{display:flex;gap:14px;flex-wrap:wrap;margin:22px 0}.stats div{background:white;padding:14px 22px;border-radius:10px;flex:1;min-width:150px}.stats strong{font-size:26px;display:block}
-.modes{display:grid;grid-template-columns:1fr 1fr;gap:14px}.mode{font:inherit;text-align:left;background:#183047;color:white;border:0;border-radius:12px;padding:18px 20px;cursor:pointer}.mode b{display:block;font-size:19px;margin-bottom:4px}.mode span{font-size:14px;opacity:.85}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}.keep details{margin:8px 0}.keep summary{cursor:pointer;font-weight:600}.keep details p{margin:6px 0 0 18px}.mode{font:inherit;text-align:left;background:#183047;color:white;border:0;border-radius:12px;padding:18px 20px;cursor:pointer}.mode b{display:block;font-size:19px;margin-bottom:4px}.mode span{font-size:14px;opacity:.85}
 h2.sec{margin:34px 0 12px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
 .ncard{font:inherit;text-align:left;background:white;border:2px solid transparent;border-radius:12px;padding:16px 18px;color:inherit;cursor:pointer;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}.ncard:hover{border-color:#12566f}.ncard b{display:block;font-size:17px;margin-bottom:2px}.ncard.off{opacity:.55;cursor:default}.ncard.off:hover{border-color:transparent}
@@ -145,7 +145,7 @@ function para(parts,src){const n=parts.length,W=170+n*130,H=190,y=30,yb=160;let 
 function tri(p,q,s_){return `<svg viewBox="0 0 420 200" width="420" role="img" aria-label="triangle des puissances"><path d="M40 160H340V50Z" fill="#eef5f8" stroke="#12566f" stroke-width="2"/><text x="190" y="182" font-size="14" text-anchor="middle">${p}</text><text x="350" y="110" font-size="14">${q}</text><text x="170" y="92" font-size="14" text-anchor="middle" transform="rotate(-20 170 92)">${s_}</text><path d="M95 160A55 55 0 0 0 92 141" fill="none" stroke="#183047"/><text x="104" y="152" font-size="14">φ</text></svg>`;}
 
 /* ---------- moteur ---------- */
-const NOTIONS=[];
+const NOTIONS=[],LABS=[];
 const PLAN=[['asserv','Asservissement'],['puiss','Puissances, complexes et triphasé'],['fourier','Fourier, harmoniques, valeurs moyenne et efficace'],['elec','Électronique de base'],['bus','Bus et trames'],['machines','Machines asynchrone et synchrone'],['conv','Convertisseurs'],['python','Python et algorithmes'],['signal','Conversion et signal'],['meca','Mécanique de l’épreuve 1'],['thermo','Thermique et fluides de l’épreuve 1'],['magn','Électromagnétisme']];
 const KEY='agreg-ie-v2',DAY=864e5,INT=[1,3,7,14,30];
 let st={q:{},exams:[],c:{},r:{}};try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j&&j.q)st=j;}catch(e){}if(!st.c)st.c={};if(!st.r)st.r={};if(!st.p)st.p={};if(!st.ch)st.ch={};
@@ -238,7 +238,7 @@ function home(){clearInterval(window.__chr);const Q=allQ(),G=noteOf(Q),ex=st.exa
  <h2 class="sec">Mes notes</h2><div class="stats"><div><strong>${n20(G.traite)}</strong>sur ce que j’ai traité (${G.n} question${G.n>1?'s':''})</div><div><strong>${n20(G.n?G.glob:null)}</strong>si l’épreuve était aujourd’hui : le non traité compte zéro</div><div><strong>${fmt(100*G.n/G.tot,2)} %</strong>du programme traité (${G.n} / ${G.tot})</div><div><strong>${ex.length?n20(ex.reduce((a,b)=>a+b.s,0)/ex.length):'—'}</strong>${ex.length>1?`moyenne des ${ex.length} dernières épreuves blanches`:'épreuve blanche'}</div></div>
  ${st.exams.length>1?`<div class="fig">${plot({W:640,H:200,x0:1,x1:Math.max(2,st.exams.length),dx:1,xmaj:Math.ceil(st.exams.length/10),y0:0,y1:20,dy:2,ymaj:2,curves:[{pts:st.exams.map((e,i)=>[i+1,e.s])}],hl:[{y:16,t:'objectif 16'}],xl:'Épreuves blanches, dans l’ordre',yl:'Note / 20',alt:'historique des épreuves blanches'})}</div>`:''}
  <p class="muted">Les notes portent sur les paliers BTS, agrégation et parties d’annales (coefficients 1, 2 et 2), au premier essai du dernier passage. Une rédaction compte pour la note donnée par l’IA, ou à défaut pour ton auto-évaluation (14 ou 4 sur 20). Ce sont des repères, pas des notes de jury.</p>
- <div class="modes"><button class="mode" data-go="seance"><b>Séance du jour</b><span>10 questions : d’abord celles à réviser, puis des nouvelles dans l’ordre des paliers.</span></button><button class="mode" data-go="epreuve"><b>Épreuve blanche</b><span>10 questions de niveau BTS et agrégation, 45 minutes, un seul essai, note sur 20.</span></button></div><h2 class="sec">Notions</h2><div class="grid">`;
+ <div class="modes"><button class="mode" data-go="seance"><b>Séance du jour</b><span>10 questions : d’abord celles à réviser, puis des nouvelles dans l’ordre des paliers.</span></button><button class="mode" data-go="epreuve"><b>Épreuve blanche</b><span>10 questions de niveau BTS et agrégation, 45 minutes, un seul essai, note sur 20.</span></button><button class="mode" data-go="labo"><b>Laboratoire</b><span>Des figures à manipuler : on bouge un curseur, la courbe, le spectre ou la machine réagit.</span></button></div><h2 class="sec">Notions</h2><div class="grid">`;
  for(const [id,name] of PLAN){const N=NOTIONS.find(n=>n.id==id);if(!N){h+=`<div class="ncard off"><b>${name}</b><small>À venir</small></div>`;continue;}
   h+=`<button class="ncard" data-go="n-${N.id}"><b>${N.name}</b><small>${N.desc}</small><div class="lv">${N.levels.map(L=>{const n=L.qs.length,d=L.qs.filter((_,j)=>rec(`${N.id}.${L.id}.${j}`).ok>=2).length;return `<div><span>${L.name}</span><div class="bar"><i style="width:${100*d/n}%"></i></div><span>${d}/${n}</span></div>`;}).join('')}</div>${N.cours?`<small class="cr">Cours : ${(st.c[N.id]||[]).length} / ${N.cours.length} chapitres lus</small>`:''}${(g=>`<small class="nt"><b>${n20(g.traite)}</b>${g.n?` sur ${g.n} / ${g.tot} traitées`:' · rien de traité aux paliers notés'}</small>`)(noteOf(Q.filter(x=>x.N==N)))}<small class="jr">${N.jury}</small></button>`;}
  h+=`</div><p class="muted" style="margin-top:22px">Une question est validée après deux réussites au premier essai sur deux tirages différents. Une question réussie revient à 1, 3, 7, 14 puis 30 jours ; une question ratée revient le lendemain. ${HOOK&&HOOK.synced&&HOOK.synced()?'La progression est enregistrée sur ton compte professeur et suit d’un appareil à l’autre.':'La progression est gardée dans ce navigateur.'}</p>`;app().innerHTML=h;app().onclick=e=>{const b=e.target.closest('[data-go]');if(b)location.hash=b.dataset.go;};app().onsubmit=null;}
@@ -306,7 +306,22 @@ function epreuve(){const pool=allQ().filter(x=>x.li>=2&&!x.q.open&&x.L.id!='anna
  $('#rendre').onclick=finish;window.__exam={list,finish};
  const tick=()=>{if(!$('#clock')){clearInterval(tm);return;}const r=Math.max(0,end-Date.now()),mm=Math.floor(r/60e3),ss=Math.floor(r%60e3/1e3);$('#clock').textContent=`${mm} min ${String(ss).padStart(2,'0')} s`;if(r<=0)finish();};tm=setInterval(tick,1000);tick();show();}
 
-function route(){const h=(location.hash||'#accueil').slice(1);window.scrollTo(0,0);if(h=='seance')return seance();if(h=='epreuve')return epreuve();if(h.startsWith('n-')){const N=NOTIONS.find(n=>n.id==h.slice(2));if(N)return notion(N);}home();}
+/* ---------- laboratoire : figures interactives ---------- */
+function allLabs(){const A=LABS.map(l=>Object.assign({adv:1},l));NOTIONS.forEach(N=>(N.cours||[]).forEach((c,i)=>{if(c.sim)A.push({id:`${N.id}-c${i}`,n:N.id,t:c.t,sub:'Cours, chapitre '+(i+1),p:c.p.slice(0,1),s:c.sim.s,draw:c.sim.draw,out:c.sim.out,keep:c.keep});}));return A;}
+function labo(){const A=allLabs(),cd=l=>`<button class="ncard" data-lab="${l.id}"><b>${l.t}</b><small>${l.sub||''}</small></button>`;
+ let h=`<a class="back" href="#accueil">← Accueil</a><div class="eyebrow">Laboratoire</div><h1>Figures interactives</h1><p class="muted">${A.length} figures à manipuler. On déplace un curseur, la figure se recalcule : c’est le moyen le plus rapide de sentir l’effet d’un paramètre avant de le démontrer. Les simulateurs du haut reprennent les systèmes des parties d’annales.</p><h2 class="sec">Simulateurs des parties d’annales</h2><div class="grid">${A.filter(l=>l.adv).map(cd).join('')}</div>`;
+ NOTIONS.forEach(N=>{const L=A.filter(l=>!l.adv&&l.n==N.id);if(L.length)h+=`<h2 class="sec">${N.name}</h2><div class="grid">${L.map(cd).join('')}</div>`;});
+ app().innerHTML=h;app().oninput=null;app().onclick=e=>{const b=e.target.closest('[data-lab]');if(b)location.hash='#labo-'+b.dataset.lab;};}
+function lab(id){const A=allLabs(),i=A.findIndex(l=>l.id==id),l=A[i];if(!l)return labo();const N=NOTIONS.find(n=>n.id==l.n);
+ let h=`<a class="back" href="#labo">← Laboratoire</a><div class="eyebrow">${N?N.name:''}${l.sub?' · '+l.sub:''}</div><h1>${l.t}</h1>${(l.p||[]).map(x=>`<p>${x}</p>`).join('')}<div class="sim">${l.s.map((x,j)=>`<div class="sl"><label for="sl${j}">${x.l} : <b id="sv${j}"></b></label><input type="range" id="sl${j}" min="${x.min}" max="${x.max}" step="${x.step}" value="${x.v}"></div>`).join('')}${l.anim!=null?'<div class="btns" style="margin-bottom:10px"><button class="b sec" id="anim" type="button">Animer</button></div>':''}<div class="fig" id="simfig"></div><div class="simout" id="simout"></div></div>`;
+ if(l.defis)h+=`<div class="keep"><b>À chercher avec les curseurs, puis à justifier</b>${l.defis.map(d=>`<details><summary>${d[0]}</summary><p>${d[1]}</p></details>`).join('')}</div>`;
+ if(l.keep)h+=`<div class="keep"><b>À retenir</b><ul>${l.keep.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+ h+=`<div class="btns" style="margin-top:16px">${i?`<a class="b sec" href="#labo-${A[i-1].id}">Figure précédente</a>`:''}${i<A.length-1?`<a class="b" href="#labo-${A[i+1].id}">Figure suivante</a>`:''}${N?`<a class="b sec" href="#n-${N.id}">Aller à la notion</a>`:''}</div>`;
+ app().innerHTML=h;
+ const upd=()=>{if(!$('#simfig'))return;const v=l.s.map((x,j)=>{const val=+$('#sl'+j).value;$('#sv'+j).textContent=fmt(val,3)+(x.u?' '+x.u:'');return val;});$('#simfig').innerHTML=l.draw(...v);$('#simout').innerHTML=l.out?l.out(...v):'';};
+ app().oninput=upd;upd();
+ app().onclick=e=>{if(e.target.id!='anim')return;const sl=$('#sl'+l.anim);if(window.__an){clearInterval(window.__an);window.__an=0;e.target.textContent='Animer';return;}e.target.textContent='Arrêter';window.__an=setInterval(()=>{if(!$('#simfig')){clearInterval(window.__an);window.__an=0;return;}let v=+sl.value+ +sl.step;if(v>+sl.max)v=+sl.min;sl.value=v;upd();},70);};}
+function route(){clearInterval(window.__an);window.__an=0;const h=(location.hash||'#accueil').slice(1);window.scrollTo(0,0);if(h=='seance')return seance();if(h=='epreuve')return epreuve();if(h=='labo')return labo();if(h.startsWith('labo-'))return lab(h.slice(5));if(h.startsWith('n-')){const N=NOTIONS.find(n=>n.id==h.slice(2));if(N)return notion(N);}home();}
 let PRET=!HOOK;
 async function demarrer(){if(HOOK){app().innerHTML='<p class="muted">Chargement…</p>';const ok=await HOOK.ready.catch(()=>false);if(!ok){app().innerHTML=`<div class="eyebrow">Agrégation SII · ingénierie électrique</div><h1>Espace réservé</h1><div class="card"><p>Cette partie du site est réservée au professeur. Connecte-toi d’abord dans l’espace professeur, puis reviens ici.</p><div class="btns"><a class="b" href="../prof.html">Ouvrir l’espace professeur</a></div></div>`;return;}
   try{const r=await HOOK.pull();if(r&&r.q&&(r.t||0)>(st.t||0)){st=r;if(!st.c)st.c={};if(!st.r)st.r={};if(!st.p)st.p={};if(!st.ch)st.ch={};if(!st.exams)st.exams=[];try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}else if(r===undefined||(st.t&&(!r||(r.t||0)<st.t)))HOOK.push(st);}catch(e){}PRET=true;}route();}
@@ -337,4 +352,5 @@ window.addEventListener('hashchange',()=>{if(PRET)route();});window.addEventList
 <script src="notions/annale-fourier.js"></script>
 <script src="notions/annale-signal.js"></script>
 <script src="notions/annale-magn.js"></script>
+<script src="notions/labo.js"></script>
 </body></html>
