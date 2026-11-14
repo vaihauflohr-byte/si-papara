@@ -89,6 +89,10 @@ pre.modele{font:inherit;white-space:pre-wrap;background:#f1f7f3;border-left:4px 
   if (window.SIP_CONFIG && SIP_CONFIG.supabaseUrl && SIP_CONFIG.supabaseAnonKey)
     document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
 </script>
+<!-- planning de la Terminale SI : lien entre ce qui est enseigné et la préparation -->
+<script src="../contenu/bac-si.js"></script>
+<script src="../contenu/calendrier.js"></script>
+<script src="../assets/calendrier.js"></script>
 <script src="site.js"></script>
 <script>
 /* ---------- outils ---------- */
@@ -247,7 +251,7 @@ function home(){clearInterval(window.__chr);const Q=allQ(),G=noteOf(Q),ex=st.exa
 const C2='#e0803a';
 function notion(N){const seen=N.levels.some(L=>L.qs.some((_,j)=>(st.q[`${N.id}.${L.id}.${j}`]||{}).seen));
  let mode=(N.cours&&!seen)?'cours':'train',lv=N.levels.findIndex(L=>L.qs.some((_,j)=>rec(`${N.id}.${L.id}.${j}`).ok<2)),qi=0,ci=0;if(lv<0)lv=0;
- app().innerHTML=`<a class="back" href="#accueil">← Toutes les notions</a><h1>${N.name}</h1><p class="muted">${N.desc}</p>${N.cours?`<div class="switch"><button data-m="cours">Cours</button><button data-m="train">Entraînement</button></div>`:''}<div id="zone"></div>`;
+ app().innerHTML=`<a class="back" href="#accueil">← Toutes les notions</a><h1>${N.name}</h1><p class="muted">${N.desc}</p>${tsiBloc(N)}${N.cours?`<div class="switch"><button data-m="cours">Cours</button><button data-m="train">Entraînement</button></div>`:''}<div id="zone"></div>`;
  app().onclick=e=>{const b=e.target.closest('[data-m]');if(b){mode=b.dataset.m;go();}};
  function go(){document.querySelectorAll('.switch button').forEach(b=>b.classList.toggle('on',b.dataset.m==mode));mode=='cours'?cours():train();}
  function train(){$('#zone').innerHTML=`<div class="tabs" id="tabs"></div><div id="fiche"></div><div class="qnav" id="qnav"></div><div class="card" id="card"></div>`;
@@ -321,6 +325,16 @@ function lab(id){const A=allLabs(),i=A.findIndex(l=>l.id==id),l=A[i];if(!l)retur
  const upd=()=>{if(!$('#simfig'))return;const v=l.s.map((x,j)=>{const val=+$('#sl'+j).value;$('#sv'+j).textContent=fmt(val,3)+(x.u?' '+x.u:'');return val;});$('#simfig').innerHTML=l.draw(...v);$('#simout').innerHTML=l.out?l.out(...v):'';};
  app().oninput=upd;upd();
  app().onclick=e=>{if(e.target.id!='anim')return;const sl=$('#sl'+l.anim);if(window.__an){clearInterval(window.__an);window.__an=0;e.target.textContent='Animer';return;}e.target.textContent='Arrêter';window.__an=setInterval(()=>{if(!$('#simfig')){clearInterval(window.__an);window.__an=0;return;}let v=+sl.value+ +sl.step;if(v>+sl.max)v=+sl.min;sl.value=v;upd();},70);};}
+/* ---------- lien avec la Terminale SI (planning du site : SIP.BAC, s'il est chargé) ---------- */
+const TSIMAP={'info-programmation':['Python, algorigramme',['python']],'meca-actions':['Actions mécaniques, moments',['meca']],'meca-cinematique':['Cinématique, lois de mouvement',['meca']],'phy-newton':['2e loi de Newton, mouvements',['meca']],'simu-modele':['Modèle multiphysique, simulation',['asserv','python']],'ener-puissance':['Puissance, énergie',['puiss']],'info-numerisation':['CAN / CNA, quantum',['signal','elec']],'phy-mesure':['Mesure, incertitudes, graphes',['elec']],'meca-transmission':['Transmetteurs, rapports de réduction',['meca']],'phy-ondes':['Ondes, son, interférences',['fourier','signal']],'info-codage':['Binaire, hexadécimal',['bus']],'info-transmission':['Trames, protocoles, réseaux',['bus']],'ener-stockage':['Batterie, autonomie',['puiss','conv']],'ener-rendement':['Rendement, pertes',['puiss','machines']],'meca-statique':['Principe fondamental de la statique',['meca']],'meca-dynamique':['Principe fondamental de la dynamique',['meca']],'phy-thermo':['Thermodynamique',['thermo']],'ener-moteur':['Moteurs électriques',['machines','magn']],'auto-performances':['Précision, rapidité, stabilité',['asserv']],'meca-liaisons':['Liaisons, schéma cinématique',['meca']],'ener-circuits':['Circuits, lois de Kirchhoff',['elec','puiss']],'meca-fluides':['Fluides : pression, portance, traînée',['thermo']],'phy-energie-meca':['Énergie mécanique, travail',['meca']],'auto-correcteur':['Correcteurs P, PI, PID',['asserv']],'ana-comportement':['Séquence, états-transitions',['python']],'ener-sources':['Photovoltaïque, éolien, H₂',['conv','puiss']],'auto-schema-bloc':['Schéma-bloc, fonction de transfert',['asserv']],'meca-frottement':['Adhérence, frottement (Coulomb)',['meca']]};
+const d0=s_=>{const [y,m,d]=String(s_).split('-').map(Number);return new Date(y,m-1,d).getTime();},jfr=t=>new Date(t).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+function tsiAll(){let B=null;try{B=window.SIP&&SIP.BAC;if(B&&!B.recale&&SIP.calendrier)SIP.calendrier.appliquerBac(B);}catch(e){B=null;}
+ return Object.entries(TSIMAP).filter(([id,v])=>v[1].every(a=>NOTIONS.some(n=>n.id==a))).map(([id,v])=>{const n=B&&B.notions.find(x=>x.id==id);return {id,lab:v[0],ag:v[1],cours:n&&n.cours||null,ds:n&&n.ds||null,dsd:n&&n.ds_date||null};});}
+function tsiWeek(start){const e=wk0(start,1),inw=x=>x&&d0(x)>=start&&d0(x)<e;return tsiAll().map(n=>Object.assign({c:!!inw(n.cours),d:!!inw(n.dsd)},n)).filter(n=>n.c||n.d);}
+const tsiLien=n=>HOOK?` <a href="../entrainements/bac-si.html#n=${n.id}">côté élève</a>`:'';
+const tsiQuand=n=>[n.cours?`cours à partir du ${jfr(d0(n.cours))}`:'',n.ds&&n.dsd?`${n.ds} le ${jfr(d0(n.dsd))}`:''].filter(Boolean).join(', ');
+function tsiBloc(N){const L=tsiAll().filter(n=>n.ag.includes(N.id));if(!L.length)return '';L.sort((a,b)=>(a.cours||'9')<(b.cours||'9')?-1:1);
+ return `<div class="keep" style="margin:12px 0"><b>Ce que tu enseignes en Terminale SI sur cette notion</b><ul>${L.map(n=>`<li>${n.lab}${tsiQuand(n)?' : '+tsiQuand(n):''}.${tsiLien(n)}</li>`).join('')}</ul><small>Le palier « Bac SI » reprend ce que tes élèves doivent savoir faire ; les paliers suivants vont au-delà, sur les mêmes idées.</small></div>`;}
 /* ---------- défis de la semaine ---------- */
 const DAYMS=864e5,JOURS=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 const wk0=(t,off)=>{const d=new Date(t);d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay()+7*(off||0));return d.getTime();};
@@ -328,17 +342,18 @@ const wid=t=>{const d=new Date(t);return `${d.getFullYear()}-${String(d.getMonth
 const dfr=t=>new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
 const nNote=N=>noteOf(allQ().filter(x=>x.N==N)).glob||0,nById=id=>NOTIONS.find(n=>n.id==id);
 function mkPlan(start,A,B){const W=st.w||(st.w={}),prev=Object.keys(W).filter(k=>k<wid(start)).sort().slice(-2).flatMap(k=>W[k].f||[]);
- const cand=NOTIONS.slice().sort((a,b)=>(prev.includes(a.id)-prev.includes(b.id))||(nNote(a)-nNote(b)));
+ const T=tsiWeek(start),pri=[...new Set(T.filter(n=>n.c).flatMap(n=>n.ag).concat(T.filter(n=>n.d).flatMap(n=>n.ag)))],rk=id=>{const i=pri.indexOf(id);return i<0?99:i;};
+ const cand=NOTIONS.slice().sort((a,b)=>((rk(a.id)>98)-(rk(b.id)>98))||(prev.includes(a.id)-prev.includes(b.id))||(rk(a.id)-rk(b.id))||(nNote(a)-nNote(b)));
  A=A||cand[0].id;B=B&&B!=A?B:cand.find(n=>n.id!=A).id;
  const has=id=>nById(id).levels.some(l=>l.id=='annale'),an=has(A)?A:has(B)?B:(NOTIONS.find(n=>has(n.id))||{}).id,labs=allLabs(),lb=labs.find(l=>l.adv&&l.n==an)||labs.find(l=>l.adv&&(l.n==A||l.n==B))||labs.find(l=>l.n==A)||labs[0];
  const nm=id=>nById(id).name,d=[];
- [[A,0,1],[B,2,3]].forEach(([n,j1,j2])=>{d.push({j:j1,ty:'cours',n,tg:4,pts:8,t:`Cours : ${nm(n)}`,x:'Lire ou relire quatre chapitres, en manipulant les figures.',go:'n-'+n});
+ [[A,0,1],[B,2,3]].forEach(([n,j1,j2])=>{const lt=T.filter(q=>q.ag.includes(n)).map(q=>'« '+q.lab+' »');d.push({j:j1,ty:'cours',n,tg:4,pts:8,t:`Cours : ${nm(n)}`,x:'Lire ou relire quatre chapitres, en manipulant les figures.'+(lt.length?' En lien avec '+lt.join(', ')+' en Terminale SI cette semaine.':''),go:'n-'+n});
   d.push({j:j1,ty:'q',n,lv:['si','bts'],tg:6,pts:10,t:`${nm(n)} : 6 questions des paliers bac SI et BTS`,x:'Pour remettre les bases en place avant de monter.',go:'n-'+n});
   d.push({j:j2,ty:'q',n,lv:['agreg'],tg:6,ok:4,pts:15,t:`${nm(n)} : 6 questions du palier agrégation`,x:'Dont au moins 4 réussies au premier essai, rédactions comprises.',go:'n-'+n});});
  if(an)d.push({j:4,ty:'annale',n:an,pts:20,t:`Partie d’annale chronométrée : ${nm(an)}`,x:nById(an).levels.find(l=>l.id=='annale').sub+'. Toutes les questions, chronomètre lancé.',go:'n-'+an});
  if(lb)d.push({j:4,ty:'lab',id:lb.id,pts:4,t:`Simulateur : ${lb.t}`,x:'Répondre aux questions « à chercher avec les curseurs ».',go:'labo-'+lb.id});
  d.push({j:5,ty:'exam',pts:10,t:'Épreuve blanche de 45 minutes',x:'Objectif : 16 sur 20. À faire tôt dans la journée.',go:'epreuve'});
- return {f:[A,B],d};}
+ return {f:[A,B],d,tsi:T.map(n=>({id:n.id,lab:n.lab,ag:n.ag,cours:n.cours,ds:n.ds,dsd:n.dsd,c:n.c,d:n.d}))};}
 function dProg(df,s){const e=wk0(s,1),inw=t=>t>=s&&t<e,N=df.n&&nById(df.n),pq=(L,j)=>{const p=st.p[`${N.id}.${L.id}.${j}`];return p&&inw(p.d)?p:null;};
  if(df.ty=='q'){let c=0,ok=0;N.levels.forEach(L=>{if(df.lv.includes(L.id))L.qs.forEach((_,j)=>{const p=pq(L,j);if(p){c++;if(p.s>=.7)ok++;}});});
   return df.ok?{r:.5*Math.min(1,c/df.tg)+.5*Math.min(1,ok/df.ok),txt:`${c} / ${df.tg} traitées, ${ok} / ${df.ok} réussies`}:{r:Math.min(1,c/df.tg),txt:`${c} / ${df.tg} questions`};}
@@ -348,7 +363,7 @@ function dProg(df,s){const e=wk0(s,1),inw=t=>t>=s&&t<e,N=df.n&&nById(df.n),pq=(L
  const x=st.exams.filter(q=>inw(q.d)),b=x.length?Math.max(...x.map(q=>q.s)):null;return {r:b==null?0:1,txt:b==null?'à faire':`note ${fmt(b,3)} / 20`};}
 function wkState(off){const now=Date.now(),W=st.w||(st.w={}),day=new Date(now).getDay(),cid=wid(wk0(now));
  if(off==null)off=(day==6||(day==5&&!((W[cid]||{}).pts>0)))?1:0;
- const s=wk0(now,off),id=wid(s);if(!W[id]&&off>=0){W[id]=mkPlan(s);save();}const P=W[id];if(!P)return {off,s,id,P:null};
+ const s=wk0(now,off),id=wid(s);if(off>=0&&(!W[id]||(W[id].tsi===undefined&&!(W[id].pts>0)))){W[id]=mkPlan(s);save();}const P=W[id];if(!P)return {off,s,id,P:null};
  const pr=P.d.map(df=>dProg(df,s)),pts=Math.round(P.d.reduce((a,df,i)=>a+df.pts*pr[i].r,0)),tot=P.d.reduce((a,df)=>a+df.pts,0);
  if(off<=0&&pts>(P.pts||0)){P.pts=pts;save();}
  let serie=0;for(let k=1;k<60;k++){const q=W[wid(wk0(now,-k))];if(q&&(q.pts||0)>=60)serie++;else break;}
@@ -360,6 +375,7 @@ function semaine(off){const w=wkState(off),fin=wk0(w.s,1)-DAYMS*2;
  else{const opt=sel=>NOTIONS.map(N=>`<option value="${N.id}"${N.id==sel?' selected':''}>${N.name}</option>`).join('');
   h+=`<div class="stats"><div><strong>${w.pts} / ${w.tot}</strong>points de la semaine</div><div><strong>${w.P.d.filter((_,i)=>w.pr[i].r>=.999).length} / ${w.P.d.length}</strong>défis relevés</div><div><strong>${w.serie}</strong>semaine${w.serie>1?'s':''} d’affilée à 60 points ou plus</div></div><div class="prog"><i style="width:${100*w.pts/w.tot}%"></i></div>
   <p class="muted" style="margin-top:14px">Deux notions par semaine : le cours et les bases, puis le palier agrégation, puis une partie d’annale chronométrée et une épreuve blanche. Les défis se cochent tout seuls à mesure que tu travailles sur le site. Samedi : repos.</p>
+  ${(w.P.tsi||[]).length?`<div class="keep" style="margin:12px 0"><b>En Terminale SI cette semaine</b><ul>${w.P.tsi.map(n=>`<li>${n.lab} : ${[n.c?'cours à partir du '+jfr(d0(n.cours)):'',n.d?n.ds+' le '+jfr(d0(n.dsd)):''].filter(Boolean).join(', ')}. Côté agrégation : ${n.ag.map(a=>`<a href="#n-${a}">${nById(a).name}</a>`).join(', ')}.${tsiLien(n)}</li>`).join('')}</ul><small>Les notions de la semaine sont choisies d’abord parmi celles que tu enseignes : préparer tes cours et préparer le concours avancent ensemble.</small></div>`:''}
   ${w.off>=0?`<div class="sl" style="margin:10px 0 4px"><label for="fa">Notions de la semaine :</label><select id="fa" style="width:auto">${opt(w.P.f[0])}</select><select id="fb" style="width:auto">${opt(w.P.f[1])}</select></div>`:''}`;
   for(let j=0;j<6;j++){const L=w.P.d.map((df,i)=>[df,w.pr[i]]).filter(x=>x[0].j==j);if(!L.length)continue;
    h+=`<h2 class="sec"${j==w.day?' style="color:#12566f"':''}>${JOURS[j]} ${dfr(w.s+j*DAYMS+36e5)}${j==w.day?' · aujourd’hui':''}</h2>`+L.map(([df,p])=>`<div class="card" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:10px;padding:14px 18px${p.r>=.999?';border-left:6px solid #2e8b57':p.r>0?';border-left:6px solid #e0803a':''}"><div style="flex:1;min-width:240px"><b>${p.r>=.999?'✓ ':''}${df.t}</b><br><small>${df.x}</small><div class="prog" style="margin-top:8px;height:6px"><i style="width:${100*p.r}%"></i></div></div><div style="text-align:right;min-width:150px"><b>${Math.round(df.pts*p.r)} / ${df.pts} pts</b><br><small>${p.txt}</small></div><a class="b${p.r>=.999?' sec':''}" href="#${df.go}">${p.r>=.999?'Revoir':'Y aller'}</a></div>`).join('');}
