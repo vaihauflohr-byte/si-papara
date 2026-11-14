@@ -238,6 +238,8 @@ supabase/signalements.sql   à passer une fois sur une base existante : les sign
 supabase/projets.sql        à passer une fois sur une base existante (rejouable, à repasser après chaque mise à jour) : les projets BTS 2 (attribution, travail des étudiants, validations) et l'espace de dépôt (table depots, stockage privé « depots »)
 ```
 
+**Agrégation : premières parties d'annales de l'externe (13 novembre)** : externe 2025, épreuve 2, partie 4 (quantification, sur-échantillonnage, convertisseur sigma-delta, décimateur, questions 27 à 37 et 39 à 41, notion Conversion et signal, `annale-signal.js`) et externe 2026, épreuve 3, partie C.3 (machine synchrone à aimants : lignes de champ, théorème d'Ampère, couple, questions 52 à 59, notion Électromagnétisme, `annale-magn.js`). Sept parties d'annales en tout.
+
 **Agrégation : machine asynchrone et onduleur (13 novembre)** : deux parties d'annales supplémentaires tirées de l'interne 2024, épreuve 2 : parties B.2 et B.3 (moteur de l'essieu, questions 13 à 19, 21 et 23, notion Machines, `annale-machines.js`) et partie B.4 (spectre de la tension de l'onduleur et courant absorbé, questions 28 à 32, notion Fourier, `annale-fourier.js`). Cinq parties d'annales en tout.
 
 **Agrégation : deux parties d'annales de plus (13 novembre)** : interne 2024, épreuve 2, partie C.1 (chaîne de mesure de température, questions 33 à 41, notion Électronique de base) et partie C.2 (trame CAN, questions 42 à 48, notion Bus et trames). Outils communs dans `kit.js` (`K.doc`, `K.fixq`). Sans corrigé officiel : les corrections sont rédigées par Claude et signalées comme telles ; l'encart « rapport du jury » ne contient que ce qui vient des rapports.
