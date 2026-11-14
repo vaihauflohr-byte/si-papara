@@ -21,6 +21,12 @@ const K={
  frame:(items,x,y,h)=>{let s='',xx=x;for(const [l,w,f,sub] of items){s+=K.box(xx,y,w,h||34,l,{f:f||'#eef5f8',r:2,fs:12});if(sub)s+=K.t(xx+w/2,y+(h||34)+15,sub,{fs:11,c:'#42596b'});xx+=w;}return s;},
  code:(lines)=>`<pre class="code">${lines.map((l,i)=>`<span class="ln">${i+1}</span>${l.replace(/&/g,'&amp;').replace(/</g,'&lt;')}`).join('\n')}</pre>`,
  lg:(c,t)=>`<span class="lg" style="background:${c}"></span>${t}`,
+ /* encart « extrait de documentation » : titre + lignes */
+ doc:(t,l,W)=>{W=W||660;return K.svg(W,44+l.length*22,`<rect x="1" y="1" width="${W-2}" height="${42+l.length*22}" rx="6" fill="#fbfaf5" stroke="#b9ad8a"/><rect x="1" y="1" width="${W-2}" height="26" rx="6" fill="#ece6d2"/>`+K.t(12,19,t,{a:'start',b:1,fs:13})+l.map((x,i)=>K.t(14,48+i*22,x,{a:'start',fs:13})).join(''),t);},
+ /* question d’annale à énoncé fixe */
+ fixq:SRC=>o=>({t:o.t,src:`${SRC}, ${o.n}`,open:o.open,gen:()=>({text:o.text,fig:o.fig,fields:o.fields||[],hint:o.hint||'',corr:o.corr,jury:o.jury})}),
+ cap:t=>`<small style="display:block;margin:4px 0 10px">${t}</small>`,
+ nocorr:'<p><small>Éléments de réponse rédigés sans corrigé officiel pour cette question.</small></p>',
  ax:m=>{const p=10**Math.floor(Math.log10(m)),r=m/p,s=(r<=2?.5:r<=5?1:2)*p;return {y1:Math.ceil(m*1.05/s)*s,dy:s/2};},
  hex:(n,d)=>n.toString(16).toUpperCase().padStart(d||2,'0'),
  bin:(n,d)=>n.toString(2).padStart(d||8,'0')
