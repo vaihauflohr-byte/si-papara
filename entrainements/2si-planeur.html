@@ -94,16 +94,17 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
       <tr><td class="n"><b>C3</b></td><td>Masse totale, lest compris</td><td class="n"><b>30 g</b> maximum</td><td>Un planeur lourd tombe vite</td></tr>
       <tr><td class="n"><b>C4</b></td><td>Nombre de pièces</td><td class="n"><b>3</b> : fuselage, aile, stabilisateur</td><td>Montage sans colle, par les fentes</td></tr>
       <tr><td class="n"><b>C5</b></td><td>Crochet sous le nez</td><td class="n"><b>imposé</b> (dessin ci-dessous)</td><td>Il doit entrer dans le canal de la catapulte</td></tr>
-      <tr><td class="n"><b>C6</b></td><td>Dessous du fuselage</td><td class="n"><b>plat</b>, sauf le crochet</td><td>Il glisse sur les deux rails de la catapulte</td></tr>
-      <tr><td class="n"><b>C7</b></td><td>Épaisseur des pièces</td><td class="n">multiple de <b>0,2 mm</b></td><td>L'imprimante dépose des couches de 0,2 mm</td></tr>
-      <tr><td class="n"><b>C8</b></td><td>Impression</td><td class="n">chaque pièce <b>à plat</b>, sans support</td><td>Rapide, et ça ne rate pas</td></tr>
-      <tr><td class="n"><b>C9</b></td><td>Matière</td><td class="n">PLA, lest autorisé dans le nez</td><td>Une vis, de la pâte à fixe</td></tr>
+      <tr><td class="n"><b>C6</b></td><td>Dessous du fuselage</td><td class="n"><b>plat</b>, sauf le crochet</td><td>Il repose sur le chariot de la catapulte</td></tr>
+      <tr><td class="n"><b>C7</b></td><td>Fuselage, aile et stabilisateur</td><td class="n">fuselage épais de <b>5 mm</b> ; aile et stabilisateur à <b>3 mm ou plus</b> au-dessus du dessous</td><td>Le bas du fuselage passe entre les deux parois du rail</td></tr>
+      <tr><td class="n"><b>C8</b></td><td>Épaisseur des pièces</td><td class="n">multiple de <b>0,2 mm</b></td><td>L'imprimante dépose des couches de 0,2 mm</td></tr>
+      <tr><td class="n"><b>C9</b></td><td>Impression</td><td class="n">chaque pièce <b>à plat</b>, sans support</td><td>Rapide, et ça ne rate pas</td></tr>
+      <tr><td class="n"><b>C10</b></td><td>Matière</td><td class="n">PLA, lest autorisé dans le nez</td><td>Une vis, de la pâte à fixe</td></tr>
     </table></div>
   </div>
 
   <div class="carte">
     <h2 style="margin-top:0">La pièce imposée : le crochet</h2>
-    <p>L'élastique s'accroche derrière ce crochet. Il est <b>ouvert vers l'arrière</b> : quand le planeur part, l'élastique se décroche tout seul. Tu le dessines dans la même esquisse que ton fuselage.</p>
+    <p>Le chariot de la catapulte pousse <b>derrière ce crochet</b>. Sa face arrière est inclinée : pendant la poussée, le chariot plaque le planeur vers le bas, et quand il s'arrête le planeur le quitte tout seul. Tu dessines le crochet dans la même esquisse que ton fuselage.</p>
     <svg viewBox="0 0 640 250" role="img" aria-label="Dessin coté du crochet sous le nez du fuselage">
       <defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
       <text x="20" y="24" font-size="13" fill="currentColor">← nez (avant)</text><text x="620" y="24" font-size="13" fill="currentColor" text-anchor="end">queue (arrière) →</text>
@@ -131,9 +132,10 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   </div>
 
   <details class="carte no-print"><summary><b>Pour le professeur : fichiers à imprimer</b></summary>
-    <p>Catapulte : <a href="2si-planeur/catapulte_rail.stl" download>rail</a> · <a href="2si-planeur/catapulte_pied.stl" download>pied</a>. Planeurs de démonstration (une aile et un stabilisateur pour les trois fuselages) : <a href="2si-planeur/aile.stl" download>aile</a> · <a href="2si-planeur/stabilisateur.stl" download>stabilisateur</a> · <a href="2si-planeur/fuselage_A_reference.stl" download>fuselage A (équilibré)</a> · <a href="2si-planeur/fuselage_B_nez_court.stl" download>fuselage B (cabre)</a> · <a href="2si-planeur/fuselage_C_nez_lourd.stl" download>fuselage C (pique)</a>.</p>
+    <p><b>Catapulte (version 2)</b> : <a href="2si-planeur/catapulte_rail_avant.stl" download>rail avant</a> · <a href="2si-planeur/catapulte_rail_arriere.stl" download>rail arrière</a> · <a href="2si-planeur/catapulte_chariot.stl" download>chariot</a> · <a href="2si-planeur/catapulte_eclisse.stl" download>manchon de jonction</a> · <a href="2si-planeur/catapulte_pied_avant.stl" download>pied avant</a> · <a href="2si-planeur/catapulte_pied_arriere.stl" download>pied arrière</a>. Il faut en plus deux tiges de 3 mm (clous ou vis M3 de 20 mm) et un élastique. <a href="2si-planeur/catapulte_v2_mode_emploi.png" target="_blank" rel="noopener">Mode d'emploi en images</a>.</p>
+    <p><b>Planeurs de démonstration (version 2)</b>, une aile et un stabilisateur pour les trois fuselages : <a href="2si-planeur/planeur_aile.stl" download>aile</a> · <a href="2si-planeur/planeur_stabilisateur.stl" download>stabilisateur</a> · <a href="2si-planeur/planeur_fuselage_reference.stl" download>fuselage de référence</a> · <a href="2si-planeur/planeur_fuselage_cabre.stl" download>fuselage qui cabre</a> · <a href="2si-planeur/planeur_fuselage_pique.stl" download>fuselage qui pique</a>. <a href="2si-planeur/planeurs_v2_apercu.png" target="_blank" rel="noopener">Aperçu</a>.</p>
     <p><a class="btn" href="2si-planeur-notes.html">Noter les équipes →</a></p>
-    <p class="discret">Fuselages à 100 % de remplissage. Les limites du cahier des charges et le barème se changent directement dans cette page (<code>entrainements/2si-planeur.html</code>).</p>
+    <p class="discret">Fuselages et chariot à 100 % de remplissage, posés à plat. L'aile s'imprime debout sur son bord d'attaque, avec une bordure d'adhérence. Les limites du cahier des charges et le barème se changent directement dans cette page (<code>entrainements/2si-planeur.html</code>).</p>
   </details>
 </section>
 
@@ -208,7 +210,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   <div class="carte pl-essais">
     <h2 style="margin-top:0">Carnet d'essais</h2>
     <p>Trois lancers par version, au même cran. Le site calcule la moyenne et l'écart entre tes versions. <span class="discret">Le carnet est gardé sur cet appareil : imprime-le ou recopie-le pour le rendre.</span></p>
-    <p><label>Équipe : <input type="text" id="equipe" style="width:16em;min-width:0" placeholder="noms des membres"></label> &nbsp; <label>Cran de tirage : <input type="number" id="cran" style="width:5em" placeholder="mm"></label></p>
+    <p><label>Équipe : <input type="text" id="equipe" style="width:16em;min-width:0" placeholder="noms des membres"></label> &nbsp; <label>Trou de la goupille (1 à 8) : <input type="number" id="cran" min="1" max="8" style="width:5em" placeholder="n°"></label></p>
     <div class="pl-scroll"><table class="pl" id="t-essais">
       <tr><th>Version</th><th class="n">Masse (g)</th><th class="n">Lancer 1 (m)</th><th class="n">Lancer 2 (m)</th><th class="n">Lancer 3 (m)</th><th class="n">Moyenne</th><th>Ce que j'observe en vol</th></tr>
     </table></div>
@@ -263,7 +265,7 @@ const C = (id, t) => ({ k: "c", id, t });          // une case à cocher
 const B = (id) => ({ k: "b", id });                 // un bloc à remplir (voir BLOCS plus bas)
 const ETAPES = [
   { t: "Lancer avant de concevoir", but: "Comprendre pourquoi un planeur vole bien ou mal, avant de dessiner le tien.", items: [
-    C("1a", "Lance chaque planeur (A, B, C) deux fois, goupille dans le trou à 60 mm. Regarde bien le vol."),
+    C("1a", "Lance chaque planeur (A, B, C) deux fois, goupille dans le 3e trou. Regarde bien le vol."),
     C("1b", "Pose chaque planeur en équilibre sur un doigt. Mesure la distance entre le bout du nez et ton doigt."),
     B("obs"),
     C("1c", "Fais la série « Planeur 1 · Voler et rester stable » sur ton tableau de bord.") ] },
