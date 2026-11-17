@@ -26,18 +26,72 @@
 .pl-leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.88rem;margin:0 0 10px}
 .pl-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .pl-et-thumb{width:96px;height:56px;object-fit:contain}
-.sim-haut{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
-.sim-dist{font-family:var(--f-disp);font-weight:700;font-size:2.6rem;line-height:1;color:var(--accent)}
-.sim-verdict{display:flex;flex-direction:column;gap:4px;flex:1;min-width:240px}
-.sim-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px 18px;margin-top:8px}
-.sim-res div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--rule);padding:3px 0;font-size:.93rem}
-.sim-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:12px}
-.sim-grille .carte{margin:0}
-.sim-ligne{display:grid;grid-template-columns:1fr;gap:2px;margin:9px 0;font-size:.93rem}
-.sim-ctl{display:flex;align-items:center;gap:10px}
-.sim-ligne input[type=range]{flex:1;min-width:0}
-.sim-val{display:flex;align-items:center;gap:5px;color:var(--ink-3);min-width:7.6em}
-.sim-val input{width:5.4em;font:inherit;padding:3px 5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
+/* ----- simulateur ----- */
+#s-sim{--sim-ciel:#e6f1fb;--sim-ciel2:#f6fafe;--sim-sol:#dfe9d3;--sim-herbe:#7fa861;--sim-aile:#f08c00;--sim-aile-b:#b56a00;--sim-grille:rgba(29,63,122,.10)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #s-sim{--sim-ciel:#14222f;--sim-ciel2:#101a24;--sim-sol:#1b2a1d;--sim-herbe:#4f7a45;--sim-aile:#f5a033;--sim-aile-b:#f5a033;--sim-grille:rgba(143,176,238,.14)}}
+.sim-scene{padding-bottom:14px}
+.sim-haut{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:stretch;margin-bottom:12px}
+.sim-score{padding-right:20px;border-right:1px solid var(--rule)}
+.sim-dist{font-family:var(--f-disp);font-weight:700;font-size:3.4rem;line-height:.95;color:var(--accent);white-space:nowrap}
+.sim-dist small{font-size:1.5rem;font-weight:600}
+.sim-delta{font-family:var(--f-mono);font-size:.82rem;font-weight:600;min-height:1.3em;color:var(--ink-3)}
+.sim-delta.plus{color:var(--good)}.sim-delta.moins{color:var(--bad)}
+.sim-verdict{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:10px 14px;border-radius:var(--r);border-left:5px solid var(--good);background:var(--good-soft)}
+.sim-verdict.moyen{border-left-color:var(--warn);background:var(--warn-soft)}
+.sim-verdict.alerte{border-left-color:var(--bad);background:var(--bad-soft)}
+.sim-verdict i{font-style:normal;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.15rem;color:#fff;background:var(--good)}
+.sim-verdict.moyen i{background:var(--warn)}.sim-verdict.alerte i{background:var(--bad)}
+.sim-verdict b{display:block;font-family:var(--f-disp);font-size:1.25rem;letter-spacing:.02em;text-transform:uppercase;line-height:1.1}
+.sim-verdict span{font-size:.93rem}
+.sim-ecran{border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--sim-ciel2)}
+.sim-ecran{overflow-x:auto}
+.sim-ecran svg{margin:0;display:block;width:100%;min-width:620px}
+.sim-tuiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:8px;margin-top:10px}
+.sim-tuiles div{background:var(--paper-2);border:1px solid var(--rule-2);border-radius:var(--r);padding:7px 10px}
+.sim-tuiles span{display:block;font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);line-height:1.25}
+.sim-tuiles b{font-family:var(--f-disp);font-size:1.45rem;font-weight:600;line-height:1.15}
+.sim-tuiles b small{font-size:.9rem;font-weight:500;color:var(--ink-2)}
+.sim-actions{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between;align-items:center;margin-top:12px;font-size:.93rem}
+.sim-duo{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px;align-items:start;margin-bottom:12px}
+.sim-colle{position:sticky;top:62px;margin:0}
+.sim-grille{display:grid;grid-template-columns:1fr;gap:10px}
+.sim-grille .carte{margin:0;padding-top:10px;padding-bottom:10px;border-top:4px solid var(--c)}
+.sim-grille h3{margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.sim-grille h3::before{content:"";width:11px;height:11px;border-radius:50%;background:var(--c)}
+.sim-ligne{display:block;margin:5px 0 0;font-size:.92rem;border-radius:var(--r);padding:3px 6px 1px;margin-left:-6px;margin-right:-6px;transition:background .15s}
+.sim-ligne.actif{background:var(--bad-soft)}
+.sim-ligne>span:first-child{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sim-val{font-family:var(--f-mono);font-weight:600;white-space:nowrap;color:var(--ink)}
+.sim-val input{width:4.3em;font:inherit;font-weight:600;text-align:right;padding:1px 4px;border:1px solid transparent;border-radius:4px;background:transparent;color:inherit;-moz-appearance:textfield}
+.sim-val input:hover,.sim-val input:focus{border-color:var(--rule);background:var(--paper)}
+.sim-val input::-webkit-outer-spin-button,.sim-val input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.sim-ligne input[type=range]{display:block;width:100%;margin:0;padding:0;border:0;min-height:0;background:transparent;accent-color:var(--c);height:18px}
+.sim-ex{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px;font-size:.88rem;color:var(--ink-3)}
+.sim-ex span{font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.74rem;margin-right:2px}
+.sim-ex button{font:inherit;padding:4px 12px;border-radius:999px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer}
+.sim-ex button:hover{border-color:var(--accent);color:var(--accent)}
+#sim-schema svg{margin:6px 0 0;width:100%;display:block}
+#sim-schema text{font-size:14px;fill:currentColor}
+#sim-schema .sim-titre{font-size:12.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;fill:var(--ink-3)}
+#sim-schema .sim-petit{font-size:13px;fill:var(--ink-3)}
+#sim-schema .sim-papier{fill:var(--paper-2);stroke:var(--rule-2)}
+#sim-schema .sim-fus{fill:var(--accent);stroke:none}
+#sim-schema .sim-aile line{stroke:var(--sim-aile);stroke-width:7;stroke-linecap:round}
+#sim-schema .sim-plan rect{fill:var(--sim-aile);fill-opacity:.42;stroke:var(--sim-aile-b);stroke-width:2}
+#sim-schema .sim-cote line{stroke:var(--ink-2);stroke-width:1}
+#sim-schema .sim-cote text{fill:var(--ink-2)}
+#sim-schema .sim-g path,#sim-schema .sim-g circle{fill:var(--bad)}
+#sim-schema .sim-g text{fill:var(--bad);font-weight:700}
+#sim-schema .sim-masse path{fill:var(--ink-3)}
+#sim-schema .sim-masse circle{stroke:var(--ink-3);stroke-width:3}
+#sim-schema .sim-act line{stroke:#d1341f;stroke-width:3}
+#sim-schema .sim-act text{fill:#d1341f;font-weight:700;font-size:15px}
+#sim-schema .sim-aile.sim-act line{stroke:#d1341f;stroke-width:8}
+#sim-schema .sim-plan.sim-act rect{stroke:#d1341f;stroke-width:4;fill-opacity:.6}
+#sim-schema .sim-act .sim-fus,#sim-schema .sim-fus.sim-act{fill:#d1341f}
+#sim-schema .sim-masse.sim-act path{fill:#d1341f}
+#sim-schema .sim-masse.sim-act circle{stroke:#d1341f}
+@media (max-width:820px){.sim-duo{grid-template-columns:1fr}.sim-colle{position:static}.sim-haut{grid-template-columns:1fr}.sim-score{border-right:0;padding-right:0}}
 @media (max-width:640px){.pl-trio{grid-template-columns:1fr}.pl-hero{grid-template-columns:1fr}.pl-et-thumb{display:none}}
 table.pl{width:100%;border-collapse:collapse;font-size:.95rem;margin:8px 0}
 table.pl th,table.pl td{border:1px solid var(--rule);padding:7px 9px;text-align:left;vertical-align:top}
@@ -404,17 +458,25 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 <!-- ============ SIMULATEUR ============ -->
 <section class="pl-sec" id="s-sim" hidden>
   <p><b>Teste ton planeur avant de l'imprimer.</b> Entre ses valeurs, regarde le vol prévu, change un seul réglage à la fois. Puis note la distance prévue dans ton carnet : après les vrais lancers, tu compareras.</p>
-  <div class="carte">
+  <div class="carte sim-scene">
     <div class="sim-haut">
-      <div><div class="eyebrow">Vol prévu</div><div class="sim-dist"><span id="sim-d">–</span> m</div></div>
+      <div class="sim-score"><div class="eyebrow">Distance prévue</div><div class="sim-dist"><span id="sim-d">–</span><small> m</small></div><div class="sim-delta" id="sim-delta"></div></div>
       <div id="sim-verdict" class="sim-verdict"></div>
     </div>
-    <div id="sim-svg"></div>
-    <div class="sim-res" id="sim-res"></div>
-    <p class="no-print" style="margin:.6em 0 0"><button class="btn sec" id="sim-ref">Garder ce vol en gris pour comparer</button> <button class="btn sec" id="sim-ref0">Effacer le vol gris</button> &nbsp; Noter la distance prévue dans mon carnet : <button class="btn sec" data-carnet="0">Version 1</button> <button class="btn sec" data-carnet="1">Version 2</button> <span id="sim-ok" class="discret"></span></p>
+    <div id="sim-svg" class="sim-ecran"></div>
+    <div class="sim-tuiles" id="sim-res"></div>
+    <div class="sim-actions no-print">
+      <div><button class="btn sec" id="sim-ref">Garder ce vol en gris pour comparer</button> <button class="btn sec" id="sim-ref0">Effacer le vol gris</button></div>
+      <div>Noter cette distance dans mon carnet : <button class="btn" data-carnet="0">Version 1</button> <button class="btn" data-carnet="1">Version 2</button> <span id="sim-ok" class="discret"></span></div>
+    </div>
   </div>
-  <div class="sim-grille" id="sim-entrees"></div>
-  <p class="no-print">Partir d'un exemple : <button class="btn sec" data-ex="depart">Planeur de départ, lesté</button> <button class="btn sec" data-ex="sanslest">Planeur de départ, sans lest</button> <button class="btn sec" data-ex="trop">Planeur de départ, trop de lest</button></p>
+  <div class="sim-duo">
+    <div class="carte sim-colle"><div class="eyebrow">Ton planeur, à l'échelle</div><div id="sim-schema"></div><p class="discret" style="margin:.3em 0 0">1 carreau = 1 cm. En rouge : ce que tu es en train de changer. La barre verte sous l'aile montre où doit tomber le point d'équilibre.</p></div>
+    <div>
+      <div class="sim-ex no-print"><span>Partir d'un exemple</span><button data-ex="depart">Planeur de départ, lesté</button><button data-ex="sanslest">Sans lest</button><button data-ex="trop">Trop de lest</button></div>
+      <div class="sim-grille" id="sim-entrees"></div>
+    </div>
+  </div>
   <details class="carte"><summary><b>Comment le simulateur calcule (et ce qu'il ne sait pas)</b></summary>
     <p>Le simulateur traite le planeur comme un objet qui avance, monte, descend et bascule autour de son point d'équilibre. Toutes les 2 millièmes de seconde, il calcule quatre forces et recommence :</p>
     <ul>
@@ -666,56 +728,115 @@ document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Nive
 /* ---------- Simulateur de vol ---------- */
 (function () {
   const M = window.PlaneurModele; if (!M) return;
+  // [clé, nom, unité, mini, maxi, pas, valeur de départ]
   const PARAMS = [
-    ["Le planeur", [["m", "Masse totale, lest compris", "g", 10, 40, 0.1, 26.8], ["env", "Envergure de l'aile", "mm", 100, 210, 5, 200], ["corde", "Corde de l'aile", "mm", 25, 70, 1, 45], ["envS", "Envergure du stabilisateur", "mm", 40, 120, 5, 80], ["cordeS", "Corde du stabilisateur", "mm", 15, 40, 1, 25], ["L", "Longueur du fuselage", "mm", 150, 210, 5, 210]]],
-    ["Les réglages", [["xG", "Point d'équilibre, depuis le nez", "mm", 60, 150, 1, 100], ["xAile", "Avant de l'aile, depuis le nez", "mm", 40, 130, 1, 88], ["xStab", "Avant du stabilisateur, depuis le nez", "mm", 130, 200, 1, 182], ["calage", "Inclinaison de la fente de l'aile", "°", 0, 6, 0.5, 3]]],
-    ["Le lancer", [["h0", "Hauteur de la main", "m", 1, 2, 0.1, 1.5], ["v0", "Vitesse du lancer", "m/s", 4, 14, 0.5, 9], ["g0", "Direction du lancer (0 = à plat)", "°", -10, 20, 1, 0]]]
+    ["Le planeur", "var(--accent)", [["m", "Masse totale, lest compris", "g", 10, 40, 0.1, 26.8], ["env", "Envergure de l'aile", "mm", 100, 210, 5, 200], ["corde", "Corde de l'aile", "mm", 25, 70, 1, 45], ["envS", "Envergure du stabilisateur", "mm", 40, 120, 5, 80], ["cordeS", "Corde du stabilisateur", "mm", 15, 40, 1, 25], ["L", "Longueur du fuselage", "mm", 150, 210, 5, 210]]],
+    ["Les réglages", "var(--bad)", [["xG", "Point d'équilibre, depuis le nez", "mm", 60, 150, 1, 100], ["xAile", "Avant de l'aile, depuis le nez", "mm", 40, 130, 1, 88], ["xStab", "Avant du stabilisateur, depuis le nez", "mm", 130, 200, 1, 182], ["calage", "Inclinaison de la fente de l'aile", "°", 0, 6, 0.5, 3]]],
+    ["Le lancer", "var(--good)", [["h0", "Hauteur de la main", "m", 1, 2, 0.1, 1.5], ["v0", "Vitesse du lancer", "m/s", 4, 14, 0.5, 9], ["g0", "Direction du lancer (0 = à plat)", "°", -10, 20, 1, 0]]]
   ];
-  const EX = { depart: { m: 26.8, xG: 100 }, sanslest: { m: 23.0, xG: 115 }, trop: { m: 30, xG: 92 } };
-  const DEF = {}; PARAMS.forEach((g) => g[1].forEach((p) => DEF[p[0]] = p[6]));
+  const TOUS = PARAMS.flatMap((g) => g[2]);
+  const EX = { depart: { m: 26.8, xG: 100 }, sanslest: { m: 23, xG: 115 }, trop: { m: 30, xG: 92 } };
+  const DEF = {}; TOUS.forEach((p) => DEF[p[0]] = p[6]);
   D.sim = Object.assign({}, DEF, D.sim || {});
   const fmt = (x, n) => (Math.round(x * Math.pow(10, n)) / Math.pow(10, n)).toFixed(n).replace(".", ",");
-  document.getElementById("sim-entrees").innerHTML = PARAMS.map((g) => `<div class="carte"><h3 style="margin-top:0">${g[0]}</h3>${g[1].map((p) => `<label class="sim-ligne"><span>${p[1]}</span><span class="sim-ctl"><input type="range" min="${p[3]}" max="${p[4]}" step="${p[5]}" data-s="${p[0]}"><span class="sim-val"><input type="number" min="${p[3]}" max="${p[4]}" step="${p[5]}" data-n="${p[0]}"> ${p[2]}</span></span></label>`).join("")}</div>`).join("");
+  const n1 = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
+  document.getElementById("sim-entrees").innerHTML = PARAMS.map((g) => `<div class="carte" style="--c:${g[1]}"><h3>${g[0]}</h3>${g[2].map((p) => `<label class="sim-ligne" data-l="${p[0]}"><span><span>${p[1]}</span><span class="sim-val"><input type="number" min="${p[3]}" max="${p[4]}" step="${p[5]}" data-n="${p[0]}" aria-label="${p[1]}"> ${p[2]}</span></span><input type="range" min="${p[3]}" max="${p[4]}" step="${p[5]}" data-s="${p[0]}" aria-label="${p[1]}"></label>`).join("")}</div>`).join("");
   const ecrire = () => Object.keys(DEF).forEach((k) => { document.querySelector(`[data-s="${k}"]`).value = D.sim[k]; document.querySelector(`[data-n="${k}"]`).value = D.sim[k]; });
   const enSI = (s) => ({ m: s.m / 1000, env: s.env / 1000, corde: s.corde / 1000, xAile: s.xAile / 1000, xG: s.xG / 1000, envS: s.envS / 1000, cordeS: s.cordeS / 1000, xStab: s.xStab / 1000, calage: s.calage * Math.PI / 180, L: s.L / 1000, h0: s.h0, v0: s.v0, g0: s.g0 * Math.PI / 180 });
-  let ref = null, dernier = null;
+  let ref = null, dernier = null, actif = null;
+
+  // Dessin du planeur à l'échelle (vu de côté et vu de dessus) : chaque cote suit les curseurs, celle qu'on modifie passe en rouge
+  function schema(s) {
+    const E = 1.8, OX = 88, YC = 116, YD = 532;
+    const X = (mm) => OX + mm * E, on = (k) => (k === actif ? " sim-act" : "");
+    const cote = (k, x0, x1, y, txt, haut) => `<g class="sim-cote${on(k)}"><line x1="${X(x0)}" y1="${y}" x2="${X(x1)}" y2="${y}"/><line x1="${X(x0)}" y1="${y - 5}" x2="${X(x0)}" y2="${y + 5}"/><line x1="${X(x1)}" y1="${y - 5}" x2="${X(x1)}" y2="${y + 5}"/><text x="${(X(x0) + X(x1)) / 2}" y="${haut ? y - 7 : y + 16}" text-anchor="middle">${txt}</text></g>`;
+    const coteV = (k, x, y0, y1, txt, gauche) => `<g class="sim-cote${on(k)}"><line x1="${x}" y1="${y0}" x2="${x}" y2="${y1}"/><line x1="${x - 5}" y1="${y0}" x2="${x + 5}" y2="${y0}"/><line x1="${x - 5}" y1="${y1}" x2="${x + 5}" y2="${y1}"/><text x="${gauche ? x - 8 : x + 8}" y="${gauche ? y0 + 14 : (y0 + y1) / 2 + 4}" text-anchor="${gauche ? "end" : "start"}">${txt}</text></g>`;
+    const ca = s.calage * Math.PI / 180, yA = YC - 15, dxA = s.corde * Math.cos(ca) * E, dyA = s.corde * Math.sin(ca) * E;
+    const rm = 6 + Math.sqrt(s.m) * 2.2, xl = X(s.L), xm = X(s.L * 0.66);
+    const fusC = `M${X(0) + 7} ${YC - 6} H${xm} L${xl} ${YC - 3.5} V${YC + 3.5} L${xm} ${YC + 5} H${X(0) + 7} Q${X(0) - 3} ${YC} ${X(0) + 7} ${YC - 6} Z`;
+    const fusD = `M${X(0) + 6} ${YD - 5} H${xm} L${xl} ${YD - 2.5} V${YD + 2.5} L${xm} ${YD + 5} H${X(0) + 6} Q${X(0) - 3} ${YD} ${X(0) + 6} ${YD - 5} Z`;
+    return `<svg viewBox="0 0 520 748" role="img" aria-label="Dessin à l'échelle du planeur, vu de côté et vu de dessus, avec ses dimensions">
+      <defs><pattern id="sim-carreaux" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="translate(${OX % 18} ${YC % 18})"><path d="M18 0H0V18" fill="none" stroke="var(--sim-grille)" stroke-width="1"/></pattern></defs>
+      <rect class="sim-papier" x="4" y="26" width="512" height="268" rx="8"/><rect x="4" y="26" width="512" height="268" rx="8" fill="url(#sim-carreaux)"/>
+      <rect class="sim-papier" x="4" y="322" width="512" height="420" rx="8"/><rect x="4" y="322" width="512" height="420" rx="8" fill="url(#sim-carreaux)"/>
+      <text x="6" y="17" class="sim-titre">Vu de côté</text><text x="6" y="313" class="sim-titre">Vu de dessus</text>
+      <path class="sim-fus${on("L")}" d="${fusC}"/><path class="sim-fus${on("L")}" d="M${xl - 40} ${YC - 4} L${xl - 9} ${YC - 46} H${xl} V${YC - 3} Z"/>
+      <rect x="${X(s.xAile + 0.25 * s.corde)}" y="${YC + 8}" width="${0.15 * s.corde * E}" height="7" rx="2" fill="var(--good)"/>
+      <g class="sim-aile${on("corde")}${on("xAile")}${on("calage")}"><line x1="${X(s.xAile)}" y1="${yA - dyA}" x2="${X(s.xAile) + dxA}" y2="${yA}"/></g>
+      <g class="sim-aile${on("cordeS")}${on("xStab")}"><line x1="${X(s.xStab)}" y1="${YC - 10}" x2="${X(s.xStab + s.cordeS)}" y2="${YC - 10}" style="stroke-width:5"/></g>
+      <g class="sim-g${on("xG")}"><path d="M${X(s.xG)} ${YC + 6} l-9 17 h18 z"/><text x="${X(s.xG)}" y="${YC + 38}" text-anchor="middle">G</text></g>
+      <g class="sim-cote${on("calage")}"><text x="${X(s.xAile) - 6}" y="${yA - dyA - 6}" text-anchor="end">pente ${n1(s.calage)}°</text></g>
+      ${cote("corde", s.xAile, s.xAile + s.corde, YC - 48, "corde " + n1(s.corde), true)}
+      ${cote("cordeS", s.xStab, s.xStab + s.cordeS, YC - 64, n1(s.cordeS), true)}
+      ${cote("xAile", 0, s.xAile, YC + 62, "avant de l'aile : " + n1(s.xAile) + " mm")}
+      ${cote("xG", 0, s.xG, YC + 92, "point d'équilibre : " + n1(s.xG) + " mm")}
+      ${cote("xStab", 0, s.xStab, YC + 122, "avant du stabilisateur : " + n1(s.xStab) + " mm")}
+      ${cote("L", 0, s.L, YC + 152, "longueur du fuselage : " + n1(s.L) + " mm")}
+      <text x="${X(0) - 8}" y="${YC + 4}" class="sim-petit" text-anchor="end">nez</text>
+      <g class="sim-masse${on("m")}"><path d="M${40 - rm * 0.7} ${YC - 72} h${rm * 1.4} l${rm * 0.3} ${rm * 1.2} h${-rm * 2} z"/><circle cx="40" cy="${YC - 72 - rm * 0.25}" r="${rm * 0.22}" fill="none"/><text x="40" y="${YC - 72 + rm * 1.2 + 16}" text-anchor="middle">${n1(s.m)} g</text></g>
+      <path class="sim-fus${on("L")}" d="${fusD}"/>
+      <g class="sim-plan${on("env")}${on("corde")}${on("xAile")}"><rect x="${X(s.xAile)}" y="${YD - s.env / 2 * E}" width="${s.corde * E}" height="${s.env * E}" rx="6"/></g>
+      <g class="sim-plan${on("envS")}${on("cordeS")}${on("xStab")}"><rect x="${X(s.xStab)}" y="${YD - s.envS / 2 * E}" width="${s.cordeS * E}" height="${s.envS * E}" rx="5"/></g>
+      <g class="sim-g${on("xG")}"><circle cx="${X(s.xG)}" cy="${YD}" r="6"/></g>
+      ${coteV("env", X(s.xAile) - 14, YD - s.env / 2 * E, YD + s.env / 2 * E, s.xAile < 62 ? n1(s.env) : "envergure " + n1(s.env), true)}
+      ${coteV("envS", X(s.xStab + s.cordeS) + 14, YD - s.envS / 2 * E, YD + s.envS / 2 * E, n1(s.envS), false)}
+      <text x="${X(s.xAile) + s.corde * E / 2}" y="${YD + s.env / 2 * E + 17}" class="sim-petit" text-anchor="middle">aile : ${n1(s.env * s.corde / 100)} cm²</text>
+    </svg>`;
+  }
+
   function verdict(r, s) {
     const pct = Math.round(r.pctG * 100);
-    if (s.xStab < s.xAile + s.corde) return ["alerte", "Le stabilisateur est sous l'aile", "Recule le stabilisateur ou avance l'aile : il doit être derrière."];
+    if (s.xStab < s.xAile + s.corde) return ["alerte", "Stabilisateur sous l'aile", "Recule le stabilisateur ou avance l'aile : il doit être derrière elle."];
+    if (s.xStab + s.cordeS > s.L + 0.5) return ["alerte", "Stabilisateur hors du fuselage", "Le stabilisateur dépasse la queue : avance-le ou allonge le fuselage."];
     if (r.culbute || r.marge < -0.02) return ["alerte", "Instable : il cabre et part en vrille", `Le point d'équilibre est trop en arrière (${pct} % de la corde). Ajoute du lest dans le nez pour l'avancer.`];
     if (s.v0 < r.vmin * 0.97) return ["alerte", "Lancer trop lent : il tombe", `Ce planeur a besoin d'au moins ${fmt(r.vmin, 1)} m/s pour voler. Lance plus vite, ou allège-le.`];
-    if (r.tDecroche > 0.25 * r.duree) return ["moyen", "Il vole trop cabré et décroche", pct > 30 ? `Le point d'équilibre est un peu trop en arrière (${pct} % de la corde) : avance-le de quelques millimètres avec du lest.` : "L'aile est trop inclinée, ou le lancer part trop vers le haut."];
+    if (r.tDecroche > 0.25 * r.duree) return ["moyen", "Trop cabré : il décroche", pct > 30 ? `Le point d'équilibre est un peu trop en arrière (${pct} % de la corde) : avance-le de quelques millimètres avec du lest.` : "L'aile est trop inclinée, ou le lancer part trop vers le haut."];
     if (pct < 20) return ["moyen", "Il pique", `Le point d'équilibre est trop en avant (${pct} % de la corde) : enlève du lest du nez.`];
     return ["ok", "Vol à plat", `Point d'équilibre à ${pct} % de la corde. Change un réglage à la fois pour voir s'il peut aller plus loin.`];
   }
+
   function dessin(r) {
-    const W = 900, H = 330, mg = 46, mb = 44, mh = 16; const dmax = Math.max(12, Math.ceil(Math.max(r.distance, ref ? ref.distance : 0) + 1)), zmax = Math.max(2.4, Math.max(r.hmax, ref ? ref.hmax : 0) + 0.3);
-    const X = (x) => mg + Math.max(0, x) * (W - mg - 14) / dmax, Z = (z) => H - mb - z * (H - mb - mh) / zmax; const sx = (W - mg - 14) / dmax, sz = (H - mb - mh) / zmax;
+    const s = D.sim, W = 900, H = 350, mg = 50, mb = 50, mh = 20; const dmax = Math.max(12, Math.ceil(Math.max(r.distance, ref ? ref.distance : 0) + 1.5)), zmax = Math.max(2.4, Math.max(r.hmax, ref ? ref.hmax : 0) + 0.4);
+    const sx = (W - mg - 16) / dmax, sz = (H - mb - mh) / zmax, X = (x) => mg + Math.max(0, x) * sx, Z = (z) => H - mb - z * sz;
     const chemin = (P) => P.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Z(p[1]).toFixed(1)).join(" ");
     let g = ""; const pas = dmax > 24 ? 5 : dmax > 12 ? 2 : 1;
-    for (let x = 0; x <= dmax; x += pas) g += `<line x1="${X(x)}" y1="${Z(0)}" x2="${X(x)}" y2="${Z(0) + 6}" stroke="currentColor"/><text x="${X(x)}" y="${Z(0) + 20}" font-size="12" text-anchor="middle" fill="currentColor">${x}</text>`;
-    for (let z = 1; z <= zmax; z++) g += `<line x1="${mg - 5}" y1="${Z(z)}" x2="${mg}" y2="${Z(z)}" stroke="currentColor"/><text x="${mg - 8}" y="${Z(z) + 4}" font-size="12" text-anchor="end" fill="currentColor">${z}</text><line x1="${mg}" y1="${Z(z)}" x2="${W - 14}" y2="${Z(z)}" stroke="currentColor" stroke-width=".5" stroke-dasharray="2 6" opacity=".5"/>`;
-    let av = ""; const dtg = Math.max(0.15, r.duree / 9);
-    for (let t = 0, i = 0; i < r.pts.length; i++) if (r.pts[i][3] >= t) { const p = r.pts[i]; const a = -Math.atan2(Math.sin(p[2]) * sz, Math.cos(p[2]) * sx) * 180 / Math.PI;
-      av += `<g transform="translate(${X(p[0]).toFixed(1)} ${Z(p[1]).toFixed(1)}) rotate(${a.toFixed(1)})"><path d="M14 0 H-12 V-7 l5 0 3 7" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M-3 -2 h9" stroke="#f08c00" stroke-width="3.5"/></g>`; t += dtg; }
-    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Trajectoire prévue du planeur, vue de côté : il se pose à ${fmt(r.distance, 1)} mètres"><line x1="${mg}" y1="${Z(0)}" x2="${W - 14}" y2="${Z(0)}" stroke="currentColor" stroke-width="2"/><line x1="${mg}" y1="${Z(0)}" x2="${mg}" y2="${mh}" stroke="currentColor" stroke-width="1.5"/>${g}
-      ${ref ? `<path d="${chemin(ref.pts)}" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/><circle cx="${X(ref.distance)}" cy="${Z(0)}" r="5" fill="currentColor" opacity=".4"/>` : ""}
-      <path d="${chemin(r.pts)}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="7 5"/>${av}<circle cx="${X(r.distance)}" cy="${Z(0)}" r="6" fill="var(--bad)"/>
-      <text x="${(mg + W) / 2}" y="${H - 4}" font-size="13" text-anchor="middle" fill="currentColor">distance depuis la ligne de départ, en mètres</text><text x="12" y="${mh + 4}" font-size="12" fill="currentColor">m</text></svg>`;
+    for (let x = 0; x <= dmax; x += pas) g += `<line x1="${X(x)}" y1="${Z(0)}" x2="${X(x)}" y2="${Z(0) + 7}" stroke="currentColor"/><text x="${X(x)}" y="${Z(0) + 22}" font-size="13" text-anchor="middle" fill="currentColor">${x}</text>`;
+    for (let z = 1; z <= zmax; z++) g += `<text x="${mg - 9}" y="${Z(z) + 4}" font-size="12" text-anchor="end" fill="currentColor">${z} m</text><line x1="${mg}" y1="${Z(z)}" x2="${W}" y2="${Z(z)}" stroke="currentColor" stroke-width=".6" stroke-dasharray="2 7" opacity=".45"/>`;
+    let av = ""; const dtg = Math.max(0.15, r.duree / 8);
+    for (let t = dtg, i = 0; i < r.pts.length - 1; i++) if (r.pts[i][3] >= t) { const p = r.pts[i]; const a = -Math.atan2(Math.sin(p[2]) * sz, Math.cos(p[2]) * sx) * 180 / Math.PI;
+      av += `<g transform="translate(${X(p[0]).toFixed(1)} ${Z(p[1]).toFixed(1)}) rotate(${a.toFixed(1)})"><path d="M16 0 H-14 L-14 -9 L-9 -9 L-5 0" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round"/><path d="M-4 -2.5 h11" stroke="var(--sim-aile)" stroke-width="4" stroke-linecap="round"/></g>`; t += dtg; }
+    const lancer = ["h0", "v0", "g0"].indexOf(actif) >= 0, cl = lancer ? "#d1341f" : "var(--good)", gr = s.g0 * Math.PI / 180, fx = X(0) + s.v0 * 6.5 * Math.cos(gr), fy = Z(s.h0) - s.v0 * 6.5 * Math.sin(gr);
+    const xd = X(r.distance), drap = Math.min(xd, W - 74);
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Trajectoire prévue du planeur, vue de côté : il se pose à ${fmt(r.distance, 1)} mètres">
+      <rect x="0" y="0" width="${W}" height="${Z(0)}" fill="var(--sim-ciel)"/><rect x="0" y="${Z(0)}" width="${W}" height="${H - Z(0)}" fill="var(--sim-sol)"/><rect x="0" y="${Z(0) - 1.5}" width="${W}" height="4" fill="var(--sim-herbe)"/>${g}
+      <text x="${W - 12}" y="${H - 8}" font-size="12.5" text-anchor="end" fill="currentColor" opacity=".8">distance depuis la ligne de départ, en mètres</text>
+      <line x1="${X(0)}" y1="${Z(0)}" x2="${X(0)}" y2="${Z(s.h0)}" stroke="${cl}" stroke-width="${lancer ? 4 : 2.5}"/><circle cx="${X(0)}" cy="${Z(s.h0)}" r="5" fill="${cl}"/>
+      <line x1="${X(0)}" y1="${Z(s.h0)}" x2="${fx}" y2="${fy}" stroke="${cl}" stroke-width="${lancer ? 5 : 3}" stroke-linecap="round"/><path d="M0 0 l-11 -5 v10 z" fill="${cl}" transform="translate(${fx + 8} ${fy}) rotate(${-s.g0})"/>
+      <text x="${X(0) + 8}" y="${Math.min(Z(s.h0), fy) - 12}" font-size="12.5" font-weight="600" fill="${cl}">lancer : ${fmt(s.v0, 1)} m/s</text>
+      ${ref ? `<path d="${chemin(ref.pts)}" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".33"/><circle cx="${X(ref.distance)}" cy="${Z(0)}" r="5" fill="currentColor" opacity=".45"/><text x="${X(ref.distance) - 9}" y="${Z(0) - 9}" font-size="12.5" text-anchor="end" fill="currentColor" opacity=".7">vol gris : ${fmt(ref.distance, 1)} m</text>` : ""}
+      <path d="${chemin(r.pts)}" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-dasharray="8 6" stroke-linecap="round"/>${av}
+      <line x1="${xd}" y1="${Z(0)}" x2="${xd}" y2="${Z(0) - 44}" stroke="var(--bad)" stroke-width="2.5"/><circle cx="${xd}" cy="${Z(0)}" r="6" fill="var(--bad)"/>
+      <rect x="${drap}" y="${Z(0) - 64}" width="68" height="24" rx="4" fill="var(--bad)"/><text x="${drap + 34}" y="${Z(0) - 47}" font-size="14" font-weight="700" text-anchor="middle" fill="#fff">${fmt(Math.max(0, r.distance), 1)} m</text>
+    </svg>`;
   }
+
   function calculer() {
     const s = D.sim, r = M.simuler(enSI(s)); dernier = r; const v = verdict(r, s);
     document.getElementById("sim-d").textContent = fmt(Math.max(0, r.distance), 1);
-    document.getElementById("sim-verdict").innerHTML = `<span class="etiquette ${v[0] === "ok" ? "ok" : "alerte"}">${v[1]}</span><span>${v[2]}</span>`;
+    const dl = document.getElementById("sim-delta"); if (ref) { const e = r.distance - ref.distance; dl.textContent = (e >= 0 ? "+" : "−") + fmt(Math.abs(e), 1) + " m par rapport au vol gris"; dl.className = "sim-delta " + (e > 0.05 ? "plus" : e < -0.05 ? "moins" : ""); } else { dl.textContent = ""; dl.className = "sim-delta"; }
+    const vd = document.getElementById("sim-verdict"); vd.className = "sim-verdict " + v[0]; vd.innerHTML = `<i aria-hidden="true">${{ ok: "✓", moyen: "!", alerte: "✕" }[v[0]]}</i><div><b>${v[1]}</b><span>${v[2]}</span></div>`;
     document.getElementById("sim-svg").innerHTML = dessin(r);
-    const ch = s.m / (s.env * s.corde / 100);
-    document.getElementById("sim-res").innerHTML = [["Durée du vol", fmt(r.duree, 1) + " s"], ["Hauteur maximale", fmt(r.hmax, 2) + " m"], ["Vitesse minimale pour voler", fmt(r.vmin, 1) + " m/s"], ["Charge alaire", fmt(ch, 2) + " g/cm²"], ["Point d'équilibre", Math.round(r.pctG * 100) + " % de la corde"], ["Allongement de l'aile", fmt(s.env / s.corde, 1)]].concat(ref ? [["Par rapport au vol gris", (r.distance >= ref.distance ? "+" : "−") + fmt(Math.abs(r.distance - ref.distance), 1) + " m"]] : []).map((x) => `<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join("");
+    document.getElementById("sim-schema").innerHTML = schema(s);
+    document.getElementById("sim-res").innerHTML = [["Durée du vol", fmt(r.duree, 1), "s"], ["Hauteur maximale", fmt(r.hmax, 2), "m"], ["Vitesse mini pour voler", fmt(r.vmin, 1), "m/s"], ["Charge alaire", fmt(s.m / (s.env * s.corde / 100), 2), "g/cm²"], ["Point d'équilibre", Math.round(r.pctG * 100), "% de la corde"], ["Allongement de l'aile", fmt(s.env / s.corde, 1), ""]].map((x) => `<div><span>${x[0]}</span><b>${x[1]} <small>${x[2]}</small></b></div>`).join("");
+    document.querySelectorAll(".sim-ligne").forEach((l) => l.classList.toggle("actif", l.dataset.l === actif));
   }
-  const $in = document.getElementById("sim-entrees");
-  $in.addEventListener("input", (ev) => { const el = ev.target, k = el.dataset.s || el.dataset.n; if (!k) return; const x = parseFloat(el.value); if (!isFinite(x)) return;
-    const p = PARAMS.flatMap((g) => g[1]).find((q) => q[0] === k); D.sim[k] = Math.min(p[4], Math.max(p[3], x));
+  const $in = document.getElementById("sim-entrees"), cle = (el) => el && el.dataset && (el.dataset.s || el.dataset.n);
+  $in.addEventListener("input", (ev) => { const el = ev.target, k = cle(el); if (!k) return; const x = parseFloat(el.value); if (!isFinite(x)) return;
+    actif = k; const p = TOUS.find((q) => q[0] === k); D.sim[k] = Math.min(p[4], Math.max(p[3], x));
     document.querySelector(`[data-s="${k}"]`).value = D.sim[k]; if (el.dataset.s) document.querySelector(`[data-n="${k}"]`).value = D.sim[k]; garder(); calculer(); });
-  document.querySelectorAll("[data-ex]").forEach((b) => b.onclick = () => { D.sim = Object.assign({}, DEF, EX[b.dataset.ex]); ecrire(); garder(); calculer(); });
+  $in.addEventListener("change", (ev) => { const k = cle(ev.target); if (k && ev.target.dataset.n) ev.target.value = D.sim[k]; });
+  ["focusin", "pointerdown"].forEach((t) => $in.addEventListener(t, (ev) => { const k = cle(ev.target); if (k && k !== actif) { actif = k; calculer(); } }));
+  document.querySelectorAll("[data-ex]").forEach((b) => b.onclick = () => { D.sim = Object.assign({}, DEF, EX[b.dataset.ex]); actif = null; ecrire(); garder(); calculer(); });
   document.getElementById("sim-ref").onclick = () => { ref = dernier; calculer(); };
   document.getElementById("sim-ref0").onclick = () => { ref = null; calculer(); };
   document.querySelectorAll("[data-carnet]").forEach((b) => b.onclick = () => { const i = b.dataset.carnet, v = (Math.round(Math.max(0, dernier.distance) * 10) / 10).toString();
