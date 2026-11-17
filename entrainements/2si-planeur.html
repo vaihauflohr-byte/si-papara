@@ -70,6 +70,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 
 <div class="pl-nav" role="tablist">
   <button role="tab" data-s="defi" aria-selected="true">Le défi</button>
+  <button role="tab" data-s="comprendre">Comprendre</button>
   <button role="tab" data-s="etapes">Les étapes</button>
   <button role="tab" data-s="onshape">Missions Onshape</button>
   <button role="tab" data-s="essais">Mes essais</button>
@@ -120,6 +121,142 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <p><a class="btn" href="2si-planeur-notes.html">Noter les équipes →</a></p>
     <p class="discret">Fuselages et chariot à 100 % de remplissage, posés à plat. L'aile s'imprime debout sur son bord d'attaque, avec une bordure d'adhérence. Les limites du cahier des charges et le barème se changent directement dans cette page (<code>entrainements/2si-planeur.html</code>).</p>
   </details>
+</section>
+
+<!-- ============ COMPRENDRE ============ -->
+<section class="pl-sec" id="s-comprendre" hidden>
+  <p><b>Sept idées pour comprendre pourquoi un planeur vole loin.</b> Chacune se termine par ce qu'elle change pour ton planeur. Lis les trois premières avant de dessiner, les autres avant de le transformer.</p>
+
+  <div class="carte"><div class="eyebrow">Notion 1</div>
+    <h2 style="margin-top:.1em">Trois forces sur un planeur</h2>
+    <svg viewBox="0 0 640 230" role="img" aria-label="Un planeur en vol avec ses trois forces : la portance vers le haut, le poids vers le bas, la traînée vers l'arrière">
+      <defs><marker id="fa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+      <g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M120 128 q8 -22 40 -22 h220 l20 14 h130 v-60 l-30 0 -26 52"/><path d="M120 128 q4 10 20 10 h390 v-18"/><path d="M250 96 l120 10" stroke-width="8" stroke-linecap="round" stroke="#f08c00"/><path d="M470 124 h56" stroke-width="6" stroke-linecap="round" stroke="#f08c00"/></g>
+      <line x1="300" y1="92" x2="300" y2="22" stroke="#146c43" stroke-width="5" marker-end="url(#fa)"/><text x="326" y="34" font-size="17" font-weight="600" fill="#146c43">PORTANCE</text><text x="326" y="53" font-size="13" fill="currentColor">l'air pousse l'aile vers le haut</text>
+      <line x1="300" y1="140" x2="300" y2="208" stroke="#b42318" stroke-width="5" marker-end="url(#fa)"/><text x="326" y="192" font-size="17" font-weight="600" fill="#b42318">POIDS</text><text x="326" y="211" font-size="13" fill="currentColor">la Terre tire vers le bas</text>
+      <line x1="540" y1="96" x2="612" y2="96" stroke="#8a5a00" stroke-width="5" marker-end="url(#fa)"/><text x="630" y="72" font-size="17" font-weight="600" fill="#8a5a00" text-anchor="end">TRAÎNÉE</text><text x="630" y="124" font-size="13" fill="currentColor" text-anchor="end">l'air freine</text>
+      <text x="96" y="124" font-size="13" fill="currentColor" text-anchor="end">sens du vol ←</text>
+    </svg>
+    <ul>
+      <li>La <b>portance</b> tient le planeur en l'air. Elle vient de l'aile, et seulement quand le planeur avance.</li>
+      <li>Le <b>poids</b> le tire vers le bas. Il dépend de la masse : 20 g ou 30 g, ça change tout.</li>
+      <li>La <b>traînée</b> le freine. Un planeur n'a pas de moteur : il ralentit et descend peu à peu.</li>
+    </ul>
+    <p class="astuce"><b>Pour ton planeur :</b> une grande aile porte plus, mais elle pèse plus lourd et freine plus. Tout le projet consiste à trouver le bon compromis.</p>
+  </div>
+
+  <div class="carte"><div class="eyebrow">Notion 2</div>
+    <h2 style="margin-top:.1em">La finesse : combien il avance pour 1 m de descente</h2>
+    <svg viewBox="0 0 640 210" role="img" aria-label="Un planeur lâché à 1,5 mètre de haut se pose 9 mètres plus loin : sa finesse est de 6">
+      <line x1="40" y1="170" x2="620" y2="170" stroke="currentColor" stroke-width="2"/><line x1="70" y1="50" x2="70" y2="170" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M70 50 L590 170" stroke="var(--accent)" stroke-width="3" stroke-dasharray="9 6" fill="none"/><circle cx="590" cy="170" r="6" fill="#b42318"/>
+      <g transform="translate(250 92) rotate(13)" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M-34 0 h62 v-12 l-9 0 -7 12"/><path d="M-14 -5 l26 2" stroke-width="5" stroke="#f08c00"/></g>
+      <text x="58" y="115" font-size="15" font-weight="600" fill="currentColor" text-anchor="end">1,5 m</text><text x="58" y="132" font-size="12" fill="currentColor" text-anchor="end">hauteur</text>
+      <text x="330" y="194" font-size="15" font-weight="600" fill="currentColor" text-anchor="middle">9 m de distance</text>
+      <text x="470" y="60" font-size="16" font-weight="600" fill="var(--accent)" text-anchor="middle">finesse = 9 sur 1,5 = 6</text>
+    </svg>
+    <div class="formule">finesse = <span class="frac"><span class="nu">distance parcourue</span><span class="sr"> sur </span><span class="de">hauteur perdue</span></span></div>
+    <p>Une finesse de 6 veut dire : <b>6 m en avant pour 1 m de descente</b>. C'est la note de ton planeur : plus elle est grande, plus il va loin en partant de la même hauteur.</p>
+    <div class="pl-scroll"><table class="pl">
+      <tr><th>Objet</th><th class="n">Finesse</th><th>Lâché à 1,5 m, il se pose à…</th></tr>
+      <tr><td>Une feuille de papier froissée</td><td class="n">presque 0</td><td>tes pieds</td></tr>
+      <tr><td>Un petit planeur imprimé</td><td class="n">3 à 6</td><td>4,5 m à 9 m</td></tr>
+      <tr><td>Un vrai planeur de compétition</td><td class="n">plus de 40</td><td>plus de 60 m</td></tr>
+    </table></div>
+    <p class="astuce"><b>Pour ton planeur :</b> ce qui améliore la finesse, c'est <b>moins de traînée</b> (fuselage fin, pièces bien droites, pas de bavures) et une <b>aile longue et étroite</b> (notion 7). En lançant à la main, tu ajoutes de la vitesse : la distance dépend aussi du lancer, c'est pour ça que le même élève lance toujours de la même façon.</p>
+  </div>
+
+  <div class="carte"><div class="eyebrow">Notion 3</div>
+    <h2 style="margin-top:.1em">Le centre de gravité : le réglage qui décide de tout</h2>
+    <img class="pl-img" src="2si-planeur/img/m6.png" alt="Planeur posé en équilibre sur une cale placée sous l'aile" loading="lazy" style="max-height:300px;width:auto">
+    <p>Le <b>centre de gravité</b> (on l'écrit G) est le point où le planeur tient en équilibre. Pose-le sur un doigt : G est juste au-dessus.</p>
+    <div class="pl-trio">
+      <figure class="pl-fig"><svg viewBox="0 0 200 90" role="img" aria-label="Trajectoire qui monte puis retombe"><line x1="6" y1="78" x2="194" y2="78" stroke="currentColor" stroke-width="1.5"/><path d="M10 56 Q60 2 108 16 Q128 24 122 44 L140 78" fill="none" stroke="#b42318" stroke-width="3" stroke-dasharray="6 5"/></svg><figcaption><b>G trop en arrière</b><br>il lève le nez, ralentit, tombe</figcaption></figure>
+      <figure class="pl-fig"><svg viewBox="0 0 200 90" role="img" aria-label="Trajectoire longue et régulière"><line x1="6" y1="78" x2="194" y2="78" stroke="currentColor" stroke-width="1.5"/><path d="M10 30 Q100 34 190 78" fill="none" stroke="#146c43" stroke-width="3" stroke-dasharray="6 5"/></svg><figcaption><b>G au bon endroit</b><br>il vole à plat, loin</figcaption></figure>
+      <figure class="pl-fig"><svg viewBox="0 0 200 90" role="img" aria-label="Trajectoire qui plonge"><line x1="6" y1="78" x2="194" y2="78" stroke="currentColor" stroke-width="1.5"/><path d="M10 22 Q44 24 68 78" fill="none" stroke="#b42318" stroke-width="3" stroke-dasharray="6 5"/></svg><figcaption><b>G trop en avant</b><br>il pique</figcaption></figure>
+    </div>
+    <svg viewBox="0 0 640 130" role="img" aria-label="La bonne zone pour le centre de gravité : entre 25 et 40 pour cent de la corde de l'aile, en partant de l'avant">
+      <rect x="140" y="50" width="360" height="26" fill="none" stroke="currentColor" stroke-width="2.5"/><rect x="230" y="50" width="54" height="26" fill="#146c43" opacity=".75"/>
+      <text x="320" y="38" font-size="14" fill="currentColor" text-anchor="middle">l'aile, vue de côté : sa largeur s'appelle la <tspan font-weight="600">corde</tspan></text>
+      <text x="132" y="68" font-size="13" fill="currentColor" text-anchor="end">avant de l'aile</text><text x="508" y="68" font-size="13" fill="currentColor">arrière</text>
+      <g stroke="currentColor" stroke-width="1"><line x1="140" y1="80" x2="140" y2="96"/><line x1="230" y1="80" x2="230" y2="96"/><line x1="284" y1="80" x2="284" y2="96"/><line x1="500" y1="80" x2="500" y2="96"/></g>
+      <text x="140" y="112" font-size="13" fill="currentColor" text-anchor="middle">0 %</text><text x="230" y="112" font-size="13" fill="#146c43" text-anchor="middle" font-weight="600">25 %</text><text x="284" y="112" font-size="13" fill="#146c43" text-anchor="middle" font-weight="600">40 %</text><text x="500" y="112" font-size="13" fill="currentColor" text-anchor="middle">100 %</text>
+      <text x="257" y="128" font-size="13" fill="#146c43" text-anchor="middle" font-weight="600">G doit être ici</text>
+    </svg>
+    <p class="astuce"><b>Pour ton planeur :</b> on règle G avec du <b>lest dans le nez</b>, par petites quantités (1 à 3 g). Pas assez, il cabre. Trop, il pique. Si l'arrière de ton planeur est léger, il faut moins de lest, et le planeur entier est plus léger.</p>
+  </div>
+
+  <div class="carte"><div class="eyebrow">Notion 4</div>
+    <h2 style="margin-top:.1em">La charge alaire : la masse que porte chaque cm² d'aile</h2>
+    <svg viewBox="0 0 640 170" role="img" aria-label="Deux planeurs avec la même aile : celui de 18 grammes vole lentement, celui de 30 grammes doit voler vite et descend plus vite">
+      <g fill="none" stroke="currentColor" stroke-width="2.5"><rect x="50" y="46" width="220" height="42"/><rect x="370" y="46" width="220" height="42"/></g>
+      <rect x="50" y="46" width="220" height="42" fill="#f08c00" opacity=".25"/><rect x="370" y="46" width="220" height="42" fill="#f08c00" opacity=".25"/>
+      <text x="160" y="72" font-size="15" fill="currentColor" text-anchor="middle">aile de 90 cm²</text><text x="480" y="72" font-size="15" fill="currentColor" text-anchor="middle">aile de 90 cm²</text>
+      <text x="160" y="30" font-size="17" font-weight="600" fill="#146c43" text-anchor="middle">planeur de 18 g</text><text x="480" y="30" font-size="17" font-weight="600" fill="#b42318" text-anchor="middle">planeur de 30 g</text>
+      <text x="160" y="116" font-size="15" fill="currentColor" text-anchor="middle">18 sur 90 = <tspan font-weight="600">0,20 g/cm²</tspan></text><text x="480" y="116" font-size="15" fill="currentColor" text-anchor="middle">30 sur 90 = <tspan font-weight="600">0,33 g/cm²</tspan></text>
+      <text x="160" y="142" font-size="13" fill="currentColor" text-anchor="middle">il vole lentement, se pose en douceur</text><text x="480" y="142" font-size="13" fill="currentColor" text-anchor="middle">il doit voler vite pour ne pas tomber</text>
+    </svg>
+    <div class="formule">charge alaire = <span class="frac"><span class="nu">masse du planeur</span><span class="sr"> sur </span><span class="de">surface de l'aile</span></span></div>
+    <p>Plus la charge alaire est <b>petite</b>, plus le planeur peut voler lentement sans tomber. Un planeur chargé doit aller vite, et un lancer un peu mou ne lui suffit pas.</p>
+    <p class="astuce"><b>Pour ton planeur :</b> deux façons de baisser la charge alaire : <b>enlever de la masse</b> (pièces plus fines, arrière allégé, donc moins de lest) ou <b>agrandir l'aile</b> (mais elle pèse alors plus lourd). Le planeur de départ est à environ 0,29 g/cm².</p>
+  </div>
+
+  <div class="carte"><div class="eyebrow">Notion 5</div>
+    <h2 style="margin-top:.1em">La stabilité : ce qui le garde droit</h2>
+    <img class="pl-img" src="2si-planeur/img/pieces.png" alt="Les pièces du planeur : aile, stabilisateur, dérive, fuselage, nez" loading="lazy" style="max-height:380px;width:auto">
+    <ul>
+      <li>Le <b>stabilisateur</b> (la petite aile arrière) agit comme les plumes d'une flèche : si le nez monte ou descend, il le ramène à plat.</li>
+      <li>La <b>dérive</b> (la partie verticale) fait la même chose pour la gauche et la droite : elle garde le planeur dans l'axe.</li>
+      <li>Une <b>aile en V</b> (les bouts plus hauts que le milieu) remet le planeur à plat quand il penche sur le côté.</li>
+    </ul>
+    <svg viewBox="0 0 640 110" role="img" aria-label="Vue de face : une aile plate à gauche, une aile en V à droite">
+      <line x1="60" y1="60" x2="260" y2="60" stroke="#f08c00" stroke-width="6" stroke-linecap="round"/><rect x="152" y="52" width="16" height="26" fill="var(--accent)"/>
+      <path d="M380 44 L480 64 L580 44" fill="none" stroke="#f08c00" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="472" y="56" width="16" height="26" fill="var(--accent)"/>
+      <text x="160" y="100" font-size="14" fill="currentColor" text-anchor="middle">aile plate : simple à dessiner</text><text x="480" y="100" font-size="14" fill="currentColor" text-anchor="middle">aile en V : se redresse seule</text>
+      <text x="320" y="24" font-size="13" fill="currentColor" text-anchor="middle">planeur vu de face</text>
+    </svg>
+    <p class="astuce"><b>Pour ton planeur :</b> un stabilisateur et une dérive trop petits, et le planeur part dans tous les sens. Trop grands, ils alourdissent la queue et il faut plus de lest. Le planeur de départ a un stabilisateur qui fait environ un quart de la surface de l'aile : c'est un bon repère.</p>
+  </div>
+
+  <div class="carte"><div class="eyebrow">Notion 6</div>
+    <h2 style="margin-top:.1em">Le calage : pourquoi la fente de l'aile penche</h2>
+    <svg viewBox="0 0 640 150" role="img" aria-label="L'aile est inclinée de quelques degrés vers le haut à l'avant, alors que le stabilisateur est à plat">
+      <path d="M60 98 q6 -20 30 -20 h300 l24 14 h150 v8 H80 q-16 0 -20 -2 z" fill="var(--accent-soft)" stroke="currentColor" stroke-width="2"/>
+      <line x1="170" y1="62" x2="330" y2="78" stroke="#f08c00" stroke-width="7" stroke-linecap="round"/><line x1="470" y1="86" x2="555" y2="86" stroke="#f08c00" stroke-width="6" stroke-linecap="round"/>
+      <line x1="170" y1="78" x2="345" y2="78" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="250" y="48" font-size="15" font-weight="600" fill="currentColor" text-anchor="middle">aile : l'avant est 2 à 3 mm plus haut</text><text x="512" y="72" font-size="15" font-weight="600" fill="currentColor" text-anchor="middle">stabilisateur : à plat</text>
+      <text x="96" y="126" font-size="13" fill="currentColor">nez</text><text x="320" y="138" font-size="13" fill="currentColor" text-anchor="middle">Le pointillé montre une aile qui serait à plat.</text>
+    </svg>
+    <p>L'aile est un peu relevée à l'avant par rapport au stabilisateur. Cette petite inclinaison s'appelle le <b>calage</b>. Sans elle, l'aile ne porte pas assez et le planeur plonge.</p>
+    <p class="astuce"><b>Pour ton planeur :</b> garde l'inclinaison de la fente du planeur de départ (2,4 mm sur 45 mm). Si ton planeur bien équilibré monte quand même en cloche, la fente penche trop. S'il descend trop vite, elle ne penche pas assez.</p>
+  </div>
+
+  <div class="carte"><div class="eyebrow">Notion 7</div>
+    <h2 style="margin-top:.1em">La forme de l'aile : longue et étroite, ou courte et large ?</h2>
+    <svg viewBox="0 0 640 170" role="img" aria-label="Deux ailes de même surface : une longue et étroite de 200 par 45 millimètres, une courte et large de 150 par 60 millimètres">
+      <rect x="40" y="40" width="300" height="68" fill="#f08c00" opacity=".3" stroke="currentColor" stroke-width="2.5"/><rect x="400" y="28" width="225" height="90" fill="#f08c00" opacity=".3" stroke="currentColor" stroke-width="2.5"/>
+      <text x="190" y="70" font-size="15" fill="currentColor" text-anchor="middle">200 × 45 mm = 90 cm²</text><text x="512" y="70" font-size="15" fill="currentColor" text-anchor="middle">150 × 60 mm = 90 cm²</text>
+      <text x="190" y="92" font-size="14" font-weight="600" fill="#146c43" text-anchor="middle">allongement : 4,4</text><text x="512" y="92" font-size="14" font-weight="600" fill="#b42318" text-anchor="middle">allongement : 2,5</text>
+      <text x="190" y="136" font-size="13" fill="currentColor" text-anchor="middle">moins de traînée, meilleure finesse</text><text x="512" y="136" font-size="13" fill="currentColor" text-anchor="middle">plus solide, mais freine plus</text>
+      <text x="320" y="160" font-size="13" fill="currentColor" text-anchor="middle">Deux ailes vues de dessus, de même surface</text>
+    </svg>
+    <div class="formule">allongement = <span class="frac"><span class="nu">envergure</span><span class="sr"> sur </span><span class="de">corde</span></span></div>
+    <p>À surface égale, une aile <b>longue et étroite</b> freine moins qu'une aile courte et large : l'air s'échappe moins par les bouts. C'est pour ça que les vrais planeurs ont des ailes immenses et fines.</p>
+    <p class="astuce"><b>Pour ton planeur :</b> l'envergure est limitée à 210 mm. Pour augmenter l'allongement, il reste à <b>réduire la corde</b> ou à <b>effiler les bouts</b>. Mais une aile trop étroite et trop fine se plie au lancer.</p>
+  </div>
+
+  <div class="carte">
+    <h2 style="margin-top:0">En résumé : sur quoi jouer</h2>
+    <div class="pl-scroll"><table class="pl">
+      <tr><th>Je veux…</th><th>Je joue sur…</th><th>Notion</th></tr>
+      <tr><td>Qu'il vole à plat, sans cabrer ni piquer</td><td>Le lest du nez, pour placer le centre de gravité entre 25 % et 40 % de la corde</td><td class="n">3</td></tr>
+      <tr><td>Qu'il aille plus loin</td><td>La traînée (fuselage fin, pièces propres) et l'allongement de l'aile</td><td class="n">2 et 7</td></tr>
+      <tr><td>Qu'il vole lentement, en douceur</td><td>La masse : chaque pièce plus légère, surtout à l'arrière</td><td class="n">4</td></tr>
+      <tr><td>Qu'il reste droit</td><td>Le stabilisateur, la dérive, une aile bien centrée</td><td class="n">5</td></tr>
+      <tr><td>Qu'il ne plonge pas</td><td>L'inclinaison de la fente de l'aile</td><td class="n">6</td></tr>
+    </table></div>
+    <p>Chaque notion a ses questions dans les séries notées « Planeur 1 », « Planeur 2 » et « Planeur 3 » de ton tableau de bord.</p>
+  </div>
 </section>
 
 <!-- ============ LES ÉTAPES ============ -->
@@ -216,7 +353,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m6.png" alt="Planeur de départ monté, posé en équilibre sur une cale placée sous l'aile" loading="lazy"><figcaption>Le planeur de départ monté : il doit tenir en équilibre sur une cale placée à 104 mm du nez</figcaption></figure>
   <p class="astuce"><b>Mission réussie si</b> tes trois volumes sont ceux du tableau.</p></div>
 
-  <div class="carte"><div class="eyebrow">Mission 7</div><h2 style="margin-top:.1em">À toi : rends-le meilleur</h2><p class="discret" style="margin-top:0">Le planeur de départ vole, mais il est lourd. Chaque gramme gagné, c'est de la distance. Voici ce que tu as le droit de changer.</p>
+  <div class="carte"><div class="eyebrow">Mission 7</div><h2 style="margin-top:.1em">À toi : rends-le meilleur</h2><p class="discret" style="margin-top:0">Le planeur de départ vole, mais il est lourd : plus léger, il volera plus lentement et pardonnera mieux le lancer. Voici ce que tu peux changer, et les notions de l'onglet « Comprendre » t'expliquent pourquoi.</p>
     <div class="pl-scroll"><table class="pl">
       <tr><th>Ce que je change</th><th>Ce que j'y gagne</th><th>Le risque</th></tr>
       <tr><td>Aile plus fine : 0,6 mm au lieu de 0,8</td><td>2 g de moins</td><td>L'aile se plie au lancer</td></tr>
@@ -325,6 +462,7 @@ const ETAPES = [
     C("1a", "Lance chaque planeur de démonstration deux fois, à la main, toujours de la même façon. Regarde bien le vol."),
     C("1b", "Pose chaque planeur en équilibre sur un doigt. Mesure la distance entre le bout du nez et ton doigt."),
     B("obs"),
+    C("1d", "Lis les notions 1, 2 et 3 de l'onglet « Comprendre » : les forces, la finesse, le centre de gravité."),
     C("1c", "Fais la série « Planeur 1 · Voler et rester stable » sur ton tableau de bord.") ] },
   { t: "Former l'équipe et ouvrir Onshape", img: "pieces_nu", but: "Avoir une équipe, un compte et un document partagé.", items: [
     B("equipe"),
@@ -342,6 +480,7 @@ const ETAPES = [
     C("m6", "Mission 6 : mes trois volumes sont ceux du tableau."),
     C("3g", "Montre ton planeur de départ au professeur.") ] },
   { t: "Concevoir ma version 1", img: "m7a", but: "Transformer le planeur de départ pour qu'il aille plus loin, sans sortir du cahier des charges.", items: [
+    C("5n", "Avant de modifier, lis les notions 4 à 7 de l'onglet « Comprendre » : charge alaire, stabilité, calage, forme de l'aile."),
     C("m7", "Mission 7 : je duplique le planeur de départ, puis je le change une cote à la fois."),
     C("4c", "Relève dans Onshape les dimensions et le volume de chaque pièce, puis remplis la fiche ci-dessous."),
     B("fiche"),

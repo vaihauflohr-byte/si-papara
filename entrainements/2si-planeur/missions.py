@@ -155,7 +155,7 @@ SECTION = f'''
     {fig("m6", "Planeur de départ monté, posé en équilibre sur une cale placée sous l'aile", "Le planeur de départ monté : il doit tenir en équilibre sur une cale placée à 104 mm du nez")}
   {ok("tes trois volumes sont ceux du tableau.")}
 
-  {m(7, "À toi : rends-le meilleur", "Le planeur de départ vole, mais il est lourd. Chaque gramme gagné, c'est de la distance. Voici ce que tu as le droit de changer.")}
+  {m(7, "À toi : rends-le meilleur", "Le planeur de départ vole, mais il est lourd : plus léger, il volera plus lentement et pardonnera mieux le lancer. Voici ce que tu peux changer, et les notions de l'onglet « Comprendre » t'expliquent pourquoi.")}
     <div class="pl-scroll"><table class="pl">
       <tr><th>Ce que je change</th><th>Ce que j'y gagne</th><th>Le risque</th></tr>
       <tr><td>Aile plus fine : 0,6 mm au lieu de 0,8</td><td>2 g de moins</td><td>L'aile se plie au lancer</td></tr>
