@@ -65,6 +65,7 @@ BISEAU = ('<svg viewBox="0 0 720 150" role="img" aria-label="Plaque de 60 par 20
           + txt(228, 30, "12", size=14, w="600", fill="var(--bad)") + txt(194, 57, "8", size=14, w="600", fill="var(--bad)") + txt(300, 124, "60", size=14, w="600") + txt(408, 75, "20", size=14, w="600")
           + txt(540, 60, "le trait rouge remplace", "middle", 13) + txt(540, 78, "le coin en pointillés", "middle", 13) + '</svg>')
 m = lambda n, t, but: f'<div class="carte"><div class="eyebrow">Mission {n}</div><h2 style="margin-top:.1em">{t}</h2><p class="discret" style="margin-top:0">{but}</p>'
+fig = lambda nom, alt, leg="Ce que tu dois obtenir": f'<figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/{nom}.png" alt="{alt}" loading="lazy"><figcaption>{leg}</figcaption></figure>'
 ok = lambda t: f'<p class="astuce"><b>Mission réussie si</b> {t}</p></div>'
 vf, va, vs = J['mf'] / 1.24, J['ma'] / 1.24, J['ms'] / 1.24
 SECTION = f'''
@@ -89,6 +90,7 @@ SECTION = f'''
       <li>Regarde les traits : ils sont passés du <b>bleu</b> au <b>noir</b>. Noir veut dire « dimension fixée ».</li>
       <li>Clique sur la coche verte, puis sur <b>Extruder</b> (<kbd>Maj</kbd> + <kbd>E</kbd>). Profondeur : <b>5 mm</b>. Valide.</li>
     </ol>
+    {fig("m1", "Plaque bleue de 60 par 20 mm, épaisse de 5 mm, vue en 3D")}
   {ok("tu fais tourner à la souris une plaque de 60 × 20 × 5 mm, et si son esquisse a tous ses traits noirs.")}
 
   {m(2, "Un nez en biseau", "Tu apprends à tracer un trait incliné avec l'outil Ligne, et à modifier une pièce déjà faite.")}
@@ -100,6 +102,7 @@ SECTION = f'''
       <li>Mets les 2 cotes du biseau : <b>12</b> sur le côté du haut, <b>8</b> sur le côté gauche.</li>
       <li>Valide l'esquisse. La pièce se met à jour toute seule.</li>
     </ol>
+    {fig("m2", "La même plaque avec un coin coupé en biseau, vue en 3D")}
   {ok("le coin de ta plaque est coupé, si tous les traits sont noirs, et si la pièce a changé sans que tu refasses l'extrusion.")}
 
   {m(3, "Le fuselage de départ : le contour", "Tu dessines le vrai fuselage, vu de côté, en un seul contour fermé.")}
@@ -110,6 +113,7 @@ SECTION = f'''
       <li>Outil <b>Cote</b> : pour chaque coin, clique sur l'origine puis sur le coin, et tape la distance du dessin. Tire la souris vers le bas pour une distance depuis le nez, vers la gauche pour une hauteur.</li>
       <li>Quand tous les traits sont noirs, valide, puis <b>Extruder</b> de <b>5 mm</b>.</li>
     </ol>
+    {fig("m3", "Fuselage de départ après extrusion : une longue barre avec un nez plus haut et une queue relevée")}
   {ok("ton fuselage mesure 210 mm de long, 14 mm de haut au nez, et si son dessous est plat.")}
 
   {m(4, "Les fentes, le trou de lest et la dérive", "Tu apprends à enlever de la matière, et à extruder une zone avec une autre épaisseur.")}
@@ -122,6 +126,7 @@ SECTION = f'''
       <li>Valide. <b>Extruder</b> → choisis <b>Enlever</b> et <b>À travers tout</b>, puis clique sur les deux fentes et le cercle.</li>
       <li><b>Dérive</b> : nouvelle esquisse sur la même face, trace les 4 points du dessin. <b>Extruder</b> → <b>Ajouter</b>, profondeur <b>1 mm</b>.</li>
     </ol>
+    {fig("m4", "Fuselage terminé avec le trou de lest, la fente de l'aile, la fente du stabilisateur et la dérive")}
   {ok("tu vois le jour à travers les deux fentes et le trou, et si la dérive est bien plus fine que le reste.")}
 
   {m(5, "L'aile et le stabilisateur de départ", "Deux plaques fines, chacune dans son atelier de pièces.")}
@@ -131,6 +136,7 @@ SECTION = f'''
       <li>Crée un atelier de pièces <code>Aile</code>. Plan <b>Dessus</b> → <b>Esquisse</b> → rectangle de <b>200 × 45</b> → <b>Extruder</b> de <b>0,8 mm</b> (4 couches d'impression).</li>
       <li>Crée un atelier de pièces <code>Stabilisateur</code>. Rectangle de <b>80 × 25</b> → <b>Extruder</b> de <b>0,6 mm</b> (3 couches).</li>
     </ol>
+    {fig("m5", "L'aile et le stabilisateur : deux plaques fines orange")}
   {ok("tu as trois ateliers de pièces : Fuselage, Aile, Stabilisateur.")}
 
   {m(6, "Vérifier que mon modèle est juste", "Avant d'aller plus loin, tu compares ton modèle aux valeurs attendues.")}
@@ -146,6 +152,7 @@ SECTION = f'''
       <tr><th>Planeur de départ, sans lest</th><th class="n"></th><th class="n">{fr(J['mt'])} g</th></tr>
     </table></div>
     <p>Ce planeur a la queue trop lourde : sans lest, son point d'équilibre est à <b>{fr(J['xg'], 0)} mm</b> du nez, trop en arrière. Il lui faut environ <b>{fr(J['lest'])} g</b> dans le trou du nez (une vis M4 avec son écrou, ou de la pâte à fixe) pour le ramener vers <b>{fr(J['cible'], 0)} mm</b>. Total : environ <b>{fr(J['mt'] + J['lest'], 0)} g</b>.</p>
+    {fig("m6", "Planeur de départ monté, posé en équilibre sur une cale placée sous l'aile", "Le planeur de départ monté : il doit tenir en équilibre sur une cale placée à 104 mm du nez")}
   {ok("tes trois volumes sont ceux du tableau.")}
 
   {m(7, "À toi : rends-le meilleur", "Le planeur de départ vole, mais il est lourd. Chaque gramme gagné, c'est de la distance. Voici ce que tu as le droit de changer.")}
@@ -159,6 +166,11 @@ SECTION = f'''
       <tr><td>Stabilisateur plus grand</td><td>Vol plus stable</td><td>Queue plus lourde</td></tr>
       <tr><td>Forme du fuselage, nom de l'équipe gravé</td><td>Des points d'esthétique</td><td>Aucun, tant que les deux fentes gardent leur taille</td></tr>
     </table></div>
+    <div class="pl-trio">
+      {fig("m7a", "Planeur avec une aile aux bouts effilés", "Idée 1 : des bouts d'aile effilés")}
+      {fig("m7b", "Planeur avec une poutre plus fine et une dérive plus petite", "Idée 2 : un arrière allégé")}
+      {fig("m7c", "Planeur avec un nez plus haut et une aile effilée", "Idée 3 : un nez plus haut, qui fait le lest")}
+    </div>
     <ol class="pl-pas">
       <li>Fais d'abord une copie : clic droit sur l'onglet de l'atelier → <b>Dupliquer</b>. Tu gardes le planeur de départ intact.</li>
       <li>Change <b>une cote à la fois</b> (double-clic sur la cote dans l'esquisse), et regarde la pièce se mettre à jour.</li>
@@ -174,6 +186,7 @@ SECTION = f'''
       <li>Clic droit sur la pièce dans la liste → <b>Exporter</b>. Format <b>STL</b>, unité <b>millimètre</b>. Nomme le fichier <code>equipe_piece_v1.stl</code>.</li>
       <li>Envoie les trois fichiers STL à ton professeur.</li>
     </ol>
+    {fig("m8", "Les trois pièces posées à plat sur le plateau de l'imprimante", "Sur le plateau de l'imprimante")}
   {ok("le professeur a reçu tes trois fichiers et qu'ils s'ouvrent dans le logiciel de l'imprimante.")}
 '''
 open('section_missions.html', 'w').write(SECTION)
