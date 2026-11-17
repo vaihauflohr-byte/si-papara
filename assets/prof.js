@@ -86,7 +86,7 @@
         <div class="rang"><select id="niv" style="width:auto">${opts}</select>
         <button class="btn sec" id="maj">Actualiser</button></div>
         <button class="btn sec" id="csv">Exporter CSV</button></div>
-      <div class="onglets no-print"><button data-o="suivi" class="${onglet === "suivi" ? "actif" : ""}">Suivi</button><button data-o="competences" class="${onglet === "competences" ? "actif" : ""}">Compétences</button><button data-o="bac" class="${onglet === "bac" ? "actif" : ""}">Bac SI</button><button data-o="projets" class="${onglet === "projets" ? "actif" : ""}">Projets BTS 2</button><button data-o="eleves" class="${onglet === "eleves" ? "actif" : ""}">Élèves et codes</button><button data-o="signalements" class="${onglet === "signalements" ? "actif" : ""}">Signalements${nbSigNouveaux() ? ` <span class="sig-pastille">${nbSigNouveaux()}</span>` : ""}</button><button data-o="apercu" class="${onglet === "apercu" ? "actif" : ""}">Aperçu élève</button></div>
+      <div class="onglets no-print"><button data-o="suivi" class="${onglet === "suivi" ? "actif" : ""}">Suivi</button><button data-o="competences" class="${onglet === "competences" ? "actif" : ""}">Compétences</button><button data-o="bac" class="${onglet === "bac" ? "actif" : ""}">Bac SI</button><button data-o="flashs" class="${onglet === "flashs" ? "actif" : ""}">Flashs</button><button data-o="projets" class="${onglet === "projets" ? "actif" : ""}">Projets BTS 2</button><button data-o="eleves" class="${onglet === "eleves" ? "actif" : ""}">Élèves et codes</button><button data-o="signalements" class="${onglet === "signalements" ? "actif" : ""}">Signalements${nbSigNouveaux() ? ` <span class="sig-pastille">${nbSigNouveaux()}</span>` : ""}</button><button data-o="apercu" class="${onglet === "apercu" ? "actif" : ""}">Aperçu élève</button></div>
       <div id="corps">${contenu}</div>`;
     document.getElementById("niv").onchange = (e) => { niveau = e.target.value; try { localStorage.setItem("sip_prof_niveau", niveau); } catch (x) {} afficher(); };
     document.getElementById("maj").onclick = async () => { await charger(); if (SIP.profProjets) await SIP.profProjets.recharger(); afficher(); };
@@ -95,7 +95,156 @@
   }
   const elevesFiltres = () => D.eleves.filter((e) => !niveau || e.niveau === niveau).sort((a, b) => a.niveau.localeCompare(b.niveau) || a.nom.localeCompare(b.nom));
 
-  function afficher() { onglet === "eleves" ? vueEleves() : onglet === "competences" ? vueCompetences() : onglet === "bac" ? vueBac() : onglet === "projets" ? vueProjets() : onglet === "signalements" ? vueSignalements() : onglet === "apercu" ? vueApercu() : vueSuivi(); }
+  function afficher() { onglet === "eleves" ? vueEleves() : onglet === "competences" ? vueCompetences() : onglet === "bac" ? vueBac() : onglet === "flashs" ? vueFlashs() : onglet === "projets" ? vueProjets() : onglet === "signalements" ? vueSignalements() : onglet === "apercu" ? vueApercu() : vueSuivi(); }
+
+  // ---------------- Flashs : revoir les copies d'un flash, question par question ----------------
+  // Le prof change les points d'une question à la main, ou fait recorriger les réponses par l'IA (fonction « corriger »,
+  // sa session prof, sans quota) avec le barème d'aujourd'hui (précisions comprises) ; rien ne part dans la base avant
+  // « Enregistrer » (prof_flash_noter, supabase/flash.sql) : la note de la copie est recalculée, l'élève la voit.
+  const FL = { module: null, modifs: {}, props: {}, enCours: false, modele: "claude-sonnet-5-5", msg: "", ok: true };
+  const EST_FLASH = /^flash-(\d{4}-\d{2}-\d{2})(?:-(\d{1,3}))?$/;
+  const jourLongFl = (d) => new Date(d + "T12:00:00-10:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Pacific/Tahiti" });
+  const nomDe = (t) => (D.parEleve[t.eleve_id] ? D.parEleve[t.eleve_id].e.nom : "?");
+  function seancesFlash() {
+    const S = {};
+    D.entrainements.forEach((t) => {
+      const m = EST_FLASH.exec(t.module || ""); if (!m || !Array.isArray(t.details) || !t.details.length) return;
+      const x = D.parEleve[t.eleve_id]; if (!x || (niveau && x.e.niveau !== niveau)) return;
+      (S[t.module] = S[t.module] || { module: t.module, jour: m[1], passage: m[2] ? +m[2] : 1, copies: [] }).copies.push(t);
+    });
+    return Object.values(S).sort((a, b) => b.jour.localeCompare(a.jour) || b.passage - a.passage);
+  }
+  const modifDe = (t, k) => (FL.modifs[t.id] && FL.modifs[t.id][k]) || null;
+  const ptsDe = (t, k) => { const m = modifDe(t, k); return m ? m.pts : Number(t.details[k] && t.details[k].pts) || 0; };
+  const totalDe = (t) => t.details.reduce((a, d, k) => a + ptsDe(t, k), 0);
+  const baremeDe = (t) => t.details.reduce((a, d) => a + (Number(d.bareme) || 0), 0);
+  const nbModifs = () => Object.values(FL.modifs).reduce((a, m) => a + Object.keys(m).length, 0);
+  const MARQUE = { present: "✓", partiel: "½", absent: "✗" };
+  const marques = (els) => (els || []).map((x) => `<span class="fv ${x.verdict || "nv"}" title="${esc((x.t || "") + (x.raison ? " : " + x.raison : ""))}">${MARQUE[x.verdict] || "?"}</span>`).join("");
+  const PAR = { ia: "IA", prof: "toi", eleve: "élève", vide: "" };
+  function optionsPts(b, v) {
+    const L = []; for (let x = 0; x <= b + 1e-9; x += 0.25) L.push(Math.round(x * 100) / 100);
+    if (!L.some((x) => Math.abs(x - v) < 1e-9)) L.push(v);
+    return L.sort((a, c) => a - c).map((x) => `<option value="${x}"${Math.abs(x - v) < 1e-9 ? " selected" : ""}>${SIP.nb(x, 3)}</option>`).join("");
+  }
+
+  function vueFlashs() {
+    const S = seancesFlash();
+    if (!S.length) return cadre(`<div class="carte"><p>Aucune copie de flash${niveau ? " dans cette classe" : ""} pour l'instant.</p></div>`);
+    if (!S.some((x) => x.module === FL.module)) FL.module = S[0].module;
+    const s = S.find((x) => x.module === FL.module);
+    const copies = s.copies.slice().sort((a, b) => nomDe(a).localeCompare(nomDe(b)) || a.fait_le.localeCompare(b.fait_le));
+    const ref = copies.reduce((m, t) => (t.details.length > m.details.length ? t : m), copies[0]);
+    const nQ = ref.details.length, ks = Array.from({ length: nQ }, (_, k) => k);
+    const titre = (x) => `Flash du ${jourLongFl(x.jour)}${x.passage > 1 ? ` · ${x.passage}e passage` : ""}`;
+    const moy = (f) => copies.reduce((a, t) => a + note20(f(t), baremeDe(t)), 0) / copies.length;
+    const n = nbModifs(), iaOk = !!(SIP.ia && SIP.ia.actif && SIP.ia.actif() && SIP.flash && SIP.flash.questionDeCopie);
+    const resume = `<div class="table-defil"><table><thead><tr><th>Élève</th>${ks.map((k) => `<th class="num">Q${k + 1}</th>`).join("")}<th class="num">Note /20</th></tr></thead><tbody>${copies.map((t) => {
+      const avant = note20(t.details.reduce((a, d) => a + (Number(d.pts) || 0), 0), baremeDe(t)), apres = note20(totalDe(t), baremeDe(t));
+      return `<tr><td>${esc(nomDe(t))}</td>${ks.map((k) => { const d = t.details[k]; if (!d) return `<td class="num">—</td>`; const m = modifDe(t, k);
+        return `<td class="num">${m ? `<s class="discret">${SIP.nb(Number(d.pts) || 0, 3)}</s> <b class="fl-modif">${SIP.nb(m.pts, 3)}</b>` : SIP.nb(Number(d.pts) || 0, 3)}<span class="discret"> / ${SIP.nb(Number(d.bareme) || 0, 3)}</span>${d.revu_le ? ` <span class="discret" title="revue le ${esc(SIP.fmtDate(d.revu_le, true))} (${PAR[d.par] || ""})">✎</span>` : ""}</td>`; }).join("")}
+        <td class="num">${Math.abs(apres - avant) > 1e-9 ? `<s class="discret">${SIP.nb(avant, 3)}</s> ` : ""}${tagNote(apres)}</td></tr>`; }).join("")}</tbody>
+      <tfoot><tr><td><b>Moyenne</b></td>${ks.map(() => "<td></td>").join("")}<td class="num"><b>${SIP.nb(moy(totalDe), 3)}</b></td></tr></tfoot></table></div>`;
+    const cartes = ks.map((k) => {
+      const d0 = ref.details[k], q = SIP.flash && SIP.flash.questionDeCopie ? SIP.flash.questionDeCopie(d0, s.jour, s.passage) : null;
+      const [theme, ...reste] = String(d0.q || "").split(" — "), els = q ? q.elements : (d0.elements || []);
+      return `<section class="carte fl-revue"><div class="rang" style="justify-content:space-between;align-items:flex-start">
+          <div><div class="eyebrow">Question ${k + 1} · ${esc(theme)}</div><p>${esc(reste.join(" — "))}</p></div>
+          ${iaOk ? `<button class="btn sec" data-reco="${k}" ${FL.enCours ? "disabled" : ""}>🤖 Recorriger la question ${k + 1}</button>` : ""}</div>
+        <details><summary class="discret">Corrigé et barème</summary><p>${esc(d0.attendu || "")}</p><ul>${els.map((e) => `<li>${esc(e.t)} <span class="discret">(${SIP.nb(e.p, 3)} pt)</span></li>`).join("")}</ul></details>
+        <div class="table-defil"><table class="fl-table"><thead><tr><th>Élève</th><th>Réponse</th><th>Correction</th><th class="num">Points</th></tr></thead><tbody>${copies.map((t) => {
+          const d = t.details[k]; if (!d) return "";
+          const pr = FL.props[t.id] && FL.props[t.id][k], m = modifDe(t, k), v = ptsDe(t, k);
+          const corr = pr ? `<div>${marques(pr.elements)} <span class="discret">nouvelle correction${Math.abs(pr.pts - (Number(d.pts) || 0)) > 1e-9 ? ` : ${SIP.nb(Number(d.pts) || 0, 3)} → <b>${SIP.nb(pr.pts, 3)}</b>` : " : même note"}</span></div>
+              <ul class="fl-raisons">${pr.elements.map((x) => `<li><span class="fv ${x.verdict}">${MARQUE[x.verdict]}</span> ${esc(x.raison || "")}</li>`).join("")}</ul>`
+            : `${marques(d.elements)} <span class="discret">${esc(PAR[d.par] || d.par || "")}${d.revu_le ? " · revue" : ""}</span>`;
+          return `<tr${m ? ' class="fl-modifiee"' : ""}><td>${esc(nomDe(t))}</td><td class="fl-rep-prof">${d.rep ? esc(d.rep) : '<span class="discret">pas de réponse</span>'}</td><td>${corr}</td>
+            <td class="num" style="white-space:nowrap"><select style="width:auto" data-id="${t.id}" data-k="${k}" aria-label="Points de ${esc(nomDe(t))}, question ${k + 1}" ${FL.enCours ? "disabled" : ""}>${optionsPts(Number(d.bareme) || 0, v)}</select><span class="discret"> / ${SIP.nb(Number(d.bareme) || 0, 3)}</span></td></tr>`;
+        }).join("")}</tbody></table></div></section>`;
+    }).join("");
+    cadre(`<div class="carte"><div class="rang" style="justify-content:space-between">
+        <div class="rang"><select id="fl-sean" style="width:auto">${S.map((x) => `<option value="${esc(x.module)}"${x.module === s.module ? " selected" : ""}>${esc(titre(x))} · ${x.copies.length} copie${x.copies.length > 1 ? "s" : ""}</option>`).join("")}</select>
+          <span class="discret">moyenne ${SIP.nb(moy(totalDe), 3)}/20</span></div>
+        <div class="rang">${iaOk ? `<select id="fl-modele" style="width:auto" title="Le modèle qui recorrige"><option value="claude-sonnet-5-5"${FL.modele === "claude-sonnet-5-5" ? " selected" : ""}>Claude Sonnet</option><option value="claude-opus-5-5"${FL.modele === "claude-opus-5-5" ? " selected" : ""}>Claude Opus (plus fin, 2 fois plus cher)</option></select>
+          <button class="btn sec" id="fl-reco" ${FL.enCours ? "disabled" : ""}>🤖 Recorriger tout le flash</button>` : ""}
+          <button class="btn" id="fl-enr" ${n && !FL.enCours ? "" : "disabled"}>Enregistrer${n ? ` (${n})` : ""}</button>${n ? ` <button class="btn-lien" id="fl-ann" ${FL.enCours ? "disabled" : ""}>Annuler</button>` : ""}</div></div>
+      <p class="discret">Change les points d'une question avec sa liste, ou fais recorriger par l'IA avec le barème d'aujourd'hui : rien ne part avant « Enregistrer ». La note de la copie est alors recalculée ; l'élève la voit sur son flash (« note revue par le prof »).</p>
+      <p id="fl-prog" class="${FL.ok ? "ok-txt" : "erreur"}" aria-live="polite">${esc(FL.msg)}</p></div>
+      ${resume}${cartes}`);
+    document.getElementById("fl-sean").onchange = (e) => { FL.module = e.target.value; FL.props = {}; FL.msg = ""; vueFlashs(); };
+    const mo = document.getElementById("fl-modele"); if (mo) mo.onchange = (e) => (FL.modele = e.target.value);
+    const rc = document.getElementById("fl-reco"); if (rc) rc.onclick = () => recorriger(s, copies, ks);
+    document.querySelectorAll("[data-reco]").forEach((b) => (b.onclick = () => recorriger(s, copies, [+b.dataset.reco])));
+    const en = document.getElementById("fl-enr"); if (en) en.onclick = enregistrerFlash;
+    const an = document.getElementById("fl-ann"); if (an) an.onclick = () => { FL.modifs = {}; FL.msg = "Changements annulés."; FL.ok = true; vueFlashs(); };
+    document.querySelectorAll(".fl-table select[data-id]").forEach((sel) => (sel.onchange = () => {
+      const t = copies.find((x) => String(x.id) === sel.dataset.id), k = +sel.dataset.k, v = Number(sel.value);
+      if (!t) return;
+      const ancien = Number(t.details[k].pts) || 0, pr = FL.props[t.id] && FL.props[t.id][k];
+      FL.modifs[t.id] = FL.modifs[t.id] || {};
+      if (Math.abs(v - ancien) < 1e-9) delete FL.modifs[t.id][k];
+      else FL.modifs[t.id][k] = pr && Math.abs(pr.pts - v) < 1e-9 ? { pts: v, par: "ia", elements: pr.elements } : { pts: v, par: "prof" };
+      FL.msg = ""; vueFlashs();
+    }));
+  }
+
+  // recorrection par l'IA : les réponses des copies, questions ks, 3 à la fois ; propositions affichées, pas enregistrées
+  async function recorriger(s, copies, ks) {
+    if (FL.enCours) return;
+    const taches = []; copies.forEach((t) => ks.forEach((k) => { if (t.details[k]) taches.push({ t, k }); }));
+    FL.enCours = true; FL.ok = true; let fait = 0, ko = 0, change = 0; const codes = new Set();
+    const dire = () => { const z = document.getElementById("fl-prog"); if (z) z.textContent = `Recorrection par l'IA : ${fait} / ${taches.length}${ko ? ` · ${ko} sans réponse` : ""}…`; };
+    FL.msg = ""; vueFlashs(); dire();
+    const une = async ({ t, k }) => {
+      const d = t.details[k], q = SIP.flash.questionDeCopie(d, s.jour, s.passage);
+      const elements = q ? q.elements.map((e, i) => ({ i, t: e.t, p: e.p, aide: e.aide || "" })) : (d.elements || []).map((e, i) => ({ i, t: e.t, p: e.p }));
+      const rep = String(d.rep || "").replace(/\s*\[auto-évaluée\]$/, "").trim();
+      let verdicts;
+      if (!rep) verdicts = elements.map((e) => ({ i: e.i, verdict: "absent", raison: "Pas de réponse." }));
+      else {
+        try {
+          const r = await SIP.ia.corrigerProf({ question: q ? q.ia || SIP.flash.brut(q.enonce) : String(d.q || ""), corrige: q ? SIP.flash.brut(q.corrige) : String(d.attendu || ""),
+            regles: SIP.flash.REGLES_IA, elements, reponse: rep.slice(0, 2000), modele: FL.modele });
+          verdicts = r.elements;
+        } catch (e) { ko++; codes.add(e.code || e.message || "IA"); fait++; dire(); return; }
+      }
+      const parI = {}; (verdicts || []).forEach((v) => (parI[v.i] = v));
+      if (!elements.length || !elements.every((e) => parI[e.i])) { ko++; fait++; dire(); return; }
+      const pts = elements.reduce((a, e) => a + SIP.flash.POIDS[parI[e.i].verdict] * e.p, 0);
+      const els = elements.map((e) => ({ t: e.t, p: e.p, verdict: parI[e.i].verdict, par: "ia", raison: parI[e.i].raison || "" }));
+      (FL.props[t.id] = FL.props[t.id] || {})[k] = { pts, elements: els };
+      FL.modifs[t.id] = FL.modifs[t.id] || {};
+      if (Math.abs(pts - (Number(d.pts) || 0)) > 1e-9) { FL.modifs[t.id][k] = { pts, par: "ia", elements: els }; change++; } else delete FL.modifs[t.id][k];
+      fait++; dire();
+    };
+    let i = 0;
+    await Promise.all([0, 1, 2].map(async () => { while (i < taches.length) await une(taches[i++]); }));
+    FL.enCours = false; FL.ok = !ko;
+    FL.msg = `Recorrection finie : ${fait - ko} réponse(s) relue(s), ${change} note(s) de question changée(s)${ko ? `, ${ko} sans réponse de l'IA (${[...codes].join(", ")}) : garde l'ancienne note ou change-la à la main` : ""}. Vérifie les propositions, puis « Enregistrer ».`;
+    vueFlashs();
+  }
+
+  async function enregistrerFlash() {
+    const ids = Object.keys(FL.modifs).filter((id) => Object.keys(FL.modifs[id]).length);
+    if (!ids.length || FL.enCours) return;
+    FL.enCours = true; FL.msg = "Enregistrement…"; vueFlashs();
+    let ok = 0; const erreurs = [];
+    for (const id of ids) {
+      const t = D.entrainements.find((x) => String(x.id) === String(id)); if (!t) continue;
+      const points = Object.entries(FL.modifs[id]).map(([k, m]) => Object.assign({ k: +k, pts: m.pts, par: m.par },
+        m.elements ? { elements: m.elements.map((e) => ({ t: e.t, p: e.p, verdict: e.verdict, par: e.par })) } : {}));
+      try {
+        const r = await SIP.api.profFlashNoter(t.id, points);
+        if (r && Array.isArray(r.details)) t.details = r.details;
+        if (r && r.score != null) { t.score = Number(r.score); t.score_max = Number(r.score_max); }
+        delete FL.modifs[id]; ok++;
+      } catch (e) { erreurs.push(e.message || String(e)); }
+    }
+    FL.enCours = false; FL.ok = !erreurs.length;
+    FL.msg = erreurs.length ? `${ok} copie(s) enregistrée(s), ${erreurs.length} refusée(s) : ${erreurs[0]}${/prof_flash_noter|PGRST202|Could not find|schema cache/i.test(erreurs[0]) ? " (la base n'a pas encore la fonction : supabase/flash.sql à installer)" : ""}`
+      : `✓ ${ok} copie(s) enregistrée(s) : les notes sont à jour dans le suivi, l'export CSV et chez les élèves.`;
+    vueFlashs();
+  }
 
   // ---------------- Projets BTS 2 (assets/prof-projets.js, contenu/projets-bts2.js) ----------------
   function vueProjets() {

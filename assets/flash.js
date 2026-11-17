@@ -42,6 +42,11 @@ window.SIP = window.SIP || {};
   const minutes = (f) => { const m = f.duree_s / 60; return `${SIP.nb ? SIP.nb(m, 2) : m} minute${m > 1 ? "s" : ""}`; };
   const nb = (x) => (SIP.nb ? SIP.nb(x, 3) : String(Math.round(x * 10) / 10).replace(".", ","));
   const POIDS = { present: 1, partiel: 0.5, absent: 0 };
+  // règles de correction des flashs, envoyées à l'IA avec chaque réponse (les précisions de chaque élément,
+  // « aide » dans contenu/flashs-banque.js et contenu/flashs.js, priment sur elles)
+  const REGLES_IA = "Flash de début de séance : 5 minutes, seul, calculatrice autorisée. Consigne donnée aux élèves : « pour chaque question, écris ton calcul et ton résultat avec l'unité ». "
+    + "Sauf si les précisions de l'élément disent autre chose : un résultat de calcul juste mais sans aucun calcul écrit est partiel ; un résultat juste sans unité, ou avec une unité fausse, est partiel ; "
+    + "une conclusion juste sans la comparaison qui la justifie est partielle. Quand la question demande un mot, un nom, une fonction ou une valeur à lire (pas un calcul), la bonne réponse suffit, sans justification.";
   const PASTILLE = { present: "✓", partiel: "½", absent: "✗" };
   const DUREE_FLASH = 300, DUREE_Q = 60;   // un flash dure 5 minutes (une minute de plus par question au-delà de 5)
   const brut = (h) => String(h ?? "")
@@ -188,6 +193,9 @@ window.SIP = window.SIP || {};
   const sur20 = (s, m) => (m ? (20 * s) / m : 0);
   const classeNote = (n) => (SIP.appreciation ? SIP.appreciation(n).cls : n >= 12 ? "ok" : "alerte");
   // la note d'une copie, si on la connaît : celle reçue par le prof (hist), sinon celle de la copie de l'appareil corrigée en entier
+  // note revue par le prof (espace prof, onglet Flashs) : la note reçue par la base diffère de celle de la copie de l'appareil
+  const revue = (f, st, ctx) => { const h = faits(f, ctx && ctx.hist)[0]; return h && st && complete(f, st) && Math.abs(+h.score - total(f, st).s) > 1e-6 ? h : null; };
+  const noteRevue = (h) => `<span class="etiquette ${classeNote(sur20(h.score, h.score_max))} fl-note-n">${nb(sur20(h.score, h.score_max))}<small>/20</small></span><span class="discret">${nb(+h.score)} / ${nb(+h.score_max)} points · note revue par le prof</span>`;
   const noteDe = (F, st, fait) => (fait ? sur20(fait.score, fait.score_max) : F && st && st.rendu && complete(F, st) ? sur20(total(F, st).s, total(F, st).m) : null);
 
   // ---------- morceaux d'affichage ----------
@@ -404,7 +412,7 @@ window.SIP = window.SIP || {};
     const { s, m } = total(f, st);
     const details = f.questions.map((q, k) => {
       const p = ptsQ(f, st, k), b = maxQ(q), parEleve = q.elements.some((e, i) => (verdict(st, k, i) || {}).par === "eleve");
-      return { q: `${q.theme ? q.theme + " — " : ""}${brut(q.enonce)}`, rep: (st.reponses[k] || "").slice(0, 600) + (parEleve ? " [auto-évaluée]" : ""), attendu: brut(q.corrige),
+      return { q: `${q.theme ? q.theme + " — " : ""}${brut(q.enonce)}`, ref: (f.refs || [])[k] || null, rep: (st.reponses[k] || "").slice(0, 600) + (parEleve ? " [auto-évaluée]" : ""), attendu: brut(q.corrige),
         pts: p, bareme: b, erreurs: p < b ? 1 : 0, par: parEleve ? "eleve" : "ia",
         elements: q.elements.map((e, i) => { const v = verdict(st, k, i) || {}; return { t: e.t, p: e.p, verdict: v.verdict, par: v.par }; }) };
     });
@@ -442,7 +450,9 @@ window.SIP = window.SIP || {};
       const z = document.getElementById("fl-note"), info = document.getElementById("fl-note-info");
       if (vue !== VUE || !z || !info) return;
       const fini = Date.now() >= finDe(f, st), prete = fini && complete(f, st);
-      if (prete) { const { s, m } = total(f, st), n = sur20(s, m); z.innerHTML = `<span class="etiquette ${classeNote(n)} fl-note-n">${nb(n)}<small>/20</small></span><span class="discret">${nb(s)} / ${nb(m)} points</span>`; }
+      const h = prete ? revue(f, st, ctx) : null;
+      if (h) z.innerHTML = noteRevue(h);
+      else if (prete) { const { s, m } = total(f, st), n = sur20(s, m); z.innerHTML = `<span class="etiquette ${classeNote(n)} fl-note-n">${nb(n)}<small>/20</small></span><span class="discret">${nb(s)} / ${nb(m)} points</span>`; }
       else z.innerHTML = "";
       info.hidden = prete;
       info.innerHTML = prete ? "" : !fini ? `<b>Ta note s'affichera à la fin du chrono</b>, dans ${mmss(reste(f, st))}.`
@@ -503,6 +513,8 @@ window.SIP = window.SIP || {};
     const majNote = () => {
       const z = document.getElementById("fl-note"); if (vue !== VUE || !z) return;
       if (!complete(f, st)) { z.innerHTML = `<span class="discret">Correction en cours…</span>`; return; }
+      const h = revue(f, st, ctx);
+      if (h) { z.innerHTML = noteRevue(h); return; }
       const { s, m } = total(f, st), n = sur20(s, m);
       z.innerHTML = `<span class="etiquette ${classeNote(n)} fl-note-n">${nb(n)}<small>/20</small></span><span class="discret">${nb(s)} / ${nb(m)} points</span>`;
     };
@@ -577,8 +589,8 @@ window.SIP = window.SIP || {};
     if (!iaDispo()) { c.etat = "erreur"; c.code = SIP.ia && SIP.ia.actif && SIP.ia.actif() ? "NON_CONNECTE" : "IA_ABSENTE"; garder(f, st); notifier(k); return; }
     c.etat = "attente"; garder(f, st); notifier(k);
     try {
-      const d = await SIP.ia.corriger({ question: q.ia || brut(q.enonce), corrige: brut(q.corrige),
-        elements: q.elements.map((e, i) => ({ i, t: e.t, p: e.p })), reponse: rep.slice(0, 2000) });
+      const d = await SIP.ia.corriger({ question: q.ia || brut(q.enonce), corrige: brut(q.corrige), regles: REGLES_IA,
+        elements: q.elements.map((e, i) => ({ i, t: e.t, p: e.p, aide: e.aide || "" })), reponse: rep.slice(0, 2000) });
       (d.elements || []).forEach((x) => { if (q.elements[x.i] && POIDS[x.verdict] != null) c.v[x.i] = { verdict: x.verdict, raison: x.raison || "", par: "ia" }; });
       c.conseil = d.conseil || "";
       if (qComplete(f, st, k)) { c.etat = "ok"; c.code = null; } else { c.etat = "erreur"; c.code = "IA_PARTIEL"; }
@@ -789,5 +801,15 @@ window.SIP = window.SIP || {};
     aff();
   }
 
-  SIP.flash = { tuile, carteProf, liste, eleve, projeter, arreter, seanceDe, tirage, dejaTombe, majCorrigees, noteVisible, concerne: flashsPour };
+  // espace prof (onglet Flashs) : la question d'une copie, d'après sa référence (ou son thème et son corrigé pour les
+  // copies d'avant le 17 novembre 2026, qui n'ont pas de référence), pour la recorriger avec le barème d'aujourd'hui
+  function questionDeCopie(d, jour, passage) {
+    if (!d) return null;
+    if (d.ref) { const q = qVar(d.ref, jour, passage || 1); if (q && brut(q.corrige) === d.attendu) return q; }
+    const theme = String(d.q || "").split(" — ")[0];
+    const L = banque().concat(...tous().map((f) => f.questions || []));
+    return L.find((q) => q.theme === theme && brut(q.corrige) === d.attendu) || null;
+  }
+  SIP.flash = { tuile, carteProf, liste, eleve, projeter, arreter, seanceDe, tirage, dejaTombe, majCorrigees, noteVisible, concerne: flashsPour,
+    questionDeCopie, brut, REGLES_IA, POIDS };
 })(window.SIP);

@@ -253,6 +253,15 @@ details.seance summary { cursor: pointer; display: flex; gap: 10px; flex-wrap: w
 details.seance summary::-webkit-details-marker { display: none; }
 details.seance summary::before { content: "▸"; color: var(--ink-3); }
 details.seance[open] summary::before { content: "▾"; }
+/* espace prof, onglet Flashs : revoir les copies d'un flash */
+.fv { display: inline-block; min-width: 1.4em; padding: 0 .25em; margin-right: 2px; border-radius: 4px; text-align: center; font-weight: 700; font-size: .85rem; }
+.fv.present { background: var(--good-soft); color: var(--good); } .fv.partiel { background: var(--warn-soft); color: var(--warn); }
+.fv.absent { background: var(--bad-soft); color: var(--bad); } .fv.nv { background: var(--paper); color: var(--ink-3); border: 1px dashed var(--rule); }
+.fl-modif { color: var(--warn); } tr.fl-modifiee td { background: var(--warn-soft); }
+.fl-raisons { margin: 4px 0 0; padding-left: 0; list-style: none; font-size: .85rem; color: var(--ink-2); }
+.fl-raisons li { margin: 2px 0; }
+.fl-rep-prof { max-width: 34ch; white-space: pre-wrap; }
+.fl-revue { margin-top: 14px; }
 details.seance table { margin-top: 8px; font-size: .85rem; }
 .stats { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin: 12px 0; }
 .stats .carte { padding: 12px 14px; } .stats b { display: block; font-family: var(--f-mono); font-size: 1.5rem; font-weight: 600; }

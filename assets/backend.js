@@ -278,6 +278,22 @@ window.SIP = window.SIP || {};
         x.statut = "corrige"; x.valide_serie = true; x.traite_le = new Date().toISOString();
         save(db);
       },
+      // le prof change les points de questions d'une copie de flash (onglet Flashs) : même contrôle que prof_flash_noter
+      async profFlashNoter(id, points) {
+        const db = load(); const t = db.entrainements.find((x) => x.id === id);
+        if (!t) throw new Error("INTROUVABLE");
+        if (!/^flash-/.test(t.module || "") || !Array.isArray(t.details)) throw new Error("PAS_UN_FLASH");
+        const d = t.details.map((x) => Object.assign({}, x));
+        (points || []).forEach((x) => {
+          const q = d[x.k], v = Number(x.pts), b = q ? Number(q.bareme) : NaN;
+          if (!q) throw new Error("QUESTION");
+          if (!(v >= 0 && v <= b)) throw new Error("POINTS");
+          Object.assign(q, { pts: v, erreurs: v < b ? 1 : 0, par: x.par === "ia" ? "ia" : "prof", revu_le: new Date().toISOString() },
+            Array.isArray(x.elements) && x.elements.length <= 8 ? { elements: x.elements } : {});
+        });
+        t.details = d; t.score = d.reduce((a, q) => a + (Number(q.pts) || 0), 0); t.score_max = d.reduce((a, q) => a + (Number(q.bareme) || 0), 0);
+        save(db); return { ok: true, score: t.score, score_max: t.score_max, details: t.details };
+      },
       async creerEleve(niveau, nom, pin) {
         const db = load();
         if (db.eleves.some((x) => x.niveau === niveau && x.nom.toLowerCase() === nom.trim().toLowerCase())) throw new Error("Existe déjà : " + nom);
@@ -436,6 +452,7 @@ window.SIP = window.SIP || {};
         return { supprimes: ids, restants: restants.map((r) => r.nom) };
       },
       validerSignalement: (id, note) => rpc("valider_signalement", { p_id: id, p_note: note }),
+      profFlashNoter: (id, points) => rpc("prof_flash_noter", { p_id: id, p_points: points }),
       creerEleve: (niveau, nom, pin) => rpc("creer_eleve", { p_niveau: niveau, p_nom: nom, p_pin: pin }),
       changerPin: (id, pin) => rpc("changer_pin", { p_eleve: id, p_pin: pin }),
       async basculerActif(id, actif) { const { error } = await sb.from("eleves").update({ actif }).eq("id", id); if (error) throw new Error(error.message); },
@@ -467,7 +484,7 @@ window.SIP = window.SIP || {};
     const ko = async () => { const e = new Error("Pas de réseau (HORS_LIGNE)"); e.reseau = true; throw e; };
     const api = { mode: "hors-ligne" };
     ["connexion", "etat", "enregistrer", "adopter", "lire", "signaler", "mesSignalements", "profConnexion", "profDonnees", "profSignalements",
-      "traiterSignalement", "validerSignalement", "creerEleve", "changerPin", "basculerActif", "supprimerEleve", "profDeconnexion",
+      "traiterSignalement", "validerSignalement", "profFlashNoter", "creerEleve", "changerPin", "basculerActif", "supprimerEleve", "profDeconnexion",
       "projetEtat", "projetEnregistrer", "profProjets", "profProjetMaj", "depotListe", "depotEnvoyer", "depotOuvrir", "depotRetirer",
       "profDepots", "profDepotUrl", "profDepotBlob", "profDepotVu", "profDepotSupprimer", "flashLancer", "flashEtat", "flashMontrer", "flashRallonger"].forEach((f) => (api[f] = ko));
     api.profSession = async () => false;
@@ -524,28 +541,43 @@ window.SIP = window.SIP || {};
   //  SIP_CONFIG.ia = false coupe la vérification ; SIP_CONFIG.iaUrl sert aux tests.
   // =====================================================================
   const IA_URL = CFG.iaUrl || (CFG.supabaseUrl ? String(CFG.supabaseUrl).replace(/\/+$/, "") + "/functions/v1/corriger" : "");
+  const erreurIA = (code, reseau) => Object.assign(new Error(code), { code, reseau: !!reseau });
+  async function appelIA(corps, h) {
+    const ctl = typeof AbortController === "function" ? new AbortController() : null, minuterie = ctl ? setTimeout(() => ctl.abort(), 40000) : null;   // la fonction s'arrête d'elle-même avant 30 s
+    let r;
+    try { r = await fetch(IA_URL, { method: "POST", headers: h, body: JSON.stringify(corps), signal: ctl ? ctl.signal : undefined }); }
+    catch (e) { throw erreurIA("IA_RESEAU", true); }
+    finally { if (minuterie) clearTimeout(minuterie); }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw erreurIA(d.erreur || "IA_" + r.status);
+    if (!d || !Array.isArray(d.elements)) throw erreurIA("IA_REPONSE");
+    return d;
+  }
+  async function enteteProf() {
+    const t = principal.profJeton ? await principal.profJeton().catch(() => null) : null;
+    if (!t) throw erreurIA("PROF_NON_CONNECTE");
+    const h = { "Content-Type": "application/json", Authorization: "Bearer " + t };
+    if (CFG.supabaseAnonKey) h.apikey = CFG.supabaseAnonKey;
+    return h;
+  }
   SIP.ia = {
     actif: () => !!IA_URL && CFG.ia !== false,
     async corriger(p) {
-      const erreur = (code, reseau) => Object.assign(new Error(code), { code, reseau: !!reseau });
-      if (!SIP.ia.actif()) throw erreur("IA_ABSENTE");
-      const s = SIP.session.get(); if (!s) throw erreur("NON_CONNECTE");
-      const h = { "Content-Type": "application/json" }, corps = Object.assign({}, p);
+      if (!SIP.ia.actif()) throw erreurIA("IA_ABSENTE");
+      const s = SIP.session.get(); if (!s) throw erreurIA("NON_CONNECTE");
+      const corps = Object.assign({}, p);
+      delete corps.modele;                         // le modèle, c'est la fonction qui le choisit pour un élève
+      if (s.apercu) return appelIA(corps, await enteteProf());
+      const h = { "Content-Type": "application/json" };
       if (CFG.supabaseAnonKey) h.apikey = CFG.supabaseAnonKey;
-      if (s.apercu) {
-        const t = principal.profJeton ? await principal.profJeton().catch(() => null) : null;
-        if (!t) throw erreur("PROF_NON_CONNECTE");
-        h.Authorization = "Bearer " + t;
-      } else corps.jeton = s.jeton;
-      const ctl = typeof AbortController === "function" ? new AbortController() : null, minuterie = ctl ? setTimeout(() => ctl.abort(), 40000) : null;   // la fonction s'arrête d'elle-même avant 30 s
-      let r;
-      try { r = await fetch(IA_URL, { method: "POST", headers: h, body: JSON.stringify(corps), signal: ctl ? ctl.signal : undefined }); }
-      catch (e) { throw erreur("IA_RESEAU", true); }
-      finally { if (minuterie) clearTimeout(minuterie); }
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) throw erreur(d.erreur || "IA_" + r.status);
-      if (!d || !Array.isArray(d.elements)) throw erreur("IA_REPONSE");
-      return d;
+      corps.jeton = s.jeton;
+      return appelIA(corps, h);
+    },
+    // professeur connecté (espace prof) : recorriger une réponse, sans quota ; p.modele facultatif
+    // (claude-sonnet-5-5 par défaut, claude-opus-5-5 pour une recorrection plus fine)
+    async corrigerProf(p) {
+      if (!SIP.ia.actif()) throw erreurIA("IA_ABSENTE");
+      return appelIA(Object.assign({}, p), await enteteProf());
     }
   };
 
