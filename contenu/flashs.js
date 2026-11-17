@@ -59,8 +59,8 @@ ${bloc(xs[0], "Batterie")}${fleche(xs[0] + W, "6,0 W")}${bloc(xs[1], "Moteur", "
           ia: "Le robot suit un profil de vitesse en trapèze (graphique v(t)) : la vitesse passe de 0 à 0,60 m/s entre t = 0 et t = 0,5 s, reste à 0,60 m/s jusqu'à t = 2,5 s, puis revient à 0 à t = 3,0 s. Déterminer l'accélération au démarrage, puis la distance parcourue entre 0 et 3,0 s.",
           corrige: `a = ${fr("Δv", "Δt")} = ${fr("0,60", "0,5")} = <b>1,2 m/s²</b>. La distance est l'aire sous la courbe (un trapèze) : d = 0,60 × ${fr("3,0 + 2,0", "2")} = <b>1,50 m</b>.`,
           elements: [
-            { t: "Accélération au démarrage a = 1,2 m/s² (variation de vitesse 0,60 m/s sur 0,5 s)", p: 1 },
-            { t: "Distance parcourue d = 1,50 m (aire sous la courbe : trapèze de bases 3,0 s et 2,0 s, de hauteur 0,60 m/s)", p: 1 }
+            { t: "Accélération au démarrage a = 1,2 m/s² (variation de vitesse 0,60 m/s sur 0,5 s)", p: 1, aide: "1,2 m/s² avec le calcul 0,60 sur 0,5 : present. Résultat juste sans calcul : partiel. Unité absente ou fausse (m/s) : partiel. 0,30 m/s² ou 0,24 m/s² : absent." },
+            { t: "Distance parcourue d = 1,50 m (aire sous la courbe : trapèze de bases 3,0 s et 2,0 s, de hauteur 0,60 m/s)", p: 1, aide: "1,50 m avec l'aire sous la courbe (trapèze, ou rectangle et deux triangles) : present. Résultat juste sans calcul : partiel. Sans unité : partiel. 1,8 m (0,60 × 3,0) : absent." }
           ]
         },
         {
@@ -70,8 +70,8 @@ ${bloc(xs[0], "Batterie")}${fleche(xs[0] + W, "6,0 W")}${bloc(xs[1], "Moteur", "
           ia: "Programme Python :\nv = 47  # vitesse du vent en km/h\nif v >= 80:\n    msg = \"danger\"\nelif v >= 50:\n    msg = \"alerte\"\nelse:\n    msg = \"calme\"\nQuelle valeur prend msg à la fin ? Combien de blocs s'exécutent ?",
           corrige: "<code>msg = \"calme\"</code> : 47 ≥ 80 est faux, 47 ≥ 50 est faux, donc on passe au <code>else</code>. <b>Un seul bloc</b> s'exécute : celui du premier test vrai, sinon celui du <code>else</code>.",
           elements: [
-            { t: "msg vaut \"calme\" (les deux tests sont faux, on passe au else)", p: 1 },
-            { t: "Un seul bloc s'exécute (le premier test vrai, ou le else)", p: 1 }
+            { t: "msg vaut \"calme\" (les deux tests sont faux, on passe au else)", p: 1, aide: "« calme » : present, sans justification exigée. « alerte » ou « danger » : absent." },
+            { t: "Un seul bloc s'exécute (le premier test vrai, ou le else)", p: 1, aide: "Un seul bloc : present, sans justification exigée. 2 ou 3 blocs : absent." }
           ]
         },
         {
@@ -81,8 +81,8 @@ ${bloc(xs[0], "Batterie")}${fleche(xs[0] + W, "6,0 W")}${bloc(xs[1], "Moteur", "
           ia: "Chaîne de puissance : la batterie fournit 6,0 W au moteur (rendement 0,70), le moteur entraîne un réducteur (rendement 0,90), qui entraîne la roue. Calculer la puissance utile Pu reçue par la roue, puis la puissance perdue. Que devient-elle ?",
           corrige: `P<sub>u</sub> = 6,0 × 0,70 × 0,90 = <b>3,78 W</b> (rendement global 0,63). Pertes : 6,0 − 3,78 = <b>2,22 W</b>, transformés en <b>chaleur</b> (échauffement du moteur et du réducteur).`,
           elements: [
-            { t: "Puissance utile Pu = 3,78 W (6,0 × 0,70 × 0,90)", p: 1 },
-            { t: "Pertes = 2,22 W, transformées en chaleur", p: 1 }
+            { t: "Puissance utile Pu = 3,78 W (6,0 × 0,70 × 0,90)", p: 1, aide: "3,78 W (ou 3,8 W) avec le calcul 6,0 × 0,70 × 0,90 : present. Résultat juste sans calcul : partiel. Rendements additionnés : absent." },
+            { t: "Pertes = 2,22 W, transformées en chaleur", p: 1, aide: "Il faut la puissance perdue (6,0 − Pu = 2,22 W) et dire qu'elle devient de la chaleur. Valeur juste sans la chaleur, ou chaleur sans valeur : partiel. Valeur cohérente avec un Pu faux écrit juste avant : compte comme juste (erreur reportée)." }
           ]
         }
       ]

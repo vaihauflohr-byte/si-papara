@@ -5,7 +5,9 @@
      (cours-ds02.js) · info-programmation, info-codage (cours-bac.js).
    Même format que les questions de contenu/flashs.js, avec en plus id et notion :
      { id, notion, theme, enonce (HTML), fig (dessin SVG, ou bloc de code), ia (l'énoncé en texte pour l'IA,
-       avec toutes les données du dessin), corrige (HTML), elements [{ t, p }] (ce que l'IA vérifie) }
+       avec toutes les données du dessin), corrige (HTML), elements [{ t, p, aide }] (ce que l'IA vérifie : t est aussi
+       montré à l'élève dans sa correction ; aide, les précisions pour le correcteur, ne part qu'à l'IA : formulations
+       acceptées, réponses fausses fréquentes, cas « en partie ») }
    Une question = environ 1 minute pour un élève, avec la calculatrice ; chaque question a son dessin.
    Conventions : virgule décimale, fractions écrites en entier (jamais de signe de division), 3 chiffres significatifs, moments
    signés (sens trigonométrique positif), écart relatif positif par rapport à la valeur de l'exigence,
@@ -387,8 +389,8 @@ window.SIP = window.SIP || {};
       ia: "Diagramme des exigences d'un portail motorisé : exigence «requirement» Ouverture du portail, Id = \"1.2\", Text = « le portail doit s'ouvrir en 15 s au plus ». À l'essai, le chronomètre mesure une durée d'ouverture de 12 s. Écrire l'exigence 1.2 avec un signe ≤ ou ≥ et l'unité. L'exigence est-elle respectée ?",
       corrige: "« au plus » donne le signe ≤ : <b>t ≤ 15 s</b> (critère : la durée d'ouverture ; niveau : 15 s). Essai : 12 s ≤ 15 s : l'exigence 1.2 est <b>respectée</b>.",
       elements: [
-        { t: "Inégalité t ≤ 15 s (« au plus » donne ≤ ; durée d'ouverture au plus 15 s, avec l'unité s)", p: 1 },
-        { t: "12 s ≤ 15 s : l'exigence 1.2 est respectée", p: 1 }
+        { t: "Inégalité t ≤ 15 s (« au plus » donne ≤ ; durée d'ouverture au plus 15 s, avec l'unité s)", p: 1, aide: "Il faut le signe ≤ et la valeur 15 s : t ≤ 15 s (ou « durée ≤ 15 s »). Le critère et le niveau n'ont pas à être nommés. Signe < (strict) ou unité oubliée : partiel. Signe ≥ ou > : absent." },
+        { t: "12 s ≤ 15 s : l'exigence 1.2 est respectée", p: 1, aide: "« Respectée » avec la comparaison 12 s ≤ 15 s : present. « Respectée » sans comparaison : partiel. « Non respectée » : absent, sauf si c'est cohérent avec une inégalité fausse écrite juste avant (erreur reportée)." }
       ]
     },
     {
@@ -398,8 +400,8 @@ window.SIP = window.SIP || {};
       ia: "Diagramme des exigences d'une station de pompage. Exigence «requirement» Débit, Id = \"1.1\", Text = « au moins 2,0 m³/h ». Trois éléments sont reliés à l'exigence 1.1 par des flèches en pointillés : le bloc «block» Pompe solaire 750 W (lien «satisfy») ; l'exigence «requirement» Puissance solaire, Id = \"1.1.1\" (lien «deriveReqt») ; le cas de test «testCase» Mesure au compteur d'eau (lien «verify»). Quel élément satisfait l'exigence 1.1 ? Quel élément la vérifie ?",
       corrige: "Le lien «satisfy» part toujours d'un bloc, la solution : c'est le bloc <b>Pompe solaire</b> qui satisfait 1.1. Le lien «verify» part toujours d'un cas de test, l'essai : c'est la <b>Mesure au compteur d'eau</b> qui vérifie 1.1. (Puissance solaire est une exigence déduite de 1.1, lien «deriveReqt».)",
       elements: [
-        { t: "Satisfait 1.1 : le bloc Pompe solaire (lien «satisfy»)", p: 1 },
-        { t: "Vérifie 1.1 : le cas de test Mesure au compteur d'eau (lien «verify»)", p: 1 }
+        { t: "Satisfait 1.1 : le bloc Pompe solaire (lien «satisfy»)", p: 1, aide: "« Pompe solaire », « la pompe », « le bloc Pompe solaire 750 W » : present. Le nom du lien «satisfy» n'est pas exigé. « Puissance solaire » (exigence 1.1.1) ou « Mesure au compteur d'eau » : absent." },
+        { t: "Vérifie 1.1 : le cas de test Mesure au compteur d'eau (lien «verify»)", p: 1, aide: "« Mesure au compteur d'eau », « le compteur d'eau », « le cas de test » : present. Le nom du lien «verify» n'est pas exigé. « Pompe solaire » ou « Puissance solaire » : absent." }
       ]
     },
     {
@@ -409,8 +411,8 @@ window.SIP = window.SIP || {};
       ia: "Cahier des charges du robot sumo : critère = vitesse du robot ; niveau = 0,50 m/s ; flexibilité = ± 10 %. À l'essai sur la piste, le robot roule à v = 0,58 m/s. Calculer l'écart relatif entre la vitesse mesurée et le niveau demandé. L'exigence est-elle respectée, avec sa flexibilité ?",
       corrige: `Écart = ${fr("|0,58 − 0,50|", "0,50")} × 100 = ${fr("0,08", "0,50")} × 100 = <b>16,0 %</b> (la référence est le niveau, 0,50 m/s). 16,0 % &gt; 10 % : l'exigence <b>n'est pas respectée</b>. Autre façon : avec ± 10 %, il faut 0,45 m/s ≤ v ≤ 0,55 m/s, et 0,58 m/s est au-dessus.`,
       elements: [
-        { t: "Écart relatif = 16,0 % (|0,58 − 0,50| sur 0,50, fois 100 ; la valeur de référence est le niveau 0,50 m/s)", p: 1 },
-        { t: "16,0 % > 10 % : l'exigence n'est pas respectée (0,58 m/s est en dehors de l'intervalle 0,45 à 0,55 m/s)", p: 1 }
+        { t: "Écart relatif = 16,0 % (|0,58 − 0,50| sur 0,50, fois 100 ; la valeur de référence est le niveau 0,50 m/s)", p: 1, aide: "16 % (ou 16,0 %) avec le calcul |0,58 − 0,50| sur 0,50 : present. 16 % sans calcul : partiel. −16 % : partiel (un écart relatif s'écrit positif). 0,08 m/s sans pourcentage : partiel. 13,8 % (calculé par rapport à 0,58) : absent." },
+        { t: "16,0 % > 10 % : l'exigence n'est pas respectée (0,58 m/s est en dehors de l'intervalle 0,45 à 0,55 m/s)", p: 1, aide: "« Non respectée » avec la comparaison 16 % > 10 % (ou 0,58 m/s en dehors de 0,45 à 0,55 m/s) : present. « Non respectée » sans comparaison : partiel. « Respectée » : absent, sauf si c'est cohérent avec un écart faux écrit juste avant (erreur reportée)." }
       ]
     },
     // ---------------------------------------------------------------- ana-structure
@@ -421,8 +423,8 @@ window.SIP = window.SIP || {};
       ia: "Chaîne de puissance d'un portail motorisé, de gauche à droite : batterie 24 V (fonction alimenter) → variateur (fonction distribuer) → moteur électrique (fonction à trouver) → réducteur (fonction à trouver) → bras du portail (fonction agir). Quelle fonction réalise le moteur ? Et le réducteur ?",
       corrige: "Le moteur <b>convertit</b> : l'énergie électrique devient de l'énergie mécanique (rotation). Le réducteur <b>transmet</b> : l'énergie reste mécanique, il change seulement la vitesse et le couple.",
       elements: [
-        { t: "Moteur : convertir (énergie électrique → énergie mécanique)", p: 1 },
-        { t: "Réducteur : transmettre (l'énergie reste mécanique ; il adapte la vitesse et le couple)", p: 1 }
+        { t: "Moteur : convertir (énergie électrique → énergie mécanique)", p: 1, aide: "Le verbe convertir suffit (« convertir », « convertit », « transforme l'énergie électrique en énergie mécanique ») : present, sans exiger les formes d'énergie. « Démarrer », « faire tourner », « actionner », « alimenter », « distribuer », « agir » : absent." },
+        { t: "Réducteur : transmettre (l'énergie reste mécanique ; il adapte la vitesse et le couple)", p: 1, aide: "Le verbe transmettre suffit (« transmettre », « transmet l'énergie mécanique ») : present, sans exiger la vitesse ni le couple. Sans le verbe transmettre, « adapte la vitesse et le couple » ou « réduit la vitesse » : partiel. « Réduire » seul, « freiner », « convertir », « distribuer » : absent." }
       ]
     },
     {
@@ -432,8 +434,8 @@ window.SIP = window.SIP || {};
       ia: "Chaîne d'information du robot sumo, de gauche à droite : capteur à ultrasons (fonction à trouver) → carte microcontrôleur (fonction traiter) → module Bluetooth (fonction à trouver). Quelle fonction réalise le capteur à ultrasons ? Et le module Bluetooth ?",
       corrige: "Le capteur à ultrasons <b>acquiert</b> l'information (il mesure la distance de l'adversaire). Le module Bluetooth <b>communique</b> (il envoie l'information au téléphone).",
       elements: [
-        { t: "Capteur à ultrasons : acquérir (il mesure une grandeur, la distance)", p: 1 },
-        { t: "Module Bluetooth : communiquer (il envoie l'information vers l'extérieur, le téléphone)", p: 1 }
+        { t: "Capteur à ultrasons : acquérir (il mesure une grandeur, la distance)", p: 1, aide: "Le verbe acquérir suffit (« acquérir », « acquiert », « capter », « mesurer la distance », « détecter l'adversaire ») : present. « Traiter », « communiquer », « convertir », « transmettre » : absent." },
+        { t: "Module Bluetooth : communiquer (il envoie l'information vers l'extérieur, le téléphone)", p: 1, aide: "Le verbe communiquer suffit (« communiquer », « communique », « envoyer l'information au téléphone ») : present. « Transmettre l'information » ou « envoyer les données » : present. « Transmettre » seul : partiel (c'est un verbe de la chaîne de puissance). « Traiter », « acquérir » : absent." }
       ]
     },
     {
@@ -443,8 +445,8 @@ window.SIP = window.SIP || {};
       ia: "Diagramme de blocs internes (ibd) d'une éolienne : quatre blocs reliés par des connecteurs, dans l'ordre Hélice → Multiplicateur → Génératrice → Batterie. Le connecteur 1 relie le multiplicateur à la génératrice ; le connecteur 2 relie la génératrice à la batterie. Quelle énergie passe par le connecteur 1 ? Et par le connecteur 2 ? Pour chacun, donner les deux grandeurs (effort et flux) avec leurs unités.",
       corrige: "Connecteur 1 (multiplicateur → génératrice) : énergie <b>mécanique de rotation</b>, couple <b>C en N·m</b> et vitesse angulaire <b>ω en rad/s</b>. Connecteur 2 (génératrice → batterie) : énergie <b>électrique</b>, tension <b>U en V</b> et courant <b>I en A</b>. La génératrice convertit l'énergie mécanique en énergie électrique.",
       elements: [
-        { t: "Connecteur 1 : énergie mécanique de rotation, couple C (N·m) et vitesse angulaire ω (rad/s)", p: 1 },
-        { t: "Connecteur 2 : énergie électrique, tension U (V) et courant I (A)", p: 1 }
+        { t: "Connecteur 1 : énergie mécanique de rotation, couple C (N·m) et vitesse angulaire ω (rad/s)", p: 1, aide: "Il faut l'énergie mécanique (de rotation), le couple en N·m et la vitesse angulaire en rad/s (tr/min accepté). Énergie juste avec une seule des deux grandeurs, ou sans les unités : partiel. Énergie électrique ou grandeurs électriques : absent." },
+        { t: "Connecteur 2 : énergie électrique, tension U (V) et courant I (A)", p: 1, aide: "Il faut l'énergie électrique, la tension en V et le courant (l'intensité) en A. Énergie juste avec une seule des deux grandeurs, ou sans les unités : partiel. Énergie mécanique : absent." }
       ]
     },
     // ---------------------------------------------------------------- meca-actions
@@ -455,8 +457,8 @@ window.SIP = window.SIP || {};
       ia: "Le robot sumo est posé sur une balance qui affiche 0,850 kg. Son centre de gravité est G. On prend g = 9,81 N/kg. Calculer le poids P du robot. En quel point s'applique-t-il, et dans quel sens ?",
       corrige: "P = m × g = 0,850 × 9,81, soit <b>P = 8,34 N</b> (une masse en kg, un poids en N). Il s'applique au <b>centre de gravité G</b>, <b>vertical, vers le bas</b>.",
       elements: [
-        { t: "P = 8,34 N (0,850 × 9,81 ; un poids en newtons)", p: 1 },
-        { t: "Appliqué au centre de gravité G, vertical, vers le bas", p: 1 }
+        { t: "P = 8,34 N (0,850 × 9,81 ; un poids en newtons)", p: 1, aide: "8,34 N (ou 8,3 N) avec le calcul 0,850 × 9,81 : present. Résultat juste sans calcul : partiel. Sans unité, ou en kg : partiel. 0,850 N ou 8 340 N : absent." },
+        { t: "Appliqué au centre de gravité G, vertical, vers le bas", p: 1, aide: "Il faut le point G (centre de gravité) et le sens vers le bas. « Vers le bas » sans le point G, ou G sans le sens : partiel. Vers le haut, ou un autre point (contact au sol, balance) : absent." }
       ]
     },
     {
@@ -466,8 +468,8 @@ window.SIP = window.SIP || {};
       ia: "Portail vu de dessus, charnière en O. Le vent pousse le portail au point A, à 1,50 m de O, avec une force F = 120 N perpendiculaire au portail ; cette force fait tourner le portail autour de O dans le sens des aiguilles d'une montre. Convention : moment positif dans le sens trigonométrique. Calculer le moment de F par rapport à O, avec son signe.",
       corrige: "F est perpendiculaire au portail : le bras de levier est OA = 1,50 m. |M| = 120 × 1,50 = 180 N·m. F fait tourner le portail dans le sens des aiguilles d'une montre : <b>M<sub>O</sub>(F) = −180 N·m</b>.",
       elements: [
-        { t: "Valeur du moment : 180 N·m (120 × 1,50, bras de levier 1,50 m)", p: 1 },
-        { t: "Signe négatif : MO(F) = −180 N·m (rotation dans le sens des aiguilles d'une montre)", p: 1 }
+        { t: "Valeur du moment : 180 N·m (120 × 1,50, bras de levier 1,50 m)", p: 1, aide: "180 N·m avec le calcul 120 × 1,50 : present ; −180 N·m compte aussi pour la valeur. 180 N·m sans calcul : partiel. 180 sans unité, ou en N, ou en N/m : partiel. Une autre valeur : absent." },
+        { t: "Signe négatif : MO(F) = −180 N·m (rotation dans le sens des aiguilles d'une montre)", p: 1, aide: "Le signe moins (−180 N·m), justifié par le sens horaire (sens des aiguilles d'une montre) : present. Signe − sans justification : partiel. +180 N·m, ou pas de signe : absent. Valeur fausse mais signe − juste et justifié : present (erreur reportée)." }
       ]
     },
     {
@@ -477,8 +479,8 @@ window.SIP = window.SIP || {};
       ia: "Manivelle d'un treuil d'axe O. Le bras OB mesure 0,25 m ; la poignée B est en haut à gauche de O. En B, on pousse verticalement vers le bas avec F = 60 N. La droite d'action de F (verticale) passe à 0,20 m de O (distance horizontale entre O et la droite d'action). Convention : moment positif dans le sens trigonométrique. Quel est le bras de levier de F par rapport à O ? Calculer le moment de F en O, avec son signe.",
       corrige: "Le bras de levier est la distance de O à la droite d'action de F, à angle droit : <b>d = 0,20 m</b> (pas OB = 0,25 m). F pousse vers le bas à gauche de O : elle fait tourner dans le sens trigonométrique. <b>M<sub>O</sub>(F) = +60 × 0,20 = +12,0 N·m</b>.",
       elements: [
-        { t: "Bras de levier d = 0,20 m (distance de O à la droite d'action de F, à angle droit ; pas OB = 0,25 m)", p: 1 },
-        { t: "MO(F) = +12,0 N·m (60 × 0,20, positif : sens trigonométrique)", p: 1 }
+        { t: "Bras de levier d = 0,20 m (distance de O à la droite d'action de F, à angle droit ; pas OB = 0,25 m)", p: 1, aide: "0,20 m : present, sans justification exigée. 0,20 sans unité : partiel. OB = 0,25 m ou une autre distance : absent." },
+        { t: "MO(F) = +12,0 N·m (60 × 0,20, positif : sens trigonométrique)", p: 1, aide: "+12 N·m (ou 12 N·m avec « positif » ou « sens trigonométrique ») avec le calcul 60 × 0,20 : present. Valeur juste sans calcul, sans signe, ou avec le signe − : partiel. 15 N·m (calculé avec OB = 0,25 m) : partiel si c'est cohérent avec le bras de levier écrit juste avant (erreur reportée), sinon absent." }
       ]
     },
     // ---------------------------------------------------------------- meca-statique
@@ -489,8 +491,8 @@ window.SIP = window.SIP || {};
       ia: "Le vérin d'un portail, de poids négligé, est articulé en A sur le pilier et en B sur le portail. Il est en équilibre et ne subit que deux forces, en A et en B. La force en B vaut 300 N ; elle est dirigée le long du vérin, de B vers A. Donner la direction, le sens et la valeur (norme) de la force en A.",
       corrige: "Un solide en équilibre soumis à deux forces : elles sont <b>sur la même droite</b>, de <b>sens opposés</b> et de <b>même valeur</b>. La force en A est portée par la droite <b>(AB)</b>, l'axe du vérin, dirigée <b>de A vers B</b>, et vaut <b>300 N</b>.",
       elements: [
-        { t: "Direction : la droite (AB), l'axe du vérin ; sens : de A vers B (opposé à la force en B)", p: 1 },
-        { t: "Valeur : 300 N (même valeur que la force en B)", p: 1 }
+        { t: "Direction : la droite (AB), l'axe du vérin ; sens : de A vers B (opposé à la force en B)", p: 1, aide: "Il faut la direction ET le sens. Direction juste : la droite (AB), l'axe du vérin, le long du vérin. Sens juste : de A vers B, vers B, vers le portail, opposé à la force en B. Les deux justes : present ; une seule des deux : partiel ; aucune : absent. « À gauche », « horizontale » ou « diagonale » ne sont pas une direction (il faut la droite (AB) ou l'axe du vérin). « De B vers A », « vers A », « vers le pilier » : sens faux." },
+        { t: "Valeur : 300 N (même valeur que la force en B)", p: 1, aide: "300 N : present, sans calcul exigé (même valeur que la force en B). 300 sans unité : partiel. Une autre valeur : absent." }
       ]
     },
     {
@@ -500,8 +502,8 @@ window.SIP = window.SIP || {};
       ia: "Une passerelle (poids négligé) est posée sur deux appuis A et B, distants de 3,00 m. Un pêcheur appuie dessus avec P = 600 N, vertical vers le bas, à 1,00 m de A. Les appuis exercent N_A en A et N_B en B, verticaux vers le haut. La passerelle est en équilibre. Écrire les moments en A pour trouver N_B, puis la somme des forces pour trouver N_A.",
       corrige: `Moments en A (sens trigonométrique positif) : 3,00 × N<sub>B</sub> − 1,00 × 600 = 0, donc N<sub>B</sub> = ${fr("1,00 × 600", "3,00")} = <b>200 N</b>. Somme des forces : N<sub>A</sub> + N<sub>B</sub> − 600 = 0, donc N<sub>A</sub> = 600 − 200 = <b>400 N</b> (l'appui le plus proche du pêcheur porte le plus).`,
       elements: [
-        { t: "NB = 200 N (moments en A : 3,00 × NB − 1,00 × 600 = 0)", p: 1 },
-        { t: "NA = 400 N (somme des forces : NA + NB = 600 N)", p: 1 }
+        { t: "NB = 200 N (moments en A : 3,00 × NB − 1,00 × 600 = 0)", p: 1, aide: "200 N avec l'équation des moments en A (3,00 × NB = 1,00 × 600, ou équivalent) : present. 200 N sans équation : partiel. Sans unité : partiel. 400 N ou 600 N : absent." },
+        { t: "NA = 400 N (somme des forces : NA + NB = 600 N)", p: 1, aide: "400 N avec la somme des forces (NA + NB = 600 N, ou NA = 600 − NB) : present. 400 N sans calcul : partiel. NB faux mais NA = 600 − NB bien calculé avec lui : present (erreur reportée)." }
       ]
     },
     {
@@ -511,8 +513,8 @@ window.SIP = window.SIP || {};
       ia: "Un chariot et sa pirogue (poids P = 2 500 N) remontent une cale en pente d'angle α = 10° à vitesse constante, sans frottement. Trois forces : le poids P, l'effort T du câble (parallèle à la pente, vers le haut) et l'appui N de la cale (perpendiculaire à la pente). Rappel : le poids se partage en P·sin α le long de la pente et P·cos α perpendiculaire à la pente. Calculer T, puis N.",
       corrige: "Vitesse constante : on applique le PFS. Le long de la pente : T − P·sin α = 0, donc T = 2 500 × sin 10° = <b>434 N</b>. Perpendiculaire à la pente : N − P·cos α = 0, donc N = 2 500 × cos 10° = 2 462, soit <b>N = 2 460 N</b>.",
       elements: [
-        { t: "T = 434 N (T = P·sin α = 2 500 × sin 10°)", p: 1 },
-        { t: "N = 2 460 N (N = P·cos α = 2 500 × cos 10° = 2 462 N)", p: 1 }
+        { t: "T = 434 N (T = P·sin α = 2 500 × sin 10°)", p: 1, aide: "434 N (ou 434,1 N) avec le calcul 2 500 × sin 10° : present. Résultat juste sans calcul : partiel. 2 462 N (calculé avec cos) : absent. −1 360 N (calculatrice en radians) : absent." },
+        { t: "N = 2 460 N (N = P·cos α = 2 500 × cos 10° = 2 462 N)", p: 1, aide: "2 460 N (ou 2 462 N) avec le calcul 2 500 × cos 10° : present. Résultat juste sans calcul : partiel. 434 N (calculé avec sin) : absent." }
       ]
     },
     // ---------------------------------------------------------------- meca-frottement
@@ -523,8 +525,8 @@ window.SIP = window.SIP || {};
       ia: "Robot sumo qui pousse un adversaire. L'appui de la piste sur les roues motrices du robot vaut N = 8,00 N. Coefficient d'adhérence entre la gomme des roues et la piste : f = 0,70. L'adversaire résiste avec une force de 6,0 N. Calculer la poussée maximale du robot avant que ses roues patinent. Le robot peut-il pousser l'adversaire ?",
       corrige: "Loi de Coulomb : la poussée maximale vaut F<sub>max</sub> = f × N = 0,70 × 8,00 = <b>5,60 N</b>. 6,0 N &gt; 5,60 N : les roues <b>patinent</b>, le robot <b>ne peut pas</b> pousser l'adversaire.",
       elements: [
-        { t: "Poussée maximale Fmax = f × N = 0,70 × 8,00 = 5,60 N", p: 1 },
-        { t: "6,0 N > 5,60 N : les roues patinent (glissent), le robot ne peut pas pousser l'adversaire", p: 1 }
+        { t: "Poussée maximale Fmax = f × N = 0,70 × 8,00 = 5,60 N", p: 1, aide: "5,60 N (ou 5,6 N) avec le calcul f × N : present. Résultat juste sans calcul : partiel. Sans unité : partiel. f + N, N sur f ou f sur N : absent." },
+        { t: "6,0 N > 5,60 N : les roues patinent (glissent), le robot ne peut pas pousser l'adversaire", p: 1, aide: "La conclusion juste avec la comparaison de 6,0 N à Fmax : present. Conclusion juste sans comparaison : partiel. Conclusion cohérente avec un Fmax faux écrit juste avant : present (erreur reportée). Conclusion contraire : absent." }
       ],
       variante: (r) => {
         const N = choix(r, [6, 7, 8, 9, 10, 12]), f = choix(r, [0.5, 0.6, 0.7, 0.8, 0.9]), Fmax = f * N, pousse = r() < 0.5;
@@ -537,8 +539,8 @@ window.SIP = window.SIP || {};
           corrige: `Loi de Coulomb : la poussée maximale vaut F<sub>max</sub> = f × N = ${sf} × ${sN} = <b>${sF} N</b>. `
             + (pousse ? `${sR} N &lt; ${sF} N : les roues <b>ne patinent pas</b>, le robot <b>peut</b> pousser l'adversaire.` : `${sR} N &gt; ${sF} N : les roues <b>patinent</b>, le robot <b>ne peut pas</b> pousser l'adversaire.`),
           elements: [
-            { t: `Poussée maximale Fmax = f × N = ${sf} × ${sN} = ${sF} N`, p: 1 },
-            { t: pousse ? `${sR} N < ${sF} N : les roues ne patinent pas, le robot peut pousser l'adversaire` : `${sR} N > ${sF} N : les roues patinent (glissent), le robot ne peut pas pousser l'adversaire`, p: 1 }
+            { t: `Poussée maximale Fmax = f × N = ${sf} × ${sN} = ${sF} N`, p: 1, aide: `${sF} N avec le calcul f × N : present. Résultat juste sans calcul : partiel. Sans unité : partiel. f + N, N sur f ou f sur N : absent.` },
+            { t: pousse ? `${sR} N < ${sF} N : les roues ne patinent pas, le robot peut pousser l'adversaire` : `${sR} N > ${sF} N : les roues patinent (glissent), le robot ne peut pas pousser l'adversaire`, p: 1, aide: `La conclusion juste avec la comparaison de ${sR} N à Fmax : present. Conclusion juste sans comparaison : partiel. Conclusion cohérente avec un Fmax faux écrit juste avant : present (erreur reportée). Conclusion contraire : absent.` }
           ]
         };
       }
@@ -550,8 +552,8 @@ window.SIP = window.SIP || {};
       ia: "Essai : on incline une planche ; la glacière posée dessus commence à glisser quand l'angle atteint 22°. Ensuite, la même glacière est posée sur le pont d'un bateau qui penche de 15°. Calculer le coefficient d'adhérence f. La glacière glisse-t-elle sur le pont incliné de 15° ?",
       corrige: "À l'angle où ça commence à glisser, f = tan φ : f = tan 22° = <b>0,404</b>. Sur le pont : 15° &lt; 22° (ou tan 15° = 0,268 &lt; 0,404) : la glacière <b>ne glisse pas</b>.",
       elements: [
-        { t: "f = tan 22° = 0,404", p: 1 },
-        { t: "15° < 22° (ou tan 15° = 0,268 < 0,404) : la glacière ne glisse pas", p: 1 }
+        { t: "f = tan 22° = 0,404", p: 1, aide: "0,404 (ou 0,40) avec le calcul tan 22° : present. Valeur juste sans calcul : partiel. sin 22° ou cos 22° : absent. Calculatrice en radians : absent." },
+        { t: "15° < 22° (ou tan 15° = 0,268 < 0,404) : la glacière ne glisse pas", p: 1, aide: "La conclusion juste avec une comparaison (des angles 15° et 22°, ou des tangentes) : present. Conclusion juste sans comparaison : partiel. Conclusion contraire : absent." }
       ],
       variante: (r) => {
         const phi = entre(r, 16, 30);
@@ -564,8 +566,8 @@ window.SIP = window.SIP || {};
           corrige: `À l'angle où ça commence à glisser, f = tan φ : f = tan ${phi}° = <b>${sf}</b>. Sur le pont : `
             + (glisse ? `${th}° &gt; ${phi}° (ou tan ${th}° = ${st} &gt; ${sf}) : la glacière <b>glisse</b>.` : `${th}° &lt; ${phi}° (ou tan ${th}° = ${st} &lt; ${sf}) : la glacière <b>ne glisse pas</b>.`),
           elements: [
-            { t: `f = tan ${phi}° = ${sf}`, p: 1 },
-            { t: glisse ? `${th}° > ${phi}° (ou tan ${th}° = ${st} > ${sf}) : la glacière glisse` : `${th}° < ${phi}° (ou tan ${th}° = ${st} < ${sf}) : la glacière ne glisse pas`, p: 1 }
+            { t: `f = tan ${phi}° = ${sf}`, p: 1, aide: `${sf} avec le calcul tan ${phi}° : present. Valeur juste sans calcul : partiel. sin ${phi}° ou cos ${phi}° : absent. Calculatrice en radians : absent.` },
+            { t: glisse ? `${th}° > ${phi}° (ou tan ${th}° = ${st} > ${sf}) : la glacière glisse` : `${th}° < ${phi}° (ou tan ${th}° = ${st} < ${sf}) : la glacière ne glisse pas`, p: 1, aide: `La conclusion juste avec une comparaison (des angles ${th}° et ${phi}°, ou des tangentes) : present. Conclusion juste sans comparaison : partiel. Conclusion contraire : absent.` }
           ]
         };
       }
@@ -577,8 +579,8 @@ window.SIP = window.SIP || {};
       ia: "La roue arrière d'un scooter freine sur une route mouillée. Au contact B, le sol appuie avec N = 1 000 N et doit retenir la roue avec T = 600 N. Coefficient d'adhérence sur route mouillée : f = 0,50. Calculer T sur N, puis dire si la roue glisse.",
       corrige: `${fr("T", "N")} = ${fr("600", "1 000")} = <b>0,600</b>. 0,600 &gt; f = 0,50 : l'action du sol sort du cône d'adhérence, <b>la roue glisse</b> (elle se bloque et dérape).`,
       elements: [
-        { t: "T sur N = 600 sur 1 000 = 0,600", p: 1 },
-        { t: "0,600 > f = 0,50 : la roue glisse (l'équilibre est impossible)", p: 1 }
+        { t: "T sur N = 600 sur 1 000 = 0,600", p: 1, aide: "0,600 (ou 0,6) avec le calcul 600 sur 1 000 : present. Valeur juste sans calcul : partiel. N sur T (1,67) : absent." },
+        { t: "0,600 > f = 0,50 : la roue glisse (l'équilibre est impossible)", p: 1, aide: "La conclusion juste avec la comparaison de T sur N à f = 0,50 : present. Conclusion juste sans comparaison : partiel. Conclusion cohérente avec un T sur N faux écrit juste avant : present (erreur reportée). Conclusion contraire : absent." }
       ],
       variante: (r) => {
         const N = choix(r, [800, 900, 1000, 1100, 1200]), seche = r() < 0.4, f = seche ? choix(r, [0.7, 0.8]) : choix(r, [0.4, 0.5, 0.6]);
@@ -592,8 +594,8 @@ window.SIP = window.SIP || {};
           corrige: `${fr("T", "N")} = ${fr(sT, sN)} = <b>${sq}</b>. `
             + (glisse ? `${sq} &gt; f = ${sf} : l'action du sol sort du cône d'adhérence, <b>la roue glisse</b> (elle se bloque et dérape).` : `${sq} &lt; f = ${sf} : l'action du sol reste dans le cône d'adhérence, <b>la roue ne glisse pas</b> (le scooter freine sans déraper).`),
           elements: [
-            { t: `T sur N = ${sT} sur ${sN} = ${sq}`, p: 1 },
-            { t: glisse ? `${sq} > f = ${sf} : la roue glisse (l'équilibre est impossible)` : `${sq} < f = ${sf} : la roue ne glisse pas (l'action du sol reste dans le cône d'adhérence)`, p: 1 }
+            { t: `T sur N = ${sT} sur ${sN} = ${sq}`, p: 1, aide: `${sq} avec le calcul ${sT} sur ${sN} : present. Valeur juste sans calcul : partiel. N sur T : absent.` },
+            { t: glisse ? `${sq} > f = ${sf} : la roue glisse (l'équilibre est impossible)` : `${sq} < f = ${sf} : la roue ne glisse pas (l'action du sol reste dans le cône d'adhérence)`, p: 1, aide: `La conclusion juste avec la comparaison de T sur N à f = ${sf} : present. Conclusion juste sans comparaison : partiel. Conclusion cohérente avec un T sur N faux écrit juste avant : present (erreur reportée). Conclusion contraire : absent.` }
           ]
         };
       }
@@ -606,8 +608,8 @@ window.SIP = window.SIP || {};
       ia: "Programme Python :\nniveaux = [12, 15, 9, 14]   # hauteurs d'eau en cm\nfor i in range(3):\n    print(niveaux[i])\nCombien de tours fait la boucle ? Quelles valeurs le programme affiche-t-il ?",
       corrige: "<code>range(3)</code> donne i = 0, 1, 2 : <b>3 tours</b>. Le premier élément d'une liste a l'indice 0 : le programme affiche <b>12, 15 et 9</b>. La valeur 14 (indice 3) n'est pas affichée.",
       elements: [
-        { t: "La boucle fait 3 tours (i = 0, 1, 2)", p: 1 },
-        { t: "Affiche 12, 15 et 9 (niveaux[0], niveaux[1], niveaux[2] ; 14 n'est pas affiché)", p: 1 }
+        { t: "La boucle fait 3 tours (i = 0, 1, 2)", p: 1, aide: "3 tours : present, sans justification exigée. 2 ou 4 tours : absent." },
+        { t: "Affiche 12, 15 et 9 (niveaux[0], niveaux[1], niveaux[2] ; 14 n'est pas affiché)", p: 1, aide: "Les trois valeurs 12, 15 et 9 : present (l'ordre n'est pas exigé). Seulement deux d'entre elles, ou 14 affiché en plus : partiel. 15, 9, 14 ou une autre liste : absent." }
       ]
     },
     {
@@ -617,8 +619,8 @@ window.SIP = window.SIP || {};
       ia: "Programme Python :\nniveau = 120        # eau dans la cuve, en cm\nn = 0\nwhile niveau > 50:\n    niveau = niveau - 30\n    n = n + 1\nprint(n, niveau)\nFaire tourner le programme à la main. Que valent n et niveau à la fin ?",
       corrige: "Le test est fait avant chaque tour : 120 &gt; 50 → 90 ; 90 &gt; 50 → 60 ; 60 &gt; 50 → 30 ; 30 &gt; 50 est faux, on sort. <b>n = 3</b> et <b>niveau = 30</b> (et pas 50) : le programme affiche <code>3 30</code>.",
       elements: [
-        { t: "n = 3 (3 tours : 120 → 90 → 60 → 30)", p: 1 },
-        { t: "niveau = 30 à la fin (30 > 50 est faux, on sort ; pas 50)", p: 1 }
+        { t: "n = 3 (3 tours : 120 → 90 → 60 → 30)", p: 1, aide: "n = 3 : present, sans justification exigée. 2 ou 4 : absent." },
+        { t: "niveau = 30 à la fin (30 > 50 est faux, on sort ; pas 50)", p: 1, aide: "niveau = 30 : present, sans justification exigée. 50, 60 ou 0 : absent." }
       ]
     },
     {
@@ -628,8 +630,8 @@ window.SIP = window.SIP || {};
       ia: "Algorigramme de la pompe d'une cuve : Début → lire h (hauteur d'eau, en cm) → test « h < 20 ? » → si oui : pompe ← arrêt ; si non : pompe ← marche → Fin. La mesure donne h = 35 cm. Que devient pompe ? Écrire la ligne Python qui traduit le losange.",
       corrige: "35 &lt; 20 est faux : on suit la branche « non », <b>pompe = marche</b>. Le losange devient <b><code>if h &lt; 20:</code></b> (la branche « non » devient le <code>else:</code>).",
       elements: [
-        { t: "pompe prend la valeur « marche » (35 < 20 est faux : branche non)", p: 1 },
-        { t: "Ligne Python : if h < 20:", p: 1 }
+        { t: "pompe prend la valeur « marche » (35 < 20 est faux : branche non)", p: 1, aide: "« marche » (la pompe marche, démarre ou est en marche) : present, sans justification exigée. « arrêt » : absent." },
+        { t: "Ligne Python : if h < 20:", p: 1, aide: "if h < 20: (les espaces ne comptent pas) : present. Sans les deux-points : partiel. Test inversé (if h >= 20:, if h > 20:) ou while à la place de if : partiel. = ou == à la place de < : absent." }
       ]
     },
     // ---------------------------------------------------------------- info-codage
@@ -640,8 +642,8 @@ window.SIP = window.SIP || {};
       ia: "Un capteur envoie l'octet (0100 1101) en binaire. Les poids des bits, de gauche à droite : 128, 64, 32, 16, 8, 4, 2, 1. Rappel : en hexadécimal, A = 10, B = 11, C = 12, D = 13, E = 14, F = 15. Convertir cet octet en décimal, puis en hexadécimal.",
       corrige: "Bits à 1 : poids 64, 8, 4 et 1. 64 + 8 + 4 + 1 = <b>77</b>. En hexadécimal, on coupe en deux paquets de 4 bits : 0100 → 4 ; 1101 → 8 + 4 + 1 = 13 → D. L'octet vaut <b>4D</b>.",
       elements: [
-        { t: "(0100 1101) en binaire = 77 en décimal (64 + 8 + 4 + 1)", p: 1 },
-        { t: "En hexadécimal : 4D (0100 → 4 ; 1101 → 13 → D)", p: 1 }
+        { t: "(0100 1101) en binaire = 77 en décimal (64 + 8 + 4 + 1)", p: 1, aide: "77 avec le calcul des poids (64 + 8 + 4 + 1) : present. 77 sans calcul : partiel. Une autre valeur : absent." },
+        { t: "En hexadécimal : 4D (0100 → 4 ; 1101 → 13 → D)", p: 1, aide: "4D (ou 0x4D, 4Dh) : present, sans justification exigée. D4 ou 413 : absent." }
       ]
     },
     {
@@ -651,8 +653,8 @@ window.SIP = window.SIP || {};
       ia: "Un capteur mesure la hauteur d'eau d'une cuve de 0 à 200 cm, avec une résolution de 1 cm (au centimètre près). Rappel : 2^6 = 64, 2^7 = 128, 2^8 = 256, 2^9 = 512. Combien de valeurs différentes faut-il coder ? Combien de bits au minimum ?",
       corrige: "De 0 à 200 cm au centimètre près : <b>201 valeurs</b> (on compte le zéro). 2<sup>7</sup> = 128 est trop petit ; 2<sup>8</sup> = 256 ≥ 201 : il faut <b>8 bits</b>, soit 1 octet.",
       elements: [
-        { t: "201 valeurs (de 0 à 200 cm, en comptant le 0)", p: 1 },
-        { t: "8 bits au minimum (2⁷ = 128 < 201 ≤ 2⁸ = 256), soit 1 octet", p: 1 }
+        { t: "201 valeurs (de 0 à 200 cm, en comptant le 0)", p: 1, aide: "201 : present, sans calcul exigé. 200 (le zéro oublié) ou 256 : absent." },
+        { t: "8 bits au minimum (2⁷ = 128 < 201 ≤ 2⁸ = 256), soit 1 octet", p: 1, aide: "8 bits justifié (2⁷ = 128 < 201 ≤ 2⁸ = 256, ou « 128 trop petit, 256 suffit ») : present. 8 bits sans justification : partiel. « 1 octet » n'est pas exigé. 7 bits ou 9 bits : absent. Nombre de valeurs faux mais nombre de bits cohérent avec lui et justifié : present (erreur reportée)." }
       ]
     },
     {
@@ -662,8 +664,8 @@ window.SIP = window.SIP || {};
       ia: "Trame de 4 octets envoyée par le capteur d'une cuve, en hexadécimal : octet 0 = A5 (début) ; octet 1 = 1C (température, en °C) ; octet 2 = 4B (hauteur d'eau, en cm) ; octet 3 = 0D (fin). Rappel : A = 10, B = 11, C = 12, D = 13, E = 14, F = 15. Décoder la température et la hauteur d'eau, avec leur unité.",
       corrige: "Le chiffre de gauche pèse 16, celui de droite pèse 1. Température : 1C = 1 × 16 + 12 = <b>28 °C</b>. Hauteur d'eau : 4B = 4 × 16 + 11 = <b>75 cm</b>.",
       elements: [
-        { t: "Température : 1C = 1 × 16 + 12 = 28 °C", p: 1 },
-        { t: "Hauteur d'eau : 4B = 4 × 16 + 11 = 75 cm", p: 1 }
+        { t: "Température : 1C = 1 × 16 + 12 = 28 °C", p: 1, aide: "28 °C avec le calcul 1 × 16 + 12 : present. 28 °C sans calcul, ou 28 sans unité : partiel. 112, 22 ou 1C laissé tel quel : absent." },
+        { t: "Hauteur d'eau : 4B = 4 × 16 + 11 = 75 cm", p: 1, aide: "75 cm avec le calcul 4 × 16 + 11 : present. 75 cm sans calcul, ou 75 sans unité : partiel. 411 ou 4B laissé tel quel : absent." }
       ]
     }
   ];
@@ -671,12 +673,12 @@ window.SIP = window.SIP || {};
   // espaces insécables (le caractère, pas l'entité : flash.js envoie le texte brut à l'IA) entre un nombre
   // et son unité, et dans les milliers, pour que « 16,0 % » ou « 2 460 N » ne soient pas coupés en fin de ligne
   const insec = (h) => h.replace(/(\d) (?=\d{3}(?!\d))/g, "$1\u00a0").replace(/(\d) (?=(?:%|N·m|N|m\/s|m³\/h|m|s|cm|°C|kg|W|V)(?![A-Za-zÀ-ÿ³]))/g, "$1\u00a0");
-  SIP.FLASH_BANQUE.forEach((q) => { q.enonce = insec(q.enonce); q.corrige = insec(q.corrige); q.elements.forEach((e) => { e.t = insec(e.t); }); });
+  SIP.FLASH_BANQUE.forEach((q) => { q.enonce = insec(q.enonce); q.corrige = insec(q.corrige); q.elements.forEach((e) => { e.t = insec(e.t); if (e.aide) e.aide = insec(e.aide); }); });
   // une question avec d'autres valeurs (flash relancé « avec d'autres valeurs ») ; null si elle n'a pas de valeurs qui changent
   SIP.FLASH_VARIANTE = (q, r) => {
     if (!q || typeof q.variante !== "function") return null;
     const v = q.variante(r);
-    v.enonce = insec(v.enonce); v.corrige = insec(v.corrige); v.elements.forEach((e) => { e.t = insec(e.t); });
+    v.enonce = insec(v.enonce); v.corrige = insec(v.corrige); v.elements.forEach((e) => { e.t = insec(e.t); if (e.aide) e.aide = insec(e.aide); });
     return Object.assign({}, q, v, { variee: true });
   };
 })(window.SIP);
