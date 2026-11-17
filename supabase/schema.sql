@@ -771,3 +771,36 @@ revoke execute on function public.flash_montrer(text, date, boolean) from public
 grant execute on function public.flash_montrer(text, date, boolean) to authenticated;
 revoke execute on function public.flash_rallonger(text, int) from public, anon;
 grant execute on function public.flash_rallonger(text, int) to authenticated;
+
+-- Professeur connecté : revoir une copie de flash (espace prof, onglet Flashs). p_points = [{ k, pts, par, elements }] :
+-- les points de la question k (0 ≤ pts ≤ son barème), donnés à la main (par = 'prof') ou après une recorrection par
+-- l'IA (par = 'ia', avec les verdicts par élément). La note de la copie est recalculée ; la date de la revue est gardée.
+create or replace function public.prof_flash_noter(p_id bigint, p_points jsonb)
+returns json language plpgsql security definer set search_path = public as $$
+declare d jsonb; m text; x jsonb; k int; b numeric; v numeric; s numeric := 0; mx numeric := 0; i int; n int;
+begin
+  if not public.is_prof() then raise exception 'NON_AUTORISE'; end if;
+  select details, module into d, m from entrainements where id = p_id for update;
+  if not found then raise exception 'INTROUVABLE'; end if;
+  if m !~ '^flash-' or d is null or jsonb_typeof(d) <> 'array' then raise exception 'PAS_UN_FLASH'; end if;
+  if p_points is null or jsonb_typeof(p_points) <> 'array' or jsonb_array_length(p_points) > 20 then raise exception 'REQUETE'; end if;
+  n := jsonb_array_length(d);
+  for x in select value from jsonb_array_elements(p_points) loop
+    k := (x->>'k')::int; v := (x->>'pts')::numeric;
+    if k is null or k < 0 or k >= n then raise exception 'QUESTION'; end if;
+    b := (d->k->>'bareme')::numeric;
+    if b is null or v is null or v < 0 or v > b then raise exception 'POINTS'; end if;
+    d := jsonb_set(d, array[k::text], (d->k)
+      || jsonb_build_object('pts', v, 'erreurs', case when v < b then 1 else 0 end,
+                            'par', case when x->>'par' = 'ia' then 'ia' else 'prof' end, 'revu_le', now())
+      || case when jsonb_typeof(x->'elements') = 'array' and jsonb_array_length(x->'elements') <= 8
+              then jsonb_build_object('elements', x->'elements') else '{}'::jsonb end);
+  end loop;
+  for i in 0 .. n - 1 loop
+    s := s + coalesce((d->i->>'pts')::numeric, 0); mx := mx + coalesce((d->i->>'bareme')::numeric, 0);
+  end loop;
+  update entrainements set details = d, score = s, score_max = mx where id = p_id;
+  return json_build_object('ok', true, 'score', s, 'score_max', mx, 'details', d);
+end $$;
+revoke execute on function public.prof_flash_noter(bigint, jsonb) from public, anon;
+grant execute on function public.prof_flash_noter(bigint, jsonb) to authenticated;
