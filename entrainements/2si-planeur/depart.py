@@ -5,8 +5,7 @@ from manifold3d import CrossSection, Manifold
 XA, CA, EA, BA = 88, 45, 0.8, 200          # aile : bord d'attaque, corde, épaisseur, envergure
 XSt, CSt, ESt, BSt = 182, 25, 0.6, 80      # stabilisateur
 def corps(LN=40, HN=14):
-    return [(0, 0), (0, 10), (6, HN), (LN, HN), (LN + 12, 10), (140, 10), (150, 5), (180, 5), (180, 8), (210, 8), (210, 0),
-            (39, 0), (46, -7), (41, -7), (30, 0)]
+    return [(0, 0), (0, 10), (6, HN), (LN, HN), (LN + 12, 10), (140, 10), (150, 5), (180, 5), (180, 8), (210, 8), (210, 0)]
 DERIVE = [(190, 8), (210, 8), (210, 32), (202, 32)]
 TROU = (12, 8, 4.2)
 def fente(x0, y0, x1, y1, h=1.0):

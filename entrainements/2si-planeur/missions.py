@@ -15,21 +15,19 @@ def badge(x, y, t):
 C = D.corps(); HOOK = [(30, 0), (39, 0), (46, -7), (41, -7)]
 
 # ----- dessin A : le contour coté -----
-oy = 120; A = ['<svg viewBox="0 0 720 235" role="img" aria-label="Contour du fuselage de départ avec ses cotes">']
+oy = 105; A = ['<svg viewBox="0 0 720 200" role="img" aria-label="Contour du fuselage de départ avec ses cotes">']
 A.append(poly(C, oy, fill="var(--accent-soft)", stroke="currentColor", stroke_width="2.5", stroke_linejoin="round"))
-ry = oy + 62
+ry = oy + 40
 A.append(f'<line x1="{OX}" y1="{ry}" x2="{OX + S*210}" y2="{ry}" stroke="currentColor" stroke-width="1.2"/>')
 for x in (0, 6, 40, 52, 140, 150, 180, 210):
     px = OX + S * x; ytop = oy - S * max(y for (xx, y) in C if xx == x)
     A.append(f'<line x1="{px}" y1="{ytop}" x2="{px}" y2="{ry + 6}" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/>')
     dx = -5 if x == 0 else 5 if x == 6 else -4 if x in (40, 140) else 5 if x in (52, 150) else 0
     A.append(txt(px + dx, ry + 21, str(x), size=13, w="600"))
-px = OX + S * 30; A.append(f'<line x1="{px}" y1="{oy}" x2="{px}" y2="{ry + 6}" stroke="var(--bad)" stroke-width="0.8" stroke-dasharray="3 3"/>' + txt(px, ry + 21, "30", size=13, w="600", fill="var(--bad)"))
 A.append(txt(OX + S * 105, ry + 42, "Nombres du bas : distance depuis le bout du nez, en mm", size=13))
 for (x, y, t) in [(3, 15.5, "10"), (23, 17.5, "14"), (96, 13.5, "10"), (165, 8.5, "5"), (195, 11.5, "8")]:
     A.append(badge(*P(x, y, oy), t))
 A.append(txt(OX + S * 105, 22, "Nombres encadrés : hauteur au-dessus du dessous du fuselage, en mm", size=13))
-A.append(txt(*P(60, -6.5, oy), "crochet imposé : il commence à 30 mm du nez", anchor="start", size=12, fill="var(--bad)"))
 A.append('</svg>'); DESSIN_A = "".join(A)
 
 # ----- dessin B : fentes, trou de lest, dérive -----
@@ -62,6 +60,10 @@ PLAQUE = ('<svg viewBox="0 0 720 150" role="img" aria-label="Plaque de 60 par 20
           + txt(210, 124, "60", size=14, w="600") + txt(104, 75, "20", size=14, w="600") + txt(210, 28, "1. l'esquisse cotée", size=13)
           + '<path d="M335 70 h50 m-10 -7 l10 7 -10 7" fill="none" stroke="currentColor" stroke-width="2"/><g fill="var(--accent-soft)" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"><path d="M420 55 h180 v60 h-180 z"/><path d="M420 55 l15 -15 h180 l-15 15 z"/><path d="M600 55 l15 -15 v60 l-15 15 z"/></g>'
           + txt(517, 28, "2. la pièce après extrusion de 5", size=13) + '</svg>')
+BISEAU = ('<svg viewBox="0 0 720 150" role="img" aria-label="Plaque de 60 par 20 mm avec le coin en haut à gauche coupé en biseau"><path d="M246 40 H390 V100 H210 V64 Z" fill="var(--accent-soft)" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>'
+          '<path d="M210 40 H246 M210 40 V64" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3"/><path d="M210 64 L246 40" stroke="var(--bad)" stroke-width="3.5"/>'
+          + txt(228, 30, "12", size=14, w="600", fill="var(--bad)") + txt(194, 57, "8", size=14, w="600", fill="var(--bad)") + txt(300, 124, "60", size=14, w="600") + txt(408, 75, "20", size=14, w="600")
+          + txt(540, 60, "le trait rouge remplace", "middle", 13) + txt(540, 78, "le coin en pointillés", "middle", 13) + '</svg>')
 m = lambda n, t, but: f'<div class="carte"><div class="eyebrow">Mission {n}</div><h2 style="margin-top:.1em">{t}</h2><p class="discret" style="margin-top:0">{but}</p>'
 ok = lambda t: f'<p class="astuce"><b>Mission réussie si</b> {t}</p></div>'
 vf, va, vs = J['mf'] / 1.24, J['ma'] / 1.24, J['ms'] / 1.24
@@ -75,7 +77,7 @@ SECTION = f'''
       <li>Ouvre <a href="https://cad.onshape.com" target="_blank" rel="noopener">cad.onshape.com</a>, connecte-toi, puis <b>Créer → Document</b>. Nomme-le <code>Planeur – équipe …</code>.</li>
       <li>Clique sur <b>Partager</b> (en haut à droite) et ajoute l'adresse e-mail de tes coéquipiers et de ton professeur.</li>
     </ol>
-    <p class="astuce">Si un bouton est en anglais : Sketch = Esquisse, Line = Ligne, Dimension = Cote, Extrude = Extruder, Slot = Rainure, Export = Exporter.</p>
+    <p class="astuce">Si un bouton est en anglais : Sketch = Esquisse, Line = Ligne, Dimension = Cote, Extrude = Extruder, Trim = Ajuster, Slot = Rainure, Export = Exporter.</p>
   </div>
 
   {m(1, "Ma première pièce : une plaque", "Tu apprends les trois gestes de base : esquisse, cote, extrusion.")}
@@ -89,25 +91,26 @@ SECTION = f'''
     </ol>
   {ok("tu fais tourner à la souris une plaque de 60 × 20 × 5 mm, et si son esquisse a tous ses traits noirs.")}
 
-  {m(2, "Le crochet imposé", "Tu apprends à tracer des traits inclinés avec l'outil Ligne. Ce crochet sera sur tous les planeurs.")}
+  {m(2, "Un nez en biseau", "Tu apprends à tracer un trait incliné avec l'outil Ligne, et à modifier une pièce déjà faite.")}
+    {BISEAU}
     <ol class="pl-pas">
       <li>Double-clique sur <b>Esquisse 1</b> dans la liste à gauche : tu rouvres le dessin de ta plaque.</li>
-      <li>Avec l'outil <b>Ligne</b> (touche <kbd>L</kbd>), trace sous la plaque les 3 traits du crochet, en partant du côté du bas et en y revenant. Le dessin coté est dans l'onglet « Le défi ».</li>
-      <li>Mets les 4 cotes du crochet : <b>9</b> en haut, <b>5</b> en bas, <b>7</b> de hauteur, <b>7</b> de décalage vers l'arrière. Ajoute <b>30</b> entre le bord gauche de la plaque et le début du crochet.</li>
-      <li>Valide l'esquisse. La plaque se met à jour toute seule, avec son crochet.</li>
+      <li>Avec l'outil <b>Ligne</b> (touche <kbd>L</kbd>), trace un trait incliné qui coupe le coin en haut à gauche de la plaque.</li>
+      <li>Avec l'outil <b>Ajuster</b> (Trim, touche <kbd>M</kbd>), clique sur les deux petits bouts du coin pour les effacer.</li>
+      <li>Mets les 2 cotes du biseau : <b>12</b> sur le côté du haut, <b>8</b> sur le côté gauche.</li>
+      <li>Valide l'esquisse. La pièce se met à jour toute seule.</li>
     </ol>
-  {ok("le crochet penche vers l'arrière de la plaque (pas vers l'avant) et si tous ses traits sont noirs.")}
+  {ok("le coin de ta plaque est coupé, si tous les traits sont noirs, et si la pièce a changé sans que tu refasses l'extrusion.")}
 
   {m(3, "Le fuselage de départ : le contour", "Tu dessines le vrai fuselage, vu de côté, en un seul contour fermé.")}
     {DESSIN_A}
     <ol class="pl-pas">
       <li>En bas de l'écran, clique sur <b>+</b> puis <b>Créer un atelier de pièces</b>. Nomme-le <code>Fuselage</code>.</li>
-      <li>Plan <b>Face</b> → <b>Esquisse</b>. Avec l'outil <b>Ligne</b>, pars de l'origine (c'est le bout du nez, en bas) et trace le contour <b>à peu près</b>, dans l'ordre du dessin, jusqu'à revenir à l'origine. Ne cherche pas la précision : ce sont les cotes qui la donneront.</li>
-      <li>Ajoute le crochet, comme en mission 2.</li>
+      <li>Plan <b>Face</b> → <b>Esquisse</b>. Avec l'outil <b>Ligne</b>, pars de l'origine (c'est le bout du nez, en bas) et trace le contour <b>à peu près</b>, dans l'ordre du dessin, jusqu'à revenir à l'origine. Les traits inclinés se tracent comme le biseau de la mission 2. Ne cherche pas la précision : ce sont les cotes qui la donneront.</li>
       <li>Outil <b>Cote</b> : pour chaque coin, clique sur l'origine puis sur le coin, et tape la distance du dessin. Tire la souris vers le bas pour une distance depuis le nez, vers la gauche pour une hauteur.</li>
       <li>Quand tous les traits sont noirs, valide, puis <b>Extruder</b> de <b>5 mm</b>.</li>
     </ol>
-  {ok("ton fuselage mesure 210 mm de long, si son dessous est plat et si le crochet est à 30 mm du nez.")}
+  {ok("ton fuselage mesure 210 mm de long, 14 mm de haut au nez, et si son dessous est plat.")}
 
   {m(4, "Les fentes, le trou de lest et la dérive", "Tu apprends à enlever de la matière, et à extruder une zone avec une autre épaisseur.")}
     {DESSIN_B}
@@ -154,13 +157,13 @@ SECTION = f'''
       <tr><td>Nez plus long ou plus haut</td><td>Le nez fait le lest tout seul</td><td>Dépasser 210 mm de long</td></tr>
       <tr><td>Aile avancée ou reculée</td><td>Le point d'équilibre change de place</td><td>Planeur qui cabre ou qui pique</td></tr>
       <tr><td>Stabilisateur plus grand</td><td>Vol plus stable</td><td>Queue plus lourde</td></tr>
-      <tr><td>Forme du fuselage, nom de l'équipe gravé</td><td>Des points d'esthétique</td><td>Aucun, si le crochet et le dessous plat ne bougent pas</td></tr>
+      <tr><td>Forme du fuselage, nom de l'équipe gravé</td><td>Des points d'esthétique</td><td>Aucun, tant que les deux fentes gardent leur taille</td></tr>
     </table></div>
     <ol class="pl-pas">
       <li>Fais d'abord une copie : clic droit sur l'onglet de l'atelier → <b>Dupliquer</b>. Tu gardes le planeur de départ intact.</li>
       <li>Change <b>une cote à la fois</b> (double-clic sur la cote dans l'esquisse), et regarde la pièce se mettre à jour.</li>
       <li>Après chaque changement, relève le nouveau volume et recalcule la masse.</li>
-      <li>Ne touche jamais au crochet, ni au dessous plat, ni à l'épaisseur de 5 mm du fuselage.</li>
+      <li>Garde l'épaisseur de 5 mm du fuselage et la largeur des deux fentes : sinon l'aile et le stabilisateur ne tiennent plus.</li>
     </ol>
     <p class="astuce"><b>La règle d'or</b> : le point d'équilibre du planeur fini doit tomber sous l'aile, vers son premier tiers en partant de l'avant. Si tu déplaces l'aile, le point d'équilibre à viser se déplace avec elle.</p>
   {ok("ton planeur est plus léger que le planeur de départ, respecte le cahier des charges, et si tu sais expliquer chaque changement.")}

@@ -52,7 +52,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 <main>
 <div class="eyebrow">Seconde SI · projet de l'année</div>
 <h1>Le planeur qui va le plus loin</h1>
-<p>Ton équipe conçoit un planeur dans Onshape. Il est imprimé en 3D, puis lancé par la catapulte de la classe. <b>Le même lanceur, le même réglage pour tous</b> : seule ta conception fait la différence.</p>
+<p>Ton équipe conçoit un planeur dans Onshape. Il est imprimé en 3D, puis lancé à la main. <b>La même ligne de départ et les mêmes règles pour tous</b> : c'est ta conception qui fait la différence.</p>
 
 <div class="pl-nav" role="tablist">
   <button role="tab" data-s="defi" aria-selected="true">Le défi</button>
@@ -68,14 +68,15 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <h2 style="margin-top:0">La règle du jeu</h2>
     <ul>
       <li>Équipes de 2 ou 3. Un planeur par équipe.</li>
-      <li>Chaque planeur est lancé <b>3 fois</b>, au même cran de la catapulte. On garde la <b>moyenne</b> des 3 distances.</li>
-      <li>La distance se mesure du bout de la catapulte jusqu'au <b>premier point où le planeur touche le sol</b>.</li>
+      <li>Chaque planeur est lancé <b>3 fois</b>, à la main, depuis la ligne de départ, par le même élève de l'équipe. On garde la <b>moyenne</b> des 3 distances.</li>
+      <li>Le lancer se fait <b>à plat, droit devant</b>, les pieds derrière la ligne. On pousse le planeur, on ne le jette pas vers le haut.</li>
+      <li>La distance se mesure de la ligne de départ jusqu'au <b>premier point où le planeur touche le sol</b>.</li>
       <li>Tu as droit à deux versions : la version 1, puis une version 2 améliorée après les essais.</li>
     </ul>
-    <svg viewBox="0 0 690 170" role="img" aria-label="La catapulte lance le planeur, on mesure la distance jusqu'au premier contact au sol">
+    <svg viewBox="0 0 690 170" role="img" aria-label="Le planeur est lancé depuis la ligne de départ, on mesure la distance jusqu'au premier contact au sol">
       <line x1="10" y1="150" x2="680" y2="150" stroke="currentColor" stroke-width="2"/>
-      <g stroke="currentColor" stroke-width="3" fill="none"><line x1="30" y1="148" x2="120" y2="118"/><line x1="100" y1="124" x2="100" y2="150"/></g>
-      <text x="62" y="166" font-size="13" fill="currentColor" text-anchor="middle">catapulte</text>
+      <line x1="122" y1="150" x2="122" y2="96" stroke="currentColor" stroke-width="3" stroke-dasharray="7 5"/><text x="116" y="88" font-size="13" fill="currentColor" text-anchor="middle">ligne de départ</text>
+      <circle cx="96" cy="84" r="0" fill="none"/>
       <path d="M122 114 C 260 20, 430 40, 560 148" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 5"/>
       <g transform="translate(300 52) rotate(-4)" fill="none" stroke="currentColor" stroke-width="2"><path d="M-30 0 h56 v-10 l-8 0 -6 10"/><path d="M-12 -4 l22 2" stroke-width="4"/></g>
       <g stroke="var(--bad)" stroke-width="1.5"><line x1="122" y1="158" x2="560" y2="158"/><line x1="122" y1="152" x2="122" y2="164"/><line x1="560" y1="152" x2="560" y2="164"/></g>
@@ -86,54 +87,23 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 
   <div class="carte">
     <h2 style="margin-top:0">Le cahier des charges</h2>
-    <p><b>Le besoin</b> : un planeur lancé par la catapulte de la classe, qui parcourt la plus grande distance possible. <b>Les contraintes</b> : un planeur qui ne respecte pas une de ces lignes n'est pas imprimé.</p>
+    <p><b>Le besoin</b> : un planeur lancé à la main, qui parcourt la plus grande distance possible. <b>Les contraintes</b> : un planeur qui ne respecte pas une de ces lignes n'est pas imprimé.</p>
     <div class="pl-scroll"><table class="pl">
       <tr><th class="n">N°</th><th>Ce qu'on demande</th><th>Limite</th><th>Pourquoi</th></tr>
       <tr><td class="n"><b>C1</b></td><td>Envergure (largeur totale de l'aile)</td><td class="n"><b>210 mm</b> maximum</td><td>Taille du plateau de l'imprimante</td></tr>
       <tr><td class="n"><b>C2</b></td><td>Longueur du fuselage</td><td class="n"><b>210 mm</b> maximum</td><td>Taille du plateau de l'imprimante</td></tr>
       <tr><td class="n"><b>C3</b></td><td>Masse totale, lest compris</td><td class="n"><b>30 g</b> maximum</td><td>Un planeur lourd tombe vite</td></tr>
       <tr><td class="n"><b>C4</b></td><td>Nombre de pièces</td><td class="n"><b>3</b> : fuselage, aile, stabilisateur</td><td>Montage sans colle, par les fentes</td></tr>
-      <tr><td class="n"><b>C5</b></td><td>Crochet sous le nez</td><td class="n"><b>imposé</b> (dessin ci-dessous)</td><td>Il doit entrer dans le canal de la catapulte</td></tr>
-      <tr><td class="n"><b>C6</b></td><td>Dessous du fuselage</td><td class="n"><b>plat</b>, sauf le crochet</td><td>Il repose sur le chariot de la catapulte</td></tr>
-      <tr><td class="n"><b>C7</b></td><td>Fuselage, aile et stabilisateur</td><td class="n">fuselage épais de <b>5 mm</b> ; aile et stabilisateur à <b>3 mm ou plus</b> au-dessus du dessous</td><td>Le bas du fuselage passe entre les deux parois du rail</td></tr>
-      <tr><td class="n"><b>C8</b></td><td>Épaisseur des pièces</td><td class="n">multiple de <b>0,2 mm</b></td><td>L'imprimante dépose des couches de 0,2 mm</td></tr>
-      <tr><td class="n"><b>C9</b></td><td>Impression</td><td class="n">chaque pièce <b>à plat</b>, sans support</td><td>Rapide, et ça ne rate pas</td></tr>
-      <tr><td class="n"><b>C10</b></td><td>Matière</td><td class="n">PLA, lest autorisé dans le nez</td><td>Une vis, de la pâte à fixe</td></tr>
+      <tr><td class="n"><b>C5</b></td><td>Épaisseur du fuselage</td><td class="n"><b>5 mm</b></td><td>Assez solide pour tenir l'aile, assez large pour le tenir entre deux doigts</td></tr>
+      <tr><td class="n"><b>C6</b></td><td>Épaisseur des pièces</td><td class="n">multiple de <b>0,2 mm</b></td><td>L'imprimante dépose des couches de 0,2 mm</td></tr>
+      <tr><td class="n"><b>C7</b></td><td>Impression</td><td class="n">chaque pièce <b>à plat</b>, sans support</td><td>Rapide, et ça ne rate pas</td></tr>
+      <tr><td class="n"><b>C8</b></td><td>Matière</td><td class="n">PLA, lest autorisé dans le nez</td><td>Une vis, de la pâte à fixe</td></tr>
     </table></div>
   </div>
 
-  <div class="carte">
-    <h2 style="margin-top:0">La pièce imposée : le crochet</h2>
-    <p>Le chariot de la catapulte pousse <b>derrière ce crochet</b>. Sa face arrière est inclinée : pendant la poussée, le chariot plaque le planeur vers le bas, et quand il s'arrête le planeur le quitte tout seul. Tu dessines le crochet dans la même esquisse que ton fuselage.</p>
-    <svg viewBox="0 0 640 250" role="img" aria-label="Dessin coté du crochet sous le nez du fuselage">
-      <defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
-      <text x="20" y="24" font-size="13" fill="currentColor">← nez (avant)</text><text x="620" y="24" font-size="13" fill="currentColor" text-anchor="end">queue (arrière) →</text>
-      <!-- fuselage vu de côté, échelle 10 px/mm -->
-      <path d="M60 40 H600 V120 H330 L400 190 H350 L240 120 H60 Z" fill="var(--accent-soft)" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
-      <text x="470" y="86" font-size="14" fill="currentColor" text-anchor="middle">fuselage (vu de côté)</text>
-      <text x="345" y="162" font-size="13" fill="currentColor" text-anchor="middle" transform="rotate(45 345 162)">crochet</text>
-      <g stroke="currentColor" stroke-width="1" fill="none">
-        <line x1="240" y1="104" x2="330" y2="104" marker-start="url(#fl)" marker-end="url(#fl)"/><line x1="240" y1="98" x2="240" y2="120"/><line x1="330" y1="98" x2="330" y2="120"/>
-        <line x1="350" y1="206" x2="400" y2="206" marker-start="url(#fl)" marker-end="url(#fl)"/><line x1="350" y1="192" x2="350" y2="212"/><line x1="400" y1="192" x2="400" y2="212"/>
-        <line x1="440" y1="120" x2="440" y2="190" marker-start="url(#fl)" marker-end="url(#fl)"/><line x1="404" y1="190" x2="448" y2="190"/><line x1="334" y1="120" x2="448" y2="120" stroke-dasharray="3 3"/>
-        <line x1="330" y1="222" x2="400" y2="222" marker-start="url(#fl)" marker-end="url(#fl)"/><line x1="330" y1="124" x2="330" y2="228" stroke-dasharray="3 3"/><line x1="400" y1="212" x2="400" y2="228"/>
-      </g>
-      <g font-size="14" fill="currentColor" font-weight="600" text-anchor="middle">
-        <text x="285" y="98">9</text><text x="375" y="203">5</text><text x="458" y="160" text-anchor="start">7</text><text x="365" y="240">7</text>
-      </g>
-      <text x="150" y="150" font-size="12" fill="currentColor" text-anchor="middle">30 mm au moins</text><text x="150" y="165" font-size="12" fill="currentColor" text-anchor="middle">entre le bout du nez</text><text x="150" y="180" font-size="12" fill="currentColor" text-anchor="middle">et le crochet</text>
-      <text x="530" y="170" font-size="13" fill="currentColor" text-anchor="middle">Cotes en mm</text><text x="530" y="188" font-size="13" fill="currentColor" text-anchor="middle">Épaisseur du crochet : 5 mm</text>
-    </svg>
-    <ul>
-      <li>En haut, le crochet fait <b>9 mm</b> de long. En bas, <b>5 mm</b>.</li>
-      <li>Il descend de <b>7 mm</b> sous le fuselage, et son bord arrière est décalé de <b>7 mm</b> vers la queue.</li>
-      <li>Son épaisseur (l'extrusion) est de <b>5 mm</b>, pas plus : le canal de la catapulte fait 6,2 mm de large.</li>
-    </ul>
-  </div>
-
   <details class="carte no-print"><summary><b>Pour le professeur : fichiers à imprimer</b></summary>
-    <p><b>Catapulte (version 2)</b> : <a href="2si-planeur/catapulte_rail_avant.stl" download>rail avant</a> · <a href="2si-planeur/catapulte_rail_arriere.stl" download>rail arrière</a> · <a href="2si-planeur/catapulte_chariot.stl" download>chariot</a> · <a href="2si-planeur/catapulte_eclisse.stl" download>manchon de jonction</a> · <a href="2si-planeur/catapulte_pied_avant.stl" download>pied avant</a> · <a href="2si-planeur/catapulte_pied_arriere.stl" download>pied arrière</a>. Il faut en plus deux tiges de 3 mm (clous ou vis M3 de 20 mm) et un élastique. Mode d'emploi en images : <a href="2si-planeur/img_1_ensemble.png" target="_blank" rel="noopener">1. montée et armée</a> · <a href="2si-planeur/img_2_montage.png" target="_blank" rel="noopener">2. le montage</a> · <a href="2si-planeur/img_3_coupe.png" target="_blank" rel="noopener">3. vue en coupe</a> · <a href="2si-planeur/img_4_apres.png" target="_blank" rel="noopener">4. après le tir</a> · <a href="2si-planeur/catapulte_v2_mode_emploi.png" target="_blank" rel="noopener">schéma de côté</a>.</p>
-    <p><b>Planeurs de démonstration (version 2)</b>, une aile et un stabilisateur pour les trois fuselages : <a href="2si-planeur/planeur_aile.stl" download>aile</a> · <a href="2si-planeur/planeur_stabilisateur.stl" download>stabilisateur</a> · <a href="2si-planeur/planeur_fuselage_reference.stl" download>fuselage de référence</a> · <a href="2si-planeur/planeur_fuselage_cabre.stl" download>fuselage qui cabre</a> · <a href="2si-planeur/planeur_fuselage_pique.stl" download>fuselage qui pique</a>. <a href="2si-planeur/planeurs_v2_apercu.png" target="_blank" rel="noopener">Aperçu</a>.</p>
+    <p><b>Catapulte (version 2), facultative</b> : les essais se font à la main, elle ne sert que si tu veux un lancer mécanique. Fichiers : <a href="2si-planeur/catapulte_rail_avant.stl" download>rail avant</a> · <a href="2si-planeur/catapulte_rail_arriere.stl" download>rail arrière</a> · <a href="2si-planeur/catapulte_chariot.stl" download>chariot</a> · <a href="2si-planeur/catapulte_eclisse.stl" download>manchon de jonction</a> · <a href="2si-planeur/catapulte_pied_avant.stl" download>pied avant</a> · <a href="2si-planeur/catapulte_pied_arriere.stl" download>pied arrière</a>. Il faut en plus deux tiges de 3 mm (clous ou vis M3 de 20 mm) et un élastique. Mode d'emploi en images : <a href="2si-planeur/img_1_ensemble.png" target="_blank" rel="noopener">1. montée et armée</a> · <a href="2si-planeur/img_2_montage.png" target="_blank" rel="noopener">2. le montage</a> · <a href="2si-planeur/img_3_coupe.png" target="_blank" rel="noopener">3. vue en coupe</a> · <a href="2si-planeur/img_4_apres.png" target="_blank" rel="noopener">4. après le tir</a> · <a href="2si-planeur/catapulte_v2_mode_emploi.png" target="_blank" rel="noopener">schéma de côté</a>.</p>
+    <p><b>Planeurs de démonstration (version 2)</b> (ils gardent un crochet sous le nez, qui sert aussi de prise pour les doigts), une aile et un stabilisateur pour les trois fuselages : <a href="2si-planeur/planeur_aile.stl" download>aile</a> · <a href="2si-planeur/planeur_stabilisateur.stl" download>stabilisateur</a> · <a href="2si-planeur/planeur_fuselage_reference.stl" download>fuselage de référence</a> · <a href="2si-planeur/planeur_fuselage_cabre.stl" download>fuselage qui cabre</a> · <a href="2si-planeur/planeur_fuselage_pique.stl" download>fuselage qui pique</a>. <a href="2si-planeur/planeurs_v2_apercu.png" target="_blank" rel="noopener">Aperçu</a>.</p>
     <p><b>Planeur de départ des élèves</b> (celui des missions 3 à 6, pour le tester avant eux) : <a href="2si-planeur/depart_fuselage.stl" download>fuselage</a> · <a href="2si-planeur/depart_aile.stl" download>aile</a> · <a href="2si-planeur/depart_stabilisateur.stl" download>stabilisateur</a>. Il lui faut environ 2,6 g de lest dans le trou du nez.</p>
     <p><a class="btn" href="2si-planeur-notes.html">Noter les équipes →</a></p>
     <p class="discret">Fuselages et chariot à 100 % de remplissage, posés à plat. L'aile s'imprime debout sur son bord d'attaque, avec une bordure d'adhérence. Les limites du cahier des charges et le barème se changent directement dans cette page (<code>entrainements/2si-planeur.html</code>).</p>
@@ -157,7 +127,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
       <li>Ouvre <a href="https://cad.onshape.com" target="_blank" rel="noopener">cad.onshape.com</a>, connecte-toi, puis <b>Créer → Document</b>. Nomme-le <code>Planeur – équipe …</code>.</li>
       <li>Clique sur <b>Partager</b> (en haut à droite) et ajoute l'adresse e-mail de tes coéquipiers et de ton professeur.</li>
     </ol>
-    <p class="astuce">Si un bouton est en anglais : Sketch = Esquisse, Line = Ligne, Dimension = Cote, Extrude = Extruder, Slot = Rainure, Export = Exporter.</p>
+    <p class="astuce">Si un bouton est en anglais : Sketch = Esquisse, Line = Ligne, Dimension = Cote, Extrude = Extruder, Trim = Ajuster, Slot = Rainure, Export = Exporter.</p>
   </div>
 
   <div class="carte"><div class="eyebrow">Mission 1</div><h2 style="margin-top:.1em">Ma première pièce : une plaque</h2><p class="discret" style="margin-top:0">Tu apprends les trois gestes de base : esquisse, cote, extrusion.</p>
@@ -171,28 +141,29 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     </ol>
   <p class="astuce"><b>Mission réussie si</b> tu fais tourner à la souris une plaque de 60 × 20 × 5 mm, et si son esquisse a tous ses traits noirs.</p></div>
 
-  <div class="carte"><div class="eyebrow">Mission 2</div><h2 style="margin-top:.1em">Le crochet imposé</h2><p class="discret" style="margin-top:0">Tu apprends à tracer des traits inclinés avec l'outil Ligne. Ce crochet sera sur tous les planeurs.</p>
+  <div class="carte"><div class="eyebrow">Mission 2</div><h2 style="margin-top:.1em">Un nez en biseau</h2><p class="discret" style="margin-top:0">Tu apprends à tracer un trait incliné avec l'outil Ligne, et à modifier une pièce déjà faite.</p>
+    <svg viewBox="0 0 720 150" role="img" aria-label="Plaque de 60 par 20 mm avec le coin en haut à gauche coupé en biseau"><path d="M246 40 H390 V100 H210 V64 Z" fill="var(--accent-soft)" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M210 40 H246 M210 40 V64" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3"/><path d="M210 64 L246 40" stroke="var(--bad)" stroke-width="3.5"/><text x="228.0" y="30.0" font-size="14" text-anchor="middle" font-weight="600" fill="var(--bad)">12</text><text x="194.0" y="57.0" font-size="14" text-anchor="middle" font-weight="600" fill="var(--bad)">8</text><text x="300.0" y="124.0" font-size="14" text-anchor="middle" font-weight="600" fill="currentColor">60</text><text x="408.0" y="75.0" font-size="14" text-anchor="middle" font-weight="600" fill="currentColor">20</text><text x="540.0" y="60.0" font-size="13" text-anchor="middle" font-weight="400" fill="currentColor">le trait rouge remplace</text><text x="540.0" y="78.0" font-size="13" text-anchor="middle" font-weight="400" fill="currentColor">le coin en pointillés</text></svg>
     <ol class="pl-pas">
       <li>Double-clique sur <b>Esquisse 1</b> dans la liste à gauche : tu rouvres le dessin de ta plaque.</li>
-      <li>Avec l'outil <b>Ligne</b> (touche <kbd>L</kbd>), trace sous la plaque les 3 traits du crochet, en partant du côté du bas et en y revenant. Le dessin coté est dans l'onglet « Le défi ».</li>
-      <li>Mets les 4 cotes du crochet : <b>9</b> en haut, <b>5</b> en bas, <b>7</b> de hauteur, <b>7</b> de décalage vers l'arrière. Ajoute <b>30</b> entre le bord gauche de la plaque et le début du crochet.</li>
-      <li>Valide l'esquisse. La plaque se met à jour toute seule, avec son crochet.</li>
+      <li>Avec l'outil <b>Ligne</b> (touche <kbd>L</kbd>), trace un trait incliné qui coupe le coin en haut à gauche de la plaque.</li>
+      <li>Avec l'outil <b>Ajuster</b> (Trim, touche <kbd>M</kbd>), clique sur les deux petits bouts du coin pour les effacer.</li>
+      <li>Mets les 2 cotes du biseau : <b>12</b> sur le côté du haut, <b>8</b> sur le côté gauche.</li>
+      <li>Valide l'esquisse. La pièce se met à jour toute seule.</li>
     </ol>
-  <p class="astuce"><b>Mission réussie si</b> le crochet penche vers l'arrière de la plaque (pas vers l'avant) et si tous ses traits sont noirs.</p></div>
+  <p class="astuce"><b>Mission réussie si</b> le coin de ta plaque est coupé, si tous les traits sont noirs, et si la pièce a changé sans que tu refasses l'extrusion.</p></div>
 
   <div class="carte"><div class="eyebrow">Mission 3</div><h2 style="margin-top:.1em">Le fuselage de départ : le contour</h2><p class="discret" style="margin-top:0">Tu dessines le vrai fuselage, vu de côté, en un seul contour fermé.</p>
-    <svg viewBox="0 0 720 235" role="img" aria-label="Contour du fuselage de départ avec ses cotes"><polygon points="45.0,120.0 45.0,90.0 63.0,78.0 165.0,78.0 201.0,90.0 465.0,90.0 495.0,105.0 585.0,105.0 585.0,96.0 675.0,96.0 675.0,120.0 162.0,120.0 183.0,141.0 168.0,141.0 135.0,120.0" fill="var(--accent-soft)" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><line x1="45" y1="182" x2="675.0" y2="182" stroke="currentColor" stroke-width="1.2"/><line x1="45.0" y1="90.0" x2="45.0" y2="188" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="40.0" y="203.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">0</text><line x1="63.0" y1="78.0" x2="63.0" y2="188" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="68.0" y="203.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">6</text><line x1="165.0" y1="78.0" x2="165.0" y2="188" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="161.0" y="203.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">40</text><line x1="201.0" y1="90.0" x2="201.0" y2="188" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="206.0" y="203.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">52</text><line x1="465.0" y1="90.0" x2="465.0" y2="188" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="461.0" y="203.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">140</text><line x1="495.0" y1="105.0" x2="495.0" y2="188" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="500.0" y="203.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">150</text><line x1="585.0" y1="96.0" x2="585.0" y2="188" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="585.0" y="203.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">180</text><line x1="675.0" y1="96.0" x2="675.0" y2="188" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="675.0" y="203.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">210</text><line x1="135.0" y1="120" x2="135.0" y2="188" stroke="var(--bad)" stroke-width="0.8" stroke-dasharray="3 3"/><text x="135.0" y="203.0" font-size="13" text-anchor="middle" font-weight="600" fill="var(--bad)">30</text><text x="360.0" y="224.0" font-size="13" text-anchor="middle" font-weight="400" fill="currentColor">Nombres du bas : distance depuis le bout du nez, en mm</text><rect x="42.8" y="62.5" width="22.4" height="16" rx="3" fill="var(--paper)" stroke="currentColor" stroke-width="1"/><text x="54.0" y="75.0" font-size="12" text-anchor="middle" font-weight="600" fill="currentColor">10</text><rect x="102.8" y="56.5" width="22.4" height="16" rx="3" fill="var(--paper)" stroke="currentColor" stroke-width="1"/><text x="114.0" y="69.0" font-size="12" text-anchor="middle" font-weight="600" fill="currentColor">14</text><rect x="321.8" y="68.5" width="22.4" height="16" rx="3" fill="var(--paper)" stroke="currentColor" stroke-width="1"/><text x="333.0" y="81.0" font-size="12" text-anchor="middle" font-weight="600" fill="currentColor">10</text><rect x="532.4" y="83.5" width="15.2" height="16" rx="3" fill="var(--paper)" stroke="currentColor" stroke-width="1"/><text x="540.0" y="96.0" font-size="12" text-anchor="middle" font-weight="600" fill="currentColor">5</text><rect x="622.4" y="74.5" width="15.2" height="16" rx="3" fill="var(--paper)" stroke="currentColor" stroke-width="1"/><text x="630.0" y="87.0" font-size="12" text-anchor="middle" font-weight="600" fill="currentColor">8</text><text x="360.0" y="22.0" font-size="13" text-anchor="middle" font-weight="400" fill="currentColor">Nombres encadrés : hauteur au-dessus du dessous du fuselage, en mm</text><text x="225.0" y="139.5" font-size="12" text-anchor="start" font-weight="400" fill="var(--bad)">crochet imposé : il commence à 30 mm du nez</text></svg>
+    <svg viewBox="0 0 720 200" role="img" aria-label="Contour du fuselage de départ avec ses cotes"><polygon points="45.0,105.0 45.0,75.0 63.0,63.0 165.0,63.0 201.0,75.0 465.0,75.0 495.0,90.0 585.0,90.0 585.0,81.0 675.0,81.0 675.0,105.0" fill="var(--accent-soft)" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><line x1="45" y1="145" x2="675.0" y2="145" stroke="currentColor" stroke-width="1.2"/><line x1="45.0" y1="75.0" x2="45.0" y2="151" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="40.0" y="166.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">0</text><line x1="63.0" y1="63.0" x2="63.0" y2="151" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="68.0" y="166.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">6</text><line x1="165.0" y1="63.0" x2="165.0" y2="151" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="161.0" y="166.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">40</text><line x1="201.0" y1="75.0" x2="201.0" y2="151" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="206.0" y="166.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">52</text><line x1="465.0" y1="75.0" x2="465.0" y2="151" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="461.0" y="166.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">140</text><line x1="495.0" y1="90.0" x2="495.0" y2="151" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="500.0" y="166.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">150</text><line x1="585.0" y1="81.0" x2="585.0" y2="151" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="585.0" y="166.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">180</text><line x1="675.0" y1="81.0" x2="675.0" y2="151" stroke="currentColor" stroke-width="0.8" stroke-dasharray="3 3"/><text x="675.0" y="166.0" font-size="13" text-anchor="middle" font-weight="600" fill="currentColor">210</text><text x="360.0" y="187.0" font-size="13" text-anchor="middle" font-weight="400" fill="currentColor">Nombres du bas : distance depuis le bout du nez, en mm</text><rect x="42.8" y="47.5" width="22.4" height="16" rx="3" fill="var(--paper)" stroke="currentColor" stroke-width="1"/><text x="54.0" y="60.0" font-size="12" text-anchor="middle" font-weight="600" fill="currentColor">10</text><rect x="102.8" y="41.5" width="22.4" height="16" rx="3" fill="var(--paper)" stroke="currentColor" stroke-width="1"/><text x="114.0" y="54.0" font-size="12" text-anchor="middle" font-weight="600" fill="currentColor">14</text><rect x="321.8" y="53.5" width="22.4" height="16" rx="3" fill="var(--paper)" stroke="currentColor" stroke-width="1"/><text x="333.0" y="66.0" font-size="12" text-anchor="middle" font-weight="600" fill="currentColor">10</text><rect x="532.4" y="68.5" width="15.2" height="16" rx="3" fill="var(--paper)" stroke="currentColor" stroke-width="1"/><text x="540.0" y="81.0" font-size="12" text-anchor="middle" font-weight="600" fill="currentColor">5</text><rect x="622.4" y="59.5" width="15.2" height="16" rx="3" fill="var(--paper)" stroke="currentColor" stroke-width="1"/><text x="630.0" y="72.0" font-size="12" text-anchor="middle" font-weight="600" fill="currentColor">8</text><text x="360.0" y="22.0" font-size="13" text-anchor="middle" font-weight="400" fill="currentColor">Nombres encadrés : hauteur au-dessus du dessous du fuselage, en mm</text></svg>
     <ol class="pl-pas">
       <li>En bas de l'écran, clique sur <b>+</b> puis <b>Créer un atelier de pièces</b>. Nomme-le <code>Fuselage</code>.</li>
-      <li>Plan <b>Face</b> → <b>Esquisse</b>. Avec l'outil <b>Ligne</b>, pars de l'origine (c'est le bout du nez, en bas) et trace le contour <b>à peu près</b>, dans l'ordre du dessin, jusqu'à revenir à l'origine. Ne cherche pas la précision : ce sont les cotes qui la donneront.</li>
-      <li>Ajoute le crochet, comme en mission 2.</li>
+      <li>Plan <b>Face</b> → <b>Esquisse</b>. Avec l'outil <b>Ligne</b>, pars de l'origine (c'est le bout du nez, en bas) et trace le contour <b>à peu près</b>, dans l'ordre du dessin, jusqu'à revenir à l'origine. Les traits inclinés se tracent comme le biseau de la mission 2. Ne cherche pas la précision : ce sont les cotes qui la donneront.</li>
       <li>Outil <b>Cote</b> : pour chaque coin, clique sur l'origine puis sur le coin, et tape la distance du dessin. Tire la souris vers le bas pour une distance depuis le nez, vers la gauche pour une hauteur.</li>
       <li>Quand tous les traits sont noirs, valide, puis <b>Extruder</b> de <b>5 mm</b>.</li>
     </ol>
-  <p class="astuce"><b>Mission réussie si</b> ton fuselage mesure 210 mm de long, si son dessous est plat et si le crochet est à 30 mm du nez.</p></div>
+  <p class="astuce"><b>Mission réussie si</b> ton fuselage mesure 210 mm de long, 14 mm de haut au nez, et si son dessous est plat.</p></div>
 
   <div class="carte"><div class="eyebrow">Mission 4</div><h2 style="margin-top:.1em">Les fentes, le trou de lest et la dérive</h2><p class="discret" style="margin-top:0">Tu apprends à enlever de la matière, et à extruder une zone avec une autre épaisseur.</p>
-    <svg viewBox="0 0 720 262" role="img" aria-label="Fentes, trou de lest et dérive du fuselage de départ"><defs><marker id="pt" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="6" markerHeight="6"><circle cx="4" cy="4" r="3" fill="var(--bad)"/></marker></defs><polygon points="40.0,190.0 40.0,162.0 56.8,150.8 152.0,150.8 185.6,162.0 432.0,162.0 460.0,176.0 544.0,176.0 544.0,167.6 628.0,167.6 628.0,190.0 149.2,190.0 168.8,209.6 154.8,209.6 124.0,190.0" fill="var(--paper-2)" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" opacity="0.9"/><polygon points="572.0,167.6 628.0,167.6 628.0,100.4 605.6,100.4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><polygon points="286.5,167.3 414.2,174.0 414.0,176.8 286.3,170.1" fill="var(--bad)"/><polygon points="549.6,177.7 621.3,177.7 621.3,179.9 549.6,179.9" fill="var(--bad)"/><circle cx="73.6" cy="167.6" r="5.88" fill="var(--paper)" stroke="var(--bad)" stroke-width="2.5"/><line x1="73.6" y1="161.7" x2="74" y2="105" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="40.0" y="100.0" font-size="12.5" text-anchor="start" font-weight="600" fill="currentColor">trou de lest : centre (12 ; 8), diamètre 4,2</text><line x1="286.4" y1="168.7" x2="270" y2="123" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="270.0" y="118.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="currentColor">(88 ; 7,6)</text><line x1="414.1" y1="175.4" x2="420" y2="123" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="420.0" y="118.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="currentColor">(133,6 ; 5,2)</text><text x="470.0" y="96.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="var(--bad)">fente de l'aile : hauteur 1,0</text><line x1="549.6" y1="178.8" x2="500" y2="219" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="500.0" y="232.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="currentColor">(182 ; 4)</text><line x1="621.3" y1="178.8" x2="640" y2="219" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="640.0" y="232.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="currentColor">(207,6 ; 4)</text><text x="570.0" y="252.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="var(--bad)">fente du stabilisateur : hauteur 0,8</text><line x1="572.0" y1="167.6" x2="524" y2="155" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="520.0" y="150.0" font-size="12.5" text-anchor="end" font-weight="600" fill="currentColor">(190 ; 8)</text><line x1="605.6" y1="100.4" x2="560" y2="83" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="575.0" y="78.0" font-size="12.5" text-anchor="end" font-weight="600" fill="currentColor">(202 ; 32)</text><line x1="628.0" y1="100.4" x2="646" y2="101" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="648.0" y="96.0" font-size="12.5" text-anchor="start" font-weight="600" fill="currentColor">(210 ; 32)</text><line x1="628.0" y1="167.6" x2="646" y2="165" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="648.0" y="160.0" font-size="12.5" text-anchor="start" font-weight="600" fill="currentColor">(210 ; 8)</text><text x="560.0" y="48.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="var(--accent)">dérive : extrusion de 1 mm seulement</text><text x="40.0" y="24.0" font-size="13" text-anchor="start" font-weight="400" fill="currentColor">(distance depuis le nez ; hauteur au-dessus du dessous), en mm</text></svg>
+    <svg viewBox="0 0 720 262" role="img" aria-label="Fentes, trou de lest et dérive du fuselage de départ"><defs><marker id="pt" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="6" markerHeight="6"><circle cx="4" cy="4" r="3" fill="var(--bad)"/></marker></defs><polygon points="40.0,190.0 40.0,162.0 56.8,150.8 152.0,150.8 185.6,162.0 432.0,162.0 460.0,176.0 544.0,176.0 544.0,167.6 628.0,167.6 628.0,190.0" fill="var(--paper-2)" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" opacity="0.9"/><polygon points="572.0,167.6 628.0,167.6 628.0,100.4 605.6,100.4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><polygon points="286.5,167.3 414.2,174.0 414.0,176.8 286.3,170.1" fill="var(--bad)"/><polygon points="549.6,177.7 621.3,177.7 621.3,179.9 549.6,179.9" fill="var(--bad)"/><circle cx="73.6" cy="167.6" r="5.88" fill="var(--paper)" stroke="var(--bad)" stroke-width="2.5"/><line x1="73.6" y1="161.7" x2="74" y2="105" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="40.0" y="100.0" font-size="12.5" text-anchor="start" font-weight="600" fill="currentColor">trou de lest : centre (12 ; 8), diamètre 4,2</text><line x1="286.4" y1="168.7" x2="270" y2="123" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="270.0" y="118.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="currentColor">(88 ; 7,6)</text><line x1="414.1" y1="175.4" x2="420" y2="123" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="420.0" y="118.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="currentColor">(133,6 ; 5,2)</text><text x="470.0" y="96.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="var(--bad)">fente de l'aile : hauteur 1,0</text><line x1="549.6" y1="178.8" x2="500" y2="219" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="500.0" y="232.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="currentColor">(182 ; 4)</text><line x1="621.3" y1="178.8" x2="640" y2="219" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="640.0" y="232.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="currentColor">(207,6 ; 4)</text><text x="570.0" y="252.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="var(--bad)">fente du stabilisateur : hauteur 0,8</text><line x1="572.0" y1="167.6" x2="524" y2="155" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="520.0" y="150.0" font-size="12.5" text-anchor="end" font-weight="600" fill="currentColor">(190 ; 8)</text><line x1="605.6" y1="100.4" x2="560" y2="83" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="575.0" y="78.0" font-size="12.5" text-anchor="end" font-weight="600" fill="currentColor">(202 ; 32)</text><line x1="628.0" y1="100.4" x2="646" y2="101" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="648.0" y="96.0" font-size="12.5" text-anchor="start" font-weight="600" fill="currentColor">(210 ; 32)</text><line x1="628.0" y1="167.6" x2="646" y2="165" stroke="currentColor" stroke-width="0.8" marker-start="url(#pt)"/><text x="648.0" y="160.0" font-size="12.5" text-anchor="start" font-weight="600" fill="currentColor">(210 ; 8)</text><text x="560.0" y="48.0" font-size="12.5" text-anchor="middle" font-weight="600" fill="var(--accent)">dérive : extrusion de 1 mm seulement</text><text x="40.0" y="24.0" font-size="13" text-anchor="start" font-weight="400" fill="currentColor">(distance depuis le nez ; hauteur au-dessus du dessous), en mm</text></svg>
     <ol class="pl-pas">
       <li>Clique sur la grande face plate du fuselage, puis sur <b>Esquisse</b>.</li>
       <li><b>Fente de l'aile</b> : trace une ligne entre les deux points du dessin, puis transforme-la avec l'outil <b>Rainure</b> (Slot), largeur <b>1,0</b>. Elle penche : son avant est 2,4 mm plus haut que son arrière, c'est voulu.</li>
@@ -219,12 +190,12 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     </ol>
     <div class="pl-scroll"><table class="pl">
       <tr><th>Pièce</th><th class="n">Volume attendu</th><th class="n">Masse en PLA (× 1,24)</th></tr>
-      <tr><td>Fuselage</td><td class="n">10,4 cm³</td><td class="n">12,9 g</td></tr>
+      <tr><td>Fuselage</td><td class="n">10,1 cm³</td><td class="n">12,6 g</td></tr>
       <tr><td>Aile</td><td class="n">7,2 cm³</td><td class="n">8,9 g</td></tr>
       <tr><td>Stabilisateur</td><td class="n">1,2 cm³</td><td class="n">1,5 g</td></tr>
-      <tr><th>Planeur de départ, sans lest</th><th class="n"></th><th class="n">23,3 g</th></tr>
+      <tr><th>Planeur de départ, sans lest</th><th class="n"></th><th class="n">23 g</th></tr>
     </table></div>
-    <p>Ce planeur a la queue trop lourde : sans lest, son point d'équilibre est à <b>114 mm</b> du nez, trop en arrière. Il lui faut environ <b>2,6 g</b> dans le trou du nez (une vis M4 avec son écrou, ou de la pâte à fixe) pour le ramener vers <b>104 mm</b>. Total : environ <b>26 g</b>.</p>
+    <p>Ce planeur a la queue trop lourde : sans lest, son point d'équilibre est à <b>115 mm</b> du nez, trop en arrière. Il lui faut environ <b>2,8 g</b> dans le trou du nez (une vis M4 avec son écrou, ou de la pâte à fixe) pour le ramener vers <b>104 mm</b>. Total : environ <b>26 g</b>.</p>
   <p class="astuce"><b>Mission réussie si</b> tes trois volumes sont ceux du tableau.</p></div>
 
   <div class="carte"><div class="eyebrow">Mission 7</div><h2 style="margin-top:.1em">À toi : rends-le meilleur</h2><p class="discret" style="margin-top:0">Le planeur de départ vole, mais il est lourd. Chaque gramme gagné, c'est de la distance. Voici ce que tu as le droit de changer.</p>
@@ -236,13 +207,13 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
       <tr><td>Nez plus long ou plus haut</td><td>Le nez fait le lest tout seul</td><td>Dépasser 210 mm de long</td></tr>
       <tr><td>Aile avancée ou reculée</td><td>Le point d'équilibre change de place</td><td>Planeur qui cabre ou qui pique</td></tr>
       <tr><td>Stabilisateur plus grand</td><td>Vol plus stable</td><td>Queue plus lourde</td></tr>
-      <tr><td>Forme du fuselage, nom de l'équipe gravé</td><td>Des points d'esthétique</td><td>Aucun, si le crochet et le dessous plat ne bougent pas</td></tr>
+      <tr><td>Forme du fuselage, nom de l'équipe gravé</td><td>Des points d'esthétique</td><td>Aucun, tant que les deux fentes gardent leur taille</td></tr>
     </table></div>
     <ol class="pl-pas">
       <li>Fais d'abord une copie : clic droit sur l'onglet de l'atelier → <b>Dupliquer</b>. Tu gardes le planeur de départ intact.</li>
       <li>Change <b>une cote à la fois</b> (double-clic sur la cote dans l'esquisse), et regarde la pièce se mettre à jour.</li>
       <li>Après chaque changement, relève le nouveau volume et recalcule la masse.</li>
-      <li>Ne touche jamais au crochet, ni au dessous plat, ni à l'épaisseur de 5 mm du fuselage.</li>
+      <li>Garde l'épaisseur de 5 mm du fuselage et la largeur des deux fentes : sinon l'aile et le stabilisateur ne tiennent plus.</li>
     </ol>
     <p class="astuce"><b>La règle d'or</b> : le point d'équilibre du planeur fini doit tomber sous l'aile, vers son premier tiers en partant de l'avant. Si tu déplaces l'aile, le point d'équilibre à viser se déplace avec elle.</p>
   <p class="astuce"><b>Mission réussie si</b> ton planeur est plus léger que le planeur de départ, respecte le cahier des charges, et si tu sais expliquer chaque changement.</p></div>
@@ -260,8 +231,8 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 <section class="pl-sec" id="s-essais" hidden>
   <div class="carte pl-essais">
     <h2 style="margin-top:0">Carnet d'essais</h2>
-    <p>Trois lancers par version, au même cran. Le site calcule la moyenne et l'écart entre tes versions. <span class="discret">Le carnet est gardé sur cet appareil : imprime-le ou recopie-le pour le rendre.</span></p>
-    <p><label>Équipe : <input type="text" id="equipe" style="width:16em;min-width:0" placeholder="noms des membres"></label> &nbsp; <label>Trou de la goupille (1 à 8) : <input type="number" id="cran" min="1" max="8" style="width:5em" placeholder="n°"></label></p>
+    <p>Trois lancers par version, par le même lanceur et de la même façon. Le site calcule la moyenne et l'écart entre tes versions. <span class="discret">Le carnet est gardé sur cet appareil : imprime-le ou recopie-le pour le rendre.</span></p>
+    <p><label>Équipe : <input type="text" id="equipe" style="width:16em;min-width:0" placeholder="noms des membres"></label> &nbsp; <label>Lanceur : <input type="text" id="cran" style="width:10em;min-width:0" placeholder="prénom"></label></p>
     <div class="pl-scroll"><table class="pl" id="t-essais">
       <tr><th>Version</th><th class="n">Masse (g)</th><th class="n">Lancer 1 (m)</th><th class="n">Lancer 2 (m)</th><th class="n">Lancer 3 (m)</th><th class="n">Moyenne</th><th>Ce que j'observe en vol</th></tr>
     </table></div>
@@ -271,6 +242,15 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <p><label>Pourquoi (ce que j'ai observé) :<br><input type="text" id="pourquoi" placeholder="exemple : la version 1 lève le nez puis tombe"></label></p>
     <p><label>Ce que j'attends :<br><input type="text" id="attendu" placeholder="exemple : un vol plus à plat, donc plus long"></label></p>
     <p class="no-print"><button class="btn" onclick="window.print()">Imprimer le carnet</button> <button class="btn sec" id="raz">Tout effacer</button></p>
+  </div>
+  <div class="carte">
+    <h2 style="margin-top:0">Bien lancer à la main</h2>
+    <ul>
+      <li>Tiens le fuselage entre le pouce et l'index, <b>juste sous l'aile</b>, là où il tient en équilibre.</li>
+      <li>Planeur <b>à plat</b>, nez à peine vers le bas. Vise un point au sol à une dizaine de mètres.</li>
+      <li><b>Pousse</b> droit devant, d'un geste souple, sans le jeter et sans le lancer vers le haut.</li>
+      <li>Le même lanceur fait tous les lancers de l'équipe, de la même façon. Un lancer raté (planeur qui glisse des doigts) se refait.</li>
+    </ul>
   </div>
   <div class="carte">
     <h2 style="margin-top:0">Lire le vol de ton planeur</h2>
@@ -316,7 +296,7 @@ const C = (id, t) => ({ k: "c", id, t });          // une case à cocher
 const B = (id) => ({ k: "b", id });                 // un bloc à remplir (voir BLOCS plus bas)
 const ETAPES = [
   { t: "Lancer avant de concevoir", but: "Comprendre pourquoi un planeur vole bien ou mal, avant de dessiner le tien.", items: [
-    C("1a", "Lance chaque planeur (A, B, C) deux fois, goupille dans le 3e trou. Regarde bien le vol."),
+    C("1a", "Lance chaque planeur de démonstration deux fois, à la main, toujours de la même façon. Regarde bien le vol."),
     C("1b", "Pose chaque planeur en équilibre sur un doigt. Mesure la distance entre le bout du nez et ton doigt."),
     B("obs"),
     C("1c", "Fais la série « Planeur 1 · Voler et rester stable » sur ton tableau de bord.") ] },
@@ -327,10 +307,10 @@ const ETAPES = [
     C("2c", "Chaque membre ouvre le document partagé sur son poste : tout le monde voit la même chose.") ] },
   { t: "Apprendre Onshape", but: "Les trois gestes de base, sur deux petites pièces.", items: [
     C("m1", "Mission 1 : la plaque de 60 × 20 × 5 mm (onglet « Missions Onshape »)."),
-    C("m2", "Mission 2 : le crochet imposé, ajouté sous la plaque."),
+    C("m2", "Mission 2 : le nez en biseau, sur la même plaque."),
     C("3f", "Fais la série « Planeur 2 · Dessiner et imprimer ».") ] },
   { t: "Construire le planeur de départ", but: "Un planeur complet qui vole, le même pour toutes les équipes, construit cote par cote.", items: [
-    C("m3", "Mission 3 : le contour du fuselage, avec son crochet."),
+    C("m3", "Mission 3 : le contour du fuselage."),
     C("m4", "Mission 4 : les deux fentes, le trou de lest et la dérive."),
     C("m5", "Mission 5 : l'aile et le stabilisateur."),
     C("m6", "Mission 6 : mes trois volumes sont ceux du tableau."),
@@ -346,14 +326,14 @@ const ETAPES = [
     C("5b", "Monte ton planeur : aile et stabilisateur glissés dans les fentes, bien centrés."),
     C("5c", "Cherche son point d'équilibre sur un doigt. Il doit être sous l'aile, vers le premier tiers. Sinon, ajoute du lest dans le nez."),
     C("5d", "Pèse le planeur. Note la masse dans l'onglet « Mes essais »."),
-    C("5e", "Trois lancers au cran choisi par le professeur. Note les trois distances dans « Mes essais »."),
+    C("5e", "Trois lancers à la main depuis la ligne de départ, par le même lanceur. Note les trois distances dans « Mes essais »."),
     C("5f", "Décris le vol, puis choisis UNE seule modification avec le tableau « Lire le vol de ton planeur »."),
     C("5g", "Remplis les trois lignes « Entre la version 1 et la version 2 » dans « Mes essais ».") ] },
   { t: "Concevoir la version 2", but: "Améliorer en changeant une seule chose.", items: [
     C("6a", "Modifie ton modèle Onshape en changeant une cote (pas en redessinant)."),
     C("6b", "Vérifie de nouveau la fiche de conformité (étape 5) avec les nouvelles valeurs."),
     C("6c", "Exporte les fichiers STL de la version 2 (nom : equipe_piece_v2.stl) et envoie-les."),
-    C("6d", "Trois lancers avec la version 2, au même cran. Note-les dans « Mes essais »."),
+    C("6d", "Trois lancers avec la version 2, même lanceur, même geste. Note-les dans « Mes essais »."),
     C("6e", "Lis l'écart calculé par le site : la version 2 est-elle vraiment meilleure ?") ] },
   { t: "Le concours", but: "Trois lancers devant tout le monde, puis deux minutes pour expliquer.", items: [
     C("7a", "Choisis ta meilleure version et vérifie son équilibre."),
@@ -374,7 +354,7 @@ const CRITERES = [
   ["B1 · Esquisses", "Contour ouvert ou sans cotes", "Contour fermé, quelques cotes", "Esquisse entièrement cotée (traits noirs)", "Entièrement cotée, et facile à modifier en changeant une cote"],
   ["B2 · Cahier des charges", "Plusieurs limites dépassées", "Une limite dépassée, repérée par le professeur", "Toutes les limites respectées", "Toutes respectées, et vérifiées par l'équipe (masse calculée, dimensions relevées)"],
   ["B3 · Prêt à imprimer", "Fichiers manquants ou inutilisables", "STL fournis, à corriger avant impression", "STL corrects, pièces à plat, épaisseurs multiples de 0,2 mm", "STL corrects du premier coup, bien nommés, rendus à temps"],
-  ["C1 · Mesures", "Pas de mesures notées", "Mesures incomplètes ou crans différents", "3 lancers par version, même cran, moyenne juste", "Mesures complètes, et la régularité des lancers est commentée"],
+  ["C1 · Mesures", "Pas de mesures notées", "Mesures incomplètes, ou lancers pas comparables", "3 lancers par version, même lanceur et même geste, moyenne juste", "Mesures complètes, et la régularité des lancers est commentée"],
   ["C2 · Modification", "Aucune modification, ou tout changé d'un coup", "Une modification, sans raison donnée", "Une seule modification, justifiée par une observation du vol", "Une seule modification, justifiée, avec le résultat attendu annoncé avant l'essai"],
   ["C3 · Analyse", "Pas de conclusion", "« C'est mieux » ou « c'est moins bien », sans chiffre", "Écart entre les deux versions calculé et commenté", "Écart calculé, comparé à la variation entre lancers, et suite proposée"],
   ["E · Esthétique", "Pièces brutes : bavures, aile de travers", "Planeur propre, forme très simple (rectangles)", "Forme travaillée, proportions agréables, finition soignée", "Un vrai style : forme originale, nom ou signe de l'équipe, sans nuire au vol"],
@@ -413,7 +393,6 @@ const BLOCS = {
     <tr><td>Volume de l'aile (cm³)</td><td class="n">${champ("va", "cm³", "number", "width:6em")}</td></tr>
     <tr><td>Volume du stabilisateur (cm³)</td><td class="n">${champ("vs", "cm³", "number", "width:6em")}</td></tr>
     <tr><td>Lest prévu dans le nez (g)</td><td class="n">${champ("lest", "g", "number", "width:6em")}</td></tr>
-    <tr><td>Crochet aux cotes imposées (9, 5, 7, 7, épaisseur 5)</td><td class="n"><input type="checkbox" data-c="crochet" ${D.c.crochet ? "checked" : ""} style="width:20px;height:20px"></td><td id="v-crochet"></td></tr>
     <tr><td>Chaque pièce se pose à plat, sans rien dans le vide</td><td class="n"><input type="checkbox" data-c="plat" ${D.c.plat ? "checked" : ""} style="width:20px;height:20px"></td><td id="v-plat"></td></tr>
   </table></div>`,
   oral: () => `<p><b>Tes deux minutes devant la classe</b> : complète ces trois phrases, puis lis-les.</p>
@@ -434,7 +413,7 @@ function verifier() {
   if (V.some((x) => x == null)) set("v-masse", `<span class="discret">Remplis les trois volumes : le site calcule la masse.</span>`);
   else { const m = V.reduce((s, x) => s + x, 0) * LIMITES.pla + (nv("lest") || 0);
     set("v-masse", `Masse = (${V.map((x) => nbfr(x, 1)).join(" + ")}) × 1,24${nv("lest") ? " + " + nbfr(nv("lest"), 1) : ""} = <b>${nbfr(m, 1)} g</b><br>${OKT(m <= LIMITES.masse, `maximum ${LIMITES.masse} g`)}${env && corde ? `<br><span class="discret">Charge alaire ≈ ${nbfr(m / (env * corde / 100), 2)} g/cm²</span>` : ""}`); }
-  set("v-crochet", D.c.crochet ? OKT(true, "") : ""); set("v-plat", D.c.plat ? OKT(true, "") : "");
+  set("v-plat", D.c.plat ? OKT(true, "") : "");
   ETAPES.forEach((e, i) => { const L = e.items.filter((x) => x.k === "c"); const n = L.filter((x) => D.c[x.id]).length; const el = document.getElementById("av" + i);
     if (el) { el.textContent = `${n} / ${L.length}`; el.className = "etiquette" + (n === L.length ? " ok" : ""); } });
 }
