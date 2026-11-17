@@ -3,6 +3,8 @@
    Branche la page agreg/index.html sur le site : accès réservé au professeur connecté (même session
    que prof.html), progression enregistrée dans Supabase (table agreg_progression, supabase/agreg.sql),
    correction des réponses rédigées par l'IA (fonction Supabase « agreg », supabase/functions/agreg).
+   Prépa du mercredi (agreg/prepa.js) : documents de la préparation aux concours lus dans le compartiment privé
+   « agreg-prepa » (supabase/agreg-prepa.sql).
    Sans ce fichier, la page fonctionne seule, avec la progression gardée dans le navigateur.
    ===================================================================== */
 (function () {
@@ -61,8 +63,29 @@
   sample.json = async (prompt, opts) => (await appel("json", prompt, opts)).objet;
   sample.limits = async () => ({ maxPromptBytes: 40000, images: { maxCount: 1, maxInputBytes: 2e7, mediaTypes: ["image/jpeg", "image/png", "image/webp"] } });
 
+  // Prépa du mercredi : documents du formateur dans le compartiment PRIVÉ « agreg-prepa » (supabase/agreg-prepa.sql),
+  // lisibles par le seul professeur connecté ; les PDF s'ouvrent par des liens signés.
+  const BAC = "agreg-prepa";
+  async function lireJSON(chemin) {
+    const { data, error } = await sb.storage.from(BAC).download(chemin);
+    if (error) throw { code: /not.?found|bucket/i.test(String(error.message || error.error || "")) || error.statusCode === "404" ? "prepa_absente" : "prepa_erreur" };
+    return JSON.parse(await data.text());
+  }
+  const prepa = {
+    programme: () => lireJSON("programme.json"),
+    textes: () => lireJSON("textes.json"),
+    async liens(chemins, duree) {
+      if (!chemins.length) return {};
+      const { data, error } = await sb.storage.from(BAC).createSignedUrls(chemins, duree || 3600);
+      if (error) throw { code: "prepa_erreur" };
+      const o = {};
+      (data || []).forEach((x) => { if (x && x.signedUrl && !x.error) o[x.path] = x.signedUrl; });
+      return o;
+    },
+  };
+
   window.AGREG_HOOK = {
-    ready, pull, push, sample, synced: () => synchro,
+    ready, pull, push, sample, prepa, synced: () => synchro,
     err: (c) => ({ non_deployee: "La fonction de correction « agreg » n’est pas encore déployée dans Supabase.", cle_absente: "La clé de l’API Claude n’est pas configurée dans Supabase.", session_expired: "Session expirée : reconnecte-toi dans l’espace professeur." }[c]),
   };
 })();
