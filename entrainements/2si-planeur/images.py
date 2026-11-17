@@ -56,9 +56,9 @@ sauve(im, 'm4', [("trou de lest", (12, -3, 8), (60, 400)), ("fente de l'aile", (
 im, pr = rendu2([P(Manifold.cube((D.CA, D.BA, D.EA)).translate((0, -100, 0)), ORANGE), P(Manifold.cube((D.CSt, D.BSt, D.ESt)).translate((75, -40, 0)), ORANGE)], az=215, el=32, echelle=6.0, taille=(1500, 620), incl=0)
 sauve(im, 'm5', [("aile : 200 × 45 × 0,8", (22, -40, 1), (80, 470)), ("stabilisateur : 80 × 25 × 0,6", (88, 20, 1), (860, 90))], pr, 30)
 # mission 6 : le planeur monté, en équilibre sur une cale
-cale = ext([(-9, 0), (9, 0), (0, 16)], 30).rotate((90, 0, 0)).translate((104, 15, -16.3))
+cale = ext([(-9, 0), (9, 0), (0, 16)], 30).rotate((90, 0, 0)).translate((100, 15, -16.3))
 im, pr = rendu2(planeur() + [P(cale, ROUGE)], az=235, el=16, echelle=5.6, taille=(1600, 760), incl=0)
-sauve(im, 'm6', [("POINT D'ÉQUILIBRE\nà viser : 104 mm du nez", (104, -15, -8), (140, 560)), ("LEST dans le trou du nez", (12, -3, 8), (60, 250))], pr, 30)
+sauve(im, 'm6', [("POINT D'ÉQUILIBRE\nà viser : 100 mm du nez", (100, -15, -8), (140, 560)), ("LEST dans le trou du nez", (12, -3, 8), (60, 250))], pr, 30)
 # mission 7 : trois idées de transformation
 def plan_effile(b=100, c=45, ct=24): return [(0, -b), (0, b), (ct, b), (c, b * 0.45), (c, -b * 0.45), (ct, -b)]
 def corps_var(LN=40, HN=14, hp=5, ht=8):
@@ -79,9 +79,9 @@ sauve(im, 'm8', [("Chaque pièce est posée à plat :\nrien dans le vide, pas de
 
 # le geste du lancer
 fl = barre((-18, 0, 9), (-70, 0, 9), 1.6); pointe = ext([(0, -7), (0, 7), (-16, 0)], 3).translate((-70, 0, 7.5))
-doigts = [P(Manifold.sphere(7, 24).scale((1, 0.55, 1)).translate((104, s * 6.5, 3)), (235, 190, 150)) for s in (1, -1)]
+doigts = [P(Manifold.sphere(7, 24).scale((1, 0.55, 1)).translate((100, s * 6.5, 3)), (235, 190, 150)) for s in (1, -1)]
 im, pr = rendu2(planeur() + doigts + [P(fl + pointe, ROUGE)], az=225, el=16, echelle=5.0, taille=(1600, 700), incl=4, pivot=(100, 0, 0))
-sauve(im, 'lancer', [("Pouce et index ici,\nsous l'aile, au point d'équilibre", (104, -7, 2), (760, 520)), ("Pousse droit devant,\nplaneur à plat", (-60, 0, 9), (60, 60))], pr, 30)
+sauve(im, 'lancer', [("Pouce et index ici,\nsous l'aile, au point d'équilibre", (100, -7, 2), (760, 520)), ("Pousse droit devant,\nplaneur à plat", (-60, 0, 9), (60, 60))], pr, 30)
 # la mesure : trois lancers depuis la ligne
 W, H = 1500, 520; im = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); f = ImageFont.truetype(FB, 30); fn = ImageFont.truetype(FN, 28)
 sol = 400; d.line([(40, sol), (W - 40, sol)], fill=(60, 70, 85), width=6); d.line([(180, sol - 190), (180, sol + 30)], fill=(60, 70, 85), width=8)

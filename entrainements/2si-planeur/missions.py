@@ -152,7 +152,7 @@ SECTION = f'''
       <tr><th>Planeur de départ, sans lest</th><th class="n"></th><th class="n">{fr(J['mt'])} g</th></tr>
     </table></div>
     <p>Ce planeur a la queue trop lourde : sans lest, son point d'équilibre est à <b>{fr(J['xg'], 0)} mm</b> du nez, trop en arrière. Il lui faut environ <b>{fr(J['lest'])} g</b> dans le trou du nez (une vis M4 avec son écrou, ou de la pâte à fixe) pour le ramener vers <b>{fr(J['cible'], 0)} mm</b>. Total : environ <b>{fr(J['mt'] + J['lest'], 0)} g</b>.</p>
-    {fig("m6", "Planeur de départ monté, posé en équilibre sur une cale placée sous l'aile", "Le planeur de départ monté : il doit tenir en équilibre sur une cale placée à 104 mm du nez")}
+    {fig("m6", "Planeur de départ monté, posé en équilibre sur une cale placée sous l'aile", f"Le planeur de départ monté : il doit tenir en équilibre sur une cale placée à {fr(J['cible'], 0)} mm du nez")}
   {ok("tes trois volumes sont ceux du tableau.")}
 
   {m(7, "À toi : rends-le meilleur", "Le planeur de départ vole, mais il est lourd : plus léger, il volera plus lentement et pardonnera mieux le lancer. Voici ce que tu peux changer, et les notions de l'onglet « Comprendre » t'expliquent pourquoi.")}

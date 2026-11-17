@@ -26,6 +26,18 @@
 .pl-leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.88rem;margin:0 0 10px}
 .pl-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .pl-et-thumb{width:96px;height:56px;object-fit:contain}
+.sim-haut{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.sim-dist{font-family:var(--f-disp);font-weight:700;font-size:2.6rem;line-height:1;color:var(--accent)}
+.sim-verdict{display:flex;flex-direction:column;gap:4px;flex:1;min-width:240px}
+.sim-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px 18px;margin-top:8px}
+.sim-res div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--rule);padding:3px 0;font-size:.93rem}
+.sim-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:12px}
+.sim-grille .carte{margin:0}
+.sim-ligne{display:grid;grid-template-columns:1fr;gap:2px;margin:9px 0;font-size:.93rem}
+.sim-ctl{display:flex;align-items:center;gap:10px}
+.sim-ligne input[type=range]{flex:1;min-width:0}
+.sim-val{display:flex;align-items:center;gap:5px;color:var(--ink-3);min-width:7.6em}
+.sim-val input{width:5.4em;font:inherit;padding:3px 5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
 @media (max-width:640px){.pl-trio{grid-template-columns:1fr}.pl-hero{grid-template-columns:1fr}.pl-et-thumb{display:none}}
 table.pl{width:100%;border-collapse:collapse;font-size:.95rem;margin:8px 0}
 table.pl th,table.pl td{border:1px solid var(--rule);padding:7px 9px;text-align:left;vertical-align:top}
@@ -73,6 +85,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   <button role="tab" data-s="comprendre">Comprendre</button>
   <button role="tab" data-s="etapes">Les étapes</button>
   <button role="tab" data-s="onshape">Missions Onshape</button>
+  <button role="tab" data-s="sim">Simulateur</button>
   <button role="tab" data-s="essais">Mes essais</button>
   <button role="tab" data-s="eval">Évaluation</button>
 </div>
@@ -84,7 +97,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <ul>
       <li>Équipes de 2 ou 3. Un planeur par équipe.</li>
       <li>Chaque planeur est lancé <b>3 fois</b>, à la main, depuis la ligne de départ, par le même élève de l'équipe. On garde la <b>moyenne</b> des 3 distances.</li>
-      <li>Le lancer se fait <b>à plat, droit devant</b>, les pieds derrière la ligne. On pousse le planeur, on ne le jette pas vers le haut.</li>
+      <li>Le lancer se fait <b>à plat, droit devant</b>, les pieds derrière la ligne. On le lance franchement, sans viser le haut.</li>
       <li>La distance se mesure de la ligne de départ jusqu'au <b>premier point où le planeur touche le sol</b>.</li>
       <li>Tu as droit à deux versions : la version 1, puis une version 2 améliorée après les essais.</li>
     </ul>
@@ -117,7 +130,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   <details class="carte no-print"><summary><b>Pour le professeur : fichiers à imprimer</b></summary>
     <p><b>Catapulte (version 2), facultative</b> : les essais se font à la main, elle ne sert que si tu veux un lancer mécanique. Fichiers : <a href="2si-planeur/catapulte_rail_avant.stl" download>rail avant</a> · <a href="2si-planeur/catapulte_rail_arriere.stl" download>rail arrière</a> · <a href="2si-planeur/catapulte_chariot.stl" download>chariot</a> · <a href="2si-planeur/catapulte_eclisse.stl" download>manchon de jonction</a> · <a href="2si-planeur/catapulte_pied_avant.stl" download>pied avant</a> · <a href="2si-planeur/catapulte_pied_arriere.stl" download>pied arrière</a>. Il faut en plus deux tiges de 3 mm (clous ou vis M3 de 20 mm) et un élastique. Mode d'emploi en images : <a href="2si-planeur/img_1_ensemble.png" target="_blank" rel="noopener">1. montée et armée</a> · <a href="2si-planeur/img_2_montage.png" target="_blank" rel="noopener">2. le montage</a> · <a href="2si-planeur/img_3_coupe.png" target="_blank" rel="noopener">3. vue en coupe</a> · <a href="2si-planeur/img_4_apres.png" target="_blank" rel="noopener">4. après le tir</a> · <a href="2si-planeur/catapulte_v2_mode_emploi.png" target="_blank" rel="noopener">schéma de côté</a>.</p>
     <p><b>Planeurs de démonstration (version 2)</b> (ils gardent un crochet sous le nez, qui sert aussi de prise pour les doigts), une aile et un stabilisateur pour les trois fuselages : <a href="2si-planeur/planeur_aile.stl" download>aile</a> · <a href="2si-planeur/planeur_stabilisateur.stl" download>stabilisateur</a> · <a href="2si-planeur/planeur_fuselage_reference.stl" download>fuselage de référence</a> · <a href="2si-planeur/planeur_fuselage_cabre.stl" download>fuselage qui cabre</a> · <a href="2si-planeur/planeur_fuselage_pique.stl" download>fuselage qui pique</a>. <a href="2si-planeur/planeurs_v2_apercu.png" target="_blank" rel="noopener">Aperçu</a>.</p>
-    <p><b>Planeur de départ des élèves</b> (celui des missions 3 à 6, pour le tester avant eux) : <a href="2si-planeur/depart_fuselage.stl" download>fuselage</a> · <a href="2si-planeur/depart_aile.stl" download>aile</a> · <a href="2si-planeur/depart_stabilisateur.stl" download>stabilisateur</a>. Il lui faut environ 2,6 g de lest dans le trou du nez.</p>
+    <p><b>Planeur de départ des élèves</b> (celui des missions 3 à 6, pour le tester avant eux) : <a href="2si-planeur/depart_fuselage.stl" download>fuselage</a> · <a href="2si-planeur/depart_aile.stl" download>aile</a> · <a href="2si-planeur/depart_stabilisateur.stl" download>stabilisateur</a>. Il lui faut environ 3,9 g de lest dans le trou du nez, pour un point d'équilibre à 100 mm du nez.</p>
     <p><a class="btn" href="2si-planeur-notes.html">Noter les équipes →</a></p>
     <p class="discret">Fuselages et chariot à 100 % de remplissage, posés à plat. L'aile s'imprime debout sur son bord d'attaque, avec une bordure d'adhérence. Les limites du cahier des charges et le barème se changent directement dans cette page (<code>entrainements/2si-planeur.html</code>).</p>
   </details>
@@ -198,7 +211,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     </svg>
     <div class="formule">charge alaire = <span class="frac"><span class="nu">masse du planeur</span><span class="sr"> sur </span><span class="de">surface de l'aile</span></span></div>
     <p>Plus la charge alaire est <b>petite</b>, plus le planeur peut voler lentement sans tomber. Un planeur chargé doit aller vite, et un lancer un peu mou ne lui suffit pas.</p>
-    <p class="astuce"><b>Pour ton planeur :</b> deux façons de baisser la charge alaire : <b>enlever de la masse</b> (pièces plus fines, arrière allégé, donc moins de lest) ou <b>agrandir l'aile</b> (mais elle pèse alors plus lourd). Le planeur de départ est à environ 0,29 g/cm².</p>
+    <p class="astuce"><b>Pour ton planeur :</b> deux façons de baisser la charge alaire : <b>enlever de la masse</b> (pièces plus fines, arrière allégé, donc moins de lest) ou <b>agrandir l'aile</b> (mais elle pèse alors plus lourd). Le planeur de départ est à environ 0,30 g/cm².</p>
   </div>
 
   <div class="carte"><div class="eyebrow">Notion 5</div>
@@ -349,8 +362,8 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
       <tr><td>Stabilisateur</td><td class="n">1,2 cm³</td><td class="n">1,5 g</td></tr>
       <tr><th>Planeur de départ, sans lest</th><th class="n"></th><th class="n">23 g</th></tr>
     </table></div>
-    <p>Ce planeur a la queue trop lourde : sans lest, son point d'équilibre est à <b>115 mm</b> du nez, trop en arrière. Il lui faut environ <b>2,8 g</b> dans le trou du nez (une vis M4 avec son écrou, ou de la pâte à fixe) pour le ramener vers <b>104 mm</b>. Total : environ <b>26 g</b>.</p>
-    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m6.png" alt="Planeur de départ monté, posé en équilibre sur une cale placée sous l'aile" loading="lazy"><figcaption>Le planeur de départ monté : il doit tenir en équilibre sur une cale placée à 104 mm du nez</figcaption></figure>
+    <p>Ce planeur a la queue trop lourde : sans lest, son point d'équilibre est à <b>115 mm</b> du nez, trop en arrière. Il lui faut environ <b>3,9 g</b> dans le trou du nez (une vis M4 avec son écrou, ou de la pâte à fixe) pour le ramener vers <b>100 mm</b>. Total : environ <b>27 g</b>.</p>
+    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m6.png" alt="Planeur de départ monté, posé en équilibre sur une cale placée sous l'aile" loading="lazy"><figcaption>Le planeur de départ monté : il doit tenir en équilibre sur une cale placée à 100 mm du nez</figcaption></figure>
   <p class="astuce"><b>Mission réussie si</b> tes trois volumes sont ceux du tableau.</p></div>
 
   <div class="carte"><div class="eyebrow">Mission 7</div><h2 style="margin-top:.1em">À toi : rends-le meilleur</h2><p class="discret" style="margin-top:0">Le planeur de départ vole, mais il est lourd : plus léger, il volera plus lentement et pardonnera mieux le lancer. Voici ce que tu peux changer, et les notions de l'onglet « Comprendre » t'expliquent pourquoi.</p>
@@ -388,14 +401,41 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   <p class="astuce"><b>Mission réussie si</b> le professeur a reçu tes trois fichiers et qu'ils s'ouvrent dans le logiciel de l'imprimante.</p></div>
 </section>
 
+<!-- ============ SIMULATEUR ============ -->
+<section class="pl-sec" id="s-sim" hidden>
+  <p><b>Teste ton planeur avant de l'imprimer.</b> Entre ses valeurs, regarde le vol prévu, change un seul réglage à la fois. Puis note la distance prévue dans ton carnet : après les vrais lancers, tu compareras.</p>
+  <div class="carte">
+    <div class="sim-haut">
+      <div><div class="eyebrow">Vol prévu</div><div class="sim-dist"><span id="sim-d">–</span> m</div></div>
+      <div id="sim-verdict" class="sim-verdict"></div>
+    </div>
+    <div id="sim-svg"></div>
+    <div class="sim-res" id="sim-res"></div>
+    <p class="no-print" style="margin:.6em 0 0"><button class="btn sec" id="sim-ref">Garder ce vol en gris pour comparer</button> <button class="btn sec" id="sim-ref0">Effacer le vol gris</button> &nbsp; Noter la distance prévue dans mon carnet : <button class="btn sec" data-carnet="0">Version 1</button> <button class="btn sec" data-carnet="1">Version 2</button> <span id="sim-ok" class="discret"></span></p>
+  </div>
+  <div class="sim-grille" id="sim-entrees"></div>
+  <p class="no-print">Partir d'un exemple : <button class="btn sec" data-ex="depart">Planeur de départ, lesté</button> <button class="btn sec" data-ex="sanslest">Planeur de départ, sans lest</button> <button class="btn sec" data-ex="trop">Planeur de départ, trop de lest</button></p>
+  <details class="carte"><summary><b>Comment le simulateur calcule (et ce qu'il ne sait pas)</b></summary>
+    <p>Le simulateur traite le planeur comme un objet qui avance, monte, descend et bascule autour de son point d'équilibre. Toutes les 2 millièmes de seconde, il calcule quatre forces et recommence :</p>
+    <ul>
+      <li>le <b>poids</b>, à partir de la masse ;</li>
+      <li>la <b>portance de l'aile</b>, à partir de sa surface, de sa vitesse et de son inclinaison dans l'air, avec un maximum : au-delà, l'aile <b>décroche</b> ;</li>
+      <li>la <b>portance du stabilisateur</b>, qui ramène le planeur à plat ;</li>
+      <li>la <b>traînée</b>, qui freine.</li>
+    </ul>
+    <p><b>Ce qu'il ne sait pas</b> : les bavures, une aile montée de travers, le vent, un lancer qui part en biais. Ses coefficients sont des ordres de grandeur pour une plaque fine. Il donne donc bien les <b>tendances</b> (ce réglage est meilleur que celui-là, il va cabrer, il va piquer), mais pas la distance au mètre près.</p>
+    <p class="astuce">Un écart entre la distance prévue et la distance mesurée n'est pas une faute : c'est un résultat. Ton travail est de l'expliquer.</p>
+  </details>
+</section>
+
 <!-- ============ MES ESSAIS ============ -->
 <section class="pl-sec" id="s-essais" hidden>
   <div class="carte pl-essais">
     <h2 style="margin-top:0">Carnet d'essais</h2>
-    <p>Trois lancers par version, par le même lanceur et de la même façon. Le site calcule la moyenne et l'écart entre tes versions. <span class="discret">Le carnet est gardé sur cet appareil : imprime-le ou recopie-le pour le rendre.</span></p>
+    <p>Trois lancers par version, par le même lanceur et de la même façon. Le site calcule la moyenne, l'écart entre tes versions, et l'écart entre ce que le simulateur avait prévu et ce que tu as mesuré. <span class="discret">Le carnet est gardé sur cet appareil : imprime-le ou recopie-le pour le rendre.</span></p>
     <p><label>Équipe : <input type="text" id="equipe" style="width:16em;min-width:0" placeholder="noms des membres"></label> &nbsp; <label>Lanceur : <input type="text" id="cran" style="width:10em;min-width:0" placeholder="prénom"></label></p>
     <div class="pl-scroll"><table class="pl" id="t-essais">
-      <tr><th>Version</th><th class="n">Masse (g)</th><th class="n">Lancer 1 (m)</th><th class="n">Lancer 2 (m)</th><th class="n">Lancer 3 (m)</th><th class="n">Moyenne</th><th>Ce que j'observe en vol</th></tr>
+      <tr><th>Version</th><th class="n">Masse (g)</th><th class="n">Lancer 1 (m)</th><th class="n">Lancer 2 (m)</th><th class="n">Lancer 3 (m)</th><th class="n">Moyenne</th><th class="n">Prévu par le simulateur (m)</th><th class="n">Écart prévu / mesuré</th><th>Ce que j'observe en vol</th></tr>
     </table></div>
     <p id="bilan" class="formule" hidden></p>
     <h3 style="margin-top:18px">Entre la version 1 et la version 2</h3>
@@ -410,7 +450,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <ul>
       <li>Tiens le fuselage entre le pouce et l'index, <b>juste sous l'aile</b>, là où il tient en équilibre.</li>
       <li>Planeur <b>à plat</b>, nez à peine vers le bas. Vise un point au sol à une dizaine de mètres.</li>
-      <li><b>Pousse</b> droit devant, d'un geste souple, sans le jeter et sans le lancer vers le haut.</li>
+      <li><b>Lance franchement</b>, droit devant, comme une fléchette, sans viser le haut. Un planeur de 25 g a besoin d'environ 8 m/s pour voler : un geste trop mou, et il tombe.</li>
       <li>Le même lanceur fait tous les lancers de l'équipe, de la même façon. Un lancer raté (planeur qui glisse des doigts) se refait.</li>
     </ul>
   </div>
@@ -453,6 +493,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 </section>
 </main>
 
+<script src="2si-planeur/modele.js"></script>
 <script>
 /* ---------- Réglages : étapes, barème, critères (à modifier ici) ---------- */
 const C = (id, t) => ({ k: "c", id, t });          // une case à cocher
@@ -482,6 +523,7 @@ const ETAPES = [
   { t: "Concevoir ma version 1", img: "m7a", but: "Transformer le planeur de départ pour qu'il aille plus loin, sans sortir du cahier des charges.", items: [
     C("5n", "Avant de modifier, lis les notions 4 à 7 de l'onglet « Comprendre » : charge alaire, stabilité, calage, forme de l'aile."),
     C("m7", "Mission 7 : je duplique le planeur de départ, puis je le change une cote à la fois."),
+    C("5s", "Entre les valeurs de ta version 1 dans l'onglet « Simulateur », règle le point d'équilibre, puis note la distance prévue dans ton carnet."),
     C("4c", "Relève dans Onshape les dimensions et le volume de chaque pièce, puis remplis la fiche ci-dessous."),
     B("fiche"),
     C("4d", "Toutes les lignes de la fiche sont vertes."),
@@ -495,6 +537,7 @@ const ETAPES = [
     C("5f", "Décris le vol, puis choisis UNE seule modification avec le tableau « Lire le vol de ton planeur »."),
     C("5g", "Remplis les trois lignes « Entre la version 1 et la version 2 » dans « Mes essais ».") ] },
   { t: "Concevoir la version 2", img: "m7c", but: "Améliorer en changeant une seule chose.", items: [
+    C("6s", "Teste d'abord ta modification dans le « Simulateur », en gardant la version 1 en gris. Note la distance prévue pour la version 2."),
     C("6a", "Modifie ton modèle Onshape en changeant une cote (pas en redessinant)."),
     C("6b", "Vérifie de nouveau la fiche de conformité (étape 5) avec les nouvelles valeurs."),
     C("6c", "Exporte les fichiers STL de la version 2 (nom : equipe_piece_v2.stl) et envoie-les."),
@@ -521,7 +564,7 @@ const CRITERES = [
   ["B3 · Prêt à imprimer", "Fichiers manquants ou inutilisables", "STL fournis, à corriger avant impression", "STL corrects, pièces à plat, épaisseurs multiples de 0,2 mm", "STL corrects du premier coup, bien nommés, rendus à temps"],
   ["C1 · Mesures", "Pas de mesures notées", "Mesures incomplètes, ou lancers pas comparables", "3 lancers par version, même lanceur et même geste, moyenne juste", "Mesures complètes, et la régularité des lancers est commentée"],
   ["C2 · Modification", "Aucune modification, ou tout changé d'un coup", "Une modification, sans raison donnée", "Une seule modification, justifiée par une observation du vol", "Une seule modification, justifiée, avec le résultat attendu annoncé avant l'essai"],
-  ["C3 · Analyse", "Pas de conclusion", "« C'est mieux » ou « c'est moins bien », sans chiffre", "Écart entre les deux versions calculé et commenté", "Écart calculé, comparé à la variation entre lancers, et suite proposée"],
+  ["C3 · Analyse", "Pas de conclusion", "« C'est mieux » ou « c'est moins bien », sans chiffre", "Écart entre les deux versions calculé et commenté", "Écart calculé, comparé à la variation entre lancers et à la prévision du simulateur, et suite proposée"],
   ["E · Esthétique", "Pièces brutes : bavures, aile de travers", "Planeur propre, forme très simple (rectangles)", "Forme travaillée, proportions agréables, finition soignée", "Un vrai style : forme originale, nom ou signe de l'équipe, sans nuire au vol"],
   ["F · Équipe", "Un seul membre travaille", "Travail inégal, retards", "Chacun a une part visible du travail, délais tenus", "Équipe autonome, qui aide aussi les autres"]
 ];
@@ -596,11 +639,12 @@ const T = document.getElementById("t-essais");
 VERSIONS.forEach((v, i) => { const e = D.essais[i] || {}; const tr = document.createElement("tr");
   tr.innerHTML = `<td><b>${v}</b></td><td class="n"><input type="number" step="0.1" min="0" data-v="${i}" data-k="m" value="${esc(e.m)}" aria-label="masse ${v}"></td>` +
     [1, 2, 3].map((k) => `<td class="n"><input type="number" step="0.01" min="0" data-v="${i}" data-k="d${k}" value="${esc(e["d" + k])}" aria-label="lancer ${k} ${v}"></td>`).join("") +
-    `<td class="n pl-moy" id="moy${i}">—</td><td><input type="text" data-v="${i}" data-k="obs" value="${esc(e.obs)}" aria-label="observation ${v}"></td>`; T.appendChild(tr); });
+    `<td class="n pl-moy" id="moy${i}">—</td><td class="n"><input type="number" step="0.1" min="0" data-v="${i}" data-k="prev" value="${esc(e.prev)}" aria-label="distance prévue ${v}"></td><td class="n pl-moy" id="ec${i}">—</td><td><input type="text" data-v="${i}" data-k="obs" value="${esc(e.obs)}" aria-label="observation ${v}"></td>`; T.appendChild(tr); });
 function moyenne(i) { const e = D.essais[i] || {}; const L = [e.d1, e.d2, e.d3].map(parseFloat).filter((x) => isFinite(x) && x >= 0); return L.length === 3 ? (L[0] + L[1] + L[2]) / 3 : null; }
 function calcul() {
   const M = VERSIONS.map((v, i) => moyenne(i));
-  M.forEach((m, i) => document.getElementById("moy" + i).textContent = m == null ? "—" : nbfr(m) + " m");
+  M.forEach((m, i) => { document.getElementById("moy" + i).textContent = m == null ? "—" : nbfr(m) + " m";
+    const pv = parseFloat((D.essais[i] || {}).prev); document.getElementById("ec" + i).textContent = m != null && m > 0 && isFinite(pv) ? nbfr(Math.abs(pv - m) / m * 100, 0) + " %" : "—"; });
   const b = document.getElementById("bilan");
   if (M[0] != null && M[1] != null && M[0] > 0) { const ec = Math.abs(M[1] - M[0]) / M[0] * 100;
     b.hidden = false; b.textContent = `Version 2 : ${M[1] > M[0] ? "+" : M[1] < M[0] ? "−" : ""}${nbfr(Math.abs(M[1] - M[0]))} m par rapport à la version 1 · écart relatif ${nbfr(ec, 0)} %`; } else b.hidden = true;
@@ -618,6 +662,67 @@ const COULEURS = ["#1d3f7a", "#2f6fbf", "#1b7f4b", "#b8860b", "#b5477a", "#5b677
 document.getElementById("bar-bareme").innerHTML = `<div class="pl-bar" role="img" aria-label="Répartition des 20 points">${BAREME.map((b, i) => `<span style="flex:${b[3]};background:${COULEURS[i]}">${b[3]}</span>`).join("")}</div><div class="pl-leg">${BAREME.map((b, i) => `<span><i style="background:${COULEURS[i]}"></i>${b[1]}</span>`).join("")}</div>`;
 document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Niveau 1 · insuffisant</th><th>Niveau 2 · fragile</th><th>Niveau 3 · attendu</th><th>Niveau 4 · très bien</th></tr>` +
   CRITERES.map((c) => `<tr><td><b>${c[0]}</b></td>${c.slice(1).map((x) => `<td>${x}</td>`).join("")}</tr>`).join("") + `<tr><td colspan="5">${PERF}</td></tr><tr><td colspan="5">${POINTS_NIVEAU}</td></tr>`;
+
+/* ---------- Simulateur de vol ---------- */
+(function () {
+  const M = window.PlaneurModele; if (!M) return;
+  const PARAMS = [
+    ["Le planeur", [["m", "Masse totale, lest compris", "g", 10, 40, 0.1, 26.8], ["env", "Envergure de l'aile", "mm", 100, 210, 5, 200], ["corde", "Corde de l'aile", "mm", 25, 70, 1, 45], ["envS", "Envergure du stabilisateur", "mm", 40, 120, 5, 80], ["cordeS", "Corde du stabilisateur", "mm", 15, 40, 1, 25], ["L", "Longueur du fuselage", "mm", 150, 210, 5, 210]]],
+    ["Les réglages", [["xG", "Point d'équilibre, depuis le nez", "mm", 60, 150, 1, 100], ["xAile", "Avant de l'aile, depuis le nez", "mm", 40, 130, 1, 88], ["xStab", "Avant du stabilisateur, depuis le nez", "mm", 130, 200, 1, 182], ["calage", "Inclinaison de la fente de l'aile", "°", 0, 6, 0.5, 3]]],
+    ["Le lancer", [["h0", "Hauteur de la main", "m", 1, 2, 0.1, 1.5], ["v0", "Vitesse du lancer", "m/s", 4, 14, 0.5, 9], ["g0", "Direction du lancer (0 = à plat)", "°", -10, 20, 1, 0]]]
+  ];
+  const EX = { depart: { m: 26.8, xG: 100 }, sanslest: { m: 23.0, xG: 115 }, trop: { m: 30, xG: 92 } };
+  const DEF = {}; PARAMS.forEach((g) => g[1].forEach((p) => DEF[p[0]] = p[6]));
+  D.sim = Object.assign({}, DEF, D.sim || {});
+  const fmt = (x, n) => (Math.round(x * Math.pow(10, n)) / Math.pow(10, n)).toFixed(n).replace(".", ",");
+  document.getElementById("sim-entrees").innerHTML = PARAMS.map((g) => `<div class="carte"><h3 style="margin-top:0">${g[0]}</h3>${g[1].map((p) => `<label class="sim-ligne"><span>${p[1]}</span><span class="sim-ctl"><input type="range" min="${p[3]}" max="${p[4]}" step="${p[5]}" data-s="${p[0]}"><span class="sim-val"><input type="number" min="${p[3]}" max="${p[4]}" step="${p[5]}" data-n="${p[0]}"> ${p[2]}</span></span></label>`).join("")}</div>`).join("");
+  const ecrire = () => Object.keys(DEF).forEach((k) => { document.querySelector(`[data-s="${k}"]`).value = D.sim[k]; document.querySelector(`[data-n="${k}"]`).value = D.sim[k]; });
+  const enSI = (s) => ({ m: s.m / 1000, env: s.env / 1000, corde: s.corde / 1000, xAile: s.xAile / 1000, xG: s.xG / 1000, envS: s.envS / 1000, cordeS: s.cordeS / 1000, xStab: s.xStab / 1000, calage: s.calage * Math.PI / 180, L: s.L / 1000, h0: s.h0, v0: s.v0, g0: s.g0 * Math.PI / 180 });
+  let ref = null, dernier = null;
+  function verdict(r, s) {
+    const pct = Math.round(r.pctG * 100);
+    if (s.xStab < s.xAile + s.corde) return ["alerte", "Le stabilisateur est sous l'aile", "Recule le stabilisateur ou avance l'aile : il doit être derrière."];
+    if (r.culbute || r.marge < -0.02) return ["alerte", "Instable : il cabre et part en vrille", `Le point d'équilibre est trop en arrière (${pct} % de la corde). Ajoute du lest dans le nez pour l'avancer.`];
+    if (s.v0 < r.vmin * 0.97) return ["alerte", "Lancer trop lent : il tombe", `Ce planeur a besoin d'au moins ${fmt(r.vmin, 1)} m/s pour voler. Lance plus vite, ou allège-le.`];
+    if (r.tDecroche > 0.25 * r.duree) return ["moyen", "Il vole trop cabré et décroche", pct > 30 ? `Le point d'équilibre est un peu trop en arrière (${pct} % de la corde) : avance-le de quelques millimètres avec du lest.` : "L'aile est trop inclinée, ou le lancer part trop vers le haut."];
+    if (pct < 20) return ["moyen", "Il pique", `Le point d'équilibre est trop en avant (${pct} % de la corde) : enlève du lest du nez.`];
+    return ["ok", "Vol à plat", `Point d'équilibre à ${pct} % de la corde. Change un réglage à la fois pour voir s'il peut aller plus loin.`];
+  }
+  function dessin(r) {
+    const W = 900, H = 330, mg = 46, mb = 44, mh = 16; const dmax = Math.max(12, Math.ceil(Math.max(r.distance, ref ? ref.distance : 0) + 1)), zmax = Math.max(2.4, Math.max(r.hmax, ref ? ref.hmax : 0) + 0.3);
+    const X = (x) => mg + Math.max(0, x) * (W - mg - 14) / dmax, Z = (z) => H - mb - z * (H - mb - mh) / zmax; const sx = (W - mg - 14) / dmax, sz = (H - mb - mh) / zmax;
+    const chemin = (P) => P.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Z(p[1]).toFixed(1)).join(" ");
+    let g = ""; const pas = dmax > 24 ? 5 : dmax > 12 ? 2 : 1;
+    for (let x = 0; x <= dmax; x += pas) g += `<line x1="${X(x)}" y1="${Z(0)}" x2="${X(x)}" y2="${Z(0) + 6}" stroke="currentColor"/><text x="${X(x)}" y="${Z(0) + 20}" font-size="12" text-anchor="middle" fill="currentColor">${x}</text>`;
+    for (let z = 1; z <= zmax; z++) g += `<line x1="${mg - 5}" y1="${Z(z)}" x2="${mg}" y2="${Z(z)}" stroke="currentColor"/><text x="${mg - 8}" y="${Z(z) + 4}" font-size="12" text-anchor="end" fill="currentColor">${z}</text><line x1="${mg}" y1="${Z(z)}" x2="${W - 14}" y2="${Z(z)}" stroke="currentColor" stroke-width=".5" stroke-dasharray="2 6" opacity=".5"/>`;
+    let av = ""; const dtg = Math.max(0.15, r.duree / 9);
+    for (let t = 0, i = 0; i < r.pts.length; i++) if (r.pts[i][3] >= t) { const p = r.pts[i]; const a = -Math.atan2(Math.sin(p[2]) * sz, Math.cos(p[2]) * sx) * 180 / Math.PI;
+      av += `<g transform="translate(${X(p[0]).toFixed(1)} ${Z(p[1]).toFixed(1)}) rotate(${a.toFixed(1)})"><path d="M14 0 H-12 V-7 l5 0 3 7" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M-3 -2 h9" stroke="#f08c00" stroke-width="3.5"/></g>`; t += dtg; }
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Trajectoire prévue du planeur, vue de côté : il se pose à ${fmt(r.distance, 1)} mètres"><line x1="${mg}" y1="${Z(0)}" x2="${W - 14}" y2="${Z(0)}" stroke="currentColor" stroke-width="2"/><line x1="${mg}" y1="${Z(0)}" x2="${mg}" y2="${mh}" stroke="currentColor" stroke-width="1.5"/>${g}
+      ${ref ? `<path d="${chemin(ref.pts)}" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/><circle cx="${X(ref.distance)}" cy="${Z(0)}" r="5" fill="currentColor" opacity=".4"/>` : ""}
+      <path d="${chemin(r.pts)}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="7 5"/>${av}<circle cx="${X(r.distance)}" cy="${Z(0)}" r="6" fill="var(--bad)"/>
+      <text x="${(mg + W) / 2}" y="${H - 4}" font-size="13" text-anchor="middle" fill="currentColor">distance depuis la ligne de départ, en mètres</text><text x="12" y="${mh + 4}" font-size="12" fill="currentColor">m</text></svg>`;
+  }
+  function calculer() {
+    const s = D.sim, r = M.simuler(enSI(s)); dernier = r; const v = verdict(r, s);
+    document.getElementById("sim-d").textContent = fmt(Math.max(0, r.distance), 1);
+    document.getElementById("sim-verdict").innerHTML = `<span class="etiquette ${v[0] === "ok" ? "ok" : "alerte"}">${v[1]}</span><span>${v[2]}</span>`;
+    document.getElementById("sim-svg").innerHTML = dessin(r);
+    const ch = s.m / (s.env * s.corde / 100);
+    document.getElementById("sim-res").innerHTML = [["Durée du vol", fmt(r.duree, 1) + " s"], ["Hauteur maximale", fmt(r.hmax, 2) + " m"], ["Vitesse minimale pour voler", fmt(r.vmin, 1) + " m/s"], ["Charge alaire", fmt(ch, 2) + " g/cm²"], ["Point d'équilibre", Math.round(r.pctG * 100) + " % de la corde"], ["Allongement de l'aile", fmt(s.env / s.corde, 1)]].concat(ref ? [["Par rapport au vol gris", (r.distance >= ref.distance ? "+" : "−") + fmt(Math.abs(r.distance - ref.distance), 1) + " m"]] : []).map((x) => `<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join("");
+  }
+  const $in = document.getElementById("sim-entrees");
+  $in.addEventListener("input", (ev) => { const el = ev.target, k = el.dataset.s || el.dataset.n; if (!k) return; const x = parseFloat(el.value); if (!isFinite(x)) return;
+    const p = PARAMS.flatMap((g) => g[1]).find((q) => q[0] === k); D.sim[k] = Math.min(p[4], Math.max(p[3], x));
+    document.querySelector(`[data-s="${k}"]`).value = D.sim[k]; if (el.dataset.s) document.querySelector(`[data-n="${k}"]`).value = D.sim[k]; garder(); calculer(); });
+  document.querySelectorAll("[data-ex]").forEach((b) => b.onclick = () => { D.sim = Object.assign({}, DEF, EX[b.dataset.ex]); ecrire(); garder(); calculer(); });
+  document.getElementById("sim-ref").onclick = () => { ref = dernier; calculer(); };
+  document.getElementById("sim-ref0").onclick = () => { ref = null; calculer(); };
+  document.querySelectorAll("[data-carnet]").forEach((b) => b.onclick = () => { const i = b.dataset.carnet, v = (Math.round(Math.max(0, dernier.distance) * 10) / 10).toString();
+    (D.essais[i] = D.essais[i] || {}).prev = v; const el = document.querySelector(`#t-essais [data-v="${i}"][data-k="prev"]`); if (el) el.value = v; garder(); calcul();
+    document.getElementById("sim-ok").textContent = `Noté : ${v.replace(".", ",")} m prévus pour la version ${+i + 1}.`; });
+  ecrire(); calculer();
+})();
 </script>
 </body>
 </html>

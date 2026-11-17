@@ -25,7 +25,7 @@ def bilan(LN=40, HN=14):
     xg = (ma * (XA + CA/2) + ms * (XSt + CSt/2) + mf * F.centroid[0]) / (ma + ms + mf)
     return F, mf, ma + ms + mf, xg
 if __name__ == '__main__':
-    F, mf, mt, xg = bilan(); cible = xnp - 0.08 * CA; lest = mt * (xg - cible) / (cible - TROU[0])
+    F, mf, mt, xg = bilan(); cible = XA + 0.27 * CA; lest = mt * (xg - cible) / (cible - TROU[0])
     assert F.is_watertight
     F.export('depart_fuselage.stl'); tm(Manifold.cube((BA, CA, EA))).export('depart_aile.stl'); tm(Manifold.cube((BSt, CSt, ESt))).export('depart_stabilisateur.stl')
     print(f"point neutre {xnp:.1f} ; cible CG {cible:.1f} ; fuselage {mf:.1f} g ; aile {ma:.1f} g ; stab {ms:.1f} g ; total {mt:.1f} g ; CG sans lest {xg:.1f} ; lest au trou {lest:.1f} g ; total lesté {mt+lest:.1f} g ; volumes cm3 fus {mf/1.24:.1f} aile {ma/1.24:.1f} stab {ms/1.24:.1f}")
