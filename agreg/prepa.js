@@ -230,6 +230,7 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
 .pp-leg{font-size:14px;color:#42596b;margin:6px 0 12px;padding-left:12px;border-left:3px solid #c3d0da}
 .pp-form{margin:8px 0 12px;border:1px solid #dbe5ec;border-radius:10px;background:#fff}.pp-fi{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1.8fr);gap:4px 16px;padding:10px 13px;align-items:center}.pp-fi+.pp-fi{border-top:1px solid #dbe5ec}.pp-fn{font-weight:700;color:#12566f}.pp-fc{color:#42596b}
 @media(max-width:640px){.pp-fi{grid-template-columns:1fr;gap:3px}.pp-ff{font-size:17px;padding:2px 0}.pp-fc::before{content:'→ '}}
+#ppst .fig svg:not(.pp-pt),.pp-fp .fig svg:not(.pp-pt),.res .fig svg:not(.pp-pt){min-width:520px}
 .pp-pq{margin:4px 0}.pp-pq dt{font-weight:700;color:#8a4513;margin-top:14px}.pp-pq dt:first-child{margin-top:4px}.pp-pq dd{margin:3px 0 0}
 .pp-mots{margin:4px 0}.pp-mots dt{font-weight:700;color:#12566f;margin-top:10px}.pp-mots dd{margin:2px 0 0}
 .pp-pas{padding-left:22px;margin:4px 0}.pp-pas li{margin:9px 0;line-height:1.55}
