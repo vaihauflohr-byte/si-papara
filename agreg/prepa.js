@@ -230,6 +230,7 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
 .pp-leg{font-size:14px;color:#42596b;margin:6px 0 12px;padding-left:12px;border-left:3px solid #c3d0da}
 .pp-form{margin:8px 0 12px;border:1px solid #dbe5ec;border-radius:10px;background:#fff}.pp-fi{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1.8fr);gap:4px 16px;padding:10px 13px;align-items:center}.pp-fi+.pp-fi{border-top:1px solid #dbe5ec}.pp-fn{font-weight:700;color:#12566f}.pp-fc{color:#42596b}
 @media(max-width:640px){.pp-fi{grid-template-columns:1fr;gap:3px}.pp-ff{font-size:17px;padding:2px 0}.pp-fc::before{content:'→ '}}
+.pp-pq{margin:4px 0}.pp-pq dt{font-weight:700;color:#8a4513;margin-top:14px}.pp-pq dt:first-child{margin-top:4px}.pp-pq dd{margin:3px 0 0}
 .pp-mots{margin:4px 0}.pp-mots dt{font-weight:700;color:#12566f;margin-top:10px}.pp-mots dd{margin:2px 0 0}
 .pp-pas{padding-left:22px;margin:4px 0}.pp-pas li{margin:9px 0;line-height:1.55}
 .pp-ret{margin:12px 0 0;padding:9px 13px;background:#fff;border:1px solid #cfe3d8;border-radius:8px}
@@ -616,7 +617,7 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
   /* ---------- fiches et étapes, sur le modèle de la préparation des DS de Terminale SI */
   const FI = () => window.PREPA_FICHES || {};
   const ET = () => window.PREPA_ETAPES || null;
-  const SEUIL = 16, PARTIES = { idee: 'L’idée, en image', essentiel: 'L’essentiel, en clair', formules: 'Formules', methode: 'Méthode', exemple: 'Exemple corrigé', pieges: 'Pièges' };
+  const SEUIL = 16, PARTIES = { idee: 'L’idée, en image', pourquoi: 'Le pourquoi du comment', essentiel: 'L’essentiel, en clair', formules: 'Formules', methode: 'Méthode', exemple: 'Exemple corrigé', pieges: 'Pièges' };
   const melange = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = b[i]; b[i] = b[j]; b[j] = t; } return b; };
   const etapesDe = (c) => (c && ET() && ET().CYCLES[c.n]) || null;
   const cyclesDe = (docs) => ((PROG && PROG.cycles) || []).filter((c) => docs.some((d) => d.cycle === c));
@@ -698,19 +699,20 @@ ${texteBrut(q.inst.corr).slice(0, 6000)}
 >>>
 ${plus ? `\n## Première explication, qu'il n'a toujours pas comprise\n<<<\n${precedent}\n>>>\nReprends autrement et encore plus lentement : commence par un exemple chiffré très simple, sans rapport direct avec la question, puis reviens à la question.\n` : ''}
 ## Consignes
-1. "etapes" : 4 à 7 étapes courtes, une seule idée par étape, dans l'ordre où on raisonne. La première dit, en mots simples, ce que la question demande.
+0. Méthode Feynman : explique comme à quelqu'un qui découvre le sujet, sans jargon, et donne toujours le pourquoi avant le comment. "pourquoi" : en deux ou trois phrases, à quoi sert la notion de cette question et pourquoi on s'y prend ainsi (par exemple : pourquoi on étudie la boucle ouverte pour juger la boucle fermée, pourquoi on remplace p par 0, pourquoi des décibels). Pas de formule dans ce champ.
+1. "etapes" : 4 à 7 étapes courtes, une seule idée par étape, dans l'ordre où on raisonne. La première dit, en mots simples, ce que la question demande. Chaque étape dit ce qu'on fait et pourquoi on le fait.
 2. Chaque mot technique ou symbole (pôle, module, argument, FTBO, décibel, p, jω…) est expliqué en une demi-phrase la première fois, comme à un élève de terminale. Les calculs sont posés avec les nombres de la question, une opération à la fois.
 3. "erreur" : s'il s'est trompé, la confusion précise qui mène à SA réponse, sans le juger ; s'il a tout juste, chaîne vide.
 4. "image" : une comparaison concrète de la vie courante, ou un moyen de s'en souvenir, en une ou deux phrases.
 5. "retenir" : la règle à retenir, en une phrase.
 6. Tutoie-le. Français simple, phrases courtes. Aucune mise en forme : ni LaTeX, ni Markdown, ni HTML ; formules en ligne (a/b, √2, ω, ξ, τ, e^(−t/τ)). Garde les résultats de la correction du site ; si tu penses y voir une erreur, signale-le dans "erreur".
 
-Réponds en JSON : {"etapes": ["…"], "erreur": "…", "image": "…", "retenir": "…"}`;
+Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "image": "…", "retenir": "…"}`;
       const r = await s.json(prompt.slice(0, 39000), { cache: false, modelTier: 'complex' });
       const E = r && Array.isArray(r.etapes) ? r.etapes.map((x) => String(x || '').trim()).filter(Boolean) : [];
       if (!E.length) throw { code: 'invalid_json' };
       const t = (k) => String((r && r[k]) || '').trim();
-      box.innerHTML = `<div class="pp-exp"><b>Pas à pas</b><ol class="pp-pas">${E.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>${t('erreur') ? `<p><b>Ce qui t’a piégé :</b> ${esc(t('erreur'))}</p>` : ''}${t('image') ? `<p><b>Une image :</b> ${esc(t('image'))}</p>` : ''}${t('retenir') ? `<p class="pp-ret"><b>À retenir :</b> ${esc(t('retenir'))}</p>` : ''}
+      box.innerHTML = `<div class="pp-exp">${t('pourquoi') ? `<p><b>Le pourquoi :</b> ${esc(t('pourquoi'))}</p>` : ''}<b>Pas à pas</b><ol class="pp-pas">${E.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>${t('erreur') ? `<p><b>Ce qui t’a piégé :</b> ${esc(t('erreur'))}</p>` : ''}${t('image') ? `<p><b>Une image :</b> ${esc(t('image'))}</p>` : ''}${t('retenir') ? `<p class="pp-ret"><b>À retenir :</b> ${esc(t('retenir'))}</p>` : ''}
         <p class="muted" style="margin:10px 0 0;font-size:13px">Explication rédigée par une IA : en cas de désaccord, la correction du site fait foi.</p>${plus ? '' : '<div class="btns" style="margin-top:10px"><button class="b sec" type="button" data-exp="2">Encore plus simplement</button></div>'}</div>`;
     } catch (e) {
       box.innerHTML = `<div class="hint">${esc(msgIA(e))}</div>`;
@@ -822,7 +824,7 @@ Réponds en JSON : {"etapes": ["…"], "erreur": "…", "image": "…", "retenir
       if (libres.length < n) { vus = new Set(); libres = R.map((_, i) => i); }
       melange(libres).slice(0, n).sort((a, b) => a - b).forEach((i) => {
         vus.add(i);
-        try { const o = R[i].gen(); qs.push({ ch: l === 3 ? '' : key, t: R[i].t, aide: e.aide ? String(R[i].r || o.hint || '') : '', inst: { text: o.text, fig: o.fig || '', fields: o.fields, corr: o.corr } }); } catch (er) { /* générateur en défaut : on passe */ }
+        try { const o = R[i].gen(); qs.push({ ch: l === 3 ? '' : key, t: R[i].t, aide: e.aide ? String(R[i].r || o.hint || '') + (R[i].w ? `</p><p><b>Pourquoi ?</b> ${R[i].w}` : '') : '', inst: { text: o.text, fig: o.fig || '', fields: o.fields, corr: o.corr } }); } catch (er) { /* générateur en défaut : on passe */ }
       });
       S[cle] = [...vus];
     });

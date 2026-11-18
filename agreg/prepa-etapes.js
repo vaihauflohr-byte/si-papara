@@ -57,19 +57,19 @@
   const courbe1 = (S, tau, extra) => plot(Object.assign({ x0: 0, x1: 6 * tau, dx: tau / 2, xmaj: 2, y0: 0, y1: 1.2 * S, dy: S / 10, ymaj: 2, curves: [{ pts: step1(S, tau, 6 * tau) }], xl: 'Temps (s)', yl: 'Sortie', alt: 'réponse d’un premier ordre à un échelon' }, extra || {}));
 
   N['c1-ch1'] = [
-    { t: 'Le gain statique', r: 'En régime permanent, un système linéaire multiplie son entrée par un nombre fixe, son gain statique : sortie = K × entrée. K = sortie / entrée, avec son unité.', gen() {
+    { t: 'Le gain statique', r: 'En régime permanent, un système linéaire multiplie son entrée par un nombre fixe, son gain statique : sortie = K × entrée. K = sortie / entrée, avec son unité.', w: 'Parce que le système est linéaire : le double à l’entrée donne le double à la sortie. Un seul essai suffit donc à prévoir tous les autres.', gen() {
       const U = pick([6, 12, 24]), K = pick([5, 10, 12.5]), U2 = pick([9, 18, 30]);
       return { text: `Un moteur alimenté sous ${U} V tourne, une fois sa vitesse stabilisée, à ${fmt(K * U)} rad/s. On le suppose linéaire. Calculer son gain statique, puis sa vitesse stabilisée sous ${U2} V.`, fig: '',
         fields: [{ l: 'Gain statique K', u: 'rad·s⁻¹/V', a: K, tol: .01 }, { l: `Vitesse sous ${U2} V`, u: 'rad/s', a: K * U2, tol: .01 }],
         corr: pas([`Le gain dit combien de rad/s on obtient par volt. On divise la sortie par l’entrée : K = ${fr(fmt(K * U), U)} = <b>${fmt(K)} rad·s⁻¹/V</b>.`, `« Linéaire » veut dire proportionnel : chaque volt donne toujours ${fmt(K)} rad/s.`, `Sous ${U2} V : ${fmt(K)} × ${U2} = <b>${fmt(K * U2)} rad/s</b>.`], 'le gain statique, c’est le « taux de change » entre l’entrée et la sortie, une fois tout stabilisé.') };
     } },
-    { t: 'Dériver, c’est multiplier par p', r: 'Transformée de Laplace, conditions initiales nulles : s(t) devient S(p) et ds/dt devient p·S(p). L’équation τ·ds/dt + s = K·e donne (1 + τp)·S = K·E, donc H(p) = S/E = K/(1 + τp).', gen() {
+    { t: 'Dériver, c’est multiplier par p', r: 'Transformée de Laplace, conditions initiales nulles : s(t) devient S(p) et ds/dt devient p·S(p). L’équation τ·ds/dt + s = K·e donne (1 + τp)·S = K·E, donc H(p) = S/E = K/(1 + τp).', w: 'Les lois physiques parlent de vitesses de variation, donc de dérivées. Laplace les change en multiplications par p : l’équation différentielle devient une équation ordinaire, que l’on résout comme au collège.', gen() {
       const tau = pick([0.2, 0.5, 2, 4]), K = pick([3, 5, 8]);
       return { text: `Un système obéit à l’équation ${fmt(tau)}·${fr('ds', 'dt')} + s(t) = ${K}·e(t). Sa fonction de transfert s’écrit ${V('H(p)')} = ${fr('K', '1 + τp')}. Lire ${V('K')} et τ.`, fig: '',
         fields: [{ l: 'K', u: '', a: K, tol: .01 }, { l: 'τ', u: 's', a: tau, tol: .01 }],
         corr: pas([`On traduit en Laplace : la dérivée devient « × p ». L’équation devient ${fmt(tau)}·p·S + S = ${K}·E.`, `On met S en facteur : (1 + ${fmt(tau)}p)·S = ${K}·E.`, `On divise : ${fr('S', 'E')} = ${fr(K, `1 + ${fmt(tau)}p`)}.`, `On compare avec ${fr('K', '1 + τp')} : K = <b>${K}</b> et τ = <b>${fmt(tau)} s</b>.`], 'quand le coefficient devant s(t) vaut 1, K se lit devant e(t) et τ devant la dérivée.') };
     } },
-    { t: 'Valeur finale : remplacer p par 0', r: 'Pour un système stable soumis à un échelon d’amplitude E₀, la sortie se stabilise à H(0)·E₀ : on remplace p par 0 dans la fonction de transfert.', gen() {
+    { t: 'Valeur finale : remplacer p par 0', r: 'Pour un système stable soumis à un échelon d’amplitude E₀, la sortie se stabilise à H(0)·E₀ : on remplace p par 0 dans la fonction de transfert.', w: 'p repère la vitesse à laquelle les choses changent. Quand tout est stabilisé, plus rien ne change : cela revient à prendre p = 0.', gen() {
       const K = pick([2, 4, 5]), t1 = pick([0.1, 0.5]), t2 = pick([1, 2]), E = pick([3, 5, 10]);
       return { text: `${V('H(p)')} = ${fr(K, `(${bin(t1)})(${bin(t2)})`)}. On applique un échelon d’amplitude ${E}. À quelle valeur la sortie se stabilise-t-elle ?`, fig: '',
         fields: [{ l: 'Valeur finale', u: '', a: K * E, tol: .01 }],
@@ -78,19 +78,19 @@
   ];
 
   N['c1-ch2'] = [
-    { t: 'Deux blocs à la suite', r: 'Deux blocs en série : la sortie du premier est l’entrée du second. Les gains se multiplient.', gen() {
+    { t: 'Deux blocs à la suite', r: 'Deux blocs en série : la sortie du premier est l’entrée du second. Les gains se multiplient.', w: 'Chaque bloc multiplie ce qu’il reçoit. Le second reçoit ce que le premier a déjà multiplié : les deux effets se cumulent en un produit.', gen() {
       const K1 = pick([2, 4, 5]), K2 = pick([0.5, 3, 10]), e = pick([2, 3, 6]);
       return { text: `Un amplificateur de gain ${K1} alimente un moteur de gain ${fmt(K2)}. Quel est le gain de l’ensemble, et que vaut la sortie pour une entrée de ${e} ?`, fig: '',
         fields: [{ l: 'Gain de l’ensemble', u: '', a: K1 * K2, tol: .01 }, { l: 'Sortie', u: '', a: K1 * K2 * e, tol: .01 }],
         corr: pas([`Le signal traverse l’amplificateur (× ${K1}), puis le moteur (× ${fmt(K2)}).`, `Gain de l’ensemble : ${K1} × ${fmt(K2)} = <b>${fmt(K1 * K2)}</b>.`, `Sortie : ${fmt(K1 * K2)} × ${e} = <b>${fmt(K1 * K2 * e)}</b>.`], 'des blocs à la suite, ce sont des multiplications à la chaîne.') };
     } },
-    { t: 'Le comparateur', r: 'Le comparateur calcule l’écart ε = consigne − mesure. Le correcteur proportionnel en tire la commande u = Kp × ε.', gen() {
+    { t: 'Le comparateur', r: 'Le comparateur calcule l’écart ε = consigne − mesure. Le correcteur proportionnel en tire la commande u = Kp × ε.', w: 'On ne corrige que ce que l’on voit. Consigne − mesure donne exactement ce qui manque : c’est cette information qui pilote la commande.', gen() {
       const c = pick([50, 80, 100]), m = c - pick([2, 5, 8]), Kp = pick([2, 4, 10]);
       return { text: `La consigne vaut ${c}, la mesure ${m}. Le correcteur est proportionnel, de gain ${V('K<sub>p</sub>')} = ${Kp}. Calculer l’écart, puis la commande.`, fig: bd({ in: 'consigne', c: `Kp = ${Kp}`, g: 'procédé', out: 'sortie' }),
         fields: [{ l: 'Écart ε', u: '', a: c - m, tol: .01 }, { l: 'Commande u', u: '', a: Kp * (c - m), tol: .01 }],
         corr: pas([`Le comparateur mesure ce qu’il manque : ε = ${c} − ${m} = <b>${c - m}</b>.`, `Le correcteur réagit en proportion : u = ${Kp} × ${c - m} = <b>${Kp * (c - m)}</b>.`, 'Si la mesure rejoignait la consigne, l’écart vaudrait 0, et la commande aussi : plus rien ne pousserait.'], 'un correcteur proportionnel a besoin d’un écart pour agir. C’est pour cela qu’il en laisse toujours un peu.') };
     } },
-    { t: 'Une boucle, avec des gains seulement', r: 'Boucle à retour unitaire dont la chaîne directe a pour gain A : sortie = A × (consigne − sortie), donc sortie / consigne = A / (1 + A).', gen() {
+    { t: 'Une boucle, avec des gains seulement', r: 'Boucle à retour unitaire dont la chaîne directe a pour gain A : sortie = A × (consigne − sortie), donc sortie / consigne = A / (1 + A).', w: 'La sortie revient se retrancher à l’entrée : c’est de là que vient le « 1 + » du bas. Avec un grand gain A, un tout petit écart suffit à produire toute la sortie.', gen() {
       const A = pick([4, 9, 19, 49]), c = pick([10, 50, 100]);
       return { text: `Une boucle à retour unitaire a une chaîne directe de gain ${A}. La consigne vaut ${c}. Calculer le gain en boucle fermée, la sortie et l’écart qui subsiste.`, fig: bd({ in: `consigne = ${c}`, c: `A = ${A}`, g: '1', out: 'sortie' }),
         fields: [{ l: 'Gain en boucle fermée', u: '', a: A / (1 + A), tol: .01 }, { l: 'Sortie', u: '', a: c * A / (1 + A), tol: .01 }, { l: 'Écart', u: '', a: c / (1 + A), tol: .02 }],
@@ -99,19 +99,19 @@
   ];
 
   N['c1-ch3'] = [
-    { t: 'Lire une valeur finale et un gain', r: 'La valeur finale est le palier atteint par la courbe. Gain statique K = valeur finale / amplitude de l’échelon.', gen() {
+    { t: 'Lire une valeur finale et un gain', r: 'La valeur finale est le palier atteint par la courbe. Gain statique K = valeur finale / amplitude de l’échelon.', w: 'Sur le palier, plus rien ne varie : il ne reste que l’effet multiplicateur du système. C’est le seul endroit où le gain se lit sans être mêlé au temps de réaction.', gen() {
       const K = pick([2, 4, 5]), E = pick([2, 5]), tau = pick([0.5, 1, 2]), S = K * E;
       return { text: `Réponse d’un système à un échelon d’amplitude ${E}. Lire la valeur finale, puis en déduire le gain statique.`, fig: courbe1(S, tau),
         fields: [{ l: 'Valeur finale', u: '', a: S, tol: .04 }, { l: 'Gain statique K', u: '', a: K, tol: .04 }],
         corr: pas([`On regarde la fin de la courbe : elle devient plate à <b>${S}</b>. C’est la valeur finale.`, `On divise par l’amplitude de l’échelon : K = ${fr(S, E)} = <b>${K}</b>.`], 'le gain se lit sur le palier, jamais sur la montée.') };
     } },
-    { t: 'Lire une constante de temps', r: 'Premier ordre : la sortie atteint 63 % de sa valeur finale au bout d’une constante de temps τ. On calcule 0,63 × valeur finale, puis on lit l’instant où la courbe y passe.', gen() {
+    { t: 'Lire une constante de temps', r: 'Premier ordre : la sortie atteint 63 % de sa valeur finale au bout d’une constante de temps τ. On calcule 0,63 × valeur finale, puis on lit l’instant où la courbe y passe.', w: 'Un premier ordre avance à une vitesse proportionnelle à ce qu’il lui reste à parcourir : il ralentit en approchant. Au bout d’une durée τ, il reste e⁻¹ = 37 % du chemin, donc 63 % sont faits.', gen() {
       const S = pick([4, 10, 20]), tau = pick([0.2, 0.5, 1, 2]);
       return { text: `Réponse d’un premier ordre à un échelon ; elle se stabilise à ${S}. Calculer 63 % de la valeur finale, puis lire la constante de temps τ.`, fig: courbe1(S, tau, { hl: [{ y: 0.63 * S, t: '63 %', c: '#b0601f' }] }),
         fields: [{ l: '63 % de la valeur finale', u: '', a: 0.63 * S, tol: .02 }, { l: 'τ', u: 's', a: tau, tol: .12 }],
         corr: pas([`63 % de la valeur finale : 0,63 × ${S} = <b>${fmt(0.63 * S)}</b>.`, `On cherche ce niveau sur la courbe, puis on descend sur l’axe du temps : t = <b>${fmt(tau)} s</b>. C’est τ.`, `Contrôle : à 3τ = ${fmt(3 * tau)} s, la courbe doit être à 95 %, soit ${fmt(0.95 * S)}.`], 'τ, c’est le temps mis pour faire 63 % du chemin ; à 3τ, le chemin est presque fini.') };
     } },
-    { t: 'Le dépassement, en pourcentage', r: 'Premier dépassement relatif : D₁ = (valeur maximale − valeur finale) / valeur finale, en %. Toujours rapporté à la valeur finale.', gen() {
+    { t: 'Le dépassement, en pourcentage', r: 'Premier dépassement relatif : D₁ = (valeur maximale − valeur finale) / valeur finale, en %. Toujours rapporté à la valeur finale.', w: 'Le dépassement dit si le système est assez freiné. On le rapporte à la valeur finale pour pouvoir comparer deux systèmes, quelle que soit la taille de l’échelon.', gen() {
       const S = pick([4, 10, 20]), D = pick([0.1, 0.2, 0.25, 0.4]);
       return { text: `La sortie d’un système monte jusqu’à ${fmt(S * (1 + D))}, puis se stabilise à ${S}. Que vaut son premier dépassement, en % ?`, fig: '',
         fields: [{ l: 'D₁', u: '%', a: 100 * D, tol: .02 }],
@@ -120,19 +120,19 @@
   ];
 
   N['c1-ch4'] = [
-    { t: 'Fréquence, période, pulsation', r: 'ω = 2π·f (en rad/s) et T = 1/f. Les diagrammes de Bode sont gradués en pulsation ω.', gen() {
+    { t: 'Fréquence, période, pulsation', r: 'ω = 2π·f (en rad/s) et T = 1/f. Les diagrammes de Bode sont gradués en pulsation ω.', w: 'Une sinusoïde, c’est un point qui tourne sur un cercle : un tour = 2π radians. La pulsation compte les radians par seconde ; c’est elle qui sort des calculs quand on dérive, d’où son usage partout.', gen() {
       const f = pick([5, 10, 50, 100]);
       return { text: `Un signal sinusoïdal a une fréquence de ${f} Hz. Calculer sa pulsation et sa période.`, fig: '',
         fields: [{ l: 'Pulsation ω', u: 'rad/s', a: 2 * Math.PI * f, tol: .01 }, { l: 'Période T', u: 'ms', a: 1000 / f, tol: .01 }],
         corr: pas([`Pulsation : ω = 2π × f = 2π × ${f} = <b>${fmt(2 * Math.PI * f)} rad/s</b>.`, `Période : T = ${fr(1, f)} s = <b>${fmt(1000 / f)} ms</b>.`], 'la fréquence compte les tours par seconde, la pulsation compte les radians par seconde : un tour = 2π radians.') };
     } },
-    { t: 'Le gain, rapport de deux amplitudes', r: 'En régime sinusoïdal, gain = amplitude de sortie / amplitude d’entrée. En décibels : G = 20·log(gain). Un gain inférieur à 1 donne des décibels négatifs.', gen() {
+    { t: 'Le gain, rapport de deux amplitudes', r: 'En régime sinusoïdal, gain = amplitude de sortie / amplitude d’entrée. En décibels : G = 20·log(gain). Un gain inférieur à 1 donne des décibels négatifs.', w: 'Les gains de blocs à la suite se multiplient ; en décibels, ils s’additionnent. Et le logarithme fait tenir sur un même graphique un gain de 0,001 et un gain de 1000.', gen() {
       const E = pick([2, 4, 5]), g = pick([0.1, 0.25, 0.5, 2, 5]);
       return { text: `À une pulsation donnée, l’entrée d’un système est une sinusoïde d’amplitude ${E} et sa sortie une sinusoïde d’amplitude ${fmt(E * g)}. Calculer le gain, puis l’exprimer en décibels.`, fig: '',
         fields: [{ l: 'Gain', u: '', a: g, tol: .01 }, { l: 'Gain', u: 'dB', a: db(g), abs: .15 }],
         corr: pas([`Gain : amplitude de sortie ÷ amplitude d’entrée = ${fr(fmt(E * g), E)} = <b>${fmt(g)}</b>.`, `En décibels : 20 × log ${fmt(g)} = <b>${fmt(db(g))} dB</b>.`, g < 1 ? 'Gain inférieur à 1 : la sortie est plus petite que l’entrée, les décibels sont négatifs.' : 'Gain supérieur à 1 : la sortie est plus grande que l’entrée, les décibels sont positifs.'], 'ce calcul donne un point du diagramme de gain ; on le refait à chaque pulsation pour tracer la courbe.') };
     } },
-    { t: 'Le déphasage, à partir d’un retard', r: 'Une sortie en retard de Δt sur une sinusoïde de période T est déphasée de φ = −360° × Δt / T. Un retard donne une phase négative.', gen() {
+    { t: 'Le déphasage, à partir d’un retard', r: 'Une sortie en retard de Δt sur une sinusoïde de période T est déphasée de φ = −360° × Δt / T. Un retard donne une phase négative.', w: 'Dans une boucle, une correction qui arrive en retard peut pousser à contretemps. Le déphasage mesure ce retard en fraction de tour : c’est lui qui décidera de la stabilité.', gen() {
       const T = pick([20, 40, 100]), k = pick([8, 4, 10]), dt = T / k;
       return { text: `Entrée et sortie sont deux sinusoïdes de période ${T} ms. La sortie passe par ses maxima ${fmt(dt)} ms après l’entrée. Quel est le déphasage de la sortie ?`, fig: '',
         fields: [{ l: 'Déphasage φ', u: '°', a: -360 / k, abs: .6 }],
@@ -141,19 +141,19 @@
   ];
 
   N['c2-ch1'] = [
-    { t: 'L’écart statique', r: 'Écart statique = consigne − sortie, une fois le régime permanent atteint. En pourcentage : écart / consigne × 100. C’est la mesure de la précision.', gen() {
+    { t: 'L’écart statique', r: 'Écart statique = consigne − sortie, une fois le régime permanent atteint. En pourcentage : écart / consigne × 100. C’est la mesure de la précision.', w: 'Un asservissement est fait pour que la sortie rejoigne la consigne. L’écart qui reste à la fin dit de combien il manque son but.', gen() {
       const c = pick([50, 100, 200]), p = pick([2, 4, 5, 10]), s = c * (1 - p / 100);
       return { text: `Un asservissement reçoit une consigne de ${c}. Sa sortie se stabilise à ${fmt(s, 4)}. Calculer l’écart statique, puis l’exprimer en % de la consigne.`, fig: '',
         fields: [{ l: 'Écart statique', u: '', a: c - s, tol: .01 }, { l: 'Écart relatif', u: '%', a: p, tol: .01 }],
         corr: pas([`Ce qu’il manque : ε = ${c} − ${fmt(s, 4)} = <b>${fmt(c - s)}</b>.`, `En pourcentage de la consigne : ${fr(fmt(c - s), c)} = <b>${p} %</b>.`], 'l’écart statique mesure la précision : ce qu’il manque encore quand tout est stabilisé.') };
     } },
-    { t: 'Stable ou non : le signe des pôles', r: 'Chaque pôle p donne dans la réponse un terme en e^(pt). Partie réelle négative : le terme s’éteint. Partie réelle positive : il grandit sans limite. Stable si TOUS les pôles sont à partie réelle strictement négative.', gen() {
+    { t: 'Stable ou non : le signe des pôles', r: 'Chaque pôle p donne dans la réponse un terme en e^(pt). Partie réelle négative : le terme s’éteint. Partie réelle positive : il grandit sans limite. Stable si TOUS les pôles sont à partie réelle strictement négative.', w: 'La réponse est une somme de termes e^(pt), un par pôle. Partie réelle négative : le terme s’éteint tout seul. Positive : il grossit sans fin, et un seul terme qui grossit suffit à tout emporter.', gen() {
       const L = pick([['−2 et −5', 0], ['−1 et +3', 1], ['−2 + 3j et −2 − 3j', 0], ['+1 + 4j et +1 − 4j', 2], ['−4, −1 + 2j et −1 − 2j', 0], ['−3, +0,5 et −10', 1]]);
       return { text: `Les pôles de la fonction de transfert en boucle fermée d’un système sont ${L[0]}. Combien ont une partie réelle positive ? Le système est-il stable ?`, fig: '',
         fields: [{ l: 'Pôles à partie réelle positive', u: '', a: L[1], abs: .01 }, choix('Stabilité', L[1] ? 'instable' : 'stable', [L[1] ? 'stable' : 'instable'])],
         corr: pas(['On ne regarde que la partie réelle de chaque pôle, c’est-à-dire le nombre sans j.', `Parties réelles positives : <b>${L[1]}</b>.`, L[1] ? 'Un seul pôle de ce genre suffit : son terme grandit sans limite. Système <b>instable</b>.' : 'Toutes sont négatives : chaque terme s’éteint. Système <b>stable</b>.'], 'partie réelle négative, ça s’éteint ; positive, ça diverge. La partie imaginaire dit seulement si ça oscille.') };
     } },
-    { t: 'Lire un temps de réponse à 5 %', r: 'Le temps de réponse à 5 % est l’instant à partir duquel la sortie reste entre 95 % et 105 % de sa valeur finale. C’est la mesure de la rapidité.', gen() {
+    { t: 'Lire un temps de réponse à 5 %', r: 'Le temps de réponse à 5 % est l’instant à partir duquel la sortie reste entre 95 % et 105 % de sa valeur finale. C’est la mesure de la rapidité.', w: 'Une exponentielle n’arrive jamais tout à fait : il faut un seuil pour dire « c’est fait ». On a choisi 5 % : la sortie est à moins de 5 % de son but, et elle y reste.', gen() {
       const S = pick([10, 20, 50]), tau = pick([0.2, 0.5, 1, 2]);
       return { text: `Réponse d’un asservissement à un échelon ; elle se stabilise à ${S}. Calculer 95 % de la valeur finale, puis lire le temps de réponse à 5 %.`, fig: courbe1(S, tau, { hl: [{ y: 0.95 * S, t: '95 %', c: '#b0601f' }] }),
         fields: [{ l: '95 % de la valeur finale', u: '', a: 0.95 * S, tol: .01 }, { l: 'Temps de réponse à 5 %', u: 's', a: 3 * tau, tol: .12 }],
@@ -162,19 +162,19 @@
   ];
 
   N['c2-ch2'] = [
-    { t: 'La commande proportionnelle et sa limite', r: 'Correcteur proportionnel : u = Kp × ε. L’actionneur ne peut pas tout fournir : au-delà de sa limite, la commande sature, et la boucle ne réagit plus comme le modèle linéaire.', gen() {
+    { t: 'La commande proportionnelle et sa limite', r: 'Correcteur proportionnel : u = Kp × ε. L’actionneur ne peut pas tout fournir : au-delà de sa limite, la commande sature, et la boucle ne réagit plus comme le modèle linéaire.', w: 'Le correcteur n’est qu’un calcul : il peut demander n’importe quoi. L’amplificateur, lui, a une alimentation limitée. Une fois qu’il sature, monter le gain ne sert plus à rien.', gen() {
       const e = pick([1, 2, 3]), Kp = pick([2, 5, 8]), lim = pick([10, 12]), u = Kp * e;
       return { text: `L’écart vaut ${e} V, le correcteur est proportionnel de gain ${Kp}, et l’amplificateur ne délivre pas plus de ${lim} V. Calculer la commande demandée, puis la commande réellement appliquée.`, fig: '',
         fields: [{ l: 'Commande demandée', u: 'V', a: u, tol: .01 }, { l: 'Commande appliquée', u: 'V', a: Math.min(u, lim), tol: .01 }],
         corr: pas([`Commande demandée : u = ${Kp} × ${e} = <b>${u} V</b>.`, `L’amplificateur ne dépasse pas ${lim} V.`, u > lim ? `${u} V est au-dessus : la commande est écrêtée à <b>${lim} V</b>. On dit qu’elle sature.` : `${u} V est en dessous : la commande est appliquée telle quelle, <b>${u} V</b>.`], 'le correcteur peut demander ce qu’il veut, l’actionneur ne donne que ce qu’il peut.') };
     } },
-    { t: 'Plus de gain, moins d’écart', r: 'Procédé de gain statique K, sans intégrateur, corrigé par un gain Kp, retour unitaire : écart statique = consigne / (1 + Kp·K). Augmenter Kp réduit l’écart sans jamais l’annuler.', gen() {
+    { t: 'Plus de gain, moins d’écart', r: 'Procédé de gain statique K, sans intégrateur, corrigé par un gain Kp, retour unitaire : écart statique = consigne / (1 + Kp·K). Augmenter Kp réduit l’écart sans jamais l’annuler.', w: 'Un correcteur proportionnel ne commande que s’il reste un écart. Avec un grand gain, un tout petit écart suffit à produire la commande nécessaire : l’écart diminue, sans pouvoir s’annuler.', gen() {
       const K = pick([2, 4]), E = pick([10, 100]), a = pick([1, 2]), b = pick([6, 12]);
       return { text: `Procédé de gain statique ${K}, retour unitaire, consigne ${E}. Calculer l’écart statique avec ${V('K<sub>p</sub>')} = ${a}, puis avec ${V('K<sub>p</sub>')} = ${b}.`, fig: '',
         fields: [{ l: `Écart avec Kp = ${a}`, u: '', a: E / (1 + a * K), tol: .02 }, { l: `Écart avec Kp = ${b}`, u: '', a: E / (1 + b * K), tol: .02 }],
         corr: pas([`Avec K<sub>p</sub> = ${a} : ${fr(E, `1 + ${a} × ${K}`)} = ${fr(E, 1 + a * K)} = <b>${fmt(E / (1 + a * K))}</b>.`, `Avec K<sub>p</sub> = ${b} : ${fr(E, `1 + ${b} × ${K}`)} = ${fr(E, 1 + b * K)} = <b>${fmt(E / (1 + b * K))}</b>.`, 'L’écart a diminué, mais il n’est pas nul.'], 'monter le gain réduit l’écart sans jamais l’annuler. Pour l’annuler, il faut une action intégrale.') };
     } },
-    { t: 'L’action intégrale accumule', r: 'Action intégrale : la commande grandit tant que l’écart n’est pas nul, u(t) = (Kp/Ti) × aire sous l’écart. Pour un écart constant ε₀ : u = (Kp/Ti) × ε₀ × t. La boucle ne peut donc se stabiliser qu’avec un écart nul.', gen() {
+    { t: 'L’action intégrale accumule', r: 'Action intégrale : la commande grandit tant que l’écart n’est pas nul, u(t) = (Kp/Ti) × aire sous l’écart. Pour un écart constant ε₀ : u = (Kp/Ti) × ε₀ × t. La boucle ne peut donc se stabiliser qu’avec un écart nul.', w: 'L’action intégrale se souvient de l’écart passé et continue de pousser tant qu’il en reste. Elle ne cesse de monter que si l’écart est nul : voilà pourquoi elle l’annule.', gen() {
       const Kp = pick([2, 4]), Ti = pick([0.5, 1, 2]), e = pick([1, 2]), t = pick([2, 3, 5]);
       return { text: `Action intégrale seule, avec ${V('K<sub>p</sub>')} = ${Kp} et ${V('T<sub>i</sub>')} = ${fmt(Ti)} s. L’écart reste constant, égal à ${e}. Que vaut la commande au bout de ${t} s ?`, fig: '',
         fields: [{ l: `Commande à t = ${t} s`, u: '', a: Kp / Ti * e * t, tol: .01 }],
@@ -183,19 +183,19 @@
   ];
 
   N['c2-ch3'] = [
-    { t: 'Échantillonner', r: 'Un calculateur ne voit la mesure qu’à intervalles réguliers, toutes les Te secondes. Fréquence d’échantillonnage : fe = 1/Te.', gen() {
+    { t: 'Échantillonner', r: 'Un calculateur ne voit la mesure qu’à intervalles réguliers, toutes les Te secondes. Fréquence d’échantillonnage : fe = 1/Te.', w: 'Un calculateur fait une chose à la fois : mesurer, calculer, commander, puis recommencer. Entre deux mesures, il est aveugle : la période Te fixe ce qu’il peut voir et rattraper.', gen() {
       const Te = pick([1, 2, 5, 10]), d = pick([0.1, 0.5, 2]);
       return { text: `Un calculateur lit la mesure toutes les ${Te} ms. Quelle est sa fréquence d’échantillonnage, et combien de mesures prend-il en ${fmt(d)} s ?`, fig: '',
         fields: [{ l: 'Fréquence d’échantillonnage', u: 'Hz', a: 1000 / Te, tol: .01 }, { l: `Mesures en ${fmt(d)} s`, u: '', a: d * 1000 / Te, tol: .01 }],
         corr: pas([`Une mesure toutes les ${Te} ms, soit ${fmt(Te / 1000)} s.`, `Fréquence : f<sub>e</sub> = ${fr(1, fmt(Te / 1000))} = <b>${fmt(1000 / Te)} Hz</b>, c’est-à-dire ${fmt(1000 / Te)} mesures par seconde.`, `En ${fmt(d)} s : ${fmt(1000 / Te)} × ${fmt(d)} = <b>${fmt(d * 1000 / Te)}</b> mesures.`], 'la fréquence d’échantillonnage, c’est le nombre de mesures par seconde.') };
     } },
-    { t: 'Les niveaux d’un convertisseur', r: 'Un convertisseur de N bits distingue 2^N niveaux. Son pas (quantum) vaut la plage de tension divisée par 2^N : c’est la plus petite variation qu’il sait voir.', gen() {
+    { t: 'Les niveaux d’un convertisseur', r: 'Un convertisseur de N bits distingue 2^N niveaux. Son pas (quantum) vaut la plage de tension divisée par 2^N : c’est la plus petite variation qu’il sait voir.', w: 'Un nombre binaire de N bits ne peut prendre que 2^N valeurs. Le convertisseur range donc la tension dans 2^N cases : ce qui est plus fin qu’une case lui échappe.', gen() {
       const Nb = pick([8, 10, 12]), P = pick([5, 10]);
       return { text: `Un convertisseur analogique-numérique de ${Nb} bits mesure une tension entre 0 et ${P} V. Combien de niveaux distingue-t-il, et quel est son quantum ?`, fig: '',
         fields: [{ l: 'Nombre de niveaux', u: '', a: 2 ** Nb, tol: .001 }, { l: 'Quantum', u: 'mV', a: P / 2 ** Nb * 1000, tol: .01 }],
         corr: pas([`Chaque bit double le nombre de niveaux : 2<sup>${Nb}</sup> = <b>${2 ** Nb}</b>.`, `On découpe la plage en autant de marches : q = ${fr(`${P} V`, 2 ** Nb)} = <b>${fmt(P / 2 ** Nb * 1000)} mV</b>.`], 'le quantum est la hauteur d’une marche : le convertisseur ne voit rien de plus fin.') };
     } },
-    { t: 'Une récurrence, à la main', r: 'Un algorithme calcule chaque valeur à partir de la précédente. Pour u(k) = u(k−1) + b·ε(k) : on part de u = 0, et on ajoute b·ε à chaque période. C’est une intégrale numérique.', gen() {
+    { t: 'Une récurrence, à la main', r: 'Un algorithme calcule chaque valeur à partir de la précédente. Pour u(k) = u(k−1) + b·ε(k) : on part de u = 0, et on ajoute b·ε à chaque période. C’est une intégrale numérique.', w: 'Un programme ne sait ni intégrer ni dériver : il sait additionner, soustraire et se souvenir de la valeur d’avant. Ajouter un peu à chaque période, c’est sa façon d’intégrer.', gen() {
       const b = pick([0.2, 0.5, 2]), e = pick([1, 2, 4]);
       return { text: `Un calculateur applique ${V('u<sub>k</sub> = u<sub>k−1</sub>')} + ${fmt(b)}·${V('ε<sub>k</sub>')}, en partant de 0. L’écart vaut ${e} à chaque période, à partir de k = 0. Calculer ${V('u<sub>0</sub>')} et ${V('u<sub>3</sub>')}.`, fig: '',
         fields: [{ l: 'u₀', u: '', a: b * e, tol: .01 }, { l: 'u₃', u: '', a: 4 * b * e, tol: .01 }],
