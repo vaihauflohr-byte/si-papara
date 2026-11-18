@@ -36,6 +36,8 @@
   }
   const bin = (T) => `1 + ${fmt(T, 4)}p`;
   const so = (xi, w0) => `1 + ${fmt(2 * xi / w0, 4)}p + ${fmt(1 / (w0 * w0), 4)}p²`;
+  // correction pas à pas : une idée par étape, puis la règle à retenir
+  const pas = (L, ret) => `<ol class="pp-pas">${L.map((x) => `<li>${x}</li>`).join('')}</ol>${ret ? `<p class="pp-ret"><b>À retenir :</b> ${ret}</p>` : ''}`;
   const pctD = (xi) => xi < 1 ? 100 * Math.exp(-Math.PI * xi / Math.sqrt(1 - xi * xi)) : 0;
   // schéma-bloc : perturbation soustraite entre le correcteur et le procédé, capteur sur le retour
   function bdPert(o) {
@@ -214,13 +216,25 @@
       const num = z ? [b, b * z] : [b], P = poles.reduce((s, x) => s * x, 1), K = (z ? b * z : b) / P, ordre = al + n1, pa = al ? (al > 1 ? 'p²' : 'p') : '';
       return { text: `Un système a pour fonction de transfert ${V('H(p)')} = ${fr(poly(num), poly(den))}. Donner son ordre, sa classe et le gain ${V('K')} de sa forme canonique ${fr('K', 'p<sup>α</sup>')} · ${fr('1 + …', '1 + …')}.`, fig: '',
         fields: [{ l: 'Ordre', u: '', a: ordre, abs: .01 }, { l: 'Classe α', u: '', a: al, abs: .01 }, { l: 'Gain K', u: '', a: K, tol: .01 }],
-        corr: `<p>Dénominateur factorisé : ${V('H(p)')} = ${fr(z ? `${b}(p + ${z})` : b, pa + poles.map((x) => `(p + ${x})`).join(''))}.</p><p>Ordre = degré du dénominateur = <b>${ordre}</b> ; classe = nombre d’intégrations (pôles nuls) = <b>${al}</b>.</p><p>Forme canonique : chaque binôme (p + a) s’écrit a(1 + p/a), d’où K = ${fr(z ? `${b} × ${z}` : b, poles.join(' × '))} = <b>${fmt(K)}</b>. Erreur classique : prendre ${b} pour le gain.</p>` };
+        corr: pas([
+          `On commence par factoriser le dénominateur, c’est-à-dire l’écrire comme un produit : ${V('H(p)')} = ${fr(z ? `${b}(p + ${z})` : b, pa + poles.map((x) => `(p + ${x})`).join(''))}.`,
+          `<b>Ordre</b> : on compte les p du bas. ${al ? `${pa} compte pour ${al}, ` : ''}chaque parenthèse compte pour 1 : ordre <b>${ordre}</b>.`,
+          `<b>Classe</b> : le nombre de « p tout seuls » en facteur en bas (les intégrateurs)${al ? ` : ${pa}, donc` : ' : il n’y en a pas, donc'} classe <b>${al}</b>.`,
+          `<b>Gain</b> : la forme canonique exige des parenthèses qui commencent par 1. On transforme chaque (p + a) en a × (1 + p/a) : les nombres a sortent des parenthèses. ${z ? `En haut il sort ${z}, en bas` : 'En bas il sort'} ${poles.join(' × ')}.`,
+          `K = ${fr(z ? `${b} × ${z}` : b, poles.join(' × '))} = <b>${fmt(K)}</b>.`],
+          K === b ? 'le gain se lit sur la forme canonique, celle où chaque parenthèse commence par 1.' : `le gain ne se lit jamais sur la forme (p + a) : ici, répondre ${b} serait faux.`) };
     } },
     { t: 'Valeurs initiale et finale, sans revenir au temps', r: 's(0⁺) = limite de p·S(p) quand p tend vers l’infini ; s(+∞) = limite de p·S(p) quand p tend vers 0, si le système est stable.', gen() {
       const a = pick([0, 1, 2, 3]), b = pick([4, 6, 10, 12]), c = pick([1, 2, 4]), d = pick([2, 3, 5]), N = a ? [a, b] : [b];
       return { text: `La transformée de Laplace de la sortie d’un système vaut ${V('S(p)')} = ${fr(poly(N), `p(${poly([c, d])})`)}. Sans calculer ${V('s(t)')}, donner ${V('s(0<sup>+</sup>)')} et la valeur finale.`, fig: '',
         fields: [{ l: 's(0⁺)', u: '', a: a / c, abs: .006 }, { l: 's(+∞)', u: '', a: b / d, tol: .01 }],
-        corr: `<p>Valeur initiale : s(0<sup>+</sup>) = lim<sub>p→∞</sub> p·S(p) = lim<sub>p→∞</sub> ${fr(poly(N), poly([c, d]))} = <b>${fmt(a / c)}</b>.</p><p>Valeur finale : les pôles de p·S(p) (ici −${fmt(d / c)}) sont à partie réelle négative, le théorème s’applique : s(+∞) = lim<sub>p→0</sub> p·S(p) = ${fr(b, d)} = <b>${fmt(b / d)}</b>.</p>` };
+        corr: pas([
+          'Deux théorèmes évitent de calculer s(t). La valeur de départ est la limite de p × S(p) quand p devient très grand ; la valeur d’arrivée est la limite de p × S(p) quand p tend vers 0.',
+          `On calcule d’abord p × S(p) : le p qu’on ajoute en haut se simplifie avec le p du bas. Il reste ${fr(poly(N), poly([c, d]))}.`,
+          `<b>Départ</b> (p très grand) : les nombres sans p deviennent négligeables. ${a ? `Il reste ${fr(`${a === 1 ? '' : a}p`, `${c === 1 ? '' : c}p`)} = <b>${fmt(a / c)}</b>` : 'En haut il n’y a pas de p, en bas si : la fraction tend vers <b>0</b>'}.`,
+          `<b>Arrivée</b> (p = 0) : on efface tous les termes en p. Il reste ${fr(b, d)} = <b>${fmt(b / d)}</b>.`,
+          `Vérification, obligatoire pour la valeur finale : le bas s’annule pour p = −${fmt(d / c)}, un nombre négatif. Le système est stable, le théorème s’applique.`],
+          'départ : p très grand ; arrivée : p = 0. Toujours sur p × S(p), pas sur S(p).') };
     } },
     { t: 'Linéariser autour d’un point de fonctionnement', r: 'Autour d’un point x₀, une loi y = f(x) se remplace par sa tangente : Δy ≈ f′(x₀)·Δx. Le gain local est la dérivée, calculée au point de fonctionnement.', gen() {
       const v = pick([0, 1, 2]);
@@ -228,18 +242,33 @@
         const k = pick([0.5, 1, 2]), h0 = pick([0.25, 1, 4]), g = k / (2 * Math.sqrt(h0));
         return { text: `Le débit de vidange d’une cuve vaut ${V('Q')} = ${fmt(k)}·√${V('h')} (Q en L/s, h en m). Autour du point de fonctionnement ${V('h<sub>0</sub>')} = ${fmt(h0)} m, on linéarise : ${V('ΔQ ≈ G·Δh')}. Calculer le gain local ${V('G')}.`, fig: '',
           fields: [{ l: 'Gain local G', u: 'L·s⁻¹/m', a: g, tol: .01 }],
-          corr: `<p>G = ${fr('dQ', 'dh')}(h<sub>0</sub>) = ${fr(fmt(k), '2√h<sub>0</sub>')} = ${fr(fmt(k), `2 × ${fmt(Math.sqrt(h0))}`)} = <b>${fmt(g)} L·s⁻¹/m</b>. Le modèle linéaire ne vaut que pour de petites variations autour de h<sub>0</sub>.</p>` };
+          corr: pas([
+            'Le débit n’est pas proportionnel à la hauteur (il y a une racine) : la loi n’est pas linéaire. Autour du point de fonctionnement, on la remplace par sa tangente.',
+            `La pente de la tangente est la dérivée. Celle de √h est ${fr(1, '2√h')}, donc celle de Q = ${fmt(k)}√h est ${fr(fmt(k), '2√h')}.`,
+            `On la calcule au point de fonctionnement h<sub>0</sub> = ${fmt(h0)} m : √${fmt(h0)} = ${fmt(Math.sqrt(h0))}, donc G = ${fr(fmt(k), `2 × ${fmt(Math.sqrt(h0))}`)} = <b>${fmt(g)} L·s⁻¹/m</b>.`,
+            `Lecture : autour de ${fmt(h0)} m, si le niveau monte de 0,1 m, le débit augmente d’environ ${fmt(g * 0.1)} L/s.`],
+            'linéariser, c’est remplacer la courbe par sa tangente au point de fonctionnement. Valable pour de petites variations seulement.') };
       }
       if (v === 1) {
         const c = pick([0.4, 0.6, 1.2]), v0 = pick([10, 20, 30]), g = 2 * c * v0;
         return { text: `La force de traînée d’un véhicule vaut ${V('F')} = ${fmt(c)}·${V('v')}² (F en N, v en m/s). Linéariser autour de ${V('v<sub>0</sub>')} = ${v0} m/s : ${V('ΔF ≈ G·Δv')}. Calculer ${V('G')}.`, fig: '',
           fields: [{ l: 'Gain local G', u: 'N·s/m', a: g, tol: .01 }],
-          corr: `<p>G = ${fr('dF', 'dv')}(v<sub>0</sub>) = 2 × ${fmt(c)} × ${v0} = <b>${fmt(g)} N·s/m</b> : autour de ${v0} m/s, la traînée se comporte comme un frottement visqueux.</p>` };
+          corr: pas([
+            'La traînée dépend du carré de la vitesse : ce n’est pas linéaire. Autour du point de fonctionnement, on remplace la courbe par sa tangente.',
+            `La pente de la tangente est la dérivée : celle de v² est 2v, donc celle de F = ${fmt(c)}v² est 2 × ${fmt(c)} × v.`,
+            `Au point de fonctionnement v<sub>0</sub> = ${v0} m/s : G = 2 × ${fmt(c)} × ${v0} = <b>${fmt(g)} N·s/m</b>.`,
+            `Lecture : autour de ${v0} m/s, rouler 1 m/s plus vite coûte environ ${fmt(g)} N de plus. Localement, la traînée se comporte comme un frottement proportionnel à la vitesse.`],
+            'linéariser, c’est remplacer la courbe par sa tangente au point de fonctionnement. Valable pour de petites variations seulement.') };
       }
       const R = pick([2, 5, 10]), U0 = pick([12, 24, 48]), g = 2 * U0 / R;
       return { text: `La puissance dissipée dans une résistance de ${R} Ω vaut ${V('P')} = ${fr('U²', 'R')}. Linéariser autour de ${V('U<sub>0</sub>')} = ${U0} V : ${V('ΔP ≈ G·ΔU')}. Calculer ${V('G')}.`, fig: '',
         fields: [{ l: 'Gain local G', u: 'W/V', a: g, tol: .01 }],
-        corr: `<p>G = ${fr('dP', 'dU')}(U<sub>0</sub>) = ${fr('2U<sub>0</sub>', 'R')} = ${fr(`2 × ${U0}`, R)} = <b>${fmt(g)} W/V</b>.</p>` };
+        corr: pas([
+          'La puissance dépend du carré de la tension : ce n’est pas linéaire. Autour du point de fonctionnement, on remplace la courbe par sa tangente.',
+          `La pente de la tangente est la dérivée : celle de U² est 2U, donc celle de P = U²/R est ${fr('2U', 'R')}.`,
+          `Au point de fonctionnement U<sub>0</sub> = ${U0} V : G = ${fr(`2 × ${U0}`, R)} = <b>${fmt(g)} W/V</b>.`,
+          `Lecture : autour de ${U0} V, 1 V de plus donne environ ${fmt(g)} W de plus.`],
+          'linéariser, c’est remplacer la courbe par sa tangente au point de fonctionnement. Valable pour de petites variations seulement.') };
     } },
   ];
 
@@ -249,13 +278,24 @@
       const K1 = pick([2, 4, 5]), t1 = pick([0.1, 0.5, 2]), K2 = pick([1, 3, 6]), K3 = pick([2, 4]), t3 = pick([0.2, 1]), s = pick([1, 1, -1]), G = K1 * (K2 + s * K3);
       return { text: `Le bloc ${V('G<sub>1</sub>(p)')} = ${fr(K1, bin(t1))} est suivi de deux blocs en parallèle, ${V('G<sub>2</sub>(p)')} = ${K2} et ${V('G<sub>3</sub>(p)')} = ${fr(K3, bin(t3))}, dont les sorties sont ${s > 0 ? 'additionnées (sommateur + +)' : 'soustraites (G₂ en +, G₃ en −)'}. Donner le gain statique et l’ordre de la fonction de transfert équivalente.`, fig: '',
         fields: [{ l: 'Gain statique', u: '', a: G, tol: .01 }, { l: 'Ordre', u: '', a: 2, abs: .01 }],
-        corr: `<p>En série, les fonctions de transfert se multiplient ; en parallèle, elles s’ajoutent (avec le signe du sommateur) : ${V('H')} = G<sub>1</sub>(G<sub>2</sub> ${s > 0 ? '+' : '−'} G<sub>3</sub>).</p><p>Gain statique : ${K1} × (${K2} ${s > 0 ? '+' : '−'} ${K3}) = <b>${fmt(G)}</b>. G<sub>2</sub> ${s > 0 ? '+' : '−'} G<sub>3</sub> = ${fr(`${K2}(${bin(t3)}) ${s > 0 ? '+' : '−'} ${K3}`, bin(t3))} est d’ordre 1 ; multipliée par G<sub>1</sub>, l’ordre vaut <b>2</b>.</p>` };
+        corr: pas([
+          'Deux règles. Des blocs <b>à la suite</b> se multiplient. Des blocs <b>côte à côte</b>, dont les sorties se rejoignent, s’additionnent (ou se soustraient si le sommateur porte un signe −).',
+          `Ici G<sub>2</sub> et G<sub>3</sub> sont côte à côte, et l’ensemble suit G<sub>1</sub> : H = G<sub>1</sub> × (G<sub>2</sub> ${s > 0 ? '+' : '−'} G<sub>3</sub>).`,
+          `<b>Gain statique</b> : on remplace p par 0, chaque bloc se réduit à son nombre du haut. ${K1} × (${K2} ${s > 0 ? '+' : '−'} ${K3}) = <b>${fmt(G)}</b>.`,
+          `<b>Ordre</b> : G<sub>2</sub> ${s > 0 ? '+' : '−'} G<sub>3</sub>, mis au même dénominateur, garde une seule parenthèse (${bin(t3)}) en bas : ordre 1. G<sub>1</sub> en apporte une seconde : ordre <b>2</b>.`],
+          'en série, on multiplie ; en parallèle, on additionne. L’ordre est le nombre de p au dénominateur final.') };
     } },
     { t: 'FTBO et FTBF d’une boucle avec capteur', r: 'FTBO = produit de tous les blocs de la boucle, capteur compris. FTBF = chaîne directe / (1 + FTBO), multipliée par l’adaptateur placé avant la boucle.', gen() {
       const Kp = pick([2, 5, 10]), K = pick([0.5, 2, 4]), tau = pick([0.1, 0.5, 2]), Kc = pick([0.1, 0.2, 0.5]), A = Kp * K * Kc;
       return { text: `Boucle : adaptateur de consigne ${V('K<sub>a</sub>')} = ${fmt(Kc)} V/unité, correcteur ${V('K<sub>p</sub>')} = ${Kp}, procédé ${fr(fmt(K), bin(tau))}, capteur ${V('K<sub>c</sub>')} = ${fmt(Kc)} V/unité sur le retour. Donner le gain statique de la FTBO et celui de la FTBF (sortie / consigne).`,
         fig: '', fields: [{ l: 'Gain statique de la FTBO', u: '', a: A, tol: .01 }, { l: 'Gain statique de la FTBF', u: '', a: A / (1 + A), tol: .01 }],
-        corr: `<p>FTBO = produit des fonctions de transfert de la boucle, ouverte au comparateur : K<sub>p</sub> · ${fr(fmt(K), bin(tau))} · K<sub>c</sub>, de gain statique ${Kp} × ${fmt(K)} × ${fmt(Kc)} = <b>${fmt(A)}</b>.</p><p>FTBF = K<sub>a</sub> · ${fr('K<sub>p</sub>G', '1 + K<sub>p</sub>GK<sub>c</sub>')} ; avec K<sub>a</sub> = K<sub>c</sub>, son gain statique vaut ${fr(fmt(A), `1 + ${fmt(A)}`)} = <b>${fmt(A / (1 + A))}</b>.</p>` };
+        corr: pas([
+          'La <b>FTBO</b>, c’est le tour complet de la boucle : on multiplie tout ce que le signal traverse entre le comparateur et son retour au comparateur. L’adaptateur est en dehors de la boucle : il ne compte pas.',
+          `Gain statique de chaque bloc (on remplace p par 0) : correcteur ${Kp}, procédé ${fmt(K)}, capteur ${fmt(Kc)}. FTBO : ${Kp} × ${fmt(K)} × ${fmt(Kc)} = <b>${fmt(A)}</b>.`,
+          `La <b>FTBF</b>, c’est sortie / consigne, boucle fermée : adaptateur × ${fr('chaîne directe', '1 + FTBO')}. La chaîne directe vaut ${Kp} × ${fmt(K)} = ${fmt(Kp * K)}.`,
+          `FTBF = ${fmt(Kc)} × ${fr(fmt(Kp * K), `1 + ${fmt(A)}`)} = <b>${fmt(A / (1 + A))}</b>.`,
+          `Lecture : pour une consigne de 100, la sortie se stabilise à ${fmt(100 * A / (1 + A))}. Elle n’atteint pas 100 : il reste un écart, d’autant plus petit que la FTBO est grande.`],
+          'FTBO = produit de tous les blocs de la boucle ; FTBF = chaîne directe / (1 + FTBO). Quand l’adaptateur a le gain du capteur, FTBF = FTBO / (1 + FTBO).') };
     } },
     { t: 'Déplacer un sommateur ou un point de prélèvement', r: 'Écrire le signal avant et après le déplacement : il doit rester le même. Ce qui ne traverse plus G doit être multiplié par G ; ce qui le traverse en trop, par 1/G.', gen() {
       const v = pick([0, 1, 2, 3]);
@@ -267,19 +307,31 @@
       ][v];
       return { text: `Dans un schéma-bloc, on déplace ${cas[0]}. Pour que le schéma reste équivalent, par quoi faut-il multiplier ${cas[1]} ?`, fig: '',
         fields: [choix('Bloc à ajouter sur la branche déplacée', cas[2], [cas[2] === 'G(p)' ? '1/G(p)' : 'G(p)', '1 : rien ne change', '−G(p)'])],
-        corr: `<p>Réponse : <b>${cas[2]}</b> — ${cas[3]}. Pour ne pas se tromper : écrire le signal qui sort du bloc avant et après le déplacement, et exiger qu’il soit le même.</p>` };
+        corr: pas([
+          'La règle du jeu : après le déplacement, tous les signaux du schéma doivent être exactement les mêmes qu’avant.',
+          `Ici : ${cas[3]}.`,
+          `Il faut donc ajouter sur la branche déplacée un bloc <b>${cas[2]}</b>.`],
+          'inutile d’apprendre les quatre cas par cœur : écrire le signal avant et après, puis compenser la différence.') };
     } },
     { t: 'Adaptateur de consigne', r: 'L’adaptateur convertit la consigne dans l’unité de la mesure : il a le même gain que le capteur. Attention aux tr/min : 1 tr/min = 2π/60 rad/s.', gen() {
       if (pick([0, 1])) {
         const Kc = pick([10, 20, 50]), th = pick([40, 60, 80, 120]);
         return { text: `Un four est régulé en température. Le capteur conditionné délivre ${Kc} mV/°C. La consigne est saisie en °C et convertie en tension par un adaptateur. Quel gain doit avoir l’adaptateur, et quelle tension de consigne correspond à ${th} °C ?`, fig: '',
           fields: [{ l: 'Gain de l’adaptateur', u: 'mV/°C', a: Kc, tol: .01 }, { l: 'Tension de consigne', u: 'V', a: Kc * th / 1000, tol: .01 }],
-          corr: `<p>L’écart doit être nul quand la température égale la consigne : l’adaptateur a <b>le même gain que le capteur</b>, ${Kc} mV/°C. Tension de consigne : ${Kc} mV/°C × ${th} °C = <b>${fmt(Kc * th / 1000)} V</b>.</p>` };
+          corr: pas([
+            'Le comparateur soustrait deux tensions : celle de la consigne et celle de la mesure. Pour que l’écart soit nul quand la température est la bonne, les deux doivent être à la même échelle.',
+            `Le capteur donne ${Kc} mV par degré. L’adaptateur doit donc donner aussi <b>${Kc} mV par degré</b> de consigne.`,
+            `Tension de consigne pour ${th} °C : ${Kc} × ${th} = ${Kc * th} mV = <b>${fmt(Kc * th / 1000)} V</b> (on divise par 1000 pour passer des millivolts aux volts).`],
+            'adaptateur de consigne = même gain que le capteur.') };
       }
       const Kc = pick([0.02, 0.05, 0.1]), N = pick([1000, 1500, 3000]), w = N * 2 * Math.PI / 60;
       return { text: `Une génératrice tachymétrique délivre ${fmt(Kc)} V par rad/s. La consigne de vitesse est de ${N} tr/min. Quel gain doit avoir l’adaptateur de consigne (en V·s/rad), et quelle tension de consigne obtient-on ?`, fig: '',
         fields: [{ l: 'Gain de l’adaptateur', u: 'V·s/rad', a: Kc, tol: .01 }, { l: 'Tension de consigne', u: 'V', a: Kc * w, tol: .01 }],
-        corr: `<p>Adaptateur = gain du capteur, <b>${fmt(Kc)} V·s/rad</b>. ${N} tr/min = ${N} × ${fr('2π', '60')} = ${fmt(w)} rad/s ⇒ U<sub>c</sub> = ${fmt(Kc)} × ${fmt(w)} = <b>${fmt(Kc * w)} V</b>. Piège : oublier la conversion des tr/min en rad/s.</p>` };
+        corr: pas([
+          `L’adaptateur doit avoir le même gain que le capteur, pour que consigne et mesure soient à la même échelle : <b>${fmt(Kc)} V·s/rad</b>.`,
+          `Ce gain s’applique à des rad/s, pas à des tr/min : il faut convertir. Un tour = 2π rad, une minute = 60 s, donc ${N} tr/min = ${N} × ${fr('2π', 60)} = ${fmt(w)} rad/s.`,
+          `Tension de consigne : ${fmt(Kc)} × ${fmt(w)} = <b>${fmt(Kc * w)} V</b>.`],
+          'toujours convertir les tr/min en rad/s (× 2π/60, soit environ ÷ 9,55) avant de calculer.') };
     } },
   ];
 
@@ -290,25 +342,44 @@
       const nat = xi > 1 ? 'apériodique (ξ > 1)' : xi === 1 ? 'apériodique critique (ξ = 1)' : 'pseudo-périodique (ξ < 1) : dépassements';
       return { text: `Un système a pour fonction de transfert ${V('H(p)')} = ${fr(K, so(xi, w0))}. Calculer son coefficient d’amortissement et donner la nature de sa réponse à un échelon.`, fig: '',
         fields: [{ l: 'Coefficient d’amortissement ξ', u: '', a: xi, tol: .02 }, choix('Nature de la réponse', nat, ['apériodique (ξ > 1)', 'apériodique critique (ξ = 1)', 'pseudo-périodique (ξ < 1) : dépassements'].filter((x) => x !== nat))],
-        corr: `<p>Identification avec ${fr('K', `1 + ${fr('2ξ', 'ω<sub>0</sub>')}p + ${fr('p²', 'ω<sub>0</sub>²')}`)} : ${fr('1', 'ω<sub>0</sub>²')} = ${fmt(1 / (w0 * w0), 4)} ⇒ ω<sub>0</sub> = ${w0} rad/s ; ${fr('2ξ', 'ω<sub>0</sub>')} = ${fmt(2 * xi / w0, 4)} ⇒ ξ = <b>${fmt(xi)}</b>.</p><p>Réponse <b>${nat}</b>.</p>` };
+        corr: pas([
+          `On compare le dénominateur au modèle 1 + ${fr('2ξ', 'ω<sub>0</sub>')}p + ${fr('p²', 'ω<sub>0</sub>²')}, terme à terme.`,
+          `Terme en p² : ${fr(1, 'ω<sub>0</sub>²')} = ${fmt(1 / (w0 * w0), 4)}, donc ω<sub>0</sub>² = ${w0 * w0} et ω<sub>0</sub> = ${w0} rad/s.`,
+          `Terme en p : ${fr('2ξ', 'ω<sub>0</sub>')} = ${fmt(2 * xi / w0, 4)}, donc ξ = ${fmt(2 * xi / w0, 4)} × ${w0} ÷ 2 = <b>${fmt(xi)}</b>.`,
+          `ξ est le « frein » du système. ${xi < 1 ? 'Inférieur à 1 : pas assez de frein, la réponse dépasse et oscille' : xi === 1 ? 'Égal à 1 : juste ce qu’il faut pour ne pas dépasser' : 'Supérieur à 1 : beaucoup de frein, la réponse monte sans dépasser'}. Réponse <b>${nat}</b>.`],
+          'on lit ω₀ d’abord (terme en p²), puis ξ (terme en p). ξ < 1 : ça dépasse ; ξ ≥ 1 : ça ne dépasse pas.') };
     } },
     { t: 'Le premier ordre en trois nombres', r: 's(t) = s∞·(1 − e^(−t/τ)). Le temps de réponse à 5 % vaut 3τ.', gen() {
       const n = pick([1, 2, 3, 4]), tau = pick([0.2, 0.5, 2, 5, 10]), pc = 100 * (1 - Math.exp(-n));
       return { text: `Un premier ordre de constante de temps τ = ${fmt(tau)} s reçoit un échelon. Quel pourcentage de sa valeur finale la sortie atteint-elle à ${V('t')} = ${n > 1 ? n : ''}τ ? Quel est son temps de réponse à 5 % ?`, fig: '',
         fields: [{ l: `Sortie à t = ${n > 1 ? n : ''}τ`, u: '% de la valeur finale', a: pc, abs: .4 }, { l: 'Temps de réponse à 5 %', u: 's', a: 3 * tau, tol: .02 }],
-        corr: `<p>s(t) = s<sub>∞</sub>(1 − e<sup>−t/τ</sup>) ⇒ à ${n > 1 ? n : ''}τ : 1 − e<sup>−${n}</sup> = <b>${fmt(pc)} %</b>. À retenir : 63 % à τ, 86 % à 2τ, 95 % à 3τ.</p><p>t<sub>5%</sub> = 3τ = <b>${fmt(3 * tau)} s</b>.</p>` };
+        corr: pas([
+          'La réponse d’un premier ordre à un échelon suit toujours la même courbe : s(t) = valeur finale × (1 − e<sup>−t/τ</sup>).',
+          `À t = ${n > 1 ? n : ''}τ, le rapport t/τ vaut ${n} : 1 − e<sup>−${n}</sup> = 1 − ${fmt(Math.exp(-n))} = ${fmt(1 - Math.exp(-n))}, soit <b>${fmt(pc)} %</b> de la valeur finale.`,
+          `Le temps de réponse à 5 % est l’instant où la sortie atteint 95 % : c’est 3τ, car 1 − e<sup>−3</sup> = 0,95. Donc 3 × ${fmt(tau)} = <b>${fmt(3 * tau)} s</b>.`],
+          '63 % à τ, 86 % à 2τ, 95 % à 3τ : ces trois nombres se retiennent par cœur.') };
     } },
     { t: 'Lire ξ et ω₀ sur les pôles', r: 'Pôles −ξω₀ ± jω₀√(1 − ξ²) : leur module vaut ω₀, et ξ = |partie réelle| / ω₀.', gen() {
       const a = pick([1, 2, 3, 4, 6]), b = pick([3, 4, 6, 8]), w0 = Math.hypot(a, b), xi = a / w0;
       return { text: `Les pôles d’un second ordre sont ${V('p')} = −${a} ± ${b}j. En déduire sa pulsation propre et son coefficient d’amortissement.`, fig: '',
         fields: [{ l: 'Pulsation propre ω₀', u: 'rad/s', a: w0, tol: .01 }, { l: 'Coefficient d’amortissement ξ', u: '', a: xi, tol: .02 }],
-        corr: `<p>Pôles d’un second ordre pseudo-périodique : −ξω<sub>0</sub> ± jω<sub>0</sub>√(1 − ξ²). Le module des pôles vaut ω<sub>0</sub> = √(${a}² + ${b}²) = <b>${fmt(w0)} rad/s</b> ; ξ = ${fr('partie réelle', 'module')} = ${fr(a, fmt(w0))} = <b>${fmt(xi)}</b>. La partie imaginaire, ${b} rad/s, est la pseudo-pulsation.</p>` };
+        corr: pas([
+          `Un pôle complexe −${a} ± ${b}j se dessine comme un point : ${a} vers la gauche, ${b} vers le haut (et son jumeau vers le bas).`,
+          `<b>ω<sub>0</sub></b> est la distance de ce point à l’origine (Pythagore) : √(${a}² + ${b}²) = √${a * a + b * b} = <b>${fmt(w0)} rad/s</b>.`,
+          `<b>ξ</b> compare la partie réelle à cette distance : ξ = ${fr(a, fmt(w0))} = <b>${fmt(xi)}</b>.`,
+          `Lecture : la partie réelle (${a}) dit à quelle vitesse les oscillations s’éteignent ; la partie imaginaire (${b} rad/s) dit à quelle cadence ça oscille.`],
+          'plus le pôle est à gauche, plus ça s’éteint vite ; plus il est haut, plus ça oscille. ξ = partie réelle / distance à l’origine.') };
     } },
     { t: 'Le temps de réponse le plus court', r: 'Abaque du temps de réponse réduit t5%·ω₀ en fonction de ξ : il passe par un minimum, voisin de 3, quand le premier dépassement reste tout juste sous 5 %.', gen() {
       const w0 = pick([2, 5, 10, 20, 50]);
       return { text: `Pour un second ordre de pulsation propre ω<sub>0</sub> = ${w0} rad/s, quelle valeur de ξ donne le temps de réponse à 5 % le plus court, et que vaut alors ${V('t<sub>5%</sub>')} ?`, fig: '',
         fields: [{ l: 'ξ', u: '', a: 0.7, abs: .016 }, { l: 'Temps de réponse à 5 %', u: 's', a: 3 / w0, tol: .06 }],
-        corr: `<p>D’après l’abaque du temps de réponse réduit, t<sub>5%</sub>·ω<sub>0</sub> est minimal, ≈ 3 (2,9), pour <b>ξ ≈ 0,7</b> : le premier dépassement, 4,6 %, reste tout juste dans la bande des 5 % ⇒ t<sub>5%</sub> ≈ ${fr(3, w0)} = <b>${fmt(3 / w0)} s</b>.</p><p>Autres repères : ξ = 1 ⇒ t<sub>5%</sub>·ω<sub>0</sub> ≈ 4,75 ; ξ ≪ 1 ⇒ t<sub>5%</sub> ≈ 3/(ξω<sub>0</sub>) ; ξ ≫ 1 ⇒ t<sub>5%</sub> ≈ 6ξ/ω<sub>0</sub>.</p>` };
+        corr: pas([
+          'Le temps de réponse d’un second ordre dépend du frein ξ. Trop peu de frein : ça oscille longtemps autour de la valeur finale. Trop de frein : ça monte mollement. Entre les deux, il y a un optimum.',
+          'Cet optimum est <b>ξ ≈ 0,7</b> : la réponse dépasse un tout petit peu (4,6 %), mais elle reste dans la bande des ±5 % dès sa première arrivée.',
+          `À cet optimum, t<sub>5%</sub> × ω<sub>0</sub> ≈ 3. Donc t<sub>5%</sub> ≈ ${fr(3, w0)} = <b>${fmt(3 / w0)} s</b>.`,
+          'Autres repères de l’abaque : ξ = 1 → t<sub>5%</sub> × ω<sub>0</sub> ≈ 4,75 ; ξ très petit → t<sub>5%</sub> ≈ 3/(ξω<sub>0</sub>) ; ξ très grand → t<sub>5%</sub> ≈ 6ξ/ω<sub>0</sub>.'],
+          'ξ ≈ 0,7 est le réglage le plus rapide : t5% ≈ 3/ω₀.') };
     } },
   ];
 
@@ -321,14 +392,23 @@
       const n = al + n1 + 2 * q2, d = n - m;
       return { text: `${V('H(p)')} = ${fr(num, den)}. Donner la pente de l’asymptote basse fréquence du diagramme de gain, celle de l’asymptote haute fréquence, et la phase vers laquelle tend ${V('H(jω)')} en haute fréquence.`, fig: '',
         fields: [{ l: 'Pente basse fréquence', u: 'dB/décade', a: -20 * al, abs: .5 }, { l: 'Pente haute fréquence', u: 'dB/décade', a: -20 * d, abs: .5 }, { l: 'Phase haute fréquence', u: '°', a: -90 * d, abs: .5 }],
-        corr: `<p>Basse fréquence : seuls K et les ${al} intégrateur${al > 1 ? 's' : ''} comptent : pente −20 × ${al} = <b>${-20 * al} dB/décade</b> (phase ${-90 * al}°).</p><p>Haute fréquence : degré du dénominateur ${n}, du numérateur ${m} ⇒ H ≈ ${fr('…', `p<sup>${d}</sup>`)} : pente −20 × ${d} = <b>${-20 * d} dB/décade</b> et phase −90° × ${d} = <b>${-90 * d}°</b>.</p>` };
+        corr: pas([
+          '<b>Très basse fréquence</b> : p est minuscule, chaque parenthèse (1 + …p) vaut pratiquement 1. Il ne reste que K et les « p tout seuls » du bas.',
+          `Ici il y en a ${al} : ${al ? `chacun fait descendre le gain de 20 dB par décade, soit <b>${-20 * al} dB/décade</b>` : 'le gain est donc plat, <b>0 dB/décade</b>'}.`,
+          `<b>Très haute fréquence</b> : p est énorme, dans chaque parenthèse le 1 ne compte plus. On compte les p : ${n} en bas${q2 ? ' (la parenthèse en p² compte pour 2)' : ''}, ${m} en haut. Il en reste ${d} en bas.`,
+          `Pente : −20 × ${d} = <b>${-20 * d} dB/décade</b>. Phase : chaque p restant en bas retarde de 90°, soit −90° × ${d} = <b>${-90 * d}°</b>.`],
+          'un p en bas : −20 dB/décade et −90°. Un p en haut : +20 dB/décade et +90°.') };
     } },
     { t: 'Décibels', r: 'G(dB) = 20·log(rapport) ; rapport = 10^(G/20).', gen() {
       const L = [[2, 6], [0.5, -6], [10, 20], [0.1, -20], [100, 40], [0.01, -40], [Math.SQRT1_2, -3], [5, 14], [0.2, -14], [1000, 60], [20, 26], [50, 34]];
       const [a, b] = melange(L);
       return { text: `Convertir : un rapport d’amplitude de ${fmt(a[0])} en décibels ; un gain de ${b[1] > 0 ? '+' : ''}${fmt(b[1])} dB en rapport d’amplitude.`, fig: '',
         fields: [{ l: `${fmt(a[0])} en dB`, u: 'dB', a: db(a[0]), abs: .15 }, { l: `${b[1] > 0 ? '+' : ''}${fmt(b[1])} dB en rapport`, u: '', a: 10 ** (b[1] / 20), tol: .03 }],
-        corr: `<p>G<sub>dB</sub> = 20 log ${fmt(a[0])} = <b>${fmt(db(a[0]))} dB</b> ; rapport = 10<sup>${fmt(b[1])}/20</sup> = <b>${fmt(10 ** (b[1] / 20))}</b>.</p><p>Repères : ×2 ↔ +6 dB, ×10 ↔ +20 dB, ×√2/2 ↔ −3 dB ; les décibels s’ajoutent quand les rapports se multiplient.</p>` };
+        corr: pas([
+          'Les décibels sont une autre façon d’écrire un rapport : G(dB) = 20 × log(rapport).',
+          `Premier sens : log ${fmt(a[0])} = ${fmt(Math.log10(a[0]))}, et 20 × ${fmt(Math.log10(a[0]))} = <b>${fmt(db(a[0]))} dB</b>. ${a[0] < 1 ? 'Rapport plus petit que 1 : décibels négatifs.' : 'Rapport plus grand que 1 : décibels positifs.'}`,
+          `Sens inverse : rapport = 10<sup>dB/20</sup>. ${fmt(b[1])} ÷ 20 = ${fmt(b[1] / 20)}, et 10<sup>${fmt(b[1] / 20)}</sup> = <b>${fmt(10 ** (b[1] / 20))}</b>.`],
+          'trois repères suffisent : ×2 ↔ +6 dB, ×10 ↔ +20 dB, ÷√2 ↔ −3 dB. Multiplier des rapports, c’est additionner des décibels : ×20 = ×2 puis ×10, soit 6 + 20 = 26 dB.') };
     } },
     { t: 'Lire une résonance sur un diagramme de Bode', r: 'Le gain statique se lit sur le palier de gauche. La résonance est le sommet de la bosse : lire sa hauteur, puis la pulsation en dessous (axe logarithmique).', gen() {
       const w0 = pick([2, 5, 10, 50, 100]), xi = pick([0.1, 0.15, 0.2, 0.25]), K = pick([1, 2, 5, 10]);
@@ -339,7 +419,12 @@
       return { text: `Le diagramme de gain ci-dessous est celui d’un système du second ordre. Lire son gain statique, son gain maximal et la pulsation de résonance.`,
         fig: plot({ W: 660, H: 290, logx: 1, x0: w0 / 100, x1: w0 * 100, y0: y1 - 70, y1, dy: 2, ymaj: 5, curves: [{ pts }], xl: 'Pulsation ω (rad/s)', yl: 'Gain (dB)', alt: 'diagramme de gain d’un second ordre résonant' }),
         fields: [{ l: 'Gain statique', u: 'dB', a: G0, abs: .7 }, { l: 'Gain maximal', u: 'dB', a: Gm, abs: 1.2 }, { l: 'Pulsation de résonance', u: 'rad/s', a: wr, tol: .15 }],
-        corr: `<p>Palier basse fréquence : 20 log ${K} = <b>${fmt(G0)} dB</b>. Sommet : <b>${fmt(Gm)} dB</b>, soit ${fmt(db(Q))} dB au-dessus du palier (Q = ${fmt(Q)}). Il se trouve à ω<sub>r</sub> = ω<sub>0</sub>√(1 − 2ξ²) ≈ <b>${fmt(wr)} rad/s</b>, à peine sous ω<sub>0</sub> = ${w0} rad/s.</p><p>Ici ξ = ${fmt(xi)} : on retrouve Q = ${fr('1', '2ξ√(1 − ξ²)')}. Pente finale −40 dB/décade.</p>` };
+        corr: pas([
+          `<b>Gain statique</b> : c’est le palier horizontal, à gauche. On lit <b>${fmt(G0)} dB</b> (c’est 20 log ${K}).`,
+          `<b>Gain maximal</b> : c’est le sommet de la bosse. On lit environ <b>${fmt(Gm)} dB</b>, soit ${fmt(db(Q))} dB au-dessus du palier.`,
+          `<b>Pulsation de résonance</b> : on descend à la verticale du sommet jusqu’à l’axe. Attention, l’axe est logarithmique : entre deux graduations principales, les traits valent 2, 3, 4… fois la graduation de gauche. On lit environ <b>${fmt(wr)} rad/s</b>.`,
+          `Pour aller plus loin : la hauteur de la bosse renseigne sur le frein. Ici ξ = ${fmt(xi)}, très peu amorti, et la bosse vaut ${fr(1, '2ξ√(1 − ξ²)')} = ${fmt(Q)} en rapport.`],
+          'une bosse sur le gain = système peu amorti (ξ < 0,7), comme une balançoire poussée au bon rythme. Après la bosse, la pente est de −40 dB/décade.') };
     } },
   ];
 
@@ -352,7 +437,12 @@
       const cell = (x) => `<td style="padding:2px 12px;text-align:center">${fmt(x)}</td>`;
       return { text: `Le dénominateur de la FTBF d’un asservissement vaut ${V('D(p)')} = ${poly([1, a2, a1, a0])}. Dresser le tableau de Routh : combien de changements de signe compte la première colonne ? Le système est-il stable ?`, fig: '',
         fields: [{ l: 'Changements de signe', u: '', a: ch, abs: .01 }, choix('Stabilité', ch ? 'instable' : 'stable', [ch ? 'stable' : 'instable'])],
-        corr: `<table style="border-collapse:collapse;margin:6px 0"><tr><td style="padding:2px 12px">p³</td>${cell(1)}${cell(a1)}</tr><tr><td style="padding:2px 12px">p²</td>${cell(a2)}${cell(a0)}</tr><tr><td style="padding:2px 12px">p¹</td>${cell(b1)}${cell(0)}</tr><tr><td style="padding:2px 12px">p⁰</td>${cell(a0)}<td></td></tr></table><p>Ligne p¹ : ${fr(`${fmt(a2)} × ${a1} − 1 × ${fmt(a0)}`, fmt(a2))} = ${fmt(b1)}. Première colonne : ${col.map((x) => fmt(x)).join(' ; ')} ⇒ <b>${ch} changement${ch > 1 ? 's' : ''} de signe</b>, donc ${ch} pôle${ch > 1 ? 's' : ''} à partie réelle positive : système <b>${ch ? 'instable' : 'stable'}</b>.</p>${a2 < 0 || a0 < 0 ? '<p>Un coefficient négatif suffisait à conclure à l’instabilité (condition nécessaire : tous les coefficients de même signe).</p>' : ''}` };
+        corr: `<table style="border-collapse:collapse;margin:6px 0"><tr><td style="padding:2px 12px">p³</td>${cell(1)}${cell(a1)}</tr><tr><td style="padding:2px 12px">p²</td>${cell(a2)}${cell(a0)}</tr><tr><td style="padding:2px 12px">p¹</td>${cell(b1)}${cell(0)}</tr><tr><td style="padding:2px 12px">p⁰</td>${cell(a0)}<td></td></tr></table>` + pas([
+          'Le tableau se remplit ainsi. Ligne p³ : le 1<sup>er</sup> et le 3<sup>e</sup> coefficient du polynôme. Ligne p² : le 2<sup>e</sup> et le 4<sup>e</sup>.',
+          `Ligne p¹ : un produit en croix des deux lignes du dessus, divisé par le premier nombre de la ligne p² : ${fr(`${fmt(a2)} × ${a1} − 1 × ${fmt(a0)}`, fmt(a2))} = ${fmt(b1)}. Ligne p⁰ : le dernier coefficient, ${fmt(a0)}.`,
+          `On ne regarde que la <b>première colonne</b> : ${col.map((x) => fmt(x)).join(' ; ')}. En la descendant, on compte combien de fois le signe change : <b>${ch}</b>.`,
+          `Chaque changement de signe correspond à un pôle du mauvais côté (partie réelle positive). ${ch ? `Il y en a ${ch} : système <b>instable</b>` : 'Il n’y en a aucun : système <b>stable</b>'}.`].concat(a2 < 0 || a0 < 0 ? ['Raccourci : un coefficient négatif dans le polynôme suffit à dire « instable », sans même faire le tableau.'] : []),
+          'Routh : première colonne toute du même signe ⇔ système stable.') };
     } },
     { t: 'Écart en régime permanent selon la classe', r: 'Comparer la classe de la FTBO à l’entrée (échelon : 0, rampe : 1). Classe supérieure : écart nul. Égale : écart constant, E₀/(1 + K) ou a/K. Inférieure : l’écart croît sans limite.', gen() {
       const al = pick([0, 1, 2]), rampe = pick([0, 1]), K = al ? pick([5, 10, 20, 50]) : pick([4, 9, 19, 49]), E0 = pick([1, 2, 5]), a = pick([0.5, 1, 2]);
@@ -363,7 +453,15 @@
       const ft = fr(K, `${al ? (al > 1 ? 'p²' : 'p') : ''}(1 + 0,1p)`), f = [choix('L’écart en régime permanent est', nat, ['nul', 'constant, non nul', 'croît sans limite'].filter((x) => x !== nat))];
       if (val != null) f.push({ l: 'Valeur de l’écart', u: rampe ? 'rad' : 'rad', a: val, tol: .02 });
       return { text: `Retour unitaire, FTBO = ${ft}. La consigne est ${rampe ? `une rampe de pente ${fmt(a)} rad/s` : `un échelon de ${E0} rad`}. Comment se comporte l’écart en régime permanent ?${val != null ? ' Donner sa valeur.' : ''}`, fig: '', fields: f,
-        corr: `<p>Classe de la FTBO : ${al}. ${rampe ? 'Rampe' : 'Échelon'} : ${al === 0 && !rampe ? `ε = ${fr('E<sub>0</sub>', '1 + K')} = ${fr(E0, 1 + K)} = <b>${fmt(val)} rad</b>` : al === 1 && rampe ? `ε = ${fr('a', 'K')} = ${fr(fmt(a), K)} = <b>${fmt(val)} rad</b>` : al === 0 ? 'une FTBO de classe 0 ne suit pas une rampe : <b>l’écart croît sans limite</b>' : `<b>écart nul</b> : la classe ${al} est au moins égale à l’ordre de l’entrée`}.</p><p>Règle : écart nul si la classe dépasse l’ordre de l’entrée (0 pour l’échelon, 1 pour la rampe), constant s’il lui est égal, infini sinon.</p>` };
+        corr: pas([
+          `On regarde deux choses : la <b>classe</b> de la FTBO, c’est-à-dire le nombre de « p tout seuls » en bas (ici ${al}), et le type d’entrée (${rampe ? 'une rampe, qui ne s’arrête jamais de monter' : 'un échelon, qui reste fixe'}).`,
+          al === 0 && !rampe ? `Classe 0, échelon : aucun intégrateur. La boucle a besoin d’un écart pour maintenir sa sortie : ε = ${fr('E<sub>0</sub>', '1 + K')} = ${fr(E0, 1 + K)} = <b>${fmt(val)} rad</b>, constant.`
+            : al === 0 ? 'Classe 0, rampe : sans intégrateur, la sortie ne peut pas monter indéfiniment pour suivre la consigne. Elle décroche : <b>l’écart croît sans limite</b>.'
+            : al === 1 && !rampe ? 'Classe 1, échelon : l’intégrateur continue de pousser tant qu’il reste un écart. La boucle ne se stabilise donc qu’avec un <b>écart nul</b>.'
+            : al === 1 ? `Classe 1, rampe : pour que la sortie monte à la même vitesse que la consigne, l’intégrateur doit recevoir en permanence un petit écart : ε = ${fr('a', 'K')} = ${fr(fmt(a), K)} = <b>${fmt(val)} rad</b>, constant. C’est l’écart de traînage.`
+            : `Classe 2, ${rampe ? 'rampe' : 'échelon'} : deux intégrateurs, c’est plus qu’il n’en faut pour cette entrée. <b>Écart nul</b>.`,
+          'Le tableau complet. Pour un échelon, il faut la classe 1 pour annuler l’écart ; pour une rampe, la classe 2. Avec une classe de moins, l’écart est constant ; avec deux de moins, il grandit sans fin.'],
+          'chaque intégrateur de la boucle fait gagner un cran de précision.') };
     } },
     { t: 'Lire les marges sur un diagramme de Bode', r: 'Marge de phase : à la pulsation où le gain coupe 0 dB, distance de la phase à −180°. Marge de gain : à la pulsation où la phase vaut −180°, distance du gain à 0 dB.', gen() {
       const t1 = pick([0.1, 0.2, 0.5]), t2 = pick([0.01, 0.02]), Kl = (t1 + t2) / (t1 * t2), K = Number((Kl * pick([0.15, 0.25, 0.35, 0.5])).toPrecision(2));
@@ -373,7 +471,12 @@
       return { text: `Retour unitaire, FTBO = ${fr(K, `p(${bin(t1)})(${bin(t2)})`)}. Lire sur le diagramme de Bode la pulsation de coupure à 0 dB, la marge de phase et la marge de gain.`,
         fig: bodeFig(K, [t1, t2], 1, x0, x1, gr, [-270, -90]),
         fields: [{ l: 'Pulsation de coupure à 0 dB', u: 'rad/s', a: wc, tol: .15 }, { l: 'Marge de phase', u: '°', a: Mp, abs: 5 }, { l: 'Marge de gain', u: 'dB', a: MG, abs: 2 }],
-        corr: `<p>Le gain passe par 0 dB à ω<sub>c</sub> ≈ <b>${fmt(wc)} rad/s</b> ; la phase y vaut ${fmt(Mp - 180)}° ⇒ M<sub>φ</sub> = 180° + (${fmt(Mp - 180)}°) = <b>${fmt(Mp)}°</b>.</p><p>La phase atteint −180° à ω = ${fr('1', '√(τ<sub>1</sub>τ<sub>2</sub>)')} = ${fmt(w180)} rad/s ; le gain y vaut ${fmt(-MG)} dB ⇒ M<sub>G</sub> = <b>${fmt(MG)} dB</b>.</p><p>Erreur classique : lire la marge de phase là où la phase vaut −180°, ou la marge de gain là où le gain vaut 0 dB.</p>` };
+        corr: pas([
+          `<b>Pulsation de coupure</b> : sur la courbe de gain (en haut), on cherche l’endroit où elle croise la ligne 0 dB. On lit ω<sub>c</sub> ≈ <b>${fmt(wc)} rad/s</b>.`,
+          `<b>Marge de phase</b> : on descend à la verticale sur la courbe de phase (en bas). À ω<sub>c</sub>, la phase vaut environ ${fmt(Mp - 180)}°. La marge est ce qu’il reste avant −180° : 180 − ${fmt(180 - Mp)} = <b>${fmt(Mp)}°</b>.`,
+          `<b>Marge de gain</b> : on fait l’inverse. Sur la courbe de phase, on cherche où elle croise −180° : vers ${fmt(w180)} rad/s. On remonte sur la courbe de gain : elle y vaut environ ${fmt(-MG)} dB. La marge est ce qu’il reste avant 0 dB : <b>${fmt(MG)} dB</b>.`,
+          `Verdict : ${Mp >= 45 ? 'plus de 45° de marge de phase, la boucle est bien amortie' : 'moins de 45° de marge de phase, la boucle sera nerveuse, avec un dépassement marqué'}.`],
+          'c’est croisé. Marge de phase : on part du gain (0 dB) et on lit la phase. Marge de gain : on part de la phase (−180°) et on lit le gain.') };
     } },
   ];
 
@@ -390,19 +493,35 @@
       const f = (n, i) => { const c = melange(ch); return { l: `Besoin ${i}`, ch: c, a: c.indexOf(n[1]) }; };
       return { text: `Associer à chaque besoin le correcteur qui y répond.<br>Besoin 1 : ${x[0]}.<br>Besoin 2 : ${y[0]}.`, fig: '',
         fields: [f(x, 1), f(y, 2)],
-        corr: `<p>Besoin 1 : <b>${x[1]}</b>. Besoin 2 : <b>${y[1]}</b>.</p><p>Le PI ajoute un intégrateur (classe + 1) et retire de la phase près de 1/T<sub>i</sub> ; l’avance de phase remonte la phase autour de ω<sub>m</sub> = 1/(τ√a) ; le retard de phase relève le gain basse fréquence et se place une décade sous ω<sub>c</sub> ; un gain plus fort accélère et précise, mais rapproche de l’instabilité.</p>` };
+        corr: pas([
+          `Besoin 1 : <b>${x[1]}</b>. Besoin 2 : <b>${y[1]}</b>.`,
+          'Pour s’y retrouver, se demander où se situe le besoin. La <b>précision</b> est une affaire de basses fréquences, de régime établi. La <b>stabilité</b> est une affaire de marge de phase, autour de la coupure.',
+          'Le <b>PI</b> ajoute un intégrateur : il pousse tant qu’il reste un écart, donc l’écart finit nul. Le <b>retard de phase</b> augmente seulement le gain aux basses fréquences : l’écart diminue, sans changer la rapidité.',
+          'L’<b>avance de phase</b> ajoute de l’anticipation autour de la coupure : la marge de phase remonte. <b>Augmenter le gain</b> rend tout plus vif, mais mange la marge.'],
+          'PI = le têtu (écart nul) ; avance de phase = l’anticipation (stabilité) ; gain = l’accélérateur (rapide, mais risqué).') };
     } },
     { t: 'Paramètres d’un PID', r: 'Développer Kp(1 + 1/(Ti·p) + Td·p) et tout mettre sur p : (Kp·Td·p² + Kp·p + Kp/Ti)/p, puis identifier terme à terme.', gen() {
       const Kp = pick([2, 4, 5, 10]), Ti = pick([0.5, 1, 2]), Td = pick([0.05, 0.1, 0.2]);
       return { text: `Un correcteur s’écrit ${V('C(p)')} = ${fr(poly([Kp * Td, Kp, Kp / Ti]), 'p')}. L’identifier à la forme ${V('K<sub>p</sub>')}(1 + ${fr('1', 'T<sub>i</sub>p')} + T<sub>d</sub>p).`, fig: '',
         fields: [{ l: 'K_p', u: '', a: Kp, tol: .01 }, { l: 'T_i', u: 's', a: Ti, tol: .01 }, { l: 'T_d', u: 's', a: Td, tol: .01 }],
-        corr: `<div class="eq">K<sub>p</sub>(1 + ${fr('1', 'T<sub>i</sub>p')} + T<sub>d</sub>p) = ${fr('K<sub>p</sub>T<sub>d</sub>p² + K<sub>p</sub>p + K<sub>p</sub>/T<sub>i</sub>', 'p')}</div><p>K<sub>p</sub> = coefficient de p = <b>${Kp}</b> ; K<sub>p</sub>/T<sub>i</sub> = ${fmt(Kp / Ti)} ⇒ T<sub>i</sub> = <b>${fmt(Ti)} s</b> ; K<sub>p</sub>T<sub>d</sub> = ${fmt(Kp * Td)} ⇒ T<sub>d</sub> = <b>${fmt(Td)} s</b>.</p>` };
+        corr: pas([
+          `On développe le modèle pour le mettre sous la même forme que l’énoncé, tout sur p : K<sub>p</sub>(1 + ${fr('1', 'T<sub>i</sub>p')} + T<sub>d</sub>p) = ${fr('K<sub>p</sub>T<sub>d</sub>·p² + K<sub>p</sub>·p + K<sub>p</sub>/T<sub>i</sub>', 'p')}.`,
+          `On compare terme à terme avec ${fr(poly([Kp * Td, Kp, Kp / Ti]), 'p')}. Le nombre devant p est K<sub>p</sub> : <b>${Kp}</b>.`,
+          `Le nombre seul est K<sub>p</sub>/T<sub>i</sub> = ${fmt(Kp / Ti)}, donc T<sub>i</sub> = ${fr(Kp, fmt(Kp / Ti))} = <b>${fmt(Ti)} s</b>.`,
+          `Le nombre devant p² est K<sub>p</sub>T<sub>d</sub> = ${fmt(Kp * Td)}, donc T<sub>d</sub> = ${fr(fmt(Kp * Td), Kp)} = <b>${fmt(Td)} s</b>.`],
+          'toujours commencer par Kp (le terme en p) : les deux autres en découlent.') };
     } },
     { t: 'Le PI dans le diagramme de Bode', r: 'Kp(1 + Ti·p)/(Ti·p) : intégrateur en basse fréquence, gain Kp en haute fréquence, cassure à 1/Ti, où le numérateur apporte +45°.', gen() {
       const Kp = pick([0.5, 2, 5, 10]), Ti = pick([0.02, 0.05, 0.1, 0.5]);
       return { text: `Correcteur PI ${V('C(p) = K<sub>p</sub>')}·${fr('1 + T<sub>i</sub>p', 'T<sub>i</sub>p')} avec ${V('K<sub>p</sub>')} = ${fmt(Kp)} et ${V('T<sub>i</sub>')} = ${fmt(Ti)} s. Donner son gain haute fréquence, sa pulsation de cassure et sa phase à cette pulsation.`, fig: '',
         fields: [{ l: 'Gain haute fréquence', u: 'dB', a: db(Kp), abs: .15 }, { l: 'Pulsation de cassure', u: 'rad/s', a: 1 / Ti, tol: .01 }, { l: 'Phase à la cassure', u: '°', a: -45, abs: .5 }],
-        corr: `<p>Haute fréquence : C → K<sub>p</sub>, soit 20 log ${fmt(Kp)} = <b>${fmt(db(Kp))} dB</b> (phase 0°). Basse fréquence : intégrateur, −20 dB/décade et −90°. Cassure à 1/T<sub>i</sub> = <b>${fmt(1 / Ti)} rad/s</b>, où la phase vaut −90° + 45° = <b>−45°</b>.</p>` };
+        corr: pas([
+          `Le PI s’écrit K<sub>p</sub> × ${fr('1 + T<sub>i</sub>p', 'T<sub>i</sub>p')}. On regarde ses deux extrêmes.`,
+          `<b>Haute fréquence</b> : p est grand, le 1 du haut ne compte plus, T<sub>i</sub>p se simplifie : il reste K<sub>p</sub>. Gain : 20 log ${fmt(Kp)} = <b>${fmt(db(Kp))} dB</b>. Là, le PI se comporte comme un simple gain.`,
+          'Basse fréquence : le haut vaut 1, il reste K<sub>p</sub>/(T<sub>i</sub>p), un intégrateur. Son gain grandit sans limite quand la fréquence baisse : c’est lui qui annule l’écart statique.',
+          `<b>La cassure</b>, frontière entre les deux, est à 1/T<sub>i</sub> = ${fr(1, fmt(Ti))} = <b>${fmt(1 / Ti)} rad/s</b>.`,
+          '<b>Phase à la cassure</b> : l’intégrateur donne −90°, le terme (1 + T<sub>i</sub>p) du haut donne +45° à sa cassure : −90 + 45 = <b>−45°</b>.'],
+          'un PI retire de la phase en dessous de 1/Ti : on le place loin sous la coupure pour ne pas abîmer la marge.') };
     } },
   ];
 
@@ -412,19 +531,34 @@
       const f = pick([50, 100, 250, 500, 1000]);
       return { text: `Le signal mesuré contient des fréquences jusqu’à ${f} Hz. Quelle fréquence d’échantillonnage minimale impose le théorème de Shannon, et quelle période d’échantillonnage maximale ?`, fig: '',
         fields: [{ l: 'Fréquence minimale', u: 'Hz', a: 2 * f, tol: .01 }, { l: 'Période maximale', u: 'ms', a: 1000 / (2 * f), tol: .01 }],
-        corr: `<p>f<sub>e</sub> > 2f<sub>max</sub> = <b>${2 * f} Hz</b> ⇒ T<sub>e</sub> < <b>${fmt(1000 / (2 * f))} ms</b>. En pratique on prend bien plus (5 à 10 fois) et on filtre avant le convertisseur (filtre anti-repliement).</p>` };
+        corr: pas([
+          'Pour reconstituer un signal à partir de mesures, il faut plus de deux mesures par période de sa composante la plus rapide. Sinon on « voit » un signal plus lent qui n’existe pas, comme les roues qui semblent tourner à l’envers au cinéma.',
+          `Fréquence la plus haute : ${f} Hz. Il faut donc échantillonner à plus de 2 × ${f} = <b>${2 * f} Hz</b>.`,
+          `La période est l’inverse de la fréquence : ${fr(1, 2 * f)} s = <b>${fmt(1000 / (2 * f))} ms</b> au maximum entre deux mesures.`,
+          'En pratique on prend 5 à 10 fois plus de marge, et on filtre le signal avant le convertisseur pour supprimer ce qui est trop rapide.'],
+          'fréquence d’échantillonnage > 2 × la fréquence la plus haute du signal.') };
     } },
     { t: 'Stabilité dans le plan des z', r: 'Module d’un complexe x ± jy : √(x² + y²). Stable si tous les pôles ont un module inférieur à 1.', gen() {
       const [x, y] = pick([[0.6, 0.5], [0.9, 0.6], [0.5, 0.5], [0.8, 0.7], [-0.4, 0.8], [0.3, -0.9], [0.95, 0], [-1.1, 0], [0.7, 0.8]]), m = Math.hypot(x, y), st = m < 1;
       return { text: `Un système échantillonné a ${y ? `deux pôles complexes conjugués z = ${fmt(x)} ± ${fmt(Math.abs(y))}j` : `un pôle réel z = ${fmt(x)}`}. Donner leur module et conclure sur la stabilité.`, fig: '',
         fields: [{ l: 'Module |z|', u: '', a: m, tol: .01 }, choix('Stabilité', st ? 'stable' : 'instable', [st ? 'instable' : 'stable'])],
-        corr: `<p>|z| = ${y ? `√(${fmt(x)}² + ${fmt(Math.abs(y))}²)` : `|${fmt(x)}|`} = <b>${fmt(m)}</b>. Stabilité si tous les pôles sont dans le disque unité : système <b>${st ? 'stable' : 'instable'}</b>.${x < 0 ? ' Un pôle à partie réelle négative donne une réponse qui alterne de signe d’une période à l’autre.' : ''}</p>` };
+        corr: pas([
+          'Dans un système échantillonné, à chaque période les valeurs sont multipliées par les pôles. Si un pôle est plus grand que 1 en taille, ça grossit à chaque pas : instable.',
+          `La « taille » d’un pôle est son module. ${y ? `Pour ${fmt(x)} ± ${fmt(Math.abs(y))}j : √(${fmt(Math.abs(x))}² + ${fmt(Math.abs(y))}²) = √${fmt(x * x + y * y)} = <b>${fmt(m)}</b>` : `Pour un nombre réel, c’est sa valeur sans le signe : <b>${fmt(m)}</b>`}.`,
+          `${fmt(m)} est ${st ? 'plus petit' : 'plus grand'} que 1 : système <b>${st ? 'stable' : 'instable'}</b>.${x < 0 ? ' Le signe négatif ajoute un détail : la réponse change de signe à chaque période.' : ''}`],
+          'en continu, stable = pôles à gauche ; en échantillonné, stable = pôles dans le cercle de rayon 1.') };
     } },
     { t: 'Récurrence d’un premier ordre', r: 'Remplacer p, multiplier par Te, puis lire z⁻¹·S comme s(k−1) : on isole s(k).', gen() {
       const K = pick([1, 2, 5]), tau = pick([0.1, 0.2, 0.5, 1]), Te = pick([0.01, 0.02, 0.05]), a = tau / (tau + Te), b = K * Te / (tau + Te);
       return { text: `${V('H(p)')} = ${fr(K, bin(tau))} est discrétisé par Euler arrière, ${V('p')} ≈ ${fr('1 − z<sup>−1</sup>', 'T<sub>e</sub>')}, avec ${V('T<sub>e</sub>')} = ${fmt(Te * 1000)} ms. On obtient ${V('s<sub>k</sub> = a·s<sub>k−1</sub> + b·e<sub>k</sub>')}. Calculer ${V('a')} et ${V('b')}.`, fig: '',
         fields: [{ l: 'a', u: '', a, tol: .005 }, { l: 'b', u: '', a: b, tol: .01 }],
-        corr: `<div class="eq">(1 + ${fr('τ', 'T<sub>e</sub>')}(1 − z<sup>−1</sup>))S = K·E ⇒ (T<sub>e</sub> + τ)s<sub>k</sub> = τ·s<sub>k−1</sub> + K·T<sub>e</sub>·e<sub>k</sub></div><p>a = ${fr('τ', 'τ + T<sub>e</sub>')} = <b>${fmt(a, 4)}</b> ; b = ${fr('K·T<sub>e</sub>', 'τ + T<sub>e</sub>')} = <b>${fmt(b, 4)}</b>. Contrôle : a + b/K = 1, le gain statique K est conservé.</p>` };
+        corr: pas([
+          `On part de S × (1 + τp) = K × E, et on remplace p par ${fr('1 − z<sup>−1</sup>', 'T<sub>e</sub>')} (Euler arrière).`,
+          'On multiplie tout par T<sub>e</sub> pour chasser la fraction : S × (T<sub>e</sub> + τ − τz<sup>−1</sup>) = K·T<sub>e</sub> × E.',
+          'On traduit : z<sup>−1</sup>·S veut dire « la valeur précédente de s », soit s<sub>k−1</sub>. Donc (T<sub>e</sub> + τ)·s<sub>k</sub> − τ·s<sub>k−1</sub> = K·T<sub>e</sub>·e<sub>k</sub>.',
+          `On isole s<sub>k</sub> en divisant par τ + T<sub>e</sub> = ${fmt(tau + Te, 4)} : a = ${fr(fmt(tau), fmt(tau + Te, 4))} = <b>${fmt(a, 4)}</b> et b = ${fr(`${K} × ${fmt(Te)}`, fmt(tau + Te, 4))} = <b>${fmt(b, 4)}</b>.`,
+          `Lecture : la nouvelle sortie garde ${fmt(100 * a)} % de l’ancienne et prend le reste sur l’entrée. Contrôle : a + b/K = 1.`],
+          'z⁻¹ veut dire « la valeur d’avant ». Une fonction de transfert discrétisée devient une recette : nouvelle valeur = a × ancienne + b × entrée.') };
     } },
   ];
 
