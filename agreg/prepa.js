@@ -824,7 +824,7 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
       if (libres.length < n) { vus = new Set(); libres = R.map((_, i) => i); }
       melange(libres).slice(0, n).sort((a, b) => a - b).forEach((i) => {
         vus.add(i);
-        try { const o = R[i].gen(); qs.push({ ch: l === 3 ? '' : key, t: R[i].t, aide: e.aide ? String(R[i].r || o.hint || '') + (R[i].w ? `</p><p><b>Pourquoi ?</b> ${R[i].w}` : '') : '', inst: { text: o.text, fig: o.fig || '', fields: o.fields, corr: o.corr } }); } catch (er) { /* générateur en défaut : on passe */ }
+        try { const o = R[i].gen(); qs.push({ ch: l === 3 ? '' : key, t: R[i].t, pq: R[i].w || '', aide: e.aide ? String(R[i].r || o.hint || '') + (R[i].w ? `</p><p><b>Pourquoi ?</b> ${R[i].w}` : '') : '', inst: { text: o.text, fig: o.fig || '', fields: o.fields, corr: o.corr } }); } catch (er) { /* générateur en défaut : on passe */ }
       });
       S[cle] = [...vus];
     });
@@ -853,7 +853,7 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
     const note = () => Math.max(0, 20 - 2 * erreurs());
     function retour(q, ok) {
       const e = ok.filter((y) => !y).length;
-      return `<div class="pp-verdict ${e ? 'ko' : 'ok'}">${e ? `${e} erreur${e > 1 ? 's' : ''} : −${2 * e} points` : 'Tout juste'}</div><div class="corr"><b>Correction</b>${q.inst.corr}</div>${zoneExp()}<div class="btns" style="margin-top:14px"><button class="b" type="button" data-suiv="1">${R.i < R.qs.length - 1 ? 'Question suivante →' : 'Voir ma note'}</button></div>`;
+      return `<div class="pp-verdict ${e ? 'ko' : 'ok'}">${e ? `${e} erreur${e > 1 ? 's' : ''} : −${2 * e} points` : 'Tout juste'}</div><div class="corr"><b>Correction</b>${q.inst.corr}${e && q.pq ? `<p class="pp-ret"><b>Le pourquoi :</b> ${q.pq}</p>` : ''}</div>${zoneExp()}<div class="btns" style="margin-top:14px"><button class="b" type="button" data-suiv="1">${R.i < R.qs.length - 1 ? 'Question suivante →' : 'Voir ma note'}</button></div>`;
     }
     function question() {
       const q = R.qs[R.i], ok = R.ok[R.i] || null, rep = R.rep[R.i] || (R.rep[R.i] = []);
