@@ -227,6 +227,9 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
 .pp-vq{border-top:1px dashed #c3d0da;margin-top:16px;padding-top:12px}.pp-vq .eyebrow{color:#4a5fa8}.pp-vq h3{margin:4px 0 6px;font-size:16px}
 .pp-niv{font-size:12px;font-weight:600;color:#8a4513;background:#fbeee3;border-radius:20px;padding:1px 9px;margin-left:6px;white-space:nowrap}
 .pp-aide{margin:4px 0 14px;background:#f3f7fa;border-left:4px solid #4a5fa8;border-radius:6px;padding:8px 14px}.pp-aide summary{cursor:pointer;font-weight:700;color:#4a5fa8}.pp-aide p{margin:6px 0 2px}
+.pp-pas{padding-left:22px;margin:4px 0}.pp-pas li{margin:9px 0;line-height:1.55}
+.pp-ret{margin:12px 0 0;padding:9px 13px;background:#fff;border:1px solid #cfe3d8;border-radius:8px}
+.pp-expz{margin-top:12px}.pp-exp{background:#eef1f9;border-left:4px solid #4a5fa8;border-radius:8px;padding:12px 16px;margin-top:10px}.pp-exp p{margin:8px 0 0}
 .pp-lnk{font:inherit;font-size:13px;background:none;border:0;padding:0;color:#12566f;text-decoration:underline;cursor:pointer}
 .pp-par{margin:6px 0 0;padding:0;list-style:none}.pp-par li{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 0;border-top:1px solid #e0e8ef}.pp-par li span:first-child{flex:1 1 220px}
 @media(max-width:640px){.pp-q{grid-template-columns:50px 1fr}.pp-qa{grid-column:1/-1;justify-content:flex-start}dl.pp-fiche{grid-template-columns:1fr}dl.pp-fiche dd{margin-bottom:8px}.pp-card{padding:16px}.pp-steps>li{grid-template-columns:34px 1fr}.pp-steps .pa{grid-column:1/-1}}
@@ -651,6 +654,66 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
     racine.querySelectorAll(`.pp-opt[data-f="${o.dataset.f}"]`).forEach((b) => { const on = b === o; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); });
   }
 
+  /* ---------- « Je n'ai pas compris » : l'IA reprend la correction pas à pas, en repartant des bases */
+  const zoneExp = () => '<div class="pp-expz"><div class="btns"><button class="b sec" type="button" data-exp="1">Je n’ai pas compris : explique-moi pas à pas</button></div><div class="pp-expb"></div></div>';
+  // texte lisible par l'IA : fractions en ligne, exposants et indices notés, figures signalées
+  function texteBrut(h) {
+    const d = document.createElement('div');
+    d.innerHTML = String(h == null ? '' : h);
+    d.querySelectorAll('svg').forEach((x) => x.replaceWith(' [figure] '));
+    let f;
+    while ((f = [...d.querySelectorAll('.fr')].find((x) => !x.querySelector('.fr')))) { const a = f.children[0], b = f.children[1]; f.replaceWith(`(${a ? a.textContent : ''})/(${b ? b.textContent : ''})`); }
+    d.querySelectorAll('sup').forEach((x) => x.replaceWith('^(' + x.textContent + ')'));
+    d.querySelectorAll('sub').forEach((x) => x.replaceWith('_' + x.textContent));
+    d.querySelectorAll('li,p,div,br,tr').forEach((x) => x.append('\n'));
+    return d.textContent.replace(/[ \t ]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
+  }
+  async function expliquer(q, rep, ok, btn) {
+    const z = btn.closest('.pp-expz'), box = z && z.querySelector('.pp-expb'), plus = btn.dataset.exp === '2';
+    if (!box || !q) return;
+    const precedent = plus ? box.innerText.slice(0, 2500) : '';
+    z.querySelectorAll('button').forEach((x) => { x.disabled = true; });
+    box.innerHTML = '<div class="think">L’IA reprend la correction pas à pas… (jusqu’à une minute)</div>';
+    try {
+      const s = await getSample();
+      if (!s) throw { code: 'ia_absente' };
+      const lignes = q.inst.fields.map((f, i) => { const r = (rep || [])[i]; return `- ${texteBrut(f.l)} : il a répondu « ${f.ch ? (r == null ? 'rien' : texteBrut(f.ch[r])) : (String(r == null ? '' : r).trim() || 'rien')} » ; attendu : ${f.ch ? texteBrut(f.ch[f.a]) : fmt(f.a) + (f.u ? ' ' + texteBrut(f.u) : '')} → ${(ok || [])[i] ? 'juste' : 'FAUX'}`; }).join('\n');
+      const prompt = `Tu es un professeur particulier très patient. Ton élève est un enseignant qui prépare l'agrégation SII (ingénierie électrique), mais il n'a pas touché aux asservissements depuis dix ans : il a presque tout oublié, il faut repartir du niveau lycée. Il vient de répondre à une question d'entraînement. La correction du site est juste, mais elle va trop vite pour lui. Réexplique-la-lui.
+
+## Question : ${texteBrut(q.t)}
+<<<
+${texteBrut(q.inst.text).slice(0, 4000)}
+>>>
+${q.inst.fig ? 'La question est accompagnée d’une figure (courbe ou schéma) que tu ne vois pas : appuie-toi sur les valeurs données dans la correction.\n' : ''}
+## Ses réponses
+${lignes}
+
+## Correction du site
+<<<
+${texteBrut(q.inst.corr).slice(0, 6000)}
+>>>
+${plus ? `\n## Première explication, qu'il n'a toujours pas comprise\n<<<\n${precedent}\n>>>\nReprends autrement et encore plus lentement : commence par un exemple chiffré très simple, sans rapport direct avec la question, puis reviens à la question.\n` : ''}
+## Consignes
+1. "etapes" : 4 à 7 étapes courtes, une seule idée par étape, dans l'ordre où on raisonne. La première dit, en mots simples, ce que la question demande.
+2. Chaque mot technique ou symbole (pôle, module, argument, FTBO, décibel, p, jω…) est expliqué en une demi-phrase la première fois, comme à un élève de terminale. Les calculs sont posés avec les nombres de la question, une opération à la fois.
+3. "erreur" : s'il s'est trompé, la confusion précise qui mène à SA réponse, sans le juger ; s'il a tout juste, chaîne vide.
+4. "image" : une comparaison concrète de la vie courante, ou un moyen de s'en souvenir, en une ou deux phrases.
+5. "retenir" : la règle à retenir, en une phrase.
+6. Tutoie-le. Français simple, phrases courtes. Aucune mise en forme : ni LaTeX, ni Markdown, ni HTML ; formules en ligne (a/b, √2, ω, ξ, τ, e^(−t/τ)). Garde les résultats de la correction du site ; si tu penses y voir une erreur, signale-le dans "erreur".
+
+Réponds en JSON : {"etapes": ["…"], "erreur": "…", "image": "…", "retenir": "…"}`;
+      const r = await s.json(prompt.slice(0, 39000), { cache: false, modelTier: 'complex' });
+      const E = r && Array.isArray(r.etapes) ? r.etapes.map((x) => String(x || '').trim()).filter(Boolean) : [];
+      if (!E.length) throw { code: 'invalid_json' };
+      const t = (k) => String((r && r[k]) || '').trim();
+      box.innerHTML = `<div class="pp-exp"><b>Pas à pas</b><ol class="pp-pas">${E.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>${t('erreur') ? `<p><b>Ce qui t’a piégé :</b> ${esc(t('erreur'))}</p>` : ''}${t('image') ? `<p><b>Une image :</b> ${esc(t('image'))}</p>` : ''}${t('retenir') ? `<p class="pp-ret"><b>À retenir :</b> ${esc(t('retenir'))}</p>` : ''}
+        <p class="muted" style="margin:10px 0 0;font-size:13px">Explication rédigée par une IA : en cas de désaccord, la correction du site fait foi.</p>${plus ? '' : '<div class="btns" style="margin-top:10px"><button class="b sec" type="button" data-exp="2">Encore plus simplement</button></div>'}</div>`;
+    } catch (e) {
+      box.innerHTML = `<div class="hint">${esc(msgIA(e))}</div>`;
+    }
+    z.querySelectorAll('button').forEach((x) => { x.disabled = false; });
+  }
+
   /* ---------- parcours de la séance : fiches, étapes de difficulté croissante, épreuve blanche */
   function ligneFiche(d) {
     const f = P().f[d.id], F = FI()[d.id];
@@ -722,6 +785,8 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
       const a = e.target.closest('a.pp-pdf'); if (a) return ouvrir(e, a);
       const o = e.target.closest('.pp-opt');
       if (o && !o.disabled) { const box = o.closest('.pp-vq'); choisir(o, Q[+box.dataset.q].rep, box); return; }
+      const x = e.target.closest('[data-exp]');
+      if (x) { const q = Q[+x.closest('.pp-vq').dataset.q]; if (q && q.ok) expliquer(q, q.rep, q.ok, x); return; }
       if (e.target.closest('[data-refaire]')) { vueFiche(doc); window.scrollTo(0, 0); }
     };
     app().onsubmit = (e) => {
@@ -735,7 +800,7 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
       q.ok = juger(q.inst, q.rep);
       const box = fm.closest('.pp-vq'), err = q.ok.filter((x) => !x).length;
       fm.outerHTML = champs(q.inst, q.rep, q.ok, 'q' + j);
-      box.querySelector('.pp-qr').innerHTML = `<div class="pp-verdict ${err ? 'ko' : 'ok'}">${err ? 'Pas tout à fait' : 'Juste'}</div><div class="corr">${q.inst.corr}</div>`;
+      box.querySelector('.pp-qr').innerHTML = `<div class="pp-verdict ${err ? 'ko' : 'ok'}">${err ? 'Pas tout à fait' : 'Juste'}</div><div class="corr">${q.inst.corr}</div>${zoneExp()}`;
       bilan();
     };
     app().oninput = null; app().onchange = null;
@@ -782,7 +847,7 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
     const note = () => Math.max(0, 20 - 2 * erreurs());
     function retour(q, ok) {
       const e = ok.filter((y) => !y).length;
-      return `<div class="pp-verdict ${e ? 'ko' : 'ok'}">${e ? `${e} erreur${e > 1 ? 's' : ''} : −${2 * e} points` : 'Tout juste'}</div><div class="corr"><b>Correction</b>${q.inst.corr}</div><div class="btns" style="margin-top:14px"><button class="b" type="button" data-suiv="1">${R.i < R.qs.length - 1 ? 'Question suivante →' : 'Voir ma note'}</button></div>`;
+      return `<div class="pp-verdict ${e ? 'ko' : 'ok'}">${e ? `${e} erreur${e > 1 ? 's' : ''} : −${2 * e} points` : 'Tout juste'}</div><div class="corr"><b>Correction</b>${q.inst.corr}</div>${zoneExp()}<div class="btns" style="margin-top:14px"><button class="b" type="button" data-suiv="1">${R.i < R.qs.length - 1 ? 'Question suivante →' : 'Voir ma note'}</button></div>`;
     }
     function question() {
       const q = R.qs[R.i], ok = R.ok[R.i] || null, rep = R.rep[R.i] || (R.rep[R.i] = []);
@@ -810,8 +875,12 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
         <p>${err} erreur${err > 1 ? 's' : ''} sur ${nF} réponses${r.b > nt ? ` · meilleure note : ${r.b} / 20` : ''}${ok && !dejaValidee && dl && t <= dl ? ' · validée avant le mercredi 13 h' : ''}.</p>
         <h3>Par chapitre</h3><ul class="pp-par">${par.map((o) => { const q = o.n ? o.ok / o.n : 1; return `<li><span>${esc(lab(o.k))}</span><span>${o.ok} / ${o.n}</span><span class="pp-pill ${q >= .8 ? 'e2' : q >= .5 ? 'e1' : ''}">${q >= .8 ? 'acquis' : q >= .5 ? 'à consolider' : 'à retravailler'}</span>${q < .8 && o.k && FI()[o.k] ? `<a href="#prepa-fiche-${esc(o.k)}">Revoir la fiche →</a>` : ''}</li>`; }).join('')}</ul>
         <div class="btns" style="margin-top:16px"><button class="b${ok ? ' sec' : ''}" type="button" data-re="1">Recommencer, autres valeurs</button>${ok && suiv ? `<a class="b" href="#prepa-etape-${esc(c.n)}-${k + 1}">Étape ${k + 1} : ${esc(suiv.t)} →</a>` : ''}${ok && !suiv ? '<a class="b" href="#prepa-parcours">L’épreuve blanche →</a>' : ''}<a class="b sec" href="#prepa-parcours">Retour au parcours</a></div></div>
-        <div class="card" style="margin-top:16px"><h2 style="margin:0">Correction</h2><p class="muted">Les questions avec une erreur sont ouvertes.</p>${R.qs.map((q, i) => { const o = R.ok[i] || [], e_ = o.filter((y) => !y).length; return `<details class="res${e_ ? '' : ' ok'}"${e_ ? ' open' : ''}><summary>${i + 1}. ${esc(q.t)}<small>${e_ ? `${e_} erreur${e_ > 1 ? 's' : ''}` : 'juste'}</small></summary><div class="pp-qtxt">${q.inst.text}</div>${e_ && q.inst.fig ? `<div class="fig">${q.inst.fig}</div>` : ''}${champs(q.inst, R.rep[i] || [], o, 'r' + i)}<div class="corr">${q.inst.corr}</div></details>`; }).join('')}</div>`;
-      app().onclick = (e) => { if (e.target.closest('[data-re]')) { vueEtape(c, k); window.scrollTo(0, 0); } };
+        <div class="card" style="margin-top:16px"><h2 style="margin:0">Correction</h2><p class="muted">Les questions avec une erreur sont ouvertes.</p>${R.qs.map((q, i) => { const o = R.ok[i] || [], e_ = o.filter((y) => !y).length; return `<details class="res${e_ ? '' : ' ok'}" data-i="${i}"${e_ ? ' open' : ''}><summary>${i + 1}. ${esc(q.t)}<small>${e_ ? `${e_} erreur${e_ > 1 ? 's' : ''}` : 'juste'}</small></summary><div class="pp-qtxt">${q.inst.text}</div>${e_ && q.inst.fig ? `<div class="fig">${q.inst.fig}</div>` : ''}${champs(q.inst, R.rep[i] || [], o, 'r' + i)}<div class="corr">${q.inst.corr}</div>${zoneExp()}</details>`; }).join('')}</div>`;
+      app().onclick = (e) => {
+        const x = e.target.closest('[data-exp]');
+        if (x) { const i = +x.closest('details').dataset.i; expliquer(R.qs[i], R.rep[i] || [], R.ok[i] || [], x); return; }
+        if (e.target.closest('[data-re]')) { vueEtape(c, k); window.scrollTo(0, 0); }
+      };
       app().onsubmit = null;
       window.scrollTo(0, 0);
     }
@@ -819,6 +888,7 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
       const o = e.target.closest('.pp-opt');
       if (o && !o.disabled) { choisir(o, R.rep[R.i] || (R.rep[R.i] = []), document.getElementById('ppst')); lsSet(cle, R); return; }
       const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.exp) { if (R.ok[R.i]) expliquer(R.qs[R.i], R.rep[R.i] || [], R.ok[R.i], b); return; }
       if (b.dataset.suiv) { if (R.i < R.qs.length - 1) { R.i++; lsSet(cle, R); question(); window.scrollTo(0, 0); } else fin(); return; }
       if (b.dataset.raz) {
         if (b.dataset.c !== '1') { b.dataset.c = '1'; b.textContent = 'Abandonner vraiment ?'; return; }
