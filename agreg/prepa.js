@@ -227,6 +227,8 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
 .pp-vq{border-top:1px dashed #c3d0da;margin-top:16px;padding-top:12px}.pp-vq .eyebrow{color:#4a5fa8}.pp-vq h3{margin:4px 0 6px;font-size:16px}
 .pp-niv{font-size:12px;font-weight:600;color:#8a4513;background:#fbeee3;border-radius:20px;padding:1px 9px;margin-left:6px;white-space:nowrap}
 .pp-aide{margin:4px 0 14px;background:#f3f7fa;border-left:4px solid #4a5fa8;border-radius:6px;padding:8px 14px}.pp-aide summary{cursor:pointer;font-weight:700;color:#4a5fa8}.pp-aide p{margin:6px 0 2px}
+.pp-leg{font-size:14px;color:#42596b;margin:6px 0 12px;padding-left:12px;border-left:3px solid #c3d0da}
+.pp-mots{margin:4px 0}.pp-mots dt{font-weight:700;color:#12566f;margin-top:10px}.pp-mots dd{margin:2px 0 0}
 .pp-pas{padding-left:22px;margin:4px 0}.pp-pas li{margin:9px 0;line-height:1.55}
 .pp-ret{margin:12px 0 0;padding:9px 13px;background:#fff;border:1px solid #cfe3d8;border-radius:8px}
 .pp-expz{margin-top:12px}.pp-exp{background:#eef1f9;border-left:4px solid #4a5fa8;border-radius:8px;padding:12px 16px;margin-top:10px}.pp-exp p{margin:8px 0 0}
@@ -612,7 +614,7 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
   /* ---------- fiches et étapes, sur le modèle de la préparation des DS de Terminale SI */
   const FI = () => window.PREPA_FICHES || {};
   const ET = () => window.PREPA_ETAPES || null;
-  const SEUIL = 16, PARTIES = { essentiel: 'L’essentiel', formules: 'Formules', methode: 'Méthode', exemple: 'Exemple corrigé', pieges: 'Pièges' };
+  const SEUIL = 16, PARTIES = { idee: 'L’idée, en image', essentiel: 'L’essentiel, en clair', formules: 'Formules', methode: 'Méthode', exemple: 'Exemple corrigé', pieges: 'Pièges' };
   const melange = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = b[i]; b[i] = b[j]; b[j] = t; } return b; };
   const etapesDe = (c) => (c && ET() && ET().CYCLES[c.n]) || null;
   const cyclesDe = (docs) => ((PROG && PROG.cycles) || []).filter((c) => docs.some((d) => d.cycle === c));
@@ -717,7 +719,7 @@ Réponds en JSON : {"etapes": ["…"], "erreur": "…", "image": "…", "retenir
   /* ---------- parcours de la séance : fiches, étapes de difficulté croissante, épreuve blanche */
   function ligneFiche(d) {
     const f = P().f[d.id], F = FI()[d.id];
-    return `<div class="pp-row e${f ? (f.b >= SEUIL ? 2 : 1) : 0}"><a class="pp-t" href="#prepa-fiche-${esc(d.id)}"><b>${esc(F.titre)}</b><small>${titreC(d)} · ${f ? `Ai-je compris ? ${fmt(f.b, 3)} / 20` : `${F.parties.length} questions pour vérifier`}</small></a>${pdf(d, 0, 'Chapitre')}<a class="b${f ? ' sec' : ''}" href="#prepa-fiche-${esc(d.id)}">${f ? 'Relire' : 'Lire la fiche'}</a></div>`;
+    return `<div class="pp-row e${f ? (f.b >= SEUIL ? 2 : 1) : 0}"><a class="pp-t" href="#prepa-fiche-${esc(d.id)}"><b>${esc(F.titre)}</b><small>${titreC(d)} · ${f ? `Ai-je compris ? ${fmt(f.b, 3)} / 20` : `${F.parties.reduce((n, x) => n + (x.q || []).length, 0)} questions pour vérifier`}</small></a>${pdf(d, 0, 'Chapitre')}<a class="b${f ? ' sec' : ''}" href="#prepa-fiche-${esc(d.id)}">${f ? 'Relire' : 'Lire la fiche'}</a></div>`;
   }
   const nbQ = (x) => x.blocs.reduce((s, b) => s + b[2], 0);
   function liEtape(c, x, cur, dl) {

@@ -1,11 +1,12 @@
 /* =====================================================================
    SI Papara — agrégation : les fiches de la prépa du mercredi (agreg/prepa.js)
    Une fiche par chapitre de cours, sur le modèle des fiches de révision de Terminale SI :
-   L'essentiel, Formules, Méthode, Exemple corrigé, Pièges ; après chaque partie, une question
+   L'idée en image (comparaison de la vie courante et figure), L'essentiel en clair (le mot, ce qu'il
+   veut dire), Formules, Méthode, Exemple corrigé, Pièges ; après chaque partie, une question
    « Vérifie que tu as compris » ; à la fin, la note « Ai-je compris ? » sur 20 (premier essai).
    Fiches écrites pour le site sur les notions de chaque chapitre : aucun texte du formateur ici.
    Questions au même format que les étapes (agreg/prepa-etapes.js) : { t, gen() → { text, fields, corr } }.
-   Chargé après le moteur (agreg/index.html), dont il utilise pick, fmt, fr, V, solve, deg, rad.
+   Chargé après le moteur (agreg/index.html), dont il utilise pick, fmt, fr, V, solve, deg, rad, plot, bd, bodeFig, step1, step2.
    ===================================================================== */
 (function () {
   'use strict';
@@ -17,17 +18,29 @@
   const ul = (L) => `<ul>${L.map((x) => `<li>${x}</li>`).join('')}</ul>`;
   const ol = (L) => `<ol>${L.map((x) => `<li>${x}</li>`).join('')}</ol>`;
   const eq = (x) => `<div class="eq">${x}</div>`;
+  // figure avec sa légende, et lexique « le mot : ce qu'il veut dire »
+  const fig = (svg, leg) => `<div class="fig">${svg}</div><p class="pp-leg">${leg}</p>`;
+  const mots = (L) => `<dl class="pp-mots">${L.map((x) => `<dt>${x[0]}</dt><dd>${x[1]}</dd>`).join('')}</dl>`;
   // correction pas à pas : une idée par étape, puis la règle à retenir
   const pas = (L, ret) => `<ol class="pp-pas">${L.map((x) => `<li>${x}</li>`).join('')}</ol>${ret ? `<p class="pp-ret"><b>À retenir :</b> ${ret}</p>` : ''}`;
   const F = {};
 
   /* =============== Cycle 1, chapitre 1 =============== */
   F['c1-ch1'] = { titre: 'Modéliser un système linéaire ; transformée de Laplace', parties: [
-    { k: 'essentiel', h: ul([
-      `<b>SLCI</b> : <b>linéaire</b> (superposition : la réponse à a·e₁ + b·e₂ est a·s₁ + b·s₂), <b>continu</b> (grandeurs définies à chaque instant), <b>invariant</b> (caractéristiques constantes dans le temps). Il est régi par une équation différentielle linéaire à coefficients constants : a<sub>n</sub>s<sup>(n)</sup> + … + a<sub>0</sub>s = b<sub>m</sub>e<sup>(m)</sup> + … + b<sub>0</sub>e.`,
-      `<b>Non-linéarités</b> courantes : saturation, seuil, hystérésis, frottement sec, jeu, et toute loi non affine (√h, v², U²/R). On <b>linéarise</b> autour d’un point de fonctionnement : Δy ≈ ${fr('dy', 'dx')}(x<sub>0</sub>)·Δx, valable pour de petites variations.`,
-      `<b>Transformée de Laplace</b> d’une fonction causale : F(p) = ∫<sub>0</sub><sup>∞</sup> f(t)e<sup>−pt</sup>dt. Conditions initiales nulles (conditions de Heaviside) : dériver revient à multiplier par p, intégrer à diviser par p.`,
-      `<b>Fonction de transfert</b> H(p) = ${fr('S(p)', 'E(p)')} = ${fr('N(p)', 'D(p)')} : <b>ordre</b> = degré de D ; <b>classe</b> α = nombre d’intégrations (pôles nuls) ; pôles = racines de D, zéros = racines de N. Forme canonique : H(p) = ${fr('K', 'p<sup>α</sup>')} · ${fr('1 + b<sub>1</sub>p + …', '1 + a<sub>1</sub>p + …')}, K le gain.`]),
+    { k: 'idee', h: `<p>Un système, c’est une <b>boîte</b> : tu agis sur son entrée, tu regardes sa sortie. Sous la douche, tu tournes le robinet (l’entrée) et la température de l’eau (la sortie) ne suit pas tout de suite : elle met un moment à arriver.</p>
+      <p><b>Modéliser</b>, c’est écrire la règle qui relie l’entrée à la sortie, pour prévoir ce que fera la boîte sans avoir à l’essayer.</p>` +
+      fig(plot({ H: 250, x0: 0, x1: 6, dx: 1, y0: 0, y1: 12, dy: 2, curves: [{ pts: [[0, 0], [0, 5], [6, 5]], c: '#b0601f', dash: 1 }, { pts: step1(10, 1, 6) }], xl: 'Temps (s)', yl: '', alt: 'entrée en échelon et sortie d’un système' }), 'En orange pointillé, ce qu’on envoie : 5, d’un coup. En bleu, ce que fait le système : il finit à 10, soit 2 fois l’entrée (son <b>gain</b>), mais il lui faut environ 3 s pour y arriver (sa <b>constante de temps</b> vaut 1 s).') +
+      `<p>La <b>fonction de transfert</b> H(p) est la carte d’identité de la boîte : elle contient ces deux informations, « combien » et « en combien de temps ».</p>
+      <p>Et <b>Laplace</b> ? C’est un traducteur. Les équations avec des dérivées sont pénibles à manipuler ; Laplace remplace « dériver » par « multiplier par p ». On troque l’analyse contre de l’algèbre de collège, exactement comme les logarithmes transforment les multiplications en additions.</p>` },
+    { k: 'essentiel', h: mots([
+      ['Linéaire', 'proportionnel : deux fois plus d’entrée, deux fois plus de sortie. Vrai tant que rien ne sature (un moteur ne peut pas donner plus que son maximum).'],
+      ['Invariant', 'la boîte se comporte demain comme aujourd’hui : ses réglages ne bougent pas.'],
+      ['Gain K', '« à la fin, combien de sortie pour 1 d’entrée ». On l’obtient en remplaçant p par 0.'],
+      ['Constante de temps τ', '« combien de temps la boîte traîne ». Grande inertie, grand τ.'],
+      ['Ordre', 'le nombre de « réservoirs » dans la boîte, c’est-à-dire d’éléments qui stockent quelque chose (de l’eau, de la chaleur, de la vitesse). Chaque réservoir ajoute un retard, et un p au dénominateur.'],
+      ['Classe', 'le nombre d’<b>intégrateurs</b> : des réservoirs sans fuite, qui accumulent sans jamais se stabiliser. Exemple : tant que la vitesse n’est pas nulle, la position continue d’avancer.'],
+      ['Pôles', 'les valeurs de p qui annulent le dénominateur. Ils décident de l’allure de la réponse : lente, rapide, oscillante.'],
+      ['Linéariser', 'une courbe regardée de très près ressemble à une droite (la Terre paraît plate à notre échelle). Autour d’un point de fonctionnement, on remplace la courbe par sa tangente.']]),
       q: [{ t: 'Linéaire ou non ?', gen() {
         const a = pick([2, 3, 5]), b = pick([2, 4]), c = pick([3, 5]), T = pick([0.1, 0.2, 0.5]), d = pick([4, 9]);
         const bonne = `s(t) = ${a}·e(t)²`;
@@ -103,11 +116,19 @@
 
   /* =============== Cycle 1, chapitre 2 =============== */
   F['c1-ch2'] = { titre: 'Schémas-blocs', parties: [
-    { k: 'essentiel', h: ul([
-      'Trois éléments : le <b>bloc</b> (sa sortie vaut sa fonction de transfert multipliée par son entrée), le <b>sommateur</b> (somme algébrique, signes lus sur le schéma), le <b>point de prélèvement</b> (le signal est recopié sans être modifié).',
-      'Blocs en <b>série</b> : les fonctions de transfert se multiplient. En <b>parallèle</b> : elles s’ajoutent, avec leurs signes.',
-      `<b>Boucle</b> de chaîne directe G et de retour H, comparateur − : FTBF = ${fr('G', '1 + GH')}. <b>FTBO</b> = GH, produit de toutes les fonctions de transfert de la boucle, ouverte au comparateur. Retour unitaire : FTBF = ${fr('FTBO', '1 + FTBO')}.`,
-      'Plusieurs entrées (consigne, perturbation) : <b>superposition</b>, une entrée à la fois, les autres nulles.']),
+    { k: 'idee', h: `<p>Une <b>boucle</b>, c’est regarder le résultat et corriger. Sous la douche : tu sens la température (le capteur), tu la compares à celle que tu veux (le comparateur), et tu tournes le robinet en conséquence (le correcteur).</p>
+      <p>Sans boucle, tu réglerais le robinet une fois pour toutes, les yeux fermés : à la moindre <b>perturbation</b> (quelqu’un ouvre un autre robinet), c’est raté. Avec la boucle, tu t’en aperçois et tu rattrapes.</p>` +
+      fig(bd({ in: 'ce que je veux', c: 'correcteur', g: 'procédé', out: 'ce que j’obtiens', fb: 'capteur' }), 'Le <b>schéma-bloc</b> est le plan de circulation du signal. Chaque boîte multiplie ce qui la traverse ; le rond soustrait la mesure à la consigne : c’est l’<b>écart</b>.') +
+      `<p>Plus la boucle réagit fort à un écart, mieux la sortie copie la consigne… jusqu’au moment où elle réagit trop fort et s’emballe : ce sera le sujet du cycle 2.</p>` },
+    { k: 'essentiel', h: mots([
+      ['Bloc', 'une multiplication : sortie = fonction de transfert × entrée.'],
+      ['En série', 'des multiplications à la chaîne, comme deux taux de change successifs : on multiplie les blocs.'],
+      ['En parallèle', 'deux chemins qui se rejoignent : on additionne les blocs.'],
+      ['Comparateur', 'une soustraction : écart = ce que je veux − ce que je mesure.'],
+      ['FTBO', '« le tour complet de la boucle » : tout ce que le signal traverse pour revenir à son point de départ. Elle mesure la force avec laquelle la boucle réagit à un écart.'],
+      ['FTBF', `ce que voit l’utilisateur, boucle fermée : sortie / consigne = ${fr('chaîne directe', '1 + FTBO')}. Si la FTBO est très grande, la sortie copie presque parfaitement la consigne.`],
+      ['Perturbation', 'une entrée qu’on n’a pas choisie (le vent, une charge). La boucle divise son effet par 1 + FTBO.'],
+      ['Adaptateur', 'il met la consigne dans la même unité que la mesure, pour qu’on puisse les soustraire.']]),
       q: [{ t: 'Qu’est-ce que la FTBO ?', gen() {
         return { text: 'Dans une boucle à retour non unitaire, la FTBO est…', fields: [choix('Réponse', 'le produit de toutes les fonctions de transfert de la boucle : chaîne directe × chaîne de retour', ['la chaîne directe seule', 'S(p)/E(p), la boucle étant fermée', 'la chaîne de retour seule'])],
           corr: pas([
@@ -180,11 +201,18 @@
 
   /* =============== Cycle 1, chapitre 3 =============== */
   F['c1-ch3'] = { titre: 'Réponse temporelle : premier et second ordre', parties: [
-    { k: 'essentiel', h: ul([
-      `<b>Premier ordre</b> ${fr('K', '1 + τp')}, échelon E<sub>0</sub> : s(t) = KE<sub>0</sub>(1 − e<sup>−t/τ</sup>). Tangente à l’origine de pente KE<sub>0</sub>/τ ; 63 % de la valeur finale à τ, 95 % à 3τ ⇒ t<sub>5%</sub> = 3τ. Jamais de dépassement.`,
-      `<b>Second ordre</b> ${fr('K', `1 + ${fr('2ξ', 'ω<sub>0</sub>')}p + ${fr('p²', 'ω<sub>0</sub>²')}`)} : tangente à l’origine horizontale. ξ > 1 : apériodique (deux pôles réels) ; ξ = 1 : critique ; ξ < 1 : pseudo-périodique, pôles −ξω<sub>0</sub> ± jω<sub>0</sub>√(1 − ξ²), dépassements.`,
-      'Temps de réponse d’un second ordre : abaque t<sub>5%</sub>·ω<sub>0</sub> = f(ξ), minimal (≈ 3) pour ξ ≈ 0,7 ; D<sub>1</sub> = 5 % pour ξ = 0,69.',
-      'Plus les pôles sont loin à gauche de l’axe imaginaire, plus la réponse est rapide ; les <b>pôles dominants</b>, les plus proches de l’axe, imposent la dynamique.']),
+    { k: 'idee', h: `<p><b>Premier ordre</b> : pense à une tasse de café qui refroidit, ou à un seau qu’on remplit et qui fuit. Ça change vite au début, puis de plus en plus lentement en approchant du but. Jamais de dépassement. Un seul nombre à retenir, τ : 63 % du chemin en τ, 95 % en 3τ.</p>
+      <p><b>Second ordre</b> : pense à une masse au bout d’un ressort, ou à la suspension d’une voiture. Il y a maintenant un <b>frein</b>, noté ξ :</p>` +
+      fig(plot({ H: 270, x0: 0, x1: 12, dx: 2, y0: 0, y1: 1.6, dy: .2, curves: [{ pts: step2(1, 2, 1, 12).map((q, i, a) => { const t = q[0], x = 2, w = 1, b = w * Math.sqrt(x * x - 1), p1 = -x * w + b, p2 = -x * w - b; return [t, 1 + (p2 * Math.exp(p1 * t) - p1 * Math.exp(p2 * t)) / (p1 - p2)]; }), c: '#587083' }, { pts: step2(1, 0.2, 1, 12), c: '#b0601f' }, { pts: step2(1, 0.7, 1, 12) }], hl: [{ y: 1, t: 'valeur finale', c: '#587083' }], xl: 'Temps', yl: '', alt: 'trois réponses de second ordre selon l’amortissement' }), 'En orange, peu de frein (ξ = 0,2) : ça dépasse et ça oscille longtemps, comme une voiture aux amortisseurs morts. En gris, trop de frein (ξ = 2) : pas d’oscillation, mais c’est mou. En bleu, ξ = 0,7 : le bon compromis, le plus rapide à se poser.') +
+      `<p>L’autre nombre, ω<sub>0</sub>, est la <b>vitesse naturelle</b> du système : plus il est grand, plus tout se passe vite, sans changer la forme de la courbe.</p>` },
+    { k: 'essentiel', h: mots([
+      ['Premier ordre', 'un seul réservoir. La courbe démarre tout de suite en pente et ne dépasse jamais.'],
+      ['Second ordre', 'deux réservoirs qui s’échangent de l’énergie (le ressort et la masse) : c’est ce va-et-vient qui peut faire osciller. La courbe démarre à plat.'],
+      ['ξ, l’amortissement', 'la quantité de frein. ξ < 1 : ça dépasse et ça oscille. ξ ≥ 1 : ça ne dépasse pas.'],
+      ['ω₀, la pulsation propre', 'la vitesse naturelle : multiplier ω₀ par 2 divise tous les temps par 2.'],
+      ['D₁, le dépassement', 'de combien la sortie dépasse sa valeur finale, en pourcentage de celle-ci. Il ne dépend que de ξ.'],
+      ['t₅%, le temps de réponse', 'l’instant à partir duquel la sortie reste à moins de 5 % de sa valeur finale : « c’est fini ».'],
+      ['Pôles dominants', 'les pôles les plus lents : ce sont eux qu’on attend, donc eux qui fixent le temps de réponse.']]),
       q: [{ t: 'Reconnaître un modèle', gen() {
         return { text: 'Une réponse indicielle a une tangente horizontale à l’origine et ne dépasse jamais sa valeur finale. Quel modèle convient ?', fields: [choix('Réponse', 'un second ordre avec ξ ≥ 1 (ou un ordre plus élevé)', ['un premier ordre', 'un second ordre avec ξ < 1', 'un intégrateur'])],
           corr: pas([
@@ -254,11 +282,20 @@
 
   /* =============== Cycle 1, chapitre 4 =============== */
   F['c1-ch4'] = { titre: 'Réponse harmonique ; diagramme de Bode', parties: [
-    { k: 'essentiel', h: ul([
-      'En régime permanent, un SLCI <b>stable</b> excité par e(t) = E sin ωt répond s(t) = E·|H(jω)|·sin(ωt + φ), φ = arg H(jω) : même pulsation, amplitude multipliée par |H(jω)|, déphasage φ.',
-      '<b>Bode</b> : gain G<sub>dB</sub> = 20 log|H(jω)| et phase φ(ω), en fonction de ω en échelle logarithmique. Les fonctions de transfert se multiplient, donc les gains en dB et les phases s’ajoutent : on trace élément par élément.',
-      'Diagramme <b>asymptotique</b> : droites de pentes multiples de ±20 dB/décade, corrigées ensuite autour des cassures.',
-      '<b>Bande passante</b> à −3 dB : pulsations où le gain reste à moins de 3 dB sous le gain statique.']),
+    { k: 'idee', h: `<p>Ici, au lieu d’envoyer un échelon, on <b>secoue</b> le système avec une sinusoïde, de plus en plus vite, et on regarde s’il suit.</p>
+      <p>Pense à quelqu’un qui te tient par un élastique. S’il bouge la main lentement, tu suis parfaitement. S’il l’agite vite, tu n’as plus le temps : tu bouges moins que lui, et en retard. Tout système réel fait pareil : il suit les mouvements lents et il écrase les rapides.</p>` +
+      fig(bodeFig(1, [0.1], 0, 0.1, 1000, [-40, 10], [-90, 0]), 'Le <b>diagramme de Bode</b> raconte cela en deux courbes. En haut, le gain : « de combien il amplifie ». En bas, la phase : « de combien il est en retard ». Ici, jusqu’à 10 rad/s il suit (0 dB, pas de retard) ; au-delà il décroche : c’est la <b>cassure</b>, à 1/τ.') +
+      `<p>Les <b>décibels</b> ne sont qu’une façon de compter les rapports : 0 dB = même taille, −20 dB = dix fois plus petit, +20 dB = dix fois plus grand. Leur intérêt : quand des blocs se suivent, leurs décibels s’<b>additionnent</b>.</p>
+      <p>La <b>résonance</b>, c’est la balançoire : poussée au bon rythme, elle monte très haut. Un second ordre peu freiné amplifie fortement autour de sa pulsation propre.</p>` },
+    { k: 'essentiel', h: mots([
+      ['Régime sinusoïdal', 'on envoie une sinusoïde et on attend : la sortie est une sinusoïde de même fréquence, plus ou moins grande, et décalée.'],
+      ['Gain', 'taille de la sortie / taille de l’entrée, à une fréquence donnée.'],
+      ['Phase', 'le décalage de la sortie, en degrés (360° = une période). Négative : la sortie est en retard.'],
+      ['Diagramme de Bode', 'le gain et la phase pour toutes les fréquences. L’axe horizontal est gradué en puissances de 10 pour voir à la fois le très lent et le très rapide.'],
+      ['Pulsation de cassure', 'la frontière entre « il suit » et « il décroche ». Pour un premier ordre : 1/τ.'],
+      ['−20 dB/décade', '« dix fois plus vite, dix fois plus petit ». Chaque réservoir du système ajoute une telle pente après sa cassure.'],
+      ['Bande passante', 'la plage de fréquences que le système suit correctement (moins de 3 dB de perte).'],
+      ['Asymptotes', 'les droites qui résument la courbe : on trace d’abord ces droites, puis on arrondit aux cassures.']]),
       q: [{ t: 'Premier ordre à la cassure', gen() {
         return { text: `${fr('1', '1 + τp')} est excité par une sinusoïde de pulsation 1/τ. En régime permanent, la sortie…`, fields: [choix('Réponse', 'a une amplitude divisée par √2 et un retard de phase de 45°', ['a la même amplitude et un retard de 90°', 'a une amplitude divisée par 2 et un retard de 45°', 'a une amplitude divisée par √2 et une avance de 45°'])],
           corr: pas([
@@ -329,13 +366,20 @@
 
   /* =============== Cycle 2, chapitre 1 =============== */
   F['c2-ch1'] = { titre: 'Performances des systèmes asservis', parties: [
-    { k: 'essentiel', h: ul([
-      'Quatre performances à chiffrer : <b>stabilité</b>, <b>précision</b>, <b>rapidité</b>, <b>amortissement</b> (dépassement).',
-      '<b>Stabilité</b> : réponse impulsionnelle qui tend vers 0 ⇔ tous les pôles de la FTBF à partie réelle strictement négative. Critère de <b>Routh</b> (algébrique, sur le dénominateur de la FTBF) ; critère du <b>revers</b> (graphique, sur la FTBO), d’où les <b>marges de gain et de phase</b>.',
-      '<b>Précision</b> : l’écart en régime permanent dépend de la <b>classe</b> de la FTBO et du type d’entrée ; vis-à-vis d’une perturbation, seules comptent les intégrations situées <b>en amont</b> de son point d’entrée.',
-      '<b>Rapidité</b> : t<sub>5%</sub> ; en fréquentiel, la coupure ω<sub>c</sub> de la FTBO (t<sub>5%</sub>·ω<sub>c</sub> ≈ 3, ordre de grandeur).',
-      '<b>Amortissement</b> : D<sub>1</sub>, ou la marge de phase (ξ ≈ M<sub>φ</sub>/100 quand la FTBF ressemble à un second ordre).',
-      '<b>Dilemme</b> : augmenter le gain améliore précision et rapidité, mais réduit les marges.']),
+    { k: 'idee', h: `<p>À tout asservissement, on pose quatre questions. Prends le régulateur de vitesse d’une voiture réglé sur 100 km/h :</p>
+      <ol><li><b>Est-ce qu’il se calme ?</b> (stabilité) La vitesse finit-elle par se poser, ou oscille-t-elle de plus en plus ?</li><li><b>Arrive-t-il où je veux ?</b> (précision) 100 km/h, ou seulement 96 ?</li><li><b>Y arrive-t-il vite ?</b> (rapidité)</li><li><b>Y arrive-t-il proprement ?</b> (amortissement) Sans monter à 115 avant de redescendre ?</li></ol>` +
+      fig(plot({ H: 270, x0: 0, x1: 10, dx: 1, xmaj: 2, y0: 0, y1: 1.4, dy: .1, ymaj: 2, curves: [{ pts: step2(0.9, 0.4, 1.5, 10) }], hl: [{ y: 1, t: 'consigne', c: '#b0601f' }, { y: 0.9, t: 'valeur finale', c: '#587083' }], xl: 'Temps', yl: '', alt: 'réponse d’un asservissement : écart, dépassement, temps de réponse' }), 'Tout se lit sur cette courbe. Elle se calme : stable. Elle se pose à 0,9 au lieu de 1 : un <b>écart</b> de 10 %. Sa bosse dépasse la valeur finale : le <b>dépassement</b>. Et l’instant où elle ne bouge presque plus est le <b>temps de réponse</b>.') +
+      `<p><b>Pourquoi une boucle peut-elle s’emballer ?</b> Pense au larsen d’un micro, ou à la douche dont l’eau met 3 secondes à arriver : si tu corriges fort alors que l’effet arrive en retard, tu corriges trop, puis trop dans l’autre sens. Gain fort + retard = instabilité.</p>
+      <p>Les <b>marges</b> sont la distance de sécurité avant ce larsen : de combien on pourrait encore augmenter le gain (marge de gain) ou le retard (marge de phase) avant que ça parte.</p>` },
+    { k: 'essentiel', h: mots([
+      ['Stable', 'laissé tranquille, le système finit par se calmer. Mathématiquement : tous les pôles de la boucle fermée ont une partie réelle négative.'],
+      ['Précision', 'l’écart qui reste à la fin entre ce qu’on veut et ce qu’on obtient.'],
+      ['Intégrateur et classe', 'un intégrateur, c’est quelqu’un de têtu : tant qu’il reste un écart, il continue de pousser. Avec un intégrateur dans la boucle (classe 1), l’écart final pour un échelon est donc nul.'],
+      ['Perturbation', 'pour l’effacer, l’intégrateur doit être placé avant elle dans la boucle : c’est lui qui doit fournir de quoi la compenser.'],
+      ['Marge de phase', 'le retard supplémentaire que la boucle peut encaisser avant de s’emballer. On vise 45° au moins.'],
+      ['Marge de gain', 'par combien on peut multiplier le gain avant de s’emballer. On vise 6 à 10 dB.'],
+      ['Critère de Routh', 'un test par le calcul, sans tracer de courbe : il dit si des pôles sont du mauvais côté.'],
+      ['Le dilemme', 'plus de gain rend plus rapide et plus précis, mais rapproche du larsen. Tout l’art du réglage est là.']]),
       q: [{ t: 'Définition de la stabilité', gen() {
         return { text: 'Un système bouclé est stable si…', fields: [choix('Réponse', 'tous les pôles de sa FTBF sont à partie réelle strictement négative', ['tous les zéros de sa FTBF sont à partie réelle négative', 'sa FTBO n’a aucun pôle nul', 'le gain statique de sa FTBO est inférieur à 1'])],
           corr: pas([
@@ -404,13 +448,20 @@
 
   /* =============== Cycle 2, chapitre 2 =============== */
   F['c2-ch2'] = { titre: 'Correcteurs', parties: [
-    { k: 'essentiel', h: ul([
-      'Le correcteur élabore la commande à partir de l’écart pour tenir le cahier des charges : il arbitre entre stabilité, précision et rapidité.',
-      '<b>P</b> : augmenter K<sub>p</sub> rend plus rapide et plus précis, mais réduit les marges (dépassement, voire instabilité).',
-      '<b>PI</b> : ajoute une intégration (classe + 1), annule l’écart statique et celui d’une perturbation en échelon entrant après lui ; il retire de la phase sous 1/T<sub>i</sub>, qu’on place environ une décade sous ω<sub>c</sub>.',
-      '<b>PD</b>, <b>avance de phase</b> : ajoutent de la phase autour de ω<sub>c</sub> (plus de marge, ou une coupure plus haute à marge égale) ; ils amplifient le bruit de mesure.',
-      '<b>PID</b> : les deux à la fois. <b>Retard de phase</b> : relève le gain basse fréquence (précision) sans toucher à ω<sub>c</sub>.',
-      '<b>Compensation de pôle</b> : T<sub>i</sub> (ou τ) égal à la constante de temps dominante, pour simplifier la FTBO ; seulement pour un pôle stable et bien connu.']),
+    { k: 'idee', h: `<p>Le correcteur, c’est le <b>conducteur</b> de la boucle : il regarde l’écart et décide de la commande. Il a trois façons de réfléchir :</p>
+      <ul><li><b>P, le présent</b> : « plus je suis loin du but, plus j’appuie. » Simple, mais près du but il n’appuie presque plus : il reste un écart.</li>
+      <li><b>I, le passé</b> : « ça fait un moment que je suis en dessous, j’appuie de plus en plus. » Il finit toujours par annuler l’écart, mais il réagit avec retard et peut faire dépasser.</li>
+      <li><b>D, le futur</b> : « ça monte vite, je relâche avant d’arriver. » Il anticipe et calme les dépassements, mais il sursaute au moindre bruit de mesure.</li></ul>` +
+      fig(plot({ H: 260, x0: 0, x1: 10, dx: 1, xmaj: 2, y0: 0, y1: 1.4, dy: .1, ymaj: 2, curves: [{ pts: step1(0.8, 0.8, 10), c: '#b0601f' }, { pts: step2(1, 0.6, 1.2, 10) }], hl: [{ y: 1, t: 'consigne', c: '#587083' }], xl: 'Temps', yl: '', alt: 'réponse avec correcteur P puis PI' }), 'En orange, un correcteur P seul : la sortie se pose sous la consigne, il reste un écart. En bleu, on a ajouté l’action intégrale (PI) : l’écart disparaît, au prix d’un petit dépassement.') +
+      `<p>Un <b>PID</b> combine les trois. L’<b>avance de phase</b> est un « D raisonnable » : elle n’anticipe qu’autour d’une fréquence choisie, là où la boucle en a besoin pour rester stable.</p>` },
+    { k: 'essentiel', h: mots([
+      ['Correcteur P', 'commande = K<sub>p</sub> × écart. Augmenter K<sub>p</sub> : plus rapide, plus précis, mais plus proche de l’instabilité.'],
+      ['Correcteur PI', 'il ajoute la mémoire de l’écart : écart final nul. À régler pour qu’il n’agisse qu’aux basses fréquences, loin de la coupure, sinon il déstabilise.'],
+      ['PD, avance de phase', 'ils ajoutent de l’anticipation, donc de la marge de phase : la boucle supporte un gain plus fort, elle peut aller plus vite.'],
+      ['Retard de phase', 'il relève le gain seulement aux basses fréquences : plus de précision, sans toucher à la rapidité.'],
+      ['Compensation de pôle', 'on règle le correcteur pour « effacer » la lenteur principale du procédé : la boucle se comporte alors comme un système plus simple, facile à régler.'],
+      ['Saturation', 'la pédale est au plancher : le correcteur peut demander plus, l’actionneur ne suivra pas. Un gain trop fort ne sert alors à rien.'],
+      ['Régler dans Bode', 'on choisit la rapidité (la coupure), on vérifie la marge de phase à cet endroit, et on ajoute de l’anticipation s’il en manque.']]),
       q: [{ t: 'Annuler l’écart statique', gen() {
         return { text: 'Procédé de classe 0. Quel correcteur annule l’écart statique vis-à-vis d’un échelon de consigne ?', fields: [choix('Réponse', 'un PI', ['un P de gain élevé', 'une avance de phase', 'un PD'])],
           corr: pas([
@@ -479,12 +530,20 @@
 
   /* =============== Cycle 2, chapitre 3 =============== */
   F['c2-ch3'] = { titre: 'Asservissement numérique', parties: [
-    { k: 'essentiel', h: ul([
-      'Chaîne : capteur → <b>CAN</b> (échantillonnage à T<sub>e</sub>, quantification de pas q) → <b>calculateur</b> (équation de récurrence) → <b>CNA</b> et <b>bloqueur d’ordre zéro</b> (commande maintenue pendant T<sub>e</sub>) → procédé continu.',
-      '<b>Shannon</b> : échantillonner à plus de deux fois la plus haute fréquence du signal, avec un filtre anti-repliement en amont. Pour la boucle, T<sub>e</sub> bien plus petit que t<sub>5%</sub> (dix fois au moins).',
-      'Le bloqueur équivaut à un <b>retard de T<sub>e</sub>/2</b> : il retire ω<sub>c</sub>T<sub>e</sub>/2 radians de marge de phase.',
-      'Un correcteur continu se programme en remplaçant p par une approximation : on obtient une <b>équation aux différences</b>.',
-      'Stabilité d’un système échantillonné : pôles dans le <b>disque unité</b> (|z| < 1), avec la correspondance z = e<sup>pT<sub>e</sub></sup>.']),
+    { k: 'idee', h: `<p>Un calculateur ne voit pas le monde en continu : il prend des <b>photos</b> à intervalles réguliers, toutes les T<sub>e</sub> secondes. Entre deux photos, il ne sait rien.</p>
+      <p><b>Assez de photos ?</b> Au cinéma, les roues d’une voiture semblent parfois tourner à l’envers : pas assez d’images par tour. C’est le théorème de <b>Shannon</b> : il faut plus de deux photos par période du signal le plus rapide, sinon on voit autre chose que la réalité.</p>` +
+      fig(plot({ H: 250, x0: 0, x1: 6, dx: 1, y0: 0, y1: 1.2, dy: .2, curves: [{ pts: step1(1, 1.5, 6) }, { pts: Array.from({ length: 6 }, (_, k) => { const y = 1 - Math.exp(-k / 1.5); return [[k, y], [k + 1, y]]; }).flat(), c: '#b0601f' }], xl: 'Temps (en périodes d’échantillonnage)', yl: '', alt: 'signal continu et signal bloqué en escalier' }), 'En bleu, ce que voudrait la commande idéale. En orange, ce que sort réellement le calculateur : il calcule une valeur, puis la <b>bloque</b> jusqu’au calcul suivant. Cet escalier est, en moyenne, en retard d’une demi-marche : T<sub>e</sub>/2.') +
+      `<p>Ce retard coûte de la marge de phase : plus on échantillonne lentement, plus la boucle se rapproche de l’instabilité.</p>
+      <p>Quant au programme, c’est une <b>recette répétée</b> à chaque photo : nouvelle commande = ancienne commande + une correction calculée sur l’écart. C’est ce qu’on appelle une équation de récurrence.</p>` },
+    { k: 'essentiel', h: mots([
+      ['Échantillonner', 'prendre une mesure toutes les T<sub>e</sub> secondes. Fréquence d’échantillonnage : 1/T<sub>e</sub>.'],
+      ['Shannon', 'plus de deux mesures par période du signal le plus rapide. En pratique on en prend bien plus, et on filtre ce qui est trop rapide avant de mesurer.'],
+      ['Quantum', 'la graduation de la règle : un convertisseur de N bits découpe sa plage en 2<sup>N</sup> marches et ne voit rien de plus fin.'],
+      ['Bloqueur', 'entre deux calculs, la commande reste figée. Équivaut à un retard de T<sub>e</sub>/2.'],
+      ['Équation de récurrence', 'la recette du programme : la valeur d’aujourd’hui calculée à partir de celles d’avant.'],
+      ['z⁻¹', '« la photo d’avant ». Multiplier par z<sup>−1</sup>, c’est prendre la valeur précédente.'],
+      ['Euler', 'la façon la plus simple de remplacer une dérivée : la pente entre deux photos.'],
+      ['Stabilité en z', 'à chaque pas, les valeurs sont multipliées par les pôles : il faut qu’ils soient tous plus petits que 1 en module, sinon ça grossit à chaque pas.']]),
       q: [{ t: 'Perte de phase du bloqueur', gen() {
         const wc = pick([10, 20, 50]), Te = pick([2, 5, 10]), L = deg(wc * Te / 2000);
         return { text: `Boucle de coupure ω<sub>c</sub> = ${wc} rad/s, échantillonnée à T<sub>e</sub> = ${Te} ms. Marge de phase retirée par le bloqueur ?`, fields: [{ l: 'Phase retirée', u: '°', a: L, abs: .2 }],
