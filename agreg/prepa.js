@@ -228,6 +228,8 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
 .pp-niv{font-size:12px;font-weight:600;color:#8a4513;background:#fbeee3;border-radius:20px;padding:1px 9px;margin-left:6px;white-space:nowrap}
 .pp-aide{margin:4px 0 14px;background:#f3f7fa;border-left:4px solid #4a5fa8;border-radius:6px;padding:8px 14px}.pp-aide summary{cursor:pointer;font-weight:700;color:#4a5fa8}.pp-aide p{margin:6px 0 2px}
 .pp-leg{font-size:14px;color:#42596b;margin:6px 0 12px;padding-left:12px;border-left:3px solid #c3d0da}
+.pp-form{margin:8px 0 12px;border:1px solid #dbe5ec;border-radius:10px;background:#fff}.pp-fi{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1.8fr);gap:4px 16px;padding:10px 13px;align-items:center}.pp-fi+.pp-fi{border-top:1px solid #dbe5ec}.pp-fn{font-weight:700;color:#12566f}.pp-fc{color:#42596b}
+@media(max-width:640px){.pp-fi{grid-template-columns:1fr;gap:3px}.pp-ff{font-size:17px;padding:2px 0}.pp-fc::before{content:'→ '}}
 .pp-mots{margin:4px 0}.pp-mots dt{font-weight:700;color:#12566f;margin-top:10px}.pp-mots dd{margin:2px 0 0}
 .pp-pas{padding-left:22px;margin:4px 0}.pp-pas li{margin:9px 0;line-height:1.55}
 .pp-ret{margin:12px 0 0;padding:9px 13px;background:#fff;border:1px solid #cfe3d8;border-radius:8px}
