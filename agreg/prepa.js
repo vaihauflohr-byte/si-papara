@@ -247,14 +247,18 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
   function carteSeance(now) {
     const S = seances(), nx = prochaine(now);
     if (!S.length) return '';
-    if (!nx) return `<div class="pp-card pp-next"><div class="eyebrow pp-eb">Prochaine séance</div><p>Pas de mercredi à venir dans la liste : ajoute la date de la prochaine séance ci-dessous.</p></div>`;
+    if (!nx) {
+      // séance passée : l'entraînement reste accessible, on ne laisse pas la page sans exercice
+      const der = S[S.length - 1], dv = LISTE.filter((d) => dOf(d.id).pour === der), cy0 = cyclesDe(dv.length ? dv : LISTE).filter(etapesDe), pr0 = cy0.map((c) => `C${esc(c.n)} : ${etatEtapes(c).filter((x) => x.ok).length} / ${etatEtapes(c).length}`).join(' · ');
+      return `<div class="pp-card pp-next"><div class="eyebrow pp-eb">Entraînement</div><h2>Séance du ${esc(long(der))} passée</h2><p style="margin:8px 0 0">Tes fiches, tes étapes et tes TD restent ouverts : reprends où tu en étais.${pr0 ? ` Étapes validées : ${pr0}.` : ''}</p><div class="btns" style="margin-top:14px"><a class="b" href="#prepa-parcours">Continuer l’entraînement</a></div><p class="muted" style="margin:12px 0 0">Pour préparer la suite, ajoute la date du prochain mercredi juste en dessous.</p></div>`;
+    }
     const w = quand(nx, now), devs = LISTE.filter((d) => dOf(d.id).pour === nx);
     const rv = LISTE.map((d) => [d, (d.questions || []).filter((x) => (dOf(d.id).q || {})[x.l] === 2).map((x) => x.l)]).filter((x) => x[1].length);
     let h = `<div class="pp-card pp-next" id="ppnext"><div class="eyebrow pp-eb">Prochaine séance</div><h2>${esc(cap(long(nx)))} · ${CRENEAU}</h2><span class="pp-when${w.live ? ' live' : ''}">${esc(w.t)}</span>${w.live ? `<div class="pp-live"><i style="width:${(100 * w.f).toFixed(1)}%"></i></div>` : ''}`;
     if (devs.length) {
       const fait = devs.filter((d) => avance(d).etat === 2).length;
       h += `<div class="pp-mini"><p class="muted" style="margin:0 0 8px">${devs.length} devoir${devs.length > 1 ? 's' : ''} pour cette séance · ${fait} ${fait > 1 ? 'faits' : 'fait'}</p>${devs.map((d) => ligne(d, true)).join('')}</div>`;
-    } else h += `<p class="muted" style="margin:12px 0 0">Aucun devoir rangé pour ce mercredi : choisis-les plus bas avec « Pour le ».</p>`;
+    } else h += `<p class="muted" style="margin:12px 0 0">Aucun devoir rangé pour ce mercredi : choisis-les plus bas avec « Pour le ». En attendant, tout l’entraînement reste ouvert.</p><div class="btns" style="margin-top:14px"><a class="b" href="#prepa-parcours">Continuer l’entraînement</a></div>`;
     if (devs.length) {
       const cy = cyclesDe(devs).filter(etapesDe), pr = cy.map((c) => `C${esc(c.n)} : ${etatEtapes(c).filter((x) => x.ok).length} / ${etatEtapes(c).length}`).join(' · ');
       h += `<div class="btns" style="margin-top:14px"><a class="b" href="#prepa-parcours">S’entraîner pour cette séance</a><span class="muted" style="align-self:center">${cy.length ? `Fiches, puis des étapes de plus en plus difficiles, du niveau lycée au concours, à valider avant 13 h · étapes validées : ${pr}` : 'Cours en questions corrigées, TD question par question, sujets chronométrés.'}</span></div>`;
