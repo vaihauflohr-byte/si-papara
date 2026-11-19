@@ -75,16 +75,20 @@
       ['Valeur finale', 'limite de p·F(p) quand p tend vers 0', 'où ça finit ; seulement si le système est stable'],
       ['Valeur initiale', 'limite de p·F(p) quand p devient très grand', 'd’où ça part']]) +
       eq(`Forme canonique : H(p) = ${fr('K', 'p<sup>α</sup>')} · ${fr('1 + …', '1 + …')}`) + '<p>Toutes les parenthèses commencent par 1 : alors K est le gain et α la classe.</p>',
-      q: [{ t: 'Pente à l’origine', gen() {
-        const A = pick([2, 5, 10]), a = pick([2, 4, 5]);
-        return { text: `f(t) = ${A}(1 − e<sup>−${a}t</sup>) pour t ≥ 0, de transformée F(p) = ${fr(A * a, `p(p + ${a})`)}. Que vaut sa pente à l’origine, obtenue par le théorème de la valeur initiale ?`, fields: [{ l: 'f’(0⁺)', u: 's⁻¹', a: A * a, tol: .01 }],
+      q: [{ t: 'Valeur et pente au départ', gen() {
+        const A = pick([2, 5, 10]), a = pick([2, 4, 5]), T = 5 / a;
+        return { text: `f(t) = ${A}(1 − e<sup>−${a}t</sup>) pour t ≥ 0, de transformée F(p) = ${fr(A * a, `p(p + ${a})`)}. Une courbe démarre avec une hauteur, f(0<sup>+</sup>), et une pente, f’(0<sup>+</sup>). Trouver les deux à partir de F(p), sans dériver f(t). Attention : la pente est la valeur de départ de la dérivée f’, pas celle de f.`,
+          fields: [{ l: 'Valeur de départ f(0⁺)', u: '', a: 0, abs: .01 }, { l: 'Pente de départ f’(0⁺)', u: 's⁻¹', a: A * a, tol: .01 }],
           corr: pas([
-            'On veut la pente de f au démarrage, notée f’(0<sup>+</sup>), sans dériver f(t) : on travaille sur F(p).',
-            'Théorème de la valeur initiale : la valeur de départ d’une fonction est la limite de p × (sa transformée) quand p devient très grand.',
-            `On l’applique à la dérivée f’. Sa transformée est p·F(p) − f(0<sup>+</sup>). Ici f(0) = ${A}(1 − 1) = 0, donc elle vaut p·F(p) = ${fr(A * a, `p + ${a}`)}.`,
-            `f’(0<sup>+</sup>) = limite de p × ${fr(A * a, `p + ${a}`)} = ${fr(`${A * a}p`, `p + ${a}`)}. Quand p est très grand, le ${a} du bas ne compte plus : il reste ${fr(`${A * a}p`, 'p')} = <b>${A * a}</b>.`,
+            'Le théorème de la valeur initiale donne la valeur de départ de la fonction à laquelle on l’applique : limite de p × (sa transformée) quand p devient très grand.',
+            `<b>Hauteur de départ</b> : on l’applique à f. p × F(p) = ${fr(A * a, `p + ${a}`)}. Quand p devient très grand, le bas devient énorme : la fraction tend vers <b>0</b>. La courbe part de 0.`,
+            `<b>Pente de départ</b> : c’est la valeur de départ de la dérivée f’. On applique donc le théorème à f’, pas à f. La transformée de f’ est p·F(p) − f(0<sup>+</sup>) = ${fr(A * a, `p + ${a}`)} − 0.`,
+            `On multiplie encore par p : p × ${fr(A * a, `p + ${a}`)} = ${fr(`${A * a}p`, `p + ${a}`)}. Quand p est très grand, le ${a} du bas ne compte plus : il reste ${fr(`${A * a}p`, 'p')} = <b>${A * a}</b>.`,
             `Vérification directe : f’(t) = ${A} × ${a} × e<sup>−${a}t</sup>, qui vaut bien ${A * a} à t = 0.`],
-            'valeur initiale = limite de p·F(p) quand p devient très grand ; pour une pente, on applique la même règle à la dérivée.') };
+            'un « p × » donne la valeur de départ. Pour la pente de départ, on applique la règle à la dérivée : cela fait un second « p × ».')
+            + fig(plot({ x0: 0, x1: T, dx: T / 10, xmaj: 2, y0: 0, y1: 1.2 * A, dy: A / 5, ymaj: 1, xl: 'Temps (s)', yl: 'f(t)', alt: 'la courbe et sa tangente au départ',
+              curves: [{ pts: Array.from({ length: 101 }, (_, k) => [T * k / 100, A * (1 - Math.exp(-a * T * k / 100))]) }, { pts: [[0, 0], [1 / a, A]], c: '#b0601f', w: 2.6 }], hl: [{ y: A, t: 'valeur finale', c: '#587083' }] }),
+            `La courbe part de 0 (la hauteur) en suivant la droite orange (la pente : ${A * a} par seconde). Elle s’en écarte ensuite, parce qu’elle ralentit.`) };
       } }] },
     { k: 'methode', h: ol([
       '<b>Écrire les lois physiques</b>, une par phénomène : loi des mailles pour l’électrique, principe de la dynamique pour la mécanique, bilan pour un réservoir.',
