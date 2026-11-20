@@ -10,6 +10,9 @@
    ===================================================================== */
 (function () {
   'use strict';
+  // Sur téléphone, les courbes des fiches sont tracées dans un cadre étroit (360 px), pour tenir dans l'écran avec des chiffres lisibles.
+  const PLOT0 = window.plot, rendre = () => { if (PLOT0) window.plot = PLOT0; };
+  if (window.innerWidth < 640 && typeof PLOT0 === 'function') { window.plot = (o) => PLOT0((o.W || 640) > 400 ? Object.assign({}, o, { W: 360, H: Math.min(o.H || 300, 290) }) : o); setTimeout(rendre, 0); }
   const db = (x) => 20 * Math.log10(x);
   const melange = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = b[i]; b[i] = b[j]; b[j] = t; } return b; };
   const choix = (l, bonne, autres) => { const ch = melange([bonne].concat(autres)); return { l, ch, a: ch.indexOf(bonne) }; };
@@ -753,5 +756,6 @@
       } }] },
   ] };
 
+  rendre();
   window.PREPA_FICHES = F;
 })();

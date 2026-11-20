@@ -207,7 +207,7 @@
   /* =================== Dessins des briques : schémas-blocs, plans complexes, courbes =================== */
   const TR = '#183047', BL = '#12566f', OR = '#b0601f', GR = '#587083';
   const figc = (svg, leg) => `<div class="fig">${svg}</div>${leg ? `<p class="pp-leg">${leg}</p>` : ''}`;
-  const dSvg = (W, H, alt, s) => `<svg viewBox="0 0 ${W} ${H}" width="${W}"${W < 520 ? ' class="pp-pt"' : ''} role="img" aria-label="${alt}">${s}</svg>`;
+  const dSvg = (W, H, alt, s) => `<svg viewBox="0 0 ${W} ${H}" width="${W}"${W >= 520 ? ' class="pp-lg"' : ''} role="img" aria-label="${alt}">${s}</svg>`;
   const dBox = (x, y, w, h, t, hl) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${hl ? '#fbeee3' : '#eef5f8'}" stroke="${hl ? OR : BL}" stroke-width="${hl ? 2.4 : 1.6}"/><text x="${x + w / 2}" y="${y + h / 2 + 5}" font-size="14" text-anchor="middle" fill="${TR}"${hl ? ' font-weight="700"' : ''}>${t}</text>`;
   const dTx = (x, y, t, o) => { const q = o || {}; return `<text x="${x}" y="${y}" font-size="${q.s || 13}" text-anchor="${q.a || 'middle'}" fill="${q.c || TR}"${q.b ? ' font-weight="700"' : ''}>${t}</text>`; };
   // trait brisé terminé par une flèche ; l : étiquette posée au-dessus du premier segment
@@ -221,7 +221,7 @@
   // graduations rondes : [maximum de l'axe, pas]
   const beau = (m) => { const p = 10 ** Math.floor(Math.log10(m)), r = m / p, dy = (r <= 1 ? 0.1 : r <= 2 ? 0.2 : r <= 5 ? 0.5 : 1) * p; return [Math.ceil(m / dy - 1e-9) * dy, dy]; };
   // tracé avec des points repérés par-dessus (axes linéaires)
-  const plotM = (o, P) => { const W = o.W || 640, H = o.H || 300, pw = W - 88, ph = H - 60; return plot(o).replace('</svg>', P.map((q) => `<circle cx="${(58 + (q[0] - o.x0) / (o.x1 - o.x0) * pw).toFixed(1)}" cy="${(16 + (1 - (q[1] - o.y0) / (o.y1 - o.y0)) * ph).toFixed(1)}" r="5.5" fill="${OR}" stroke="#fff" stroke-width="1.6"/>`).join('') + '</svg>'); };
+  const plotM = (o, P) => { const s = plot(o), v = /viewBox="0 0 (\d+) (\d+)"/.exec(s), pw = v[1] - 88, ph = v[2] - 60; return s.replace('</svg>', P.map((q) => `<circle cx="${(58 + (q[0] - o.x0) / (o.x1 - o.x0) * pw).toFixed(1)}" cy="${(16 + (1 - (q[1] - o.y0) / (o.y1 - o.y0)) * ph).toFixed(1)}" r="5.5" fill="${OR}" stroke="#fff" stroke-width="1.6"/>`).join('') + '</svg>'); };
   // réponse à un échelon d'un second ordre de gain 1 et de pulsation propre 1
   const rep2v = (xi, x) => {
     if (xi < 1) { const wd = Math.sqrt(1 - xi * xi); return 1 - Math.exp(-xi * x) * (Math.cos(wd * x) + xi / wd * Math.sin(wd * x)); }
@@ -275,7 +275,7 @@
   function figTan(f, df, x0, xl, yl) {
     const [y1, dy] = beau(f(2 * x0) * 1.02), p = df(x0);
     return plotM({ x0: 0, x1: 2 * x0, dx: x0 / 4, xmaj: 2, y0: 0, y1, dy, ymaj: 2, xl, yl, alt: 'la courbe et sa tangente au point de fonctionnement',
-      curves: [{ pts: Array.from({ length: 81 }, (_, i) => [2 * x0 * i / 80, f(2 * x0 * i / 80)]) }, { pts: [[0.6 * x0, f(x0) - 0.4 * x0 * p], [1.4 * x0, f(x0) + 0.4 * x0 * p]], c: OR, w: 2.6 }] }, [[x0, f(x0)]]);
+      curves: [{ pts: Array.from({ length: 121 }, (_, i) => { const x = 2 * x0 * (i / 120) ** 2; return [x, f(x)]; }) }, { pts: [[0.6 * x0, f(x0) - 0.4 * x0 * p], [1.4 * x0, f(x0) + 0.4 * x0 * p]], c: OR, w: 2.6 }] }, [[x0, f(x0)]]);
   }
   function figVIF(a, b, c, d) {
     const s0 = a / c, sf = b / d, T = beau(5 * c / d)[0], [y1, dy] = beau(Math.max(s0, sf) * 1.12);
@@ -287,7 +287,7 @@
     return plot({ x0: 0, x1: T, dx: T / 10, xmaj: 2, y0: 0, y1, dy, ymaj: 2, xl: 'Temps (s)', yl: 'Sortie', alt: 'réponse du système à un échelon',
       curves: [{ pts: Array.from({ length: 241 }, (_, i) => { const t = T * i / 240; return [t, K * rep2v(xi, w0 * t)]; }) }], hl: [{ y: K, t: 'valeur finale', c: GR }] });
   }
-  const figPO1 = () => plot({ x0: 0, x1: 5, dx: 0.5, xmaj: 2, y0: 0, y1: 100, dy: 5, ymaj: 2, xl: 'Temps, compté en constantes de temps (t / τ)', yl: 'Sortie (% de la valeur finale)', alt: 'réponse d’un premier ordre, en pourcentage de sa valeur finale',
+  const figPO1 = () => plot({ x0: 0, x1: 5, dx: 0.5, xmaj: 2, y0: 0, y1: 100, dy: 5, ymaj: 2, xl: 'Temps (en nombre de τ)', yl: 'Sortie (% de la valeur finale)', alt: 'réponse d’un premier ordre, en pourcentage de sa valeur finale',
     curves: [{ pts: Array.from({ length: 151 }, (_, i) => [i / 30, 100 * (1 - Math.exp(-i / 30))]) }], hl: [{ y: 95, t: '95 %', c: OR }] });
   let ABQ = null;
   function figAbaque() {
@@ -315,7 +315,7 @@
     return plot({ W: 660, H: 260, logx: 1, x0, x1, y0: Math.floor((g0 - 5) / 10) * 10, y1: Math.ceil(g(x0) / 10) * 10, dy: 5, ymaj: 2, curves: [{ pts: W.map((w) => [w, g(w)]) }], hl: [{ y: g0, t: `20 log Kp = ${fmt(g0)} dB`, c: OR }], xl: '', yl: 'Gain (dB)', alt: 'diagramme de Bode du correcteur PI, gain' })
       + plot({ W: 660, H: 230, logx: 1, x0, x1, y0: -90, y1: 0, dy: 15, ymaj: 3, curves: [{ pts: W.map((w) => [w, -90 + deg(Math.atan(w * Ti))]) }], hl: [{ y: -45, t: '−45° à la cassure', c: OR }], xl: 'Pulsation ω (rad/s)', yl: 'Phase (°)', alt: 'diagramme de Bode du correcteur PI, phase' });
   }
-  const figShannon = () => plotM({ x0: 0, x1: 4, dx: 0.5, xmaj: 2, y0: -1.5, y1: 1.5, dy: 0.5, ymaj: 1, xl: 'Temps, compté en périodes du signal', yl: 'Signal', alt: 'un signal échantillonné trop lentement semble plus lent qu’il n’est',
+  const figShannon = () => plotM({ x0: 0, x1: 4, dx: 0.5, xmaj: 2, y0: -1.5, y1: 1.5, dy: 0.5, ymaj: 1, xl: 'Temps (en périodes du signal)', yl: 'Signal', alt: 'un signal échantillonné trop lentement semble plus lent qu’il n’est',
     curves: [{ pts: Array.from({ length: 321 }, (_, i) => [i / 80, Math.sin(2 * Math.PI * i / 80)]) }, { pts: Array.from({ length: 81 }, (_, i) => [i / 20, -Math.sin(2 * Math.PI * 0.25 * i / 20)]), c: OR, dash: 1, w: 2 }] }, [0, 1, 2, 3, 4, 5].map((k) => [0.8 * k, Math.sin(2 * Math.PI * 0.8 * k)]));
 
   const B = {};
@@ -357,7 +357,7 @@
       const v = pick([0, 1, 2]);
       if (v === 0) {
         const k = pick([0.5, 1, 2]), h0 = pick([0.25, 1, 4]), g = k / (2 * Math.sqrt(h0));
-        return { text: `Le débit de vidange d’une cuve vaut ${V('Q')} = ${fmt(k)}·√${V('h')} (Q en L/s, h en m). Autour du point de fonctionnement ${V('h<sub>0</sub>')} = ${fmt(h0)} m, on linéarise : ${V('ΔQ ≈ G·Δh')}. Calculer le gain local ${V('G')}.`, fig: figTan((h) => k * Math.sqrt(h), (h) => k / (2 * Math.sqrt(h)), h0, 'Hauteur h (m)', 'Débit Q (L/s)') + '<p class="pp-leg">En bleu, la vraie loi. En orange, sa tangente au point de fonctionnement : G est la pente de cette droite.</p>',
+        return { text: `Le débit de vidange d’une cuve vaut ${V('Q')} = ${fmt(k)}·√${V('h')} (Q en L/s, h en m). Autour du point de fonctionnement ${V('h<sub>0</sub>')} = ${fmt(h0)} m, on linéarise : ${V('ΔQ ≈ G·Δh')}. Calculer le gain local ${V('G')}, avec la dérivée.`, fig: figTan((h) => k * Math.sqrt(h), (h) => k / (2 * Math.sqrt(h)), h0, 'Hauteur h (m)', 'Débit Q (L/s)') + '<p class="pp-leg">En bleu, la vraie loi. En orange, sa tangente au point de fonctionnement. G est la pente de cette droite : elle se calcule avec la dérivée (la lire sur le dessin ne donnerait qu’une valeur approchée).</p>',
           fields: [{ l: 'Gain local G', u: 'L·s⁻¹/m', a: g, tol: .01 }],
           corr: pas([
             'Le débit n’est pas proportionnel à la hauteur (il y a une racine) : la loi n’est pas linéaire. Autour du point de fonctionnement, on la remplace par sa tangente.',
@@ -368,7 +368,7 @@
       }
       if (v === 1) {
         const c = pick([0.4, 0.6, 1.2]), v0 = pick([10, 20, 30]), g = 2 * c * v0;
-        return { text: `La force de traînée d’un véhicule vaut ${V('F')} = ${fmt(c)}·${V('v')}² (F en N, v en m/s). Linéariser autour de ${V('v<sub>0</sub>')} = ${v0} m/s : ${V('ΔF ≈ G·Δv')}. Calculer ${V('G')}.`, fig: figTan((x) => c * x * x, (x) => 2 * c * x, v0, 'Vitesse v (m/s)', 'Traînée F (N)') + '<p class="pp-leg">En bleu, la vraie loi. En orange, sa tangente au point de fonctionnement : G est la pente de cette droite.</p>',
+        return { text: `La force de traînée d’un véhicule vaut ${V('F')} = ${fmt(c)}·${V('v')}² (F en N, v en m/s). Linéariser autour de ${V('v<sub>0</sub>')} = ${v0} m/s : ${V('ΔF ≈ G·Δv')}. Calculer ${V('G')}, avec la dérivée.`, fig: figTan((x) => c * x * x, (x) => 2 * c * x, v0, 'Vitesse v (m/s)', 'Traînée F (N)') + '<p class="pp-leg">En bleu, la vraie loi. En orange, sa tangente au point de fonctionnement. G est la pente de cette droite : elle se calcule avec la dérivée (la lire sur le dessin ne donnerait qu’une valeur approchée).</p>',
           fields: [{ l: 'Gain local G', u: 'N·s/m', a: g, tol: .01 }],
           corr: pas([
             'La traînée dépend du carré de la vitesse : ce n’est pas linéaire. Autour du point de fonctionnement, on remplace la courbe par sa tangente.',
@@ -378,7 +378,7 @@
             'linéariser, c’est remplacer la courbe par sa tangente au point de fonctionnement. Valable pour de petites variations seulement.') };
       }
       const R = pick([2, 5, 10]), U0 = pick([12, 24, 48]), g = 2 * U0 / R;
-      return { text: `La puissance dissipée dans une résistance de ${R} Ω vaut ${V('P')} = ${fr('U²', 'R')}. Linéariser autour de ${V('U<sub>0</sub>')} = ${U0} V : ${V('ΔP ≈ G·ΔU')}. Calculer ${V('G')}.`, fig: figTan((x) => x * x / R, (x) => 2 * x / R, U0, 'Tension U (V)', 'Puissance P (W)') + '<p class="pp-leg">En bleu, la vraie loi. En orange, sa tangente au point de fonctionnement : G est la pente de cette droite.</p>',
+      return { text: `La puissance dissipée dans une résistance de ${R} Ω vaut ${V('P')} = ${fr('U²', 'R')}. Linéariser autour de ${V('U<sub>0</sub>')} = ${U0} V : ${V('ΔP ≈ G·ΔU')}. Calculer ${V('G')}, avec la dérivée.`, fig: figTan((x) => x * x / R, (x) => 2 * x / R, U0, 'Tension U (V)', 'Puissance P (W)') + '<p class="pp-leg">En bleu, la vraie loi. En orange, sa tangente au point de fonctionnement. G est la pente de cette droite : elle se calcule avec la dérivée (la lire sur le dessin ne donnerait qu’une valeur approchée).</p>',
         fields: [{ l: 'Gain local G', u: 'W/V', a: g, tol: .01 }],
         corr: pas([
           'La puissance dépend du carré de la tension : ce n’est pas linéaire. Autour du point de fonctionnement, on remplace la courbe par sa tangente.',
@@ -478,7 +478,7 @@
           `Ici t = ${n > 1 ? n : ''}τ : il reste ${n > 1 ? `0,368<sup>${n}</sup> = ` : ''}e<sup>−${n}</sup> = ${fmt(Math.exp(-n))}. La sortie est donc à 1 − ${fmt(Math.exp(-n))} = ${fmt(1 - Math.exp(-n))}, soit <b>${fmt(pc)} %</b> de sa valeur finale.`,
           `Temps de réponse à 5 % : c’est l’instant où il ne reste plus que 5 % à faire. Or 0,368 × 0,368 × 0,368 = 0,05 : il faut trois durées τ. Donc 3 × ${fmt(tau)} = <b>${fmt(3 * tau)} s</b>.`],
           'à chaque durée τ, ce qui reste à faire est multiplié par 0,37. D’où 63 % à τ, 86 % à 2τ, 95 % à 3τ.')
-          + '<table class="pp-tab"><thead><tr><th>Instant</th><th>τ</th><th>2τ</th><th>3τ</th><th>4τ</th><th>5τ</th></tr></thead><tbody><tr><td>Ce qui reste</td><td>37 %</td><td>13,5 %</td><td>5 %</td><td>1,8 %</td><td>0,7 %</td></tr><tr><td>Ce qui est fait</td><td>63 %</td><td>86,5 %</td><td>95 %</td><td>98,2 %</td><td>99,3 %</td></tr></tbody></table>' };
+          + '<table class="pp-tab"><thead><tr><th>Instant</th><th>τ</th><th>2τ</th><th>3τ</th><th>4τ</th></tr></thead><tbody><tr><td>Ce qui reste</td><td>37 %</td><td>13,5 %</td><td>5 %</td><td>1,8 %</td></tr><tr><td>Ce qui est fait</td><td>63 %</td><td>86,5 %</td><td>95 %</td><td>98,2 %</td></tr></tbody></table>' };
     } },
     { t: 'Lire ξ et ω₀ sur les pôles', r: 'Pôles d’un second ordre peu amorti : −ξω₀ ± j·ω₀√(1 − ξ²). Leur distance à l’origine (le module : √(réel² + imaginaire²)) vaut ω₀. Et ξ = |partie réelle| / ω₀.', w: 'Les pôles sont l’empreinte du système. Leur partie réelle dit à quelle vitesse les oscillations s’éteignent ; leur partie imaginaire, à quelle cadence elles battent. Plus un pôle est loin de l’origine, plus le système est rapide ; plus il est près de l’axe vertical, moins il est amorti.', gen() {
       const a = pick([1, 2, 3, 4, 6]), b = pick([3, 4, 6, 8]), w0 = Math.hypot(a, b), xi = a / w0;

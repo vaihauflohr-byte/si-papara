@@ -230,7 +230,8 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
 .pp-leg{font-size:14px;color:#42596b;margin:6px 0 12px;padding-left:12px;border-left:3px solid #c3d0da}
 .pp-form{margin:8px 0 12px;border:1px solid #dbe5ec;border-radius:10px;background:#fff}.pp-fi{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1.8fr);gap:4px 16px;padding:10px 13px;align-items:center}.pp-fi+.pp-fi{border-top:1px solid #dbe5ec}.pp-fn{font-weight:700;color:#12566f}.pp-fc{color:#42596b}
 @media(max-width:640px){.pp-fi{grid-template-columns:1fr;gap:3px}.pp-ff{font-size:17px;padding:2px 0}.pp-fc::before{content:'→ '}}
-#ppst .fig svg:not(.pp-pt),.pp-fp .fig svg:not(.pp-pt),.res .fig svg:not(.pp-pt){min-width:520px}
+.fig svg.pp-lg{min-width:520px}
+@media(max-width:640px){.fig:has(svg.pp-lg)::after{content:'↔ Fais glisser le schéma pour le voir en entier';display:block;position:sticky;left:0;font-size:12.5px;color:#587083;padding-top:4px}}
 .pp-pq{margin:4px 0}.pp-pq dt{font-weight:700;color:#8a4513;margin-top:14px}.pp-pq dt:first-child{margin-top:4px}.pp-pq dd{margin:3px 0 0}
 .pp-mots{margin:4px 0}.pp-mots dt{font-weight:700;color:#12566f;margin-top:10px}.pp-mots dd{margin:2px 0 0}
 .pp-pas{padding-left:22px;margin:4px 0}.pp-pas li{margin:9px 0;line-height:1.55}
@@ -766,11 +767,19 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
   }
 
   /* ---------- fiche d'un chapitre : cinq parties, une question après chacune, « Ai-je compris ? » */
+  // Sur téléphone, les courbes sont tracées dans un cadre étroit (360 px) : elles tiennent dans l'écran
+  // sans défilement et leurs chiffres restent lisibles, au lieu d'un tracé de 640 px réduit de moitié.
+  function mob(f) {
+    if (window.innerWidth >= 640 || typeof window.plot !== 'function') return f();
+    const p0 = window.plot;
+    window.plot = (o) => p0((o.W || 640) > 400 ? Object.assign({}, o, { W: 360, H: Math.min(o.H || 300, 290) }) : o);
+    try { return f(); } finally { window.plot = p0; }
+  }
   function vueFiche(doc) {
     const F = FI()[doc.id];
     if (!F) return vueDoc(doc);
     const c = doc.cycle, ch = chapitres(c), i = ch.indexOf(doc), Q = [], f0 = P().f[doc.id], nCalc = (COURS()[doc.id] || []).length;
-    F.parties.forEach((p, k) => (p.q || []).forEach((q) => { try { Q.push({ p: k, t: q.t, inst: q.gen(), rep: [], ok: null }); } catch (e) { /* question en défaut : on passe */ } }));
+    F.parties.forEach((p, k) => (p.q || []).forEach((q) => { try { Q.push({ p: k, t: q.t, inst: mob(() => q.gen()), rep: [], ok: null }); } catch (e) { /* question en défaut : on passe */ } }));
     let h = `<a class="back" href="#prepa-parcours">← Parcours de la séance</a><div class="eyebrow pp-eb">Fiche · cycle ${esc(c.n)} · ${esc(c.titre)}</div><h1>${esc(F.titre)}</h1>
       <p class="muted">L’essentiel du chapitre « ${esc(doc.titre)} », écrit pour le site, à relire avant la séance. Après chaque partie, une question pour vérifier ; à la fin, ta note « Ai-je compris ? »${f0 ? ` (meilleure : ${fmt(f0.b, 3)} / 20)` : ''}.</p>
       <div class="pp-msg" id="ppmsg" hidden></div><div class="pp-tools">${pdf(doc, 0, 'Le chapitre du formateur (PDF)')}${nCalc ? `<a class="b sec" href="#prepa-quiz-${esc(doc.id)}">S’entraîner : ${nCalc} calculs corrigés</a>` : ''}</div>`;
@@ -829,7 +838,7 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
       if (libres.length < n) { vus = new Set(); libres = R.map((_, i) => i); }
       melange(libres).slice(0, n).sort((a, b) => a - b).forEach((i) => {
         vus.add(i);
-        try { const o = R[i].gen(); qs.push({ ch: l === 3 ? '' : key, t: R[i].t, pq: R[i].w || '', aide: e.aide ? String(R[i].r || o.hint || '') + (R[i].w ? `</p><p><b>Pourquoi ?</b> ${R[i].w}` : '') : '', inst: { text: o.text, fig: o.fig || '', fields: o.fields, corr: o.corr } }); } catch (er) { /* générateur en défaut : on passe */ }
+        try { const o = mob(() => R[i].gen()); qs.push({ ch: l === 3 ? '' : key, t: R[i].t, pq: R[i].w || '', aide: e.aide ? String(R[i].r || o.hint || '') + (R[i].w ? `</p><p><b>Pourquoi ?</b> ${R[i].w}` : '') : '', inst: { text: o.text, fig: o.fig || '', fields: o.fields, corr: o.corr } }); } catch (er) { /* générateur en défaut : on passe */ }
       });
       S[cle] = [...vus];
     });
