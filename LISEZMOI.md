@@ -160,6 +160,8 @@ L'onglet « Simulateur » calcule le vol prévu à partir des valeurs du planeur
 
 Figures à manipuler (23 novembre) : `entrainements/2si-planeur/interactif.js` remplit chaque `<div data-lab="…">` de la page. Onglet « Le défi » : le planeur à toucher (`pieces`, six zones, chacune renvoie vers sa notion). Onglet « Comprendre » : `forces` (vitesse, masse), `finesse`, `equilibre` (le doigt et le lest, avec les valeurs du planeur de départ), `aile` (charge alaire, vitesse mini), `calage`, `allong`. Onglet « Mes essais » : `diag`, le vol animé à choisir, avec cause, modification et lien vers l'exemple du simulateur. Simulateur : bouton « Voir le vol », le planeur parcourt la trajectoire en temps réel. Un nouveau labo à curseurs = une entrée de `LABS` (curseurs + fonction `rendu`).
 
+Onglet « Créer » (23 novembre) : `entrainements/2si-planeur/atelier.js`. L'élève dessine trois idées (A, B, C) à l'échelle : forme de l'aile (envergure, corde, bout, flèche, bouts arrondis), stabilisateur, nez, dérive, couleurs du fil, nom et devise. Six cartes d'inspiration (planeur de compétition, albatros, frégate, martinet, raie manta, poisson volant) chargent une forme de départ. Le site estime surface, allongement et masse, signale ce qui ne passera pas, compare les trois idées, fait choisir et justifier, envoie l'idée dans le simulateur et imprime la fiche du planeur. Gardé sur l'appareil (`sip_2si_planeur_atelier`). Deux lignes ajoutées à l'étape 5.
+
 ## 5. Ajouter du contenu
 
 Un fichier par groupe de séquences dans `contenu/` (ex. `1si-s3.js`, `tsi-s8.js`). Un module = un chapitre, avec `sequence` (regroupement à l'écran), `competences` (codes de `competences.js`), ses questions et ses mini-fiches :

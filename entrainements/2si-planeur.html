@@ -66,6 +66,48 @@ line.pc-o{stroke-linecap:round;fill:none;stroke-opacity:.75}
 .dg-fiche>div>b{font-weight:600}.dg-fiche>p{grid-column:1/-1;margin:2px 0 0;display:flex;flex-wrap:wrap;gap:6px}
 @media (max-width:640px){.dg-fiche{grid-template-columns:1fr}}
 @media print{.lab-cmd,.pc-liste,.dg-choix{display:none}}
+/* ----- atelier d'idées ----- */
+#s-creer{--at-grille:rgba(29,63,122,.11)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #s-creer{--at-grille:rgba(143,176,238,.14)}}
+.at-dem{margin:.4em 0 0;padding-left:1.3em}.at-dem li{margin:.3em 0}
+.at-insp{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.at-insp button{font:inherit;text-align:left;background:var(--paper-2);border:1px solid var(--rule);border-radius:10px;padding:8px 10px 10px;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;gap:3px}
+.at-insp button:hover{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.pl-sec .at-insp svg{width:100%;max-width:210px;margin:0 auto 2px}
+.at-insp b{font-family:var(--f-disp);font-size:1.05rem}.at-insp span{font-size:.9rem}.at-insp em{font-style:normal;font-size:.84rem;color:var(--ink-2)}
+.at-onglets{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px;align-items:center}
+.at-onglets button{font:inherit;font-family:var(--f-disp);font-weight:600;font-size:1.05rem;padding:7px 18px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper);color:var(--ink);cursor:pointer}
+.at-onglets button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.at-onglets .at-raz{margin-left:auto;font-family:inherit;font-weight:400;font-size:.88rem;padding:5px 12px;border-radius:999px}
+.at-duo{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:12px;align-items:start;margin-bottom:12px}
+.at-colle{position:sticky;top:62px;margin:0!important}
+.pl-sec #at-dessin svg{width:100%;margin:0}
+.at-t{font-size:12px;font-weight:600;letter-spacing:.06em;fill:var(--ink-3)}
+.at-nom{font-family:var(--f-disp);font-size:30px;font-weight:700;fill:var(--ink)}.at-dev{font-size:14px;font-style:italic;fill:var(--ink-2)}
+.at-cote line{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 3}.at-cote text{font-size:12.5px;fill:var(--ink-2)}
+.at-tuiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:8px}
+.at-tuiles div{background:var(--paper-2);border:1px solid var(--rule-2);border-radius:var(--r);padding:6px 10px}
+.at-tuiles span{display:block;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);line-height:1.25}
+.at-tuiles b{font-family:var(--f-disp);font-size:1.25rem;font-weight:600}
+.pl-sec .at-bloc{margin:0 0 10px;padding-top:10px;padding-bottom:12px}
+.at-bloc h3{margin:0 0 6px}.at-bloc p{margin:8px 0 4px;font-size:.88rem;color:var(--ink-2)}
+.at-bloc label{display:block;font-size:.92rem;margin:6px 0 0}
+.at-bloc input[type=text]{display:block;width:100%;font:inherit;padding:6px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);margin-top:2px}
+.at-l>span{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.at-l b{font-family:var(--f-mono);white-space:nowrap}
+.at-l input[type=range]{display:block;width:100%;margin:0;padding:0;border:0;min-height:0;background:transparent;accent-color:var(--accent);height:24px}
+.at-puces{display:flex;flex-wrap:wrap;gap:6px}
+.at-puces button{font:inherit;font-size:.9rem;padding:5px 12px;border-radius:999px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer}
+.at-puces button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.at-puces .at-co{width:32px;height:32px;padding:0;border-radius:50%;border:2px solid var(--rule)}
+.at-puces .at-co.on{box-shadow:0 0 0 3px var(--paper),0 0 0 5px var(--accent);border-color:transparent}
+#at-comp input[type=radio]{width:22px;height:22px;min-height:0;margin:0}
+.at-tuiles{grid-template-columns:repeat(2,1fr)}
+.at-cons{list-style:none;padding:0;margin:0}
+.at-cons li{position:relative;padding:5px 0 5px 30px}
+.at-cons li::before{position:absolute;left:0;top:5px;width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:#fff;content:"✓";background:var(--good)}
+.at-cons li.ko::before{content:"✕";background:var(--bad)}.at-cons li.av::before{content:"!";background:var(--warn)}
+@media (max-width:820px){.at-duo{grid-template-columns:1fr}.at-colle{position:static}}
+@media print{body.impr-atelier main>*:not(#s-creer),body.impr-atelier .at-insp,body.impr-atelier .at-onglets{display:none!important}body.impr-atelier .at-duo{grid-template-columns:1fr}body.impr-atelier .at-colle{position:static}}
 /* ----- simulateur ----- */
 #s-sim{--sim-ciel:#e6f1fb;--sim-ciel2:#f6fafe;--sim-sol:#dfe9d3;--sim-herbe:#7fa861;--sim-aile:#f08c00;--sim-aile-b:#b56a00;--sim-grille:rgba(29,63,122,.10)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #s-sim{--sim-ciel:#14222f;--sim-ciel2:#101a24;--sim-sol:#1b2a1d;--sim-herbe:#4f7a45;--sim-aile:#f5a033;--sim-aile-b:#f5a033;--sim-grille:rgba(143,176,238,.14)}}
@@ -177,6 +219,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 <div class="pl-nav" role="tablist">
   <button role="tab" data-s="defi" aria-selected="true">Le défi</button>
   <button role="tab" data-s="comprendre">Comprendre</button>
+  <button role="tab" data-s="creer">Créer</button>
   <button role="tab" data-s="etapes">Les étapes</button>
   <button role="tab" data-s="onshape">Missions Onshape</button>
   <button role="tab" data-s="sim">Simulateur</button>
@@ -357,6 +400,11 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     </table></div>
     <p>Chaque notion a ses questions dans les séries notées « Planeur 1 », « Planeur 2 » et « Planeur 3 » de ton tableau de bord.</p>
   </div>
+</section>
+
+<!-- ============ CRÉER ============ -->
+<section class="pl-sec" id="s-creer" hidden>
+  <div id="atelier"></div>
 </section>
 
 <!-- ============ LES ÉTAPES ============ -->
@@ -619,6 +667,8 @@ const ETAPES = [
     C("3g", "Montre ton planeur de départ au professeur.") ] },
   { t: "Concevoir ma version 1", img: "m7a", but: "Transformer le planeur de départ pour qu'il aille plus loin, sans sortir du cahier des charges.", items: [
     C("5n", "Avant de modifier, lis les notions 4 à 7 de l'onglet « Comprendre » : charge alaire, stabilité, calage, forme de l'aile."),
+    C("5i", "Dans l'onglet « Créer », dessine trois idées vraiment différentes. Compare-les, choisis-en une et écris pourquoi."),
+    C("5j", "Donne un nom à ton planeur, et choisis ses couleurs."),
     C("m7", "Mission 7 : je duplique le planeur de départ, puis je le change une cote à la fois."),
     C("5s", "Entre les valeurs de ta version 1 dans l'onglet « Simulateur », règle le point d'équilibre, puis note la distance prévue dans ton carnet."),
     C("4c", "Relève dans Onshape les dimensions et le volume de chaque pièce, puis remplis la fiche ci-dessous."),
@@ -894,5 +944,6 @@ document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Nive
 })();
 </script>
 <script src="2si-planeur/interactif.js"></script>
+<script src="2si-planeur/atelier.js"></script>
 </body>
 </html>
