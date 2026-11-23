@@ -119,6 +119,13 @@ line.pc-o{stroke-linecap:round;fill:none;stroke-opacity:.75}
 table.pl th.pl-pg{background:var(--accent);color:var(--accent-ink);text-align:left}
 .pl-prog td:first-child{width:46%}
 #g-essais svg{margin:10px 0 0;width:100%;max-width:640px}#g-essais ul{margin:.4em 0;padding-left:1.2em}
+.gd{display:grid;grid-template-columns:1fr auto;gap:8px 16px;align-items:center;margin:0 0 18px;padding:12px 16px;border-radius:10px;background:var(--accent-soft);border:1px solid var(--accent);border-left-width:6px}
+.gd-et{display:block;font-family:var(--f-disp);font-weight:600;font-size:.82rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.gd p{margin:.15em 0 0}.gd-b{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end}
+.gd-barre{height:8px;border-radius:999px;background:var(--paper);overflow:hidden;border:1px solid var(--rule)}.gd-barre i{display:block;height:100%;background:var(--good)}
+.gd-n{font-family:var(--f-mono);font-size:.82rem;font-weight:600;text-align:right;white-space:nowrap}
+[id^="mi"],[id^="n"],#vocab,#cout,#diag{scroll-margin-top:70px}
+@media (max-width:640px){.gd{grid-template-columns:1fr}.gd-b{justify-content:flex-start}.gd-n{text-align:left}}
 /* ----- simulateur ----- */
 #s-sim{--sim-ciel:#e6f1fb;--sim-ciel2:#f6fafe;--sim-sol:#dfe9d3;--sim-herbe:#7fa861;--sim-aile:#f08c00;--sim-aile-b:#b56a00;--sim-grille:rgba(29,63,122,.10)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #s-sim{--sim-ciel:#14222f;--sim-ciel2:#101a24;--sim-sol:#1b2a1d;--sim-herbe:#4f7a45;--sim-aile:#f5a033;--sim-aile-b:#f5a033;--sim-grille:rgba(143,176,238,.14)}}
@@ -237,6 +244,8 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   <button role="tab" data-s="essais">Mes essais</button>
   <button role="tab" data-s="eval">Évaluation</button>
 </div>
+<div id="guide" class="gd no-print" aria-live="polite"></div>
+
 
 <!-- ============ LE DÉFI ============ -->
 <section class="pl-sec" id="s-defi">
@@ -452,7 +461,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 
 <!-- ============ LES ÉTAPES ============ -->
 <section class="pl-sec" id="s-etapes" hidden>
-  <p><b>Suis les étapes dans l'ordre.</b> Ouvre l'étape en cours, fais chaque ligne, coche-la. On passe à l'étape suivante quand tout est coché. <span class="discret">Tes réponses sont gardées sur cet appareil.</span></p>
+  <p><b>Suis les étapes dans l'ordre.</b> Le cadre bleu en haut de la page te dit toujours la prochaine chose à faire. Ouvre l'étape en cours, fais chaque ligne, coche-la. On passe à l'étape suivante quand tout est coché. <span class="discret">Tes réponses sont gardées sur cet appareil.</span></p>
   <div id="etapes"></div>
 </section>
 
@@ -652,7 +661,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   </div>
   <div class="carte">
     <h2 style="margin-top:0">Lire le vol de ton planeur</h2>
-    <div data-lab="diag"></div>
+    <div data-lab="diag" id="diag"></div>
     <details><summary>Voir tous les cas dans un tableau</summary>
     <div class="pl-scroll"><table class="pl">
       <tr><th></th><th>Ce que tu vois</th><th>Cause probable</th><th>Modification à essayer</th></tr>
@@ -726,12 +735,15 @@ const C = (id, t) => ({ k: "c", id, t });          // une case à cocher
 const B = (id) => ({ k: "b", id });                 // un bloc à remplir (voir BLOCS plus bas)
 const ETAPES = [
   { t: "Lancer avant de concevoir", img: "lancer_nu", but: "Comprendre pourquoi un planeur vole bien ou mal, avant de dessiner le tien.", items: [
+    C("0a", "Lis la règle du jeu et le cahier des charges, dans l'onglet « Le défi »."),
     C("1a", "Lance chaque planeur de démonstration deux fois, à la main, toujours de la même façon. Regarde bien le vol."),
     C("1b", "Pose chaque planeur en équilibre sur un doigt. Mesure la distance entre le bout du nez et ton doigt."),
+    C("1o", "Remplis le tableau d'observation ci-dessous : le vol et le point d'équilibre de chaque planeur."),
     B("obs"),
     C("1d", "Lis les notions 1, 2 et 3 de l'onglet « Comprendre » : les forces, la finesse, le centre de gravité."),
     C("1c", "Fais la série « Planeur 1 · Voler et rester stable » sur ton tableau de bord.") ] },
   { t: "Former l'équipe et ouvrir Onshape", img: "pieces_nu", but: "Avoir une équipe, un compte et un document partagé.", items: [
+    C("2e", "Écris ci-dessous le nom de ton équipe et de ses membres."),
     B("equipe"),
     C("2a", "Chaque membre crée son compte Onshape (onglet « Missions Onshape », première partie)."),
     C("2b", "Un membre crée le document « Planeur – équipe … » et le partage avec les autres et avec le professeur."),
@@ -778,6 +790,7 @@ const ETAPES = [
   { t: "Le concours", img: "hero", but: "Trois lancers devant tout le monde, puis deux minutes pour expliquer.", items: [
     C("7a", "Choisis ta meilleure version et vérifie son équilibre."),
     C("7b", "Trois lancers officiels. Note-les sur la ligne « Concours » de « Mes essais »."),
+    C("7o", "Prépare tes deux minutes devant la classe : complète les trois phrases ci-dessous."),
     B("oral"),
     C("7c", "Imprime ton carnet d'essais et rends-le au professeur.") ] }
 ];
@@ -856,10 +869,36 @@ function verifier() {
   set("v-plat", D.c.plat ? OKT(true, "") : "");
   ETAPES.forEach((e, i) => { const L = e.items.filter((x) => x.k === "c"); const n = L.filter((x) => D.c[x.id]).length; const el = document.getElementById("av" + i);
     if (el) { el.textContent = `${n} / ${L.length}`; el.className = "etiquette" + (n === L.length ? " ok" : ""); } });
+  guide();
 }
+/* ---------- Le guide : la prochaine chose à faire, visible dans tous les onglets ---------- */
+/* destination de chaque ligne : "onglet" ou "onglet#identifiant" ; "tab" = tableau de bord ; rien = à faire en vrai, dans la salle */
+const VA = { "0a": "defi", "1o": "etapes", "1d": "comprendre#n1", "1c": "tab", "2e": "etapes", "2a": "onshape", "2b": "onshape", "2d": "defi#vocab",
+  m1: "onshape#mi1", m2: "onshape#mi2", "3f": "tab", m3: "onshape#mi3", m4: "onshape#mi4", m5: "onshape#mi5", m6: "onshape#mi6",
+  "5n": "comprendre#n4", "5i": "creer", "5j": "creer", m7: "onshape#mi7", "5s": "sim", "5k": "defi#cout", "4c": "etapes", "4d": "etapes", "4e": "onshape#mi8",
+  "5a": "tab", "5p": "essais", "5c": "comprendre#n3", "5d": "essais#t-essais", "5e": "essais#t-essais", "5f": "essais#diag", "5q": "essais#g-essais", "5g": "essais#modif",
+  "6s": "sim", "6a": "onshape#mi7", "6b": "etapes", "6c": "onshape#mi8", "6d": "essais#t-essais", "6e": "essais#bilan", "7b": "essais#t-essais", "7o": "etapes", "7c": "essais#t-essais" };
+document.querySelectorAll("#s-onshape .eyebrow").forEach((e) => { const m = /^Mission (\d)/.exec(e.textContent); if (m) e.parentElement.id = "mi" + m[1]; });
+function prochaine() { for (let i = 0; i < ETAPES.length; i++) for (const x of ETAPES[i].items) if (x.k === "c" && !D.c[x.id]) return { i, x }; return null; }
+function guide() {
+  const el = document.getElementById("guide"), tous = [].concat(...ETAPES.map((e) => e.items.filter((x) => x.k === "c"))), faits = tous.filter((x) => D.c[x.id]).length, p = prochaine();
+  const barre = `<div class="gd-barre" role="img" aria-label="${faits} lignes faites sur ${tous.length}"><i style="width:${faits / tous.length * 100}%"></i></div><span class="gd-n">${faits} / ${tous.length}</span>`;
+  if (!p) { el.innerHTML = `<div class="gd-g"><span class="gd-et">Projet terminé</span><p><b>Tout est coché. Bravo à ton équipe.</b></p></div>${barre}`; return; }
+  const va = VA[p.x.id];
+  el.innerHTML = `<div class="gd-g"><span class="gd-et">Étape ${p.i + 1} sur ${ETAPES.length} · ${ETAPES[p.i].t}</span><p><b>À faire maintenant :</b> ${p.x.t}</p></div>
+    <div class="gd-b">${va === "tab" ? `<a class="btn" href="../index.html#/tableau">Aller à la série →</a>` : va ? `<button type="button" class="btn" data-gva="${va}" data-gid="${p.x.id}">Y aller →</button>` : `<span class="etiquette">à faire en vrai, dans la salle</span>`}
+    <button type="button" class="btn sec" data-gfait="${p.x.id}">C'est fait ✓</button></div>${barre}`;
+}
+document.getElementById("guide").addEventListener("click", (ev) => {
+  const f = ev.target.closest("[data-gfait]"); if (f) { const id = f.dataset.gfait; D.c[id] = true; const c = document.querySelector(`[data-c="${id}"]`); if (c) c.checked = true; garder(); verifier(); return; }
+  const g = ev.target.closest("[data-gva]"); if (!g) return; const [s, id] = g.dataset.gva.split("#"); ouvrir(s); history.replaceState(null, "", "#" + s);
+  let cible = id && document.getElementById(id);
+  if (s === "etapes") { cible = document.getElementById("c-" + g.dataset.gid); const d = cible && cible.closest("details"); if (d) d.open = true; }
+  if (cible) setTimeout(() => cible.scrollIntoView({ behavior: "smooth", block: s === "etapes" ? "center" : "start" }), 60); else window.scrollTo(0, 0);
+});
 const premiere = Math.max(0, ETAPES.findIndex((e) => e.items.some((x) => x.k === "c" && !D.c[x.id])));
 document.getElementById("etapes").innerHTML = ETAPES.map((e, i) => `<details class="carte pl-et" ${i === premiere ? "open" : ""}><summary><span class="pl-num">${i + 1}</span><span class="pl-et-t"><b>${e.t}</b><span class="discret">${e.but}</span></span><img class="pl-et-thumb" src="2si-planeur/img/${e.img}.png" alt="" loading="lazy"><span class="etiquette" id="av${i}"></span></summary>
-  <div class="pl-et-in">${e.items.map((x) => x.k === "c" ? `<label class="pl-fait"><input type="checkbox" data-c="${x.id}" ${D.c[x.id] ? "checked" : ""}><span>${x.t}</span></label>` : `<div class="pl-bloc">${BLOCS[x.id]()}</div>`).join("")}</div></details>`).join("");
+  <div class="pl-et-in">${e.items.map((x) => x.k === "c" ? `<label class="pl-fait" id="c-${x.id}"><input type="checkbox" data-c="${x.id}" ${D.c[x.id] ? "checked" : ""}><span>${x.t}</span></label>` : `<div class="pl-bloc">${BLOCS[x.id]()}</div>`).join("")}</div></details>`).join("");
 const $et = document.getElementById("etapes");
 const saisie = (ev) => { const el = ev.target; if (el.dataset.c != null) D.c[el.dataset.c] = el.checked; else if (el.dataset.f != null) D.f[el.dataset.f] = el.value; else return; garder(); verifier(); };
 $et.addEventListener("input", saisie); $et.addEventListener("change", saisie);

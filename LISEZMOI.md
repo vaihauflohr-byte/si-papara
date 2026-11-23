@@ -164,6 +164,8 @@ Onglet « Créer » (23 novembre) : `entrainements/2si-planeur/atelier.js`. L'é
 
 Alignement sur le programme de seconde CIT et SI (BO spécial n° 1 du 22 janvier 2019), 23 novembre. Onglet « Évaluation » : tableau « Ce que tu apprends », une ligne par compétence du programme avec l'activité qui la travaille. Activités ajoutées pour les compétences qui n'en avaient pas : « Le défi » : vocabulaire de l'ingénieur (besoin, fonction, exigence, contrainte, coût, valeur, amélioration, innovation de rupture, maquette, prototype, produit), cycle de vie et labo `cout` (hypothèses dans `interactif.js` : imprimante de 120 W, kWh à 40 F, à régler) ; « Créer » : règles de la recherche d'idées, cartes « Et si… », deux références ; « Mes essais » : protocole d'essai (champs `p1` à `p4`), graphique des lancers, étendue, conclusion « écart entre versions contre étendue des lancers », export CSV pour le tableur. Critère E renommé « Créativité et esthétique » (toujours 2 points) dans la page élève et dans `2si-planeur-notes.html`. Quatre lignes ajoutées aux étapes 2, 5 et 6.
 
+Le guide (23 novembre) : cadre bleu sous les onglets de la page planeur, visible partout. Il affiche l'étape en cours, la prochaine ligne non cochée des 47 lignes de `ETAPES`, un bouton « Y aller » (table `VA` : identifiant de la ligne → onglet et ancre ; rien = à faire en vrai dans la salle ; `tab` = tableau de bord, pour les séries) et « C'est fait », qui coche la ligne. Toute nouvelle ligne `C(...)` doit recevoir sa destination dans `VA`.
+
 ## 5. Ajouter du contenu
 
 Un fichier par groupe de séquences dans `contenu/` (ex. `1si-s3.js`, `tsi-s8.js`). Un module = un chapitre, avec `sequence` (regroupement à l'écran), `competences` (codes de `competences.js`), ses questions et ses mini-fiches :
