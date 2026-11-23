@@ -102,12 +102,23 @@ line.pc-o{stroke-linecap:round;fill:none;stroke-opacity:.75}
 .at-puces .at-co.on{box-shadow:0 0 0 3px var(--paper),0 0 0 5px var(--accent);border-color:transparent}
 #at-comp input[type=radio]{width:22px;height:22px;min-height:0;margin:0}
 .at-tuiles{grid-template-columns:repeat(2,1fr)}
+.at-carte{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 0 14px}
+#at-etsi{flex:1 1 260px;font-family:var(--f-disp);font-size:1.35rem;font-weight:600;line-height:1.2;padding:16px 18px;border-radius:10px;border:2px dashed var(--accent);background:var(--accent-soft);color:var(--ink)}
+.at-champ{display:block;width:100%;font:inherit;padding:6px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);margin-top:2px}
 .at-cons{list-style:none;padding:0;margin:0}
 .at-cons li{position:relative;padding:5px 0 5px 30px}
 .at-cons li::before{position:absolute;left:0;top:5px;width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:#fff;content:"✓";background:var(--good)}
 .at-cons li.ko::before{content:"✕";background:var(--bad)}.at-cons li.av::before{content:"!";background:var(--warn)}
 @media (max-width:820px){.at-duo{grid-template-columns:1fr}.at-colle{position:static}}
 @media print{body.impr-atelier main>*:not(#s-creer),body.impr-atelier .at-insp,body.impr-atelier .at-onglets{display:none!important}body.impr-atelier .at-duo{grid-template-columns:1fr}body.impr-atelier .at-colle{position:static}}
+.pl-cycle{list-style:none;counter-reset:cy;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:0;margin:12px 0}
+.pl-cycle li{counter-increment:cy;background:var(--paper-2);border:1px solid var(--rule-2);border-top:4px solid var(--accent);border-radius:var(--r);padding:8px 10px;font-size:.9rem}
+.pl-cycle li::before{content:counter(cy);display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:.8rem;align-items:center;justify-content:center;margin-right:6px}
+.pl-cycle b{font-family:var(--f-disp);font-size:1.02rem}.pl-cycle span{display:block;margin-top:4px;color:var(--ink-2)}
+@media (max-width:820px){.pl-cycle{grid-template-columns:1fr}}
+table.pl th.pl-pg{background:var(--accent);color:var(--accent-ink);text-align:left}
+.pl-prog td:first-child{width:46%}
+#g-essais svg{margin:10px 0 0;width:100%;max-width:640px}#g-essais ul{margin:.4em 0;padding-left:1.2em}
 /* ----- simulateur ----- */
 #s-sim{--sim-ciel:#e6f1fb;--sim-ciel2:#f6fafe;--sim-sol:#dfe9d3;--sim-herbe:#7fa861;--sim-aile:#f08c00;--sim-aile-b:#b56a00;--sim-grille:rgba(29,63,122,.10)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #s-sim{--sim-ciel:#14222f;--sim-ciel2:#101a24;--sim-sol:#1b2a1d;--sim-herbe:#4f7a45;--sim-aile:#f5a033;--sim-aile-b:#f5a033;--sim-grille:rgba(143,176,238,.14)}}
@@ -263,6 +274,38 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
       <tr><td class="n"><b>C7</b></td><td>Impression</td><td class="n">chaque pièce <b>à plat</b>, sans support</td><td>Rapide, et ça ne rate pas</td></tr>
       <tr><td class="n"><b>C8</b></td><td>Matière</td><td class="n">PLA, lest autorisé dans le nez</td><td>Une vis, de la pâte à fixe</td></tr>
     </table></div>
+  </div>
+
+  <div class="carte" id="vocab">
+    <h2 style="margin-top:0">Le vocabulaire de l'ingénieur</h2>
+    <p>Dix mots que tu vas utiliser pendant tout le projet, et le jour de la présentation.</p>
+    <div class="pl-scroll"><table class="pl">
+      <tr><th>Mot</th><th>Ce que ça veut dire</th><th>Dans notre projet</th></tr>
+      <tr><td><b>Besoin</b></td><td>Ce à quoi le produit doit servir</td><td>Un planeur lancé à la main, qui va le plus loin possible</td></tr>
+      <tr><td><b>Fonction</b></td><td>Ce que le produit doit faire</td><td>Planer, rester stable, résister au lancer</td></tr>
+      <tr><td><b>Exigence</b></td><td>Une fonction avec un chiffre qu'on peut vérifier</td><td>Masse de 30 g maximum, envergure de 210 mm maximum</td></tr>
+      <tr><td><b>Contrainte</b></td><td>Une limite imposée, qu'on ne choisit pas</td><td>La taille du plateau de l'imprimante, le PLA, trois pièces</td></tr>
+      <tr><td><b>Coût</b></td><td>Ce qu'il faut dépenser pour le faire</td><td>Le fil, l'électricité, le temps</td></tr>
+      <tr><td><b>Valeur</b></td><td>Ce qu'il apporte à celui qui s'en sert</td><td>Un planeur qui va loin, et qu'on reconnaît</td></tr>
+      <tr><td><b>Amélioration</b></td><td>On rend meilleur ce qui existe déjà</td><td>Ta version 2</td></tr>
+      <tr><td><b>Innovation de rupture</b></td><td>Une idée qui change la façon de faire</td><td>L'impression 3D : une pièce fabriquée sans moule ni outil</td></tr>
+      <tr><td><b>Maquette</b></td><td>Elle sert à montrer une idée et à en discuter</td><td>Ton dessin de l'onglet « Créer », ton modèle Onshape</td></tr>
+      <tr><td><b>Prototype</b>, puis <b>produit</b></td><td>Le premier objet réel, qu'on teste ; puis l'objet final</td><td>Ta version 1 ; puis le planeur du concours</td></tr>
+    </table></div>
+  </div>
+
+  <div class="carte" id="cout">
+    <h2 style="margin-top:0">Ce que coûte ton planeur, et ce qu'il devient</h2>
+    <p>Un ingénieur ne regarde pas seulement si son produit marche. Il regarde aussi ce qu'il <b>coûte</b> et ce qu'il laisse derrière lui. Voici la vie de ton planeur, du début à la fin : c'est son <b>cycle de vie</b>.</p>
+    <ol class="pl-cycle">
+      <li><b>La matière</b><span>Le PLA est un plastique fabriqué à partir d'amidon de plantes (maïs, canne à sucre).</span></li>
+      <li><b>Le transport</b><span>La bobine de fil est fabriquée loin d'ici, puis elle voyage jusqu'à Tahiti.</span></li>
+      <li><b>La fabrication</b><span>L'imprimante fait fondre le fil : elle consomme de l'électricité. À plat et sans support, presque rien n'est jeté.</span></li>
+      <li><b>L'utilisation</b><span>Aucune énergie : ton bras suffit.</span></li>
+      <li><b>La fin de vie</b><span>Le PLA ne se décompose pas dans un jardin : il lui faut une installation industrielle. Une pièce ratée est un déchet.</span></li>
+    </ol>
+    <div data-lab="cout"></div>
+    <p class="astuce"><b>À discuter en équipe :</b> à quelle étape ton planeur pèse-t-il le plus sur l'environnement ? Que deviennent les pièces ratées au lycée ? Que peux-tu faire pour imprimer moins ?</p>
   </div>
 
   <details class="carte no-print"><summary><b>Pour le professeur : fichiers à imprimer</b></summary>
@@ -574,6 +617,14 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 <!-- ============ MES ESSAIS ============ -->
 <section class="pl-sec" id="s-essais" hidden>
   <div class="carte pl-essais">
+    <h2 style="margin-top:0">Mon protocole d'essai</h2>
+    <p>Un <b>protocole</b>, c'est la recette de ton expérience : quelqu'un d'autre doit pouvoir refaire exactement les mêmes essais en le lisant. Écris-le <b>avant</b> le premier lancer.</p>
+    <p><label>Ce que je mesure :<br><input type="text" id="p1" placeholder="exemple : la distance entre la ligne de départ et le premier contact avec le sol"></label></p>
+    <p><label>Avec quel instrument, et à combien près :<br><input type="text" id="p2" placeholder="exemple : un décamètre, au centimètre près ; une balance, à 0,1 g près"></label></p>
+    <p><label>Ce qui reste identique à chaque lancer :<br><input type="text" id="p3" placeholder="exemple : le lanceur, la hauteur de la main, le geste, l'endroit, pas de vent"></label></p>
+    <p><label>Combien de lancers, et ce que je calcule :<br><input type="text" id="p4" placeholder="exemple : 3 lancers par version, puis la moyenne"></label></p>
+  </div>
+  <div class="carte pl-essais">
     <h2 style="margin-top:0">Carnet d'essais</h2>
     <p>Trois lancers par version, par le même lanceur et de la même façon. Le site calcule la moyenne, l'écart entre tes versions, et l'écart entre ce que le simulateur avait prévu et ce que tu as mesuré. <span class="discret">Le carnet est gardé sur cet appareil : imprime-le ou recopie-le pour le rendre.</span></p>
     <p><label>Équipe : <input type="text" id="equipe" style="width:16em;min-width:0" placeholder="noms des membres"></label> &nbsp; <label>Lanceur : <input type="text" id="cran" style="width:10em;min-width:0" placeholder="prénom"></label></p>
@@ -581,6 +632,8 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
       <tr><th>Version</th><th class="n">Masse (g)</th><th class="n">Lancer 1 (m)</th><th class="n">Lancer 2 (m)</th><th class="n">Lancer 3 (m)</th><th class="n">Moyenne</th><th class="n">Prévu par le simulateur (m)</th><th class="n">Écart prévu / mesuré</th><th>Ce que j'observe en vol</th></tr>
     </table></div>
     <p id="bilan" class="formule" hidden></p>
+    <div id="g-essais"></div>
+    <p class="no-print"><button class="btn sec" id="csv">Exporter mes mesures pour le tableur</button></p>
     <h3 style="margin-top:18px">Entre la version 1 et la version 2</h3>
     <p><label>La seule chose que je change :<br><input type="text" id="modif" placeholder="exemple : j'ajoute 2 g dans le nez"></label></p>
     <p><label>Pourquoi (ce que j'ai observé) :<br><input type="text" id="pourquoi" placeholder="exemple : la version 1 lève le nez puis tombe"></label></p>
@@ -625,6 +678,34 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <p>Pour chaque critère, le professeur te place sur un des quatre niveaux. Lis la colonne de droite : c'est ce qu'il faut viser.</p>
     <div class="pl-scroll"><table class="pl pl-niv" id="t-criteres"></table></div>
   </div>
+  <div class="carte" id="programme">
+    <h2 style="margin-top:0">Ce que tu apprends : le programme officiel</h2>
+    <p>Ce projet suit le programme de seconde des enseignements <b>Création et innovation technologiques (CIT)</b> et <b>Sciences de l'ingénieur (SI)</b>. Chaque compétence du programme a son activité ici.</p>
+    <div class="pl-scroll"><table class="pl pl-prog">
+      <tr><th>Compétence du programme</th><th>Où tu la travailles</th></tr>
+      <tr><th colspan="2" class="pl-pg">CIT · Mettre en œuvre une démarche de projet et de créativité</th></tr>
+      <tr><td>Travailler en équipe</td><td>« Les étapes » 2 : former l'équipe, document partagé. Critère F.</td></tr>
+      <tr><td>Sélectionner des références et des ressources documentaires</td><td>« Créer » : les six formes qui volent déjà, tes deux références.</td></tr>
+      <tr><td>S'initier au vocabulaire de l'innovation et de la créativité</td><td>« Le défi » : le vocabulaire de l'ingénieur.</td></tr>
+      <tr><td>Utiliser des méthodes de créativité</td><td>« Créer » : trois idées, les cartes « Et si… », les règles de la recherche d'idées.</td></tr>
+      <tr><td>Appréhender les méthodologies en design de produit</td><td>« Créer » : dessiner à l'échelle, forme, couleurs, nom.</td></tr>
+      <tr><td>Formuler des propositions et retenir les solutions les plus pertinentes</td><td>« Créer » : le tableau de comparaison et le choix justifié. Critère E.</td></tr>
+      <tr><td>Identifier les contraintes réglementaires, environnementales et économiques</td><td>« Le défi » : le cahier des charges, le coût et le cycle de vie.</td></tr>
+      <tr><td>Élaborer une solution innovante</td><td>« Missions Onshape » 7 et 8 : ta version 1 (prototype), puis le planeur du concours. Critère B.</td></tr>
+      <tr><th colspan="2" class="pl-pg">SI · Raisonner, pratiquer une démarche scientifique, expérimenter</th></tr>
+      <tr><td>Identifier un principe scientifique en rapport avec le fonctionnement d'un système</td><td>« Comprendre » : les sept notions et leurs figures. Séries notées. Critère A.</td></tr>
+      <tr><td>Simuler à partir d'un modèle donné</td><td>« Simulateur » : le vol prévu, un réglage à la fois.</td></tr>
+      <tr><td>Réaliser et matérialiser un support d'expérimentation</td><td>Le planeur imprimé, la ligne de départ, le décamètre.</td></tr>
+      <tr><td>Mettre au point un protocole expérimental</td><td>« Mes essais » : mon protocole d'essai.</td></tr>
+      <tr><td>Manipuler et expérimenter</td><td>« Les étapes » 1 et 6 : les lancers. Critère C.</td></tr>
+      <tr><td>Analyser les résultats obtenus (mesures, précision, écarts, tableur, graphique)</td><td>« Mes essais » : moyenne, étendue, écarts, graphique, export pour le tableur. Critère C.</td></tr>
+      <tr><th colspan="2" class="pl-pg">CIT et SI · Présenter et argumenter</th></tr>
+      <tr><td>Exprimer une réflexion, un principe, une idée, une solution technique</td><td>« Créer » : pourquoi je choisis cette idée. « Mes essais » : la modification et sa raison.</td></tr>
+      <tr><td>Utiliser des outils de communication (croquis, schémas, représentations numériques)</td><td>Le dessin de « Créer », le modèle Onshape, la fiche du planeur, le graphique.</td></tr>
+      <tr><td>Rendre compte, à l'écrit ou à l'oral, d'une analyse, d'une expérience, d'une recherche</td><td>Le carnet d'essais, et tes deux minutes devant la classe (dernière étape).</td></tr>
+    </table></div>
+    <p class="discret">Source : programme d'enseignement optionnel de CIT et de SI de seconde, Bulletin officiel spécial n° 1 du 22 janvier 2019. Thème : la mobilité, dans « les territoires et les produits intelligents », champ « matériaux et structures ».</p>
+  </div>
   <div class="carte">
     <h2 style="margin-top:0">Les trois séries notées du site</h2>
     <p>Elles sont sur ton tableau de bord, dans « Projet planeur ». Tu peux les refaire : les questions et les valeurs changent, et c'est ta <b>meilleure note</b> qui compte.</p>
@@ -654,6 +735,7 @@ const ETAPES = [
     B("equipe"),
     C("2a", "Chaque membre crée son compte Onshape (onglet « Missions Onshape », première partie)."),
     C("2b", "Un membre crée le document « Planeur – équipe … » et le partage avec les autres et avec le professeur."),
+    C("2d", "Lis « Le vocabulaire de l'ingénieur » dans l'onglet « Le défi ». Tu dois pouvoir dire le besoin, deux fonctions et deux exigences du planeur."),
     C("2c", "Chaque membre ouvre le document partagé sur son poste : tout le monde voit la même chose.") ] },
   { t: "Apprendre Onshape", img: "m2", but: "Les trois gestes de base, sur deux petites pièces.", items: [
     C("m1", "Mission 1 : la plaque de 60 × 20 × 5 mm (onglet « Missions Onshape »)."),
@@ -671,17 +753,20 @@ const ETAPES = [
     C("5j", "Donne un nom à ton planeur, et choisis ses couleurs."),
     C("m7", "Mission 7 : je duplique le planeur de départ, puis je le change une cote à la fois."),
     C("5s", "Entre les valeurs de ta version 1 dans l'onglet « Simulateur », règle le point d'équilibre, puis note la distance prévue dans ton carnet."),
+    C("5k", "Avec la masse de tes pièces, calcule ce que coûte ton planeur (onglet « Le défi », « Ce que coûte ton planeur »)."),
     C("4c", "Relève dans Onshape les dimensions et le volume de chaque pièce, puis remplis la fiche ci-dessous."),
     B("fiche"),
     C("4d", "Toutes les lignes de la fiche sont vertes."),
     C("4e", "Mission 8 : les trois fichiers STL sont exportés (millimètres) et envoyés au professeur.") ] },
   { t: "Essayer et mesurer", img: "mesure", but: "Savoir ce que vaut ta version 1, et décider quoi changer.", items: [
     C("5a", "Fais la série « Planeur 3 · Essayer, mesurer, améliorer »."),
+    C("5p", "Écris ton protocole d'essai dans « Mes essais », avant le premier lancer."),
     C("5b", "Monte ton planeur : aile et stabilisateur glissés dans les fentes, bien centrés."),
     C("5c", "Cherche son point d'équilibre sur un doigt. Il doit être sous l'aile, vers le premier tiers. S'il est plus en arrière, ajoute un peu de lest dans le nez. S'il est plus en avant, enlèves-en."),
     C("5d", "Pèse le planeur. Note la masse dans l'onglet « Mes essais »."),
     C("5e", "Trois lancers à la main depuis la ligne de départ, par le même lanceur. Note les trois distances dans « Mes essais »."),
     C("5f", "Décris le vol, puis choisis UNE seule modification avec le tableau « Lire le vol de ton planeur »."),
+    C("5q", "Regarde le graphique de tes lancers : sont-ils réguliers ? Note leur étendue."),
     C("5g", "Remplis les trois lignes « Entre la version 1 et la version 2 » dans « Mes essais ».") ] },
   { t: "Concevoir la version 2", img: "m7c", but: "Améliorer en changeant une seule chose.", items: [
     C("6s", "Teste d'abord ta modification dans le « Simulateur », en gardant la version 1 en gris. Note la distance prévue pour la version 2."),
@@ -702,7 +787,7 @@ const BAREME = [
   ["B", "Modèle Onshape", "Esquisses cotées, cahier des charges respecté, fichiers prêts à imprimer", 5],
   ["C", "Essais et amélioration", "Carnet d'essais, modification unique et justifiée, analyse du résultat", 4],
   ["D", "Performance", "Distance moyenne de ta meilleure version au concours", 2],
-  ["E", "Esthétique", "Forme soignée, proportions, finition, identité de l'équipe", 2],
+  ["E", "Créativité et esthétique", "Trois idées comparées, choix justifié, forme personnelle, finition, identité de l'équipe", 2],
   ["F", "Travail d'équipe", "Chacun participe, délais tenus, matériel respecté", 2]
 ];
 const CRITERES = [
@@ -712,7 +797,7 @@ const CRITERES = [
   ["C1 · Mesures", "Pas de mesures notées", "Mesures incomplètes, ou lancers pas comparables", "3 lancers par version, même lanceur et même geste, moyenne juste", "Mesures complètes, et la régularité des lancers est commentée"],
   ["C2 · Modification", "Aucune modification, ou tout changé d'un coup", "Une modification, sans raison donnée", "Une seule modification, justifiée par une observation du vol", "Une seule modification, justifiée, avec le résultat attendu annoncé avant l'essai"],
   ["C3 · Analyse", "Pas de conclusion", "« C'est mieux » ou « c'est moins bien », sans chiffre", "Écart entre les deux versions calculé et commenté", "Écart calculé, comparé à la variation entre lancers et à la prévision du simulateur, et suite proposée"],
-  ["E · Esthétique", "Pièces brutes : bavures, aile de travers", "Planeur propre, forme très simple (rectangles)", "Forme travaillée, proportions agréables, finition soignée", "Un vrai style : forme originale, nom ou signe de l'équipe, sans nuire au vol"],
+  ["E · Créativité et esthétique", "Copie du planeur de départ, pièces brutes", "Une seule idée, forme très simple, planeur propre", "Trois idées comparées et choix justifié ; forme travaillée, finition soignée", "Un vrai style : une référence transformée en forme originale, nom ou signe de l'équipe, sans nuire au vol"],
   ["F · Équipe", "Un seul membre travaille", "Travail inégal, retards", "Chacun a une part visible du travail, délais tenus", "Équipe autonome, qui aide aussi les autres"]
 ];
 const POINTS_NIVEAU = "Niveau 1 = 0 % des points du critère · niveau 2 = 40 % · niveau 3 = 75 % · niveau 4 = 100 %.";
@@ -795,9 +880,33 @@ function calcul() {
   const b = document.getElementById("bilan");
   if (M[0] != null && M[1] != null && M[0] > 0) { const ec = Math.abs(M[1] - M[0]) / M[0] * 100;
     b.hidden = false; b.textContent = `Version 2 : ${M[1] > M[0] ? "+" : M[1] < M[0] ? "−" : ""}${nbfr(Math.abs(M[1] - M[0]))} m par rapport à la version 1 · écart relatif ${nbfr(ec, 0)} %`; } else b.hidden = true;
+  graphe(M);
 }
+function lancers(i) { const e = D.essais[i] || {}; return [e.d1, e.d2, e.d3].map(parseFloat).filter((x) => isFinite(x) && x >= 0); }
+function graphe(M) {
+  const el = document.getElementById("g-essais"), S = VERSIONS.map((v, i) => lancers(i)), tout = [].concat(...S);
+  if (!tout.length) { el.innerHTML = ""; return; }
+  const W = 640, H = 250, y0 = 205, ymax = Math.max(1, Math.max(...tout) * 1.18), Y = (d) => y0 - d / ymax * 170, lg = 190;
+  let g = "", txt = [];
+  for (let k = 0; k <= 4; k++) { const d = ymax * k / 4; g += `<line x1="46" y1="${Y(d)}" x2="${W}" y2="${Y(d)}" stroke="currentColor" opacity=".18"/><text x="40" y="${Y(d) + 4}" font-size="12" text-anchor="end" fill="currentColor">${nbfr(d, 1)}</text>`; }
+  S.forEach((L, i) => { const x = 60 + i * lg; g += `<text x="${x + 75}" y="${y0 + 20}" font-size="14" font-weight="600" text-anchor="middle" fill="currentColor">${VERSIONS[i]}</text>`;
+    L.forEach((d, k) => { g += `<rect x="${x + k * 50}" y="${Y(d)}" width="40" height="${y0 - Y(d)}" rx="3" fill="var(--accent)" opacity=".8"/><text x="${x + k * 50 + 20}" y="${y0 - 8}" font-size="12.5" font-weight="700" text-anchor="middle" fill="#fff">${nbfr(d, 1)}</text>`; });
+    if (M[i] != null) { const et = Math.max(...L) - Math.min(...L);
+      g += `<line x1="${x - 6}" y1="${Y(M[i])}" x2="${x + 146}" y2="${Y(M[i])}" stroke="var(--bad)" stroke-width="2.5" stroke-dasharray="7 4"/><text x="${x + 150}" y="${Y(M[i]) + 4}" font-size="12" font-weight="700" fill="var(--bad)">moy.</text>`;
+      txt.push(`<li><b>${VERSIONS[i]}</b> : moyenne ${nbfr(M[i])} m. Entre le lancer le plus court et le plus long, il y a ${nbfr(et)} m : c'est l'<b>étendue</b>.</li>`); } });
+  let concl = "";
+  if (M[0] != null && M[1] != null) { const et = Math.max(Math.max(...S[0]) - Math.min(...S[0]), Math.max(...S[1]) - Math.min(...S[1])), ec = Math.abs(M[1] - M[0]);
+    concl = ec > et ? `<p class="astuce"><b>Tu peux conclure.</b> L'écart entre tes deux versions (${nbfr(ec)} m) est plus grand que l'étendue de tes lancers (${nbfr(et)} m) : la modification a bien un effet.</p>`
+      : `<p class="astuce"><b>Attention, tu ne peux pas encore conclure.</b> L'écart entre tes deux versions (${nbfr(ec)} m) n'est pas plus grand que l'étendue de tes lancers (${nbfr(et)} m) : la différence peut venir du lancer, pas du planeur. Refais des lancers, plus réguliers.</p>`; }
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Graphique des distances de chaque lancer, par version, avec la moyenne">${g}<line x1="46" y1="${y0}" x2="${W}" y2="${y0}" stroke="currentColor" stroke-width="1.5"/><text x="46" y="16" font-size="12" fill="currentColor">distance (m)</text></svg><ul>${txt.join("")}</ul>${concl}`;
+}
+document.getElementById("csv").onclick = () => {
+  const L = ["Version;Masse (g);Lancer 1 (m);Lancer 2 (m);Lancer 3 (m);Moyenne (m);Prevu par le simulateur (m);Observation"].concat(VERSIONS.map((v, i) => { const e = D.essais[i] || {}, m = moyenne(i), f = (x) => String(x == null ? "" : x).replace(".", ",").replace(/;/g, ",");
+    return [v, f(e.m), f(e.d1), f(e.d2), f(e.d3), m == null ? "" : nbfr(m), f(e.prev), f(e.obs)].join(";"); }));
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + L.join("\r\n")], { type: "text/csv;charset=utf-8" })); a.download = "essais-planeur.csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
 T.addEventListener("input", (ev) => { const el = ev.target; if (!el.dataset.k) return; (D.essais[el.dataset.v] = D.essais[el.dataset.v] || {})[el.dataset.k] = el.value; garder(); calcul(); });
-["equipe", "cran", "modif", "pourquoi", "attendu"].forEach((id) => { const el = document.getElementById(id); el.value = D[id] || ""; el.oninput = () => { D[id] = el.value; garder(); }; });
+["equipe", "cran", "modif", "pourquoi", "attendu", "p1", "p2", "p3", "p4"].forEach((id) => { const el = document.getElementById(id); el.value = D[id] || ""; el.oninput = () => { D[id] = el.value; garder(); }; });
 document.getElementById("raz").onclick = () => { if (confirm("Effacer tout le carnet d'essais et les étapes cochées sur cet appareil ?")) { try { localStorage.removeItem(CLE); } catch (e) { /* rien */ } location.reload(); } };
 calcul(); verifier();
 

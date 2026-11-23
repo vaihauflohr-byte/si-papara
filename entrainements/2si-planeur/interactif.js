@@ -156,6 +156,21 @@
     }
   };
 
+  LABS.cout = {
+    titre: "Calcule le coût de ton planeur",
+    c: [["m", "Masse imprimée (les trois pièces)", "g", 10, 30, 0.5, 23, 1], ["p", "Prix d'une bobine de 1 kg", "F", 2000, 6000, 100, 3500, 0], ["t", "Durée d'impression", "min", 20, 180, 5, 60, 0], ["n", "Nombre de versions imprimées", "", 1, 5, 1, 2, 0]],
+    rendu(v) {
+      const PW = 120, KWH = 40, fil = v.m / 1000 * v.p, wh = PW * v.t / 60, el = wh / 1000 * KWH, un = fil + el, tot = un * v.n, K = 560 / Math.max(tot, 1);
+      const svg = `<svg viewBox="0 0 640 150" role="img" aria-label="Coût total : ${fr(tot, 0)} francs, dont ${fr(fil * v.n, 0)} francs de fil et ${fr(el * v.n, 0)} francs d'électricité">
+        <rect x="40" y="48" width="${fil * v.n * K}" height="44" fill="#f08c00"/><rect x="${40 + fil * v.n * K}" y="48" width="${el * v.n * K}" height="44" fill="var(--accent)"/>
+        <text x="40" y="36" font-size="15" font-weight="700" fill="currentColor">fil : ${fr(fil * v.n, 0)} F</text><text x="600" y="36" font-size="15" font-weight="700" text-anchor="end" fill="currentColor">électricité : ${fr(el * v.n, 0)} F</text>
+        <text x="320" y="122" font-size="14" text-anchor="middle" fill="currentColor">${v.n} version${v.n > 1 ? "s" : ""} × ${fr(un, 0)} F = ${fr(tot, 0)} F · ${fr(v.m * v.n, 0)} g de plastique · ${fr(wh * v.n, 0)} Wh</text>
+      </svg>`;
+      return { svg, t: [["Fil pour un planeur", `${fr(v.m, 1)} g, soit ${fr(fil, 0)} F`], ["Électricité pour un planeur", `${fr(wh, 0)} Wh, soit ${fr(el, 0)} F`], ["Coût total", fr(tot, 0) + " F"], ["Plastique utilisé", fr(v.m * v.n, 0) + " g"]],
+        m: [v.n >= 4 ? "moyen" : "ok", `<b>La matière coûte peu : ${fr(un, 0)} F par planeur.</b> Ce qui coûte, c'est le temps : le tien, et celui de l'imprimante (${fr(v.t * v.n / 60, 1)} h pour ${v.n} version${v.n > 1 ? "s" : ""}). ${v.n >= 4 ? "Beaucoup de versions : teste d'abord dans le simulateur, tu imprimeras moins." : "Chaque version testée dans le simulateur avant d'être imprimée, c'est du plastique et du temps gagnés."} <span class="lab-note">Calcul fait avec une imprimante de 120 W et un kWh à 40 F : demande les vraies valeurs à ton professeur.</span>`] };
+    }
+  };
+
   function monter(el) {
     const L = LABS[el.dataset.lab]; if (!L) return; const v = {}; L.c.forEach((c) => (v[c[0]] = c[6]));
     el.classList.add("lab");

@@ -19,6 +19,7 @@
     ["Le poisson volant (mārara)", "Des ailes larges et rondes, comme des nageoires.", "Facile à lancer, vol lent. Moins de finesse qu'une aile étroite.", { b: 180, c0: 55, k: 0.55, fl: 0, rond: 1, sb: 90, sc: 26, sk: 0.6, der: "ronde", nez: "rond" }]
   ];
 
+  const CARTES = ["Et si ton aile n'avait aucun angle droit ?", "Et si ton planeur ressemblait à un animal de chez nous ?", "Et si on le reconnaissait à 20 m, rien qu'à sa forme ?", "Et si tu enlevais tout ce qui ne sert à rien ?", "Et si la dérive était la signature de ton équipe ?", "Et si tu mélangeais deux idées de ton équipe ?", "Et si l'aile était la plus longue possible ?", "Et si l'aile était la plus solide possible ?", "Et si ton planeur portait le nom d'un oiseau, d'un vent ou d'un lieu de Tahiti ?", "Et si tu faisais l'inverse de ta première idée ?", "Et si ton planeur devait plaire à un enfant de 6 ans ?", "Et si chaque membre de l'équipe dessinait une idée, sans regarder les autres ?"];
   let A; try { A = JSON.parse(localStorage.getItem(CLE)); } catch (e) { A = null; }
   if (!A || !Array.isArray(A.idees) || A.idees.length !== 3) A = { n: 0, choisi: null, pourquoi: "", idees: [0, 1, 2].map(() => Object.assign({}, BASE)) };
   A.idees = A.idees.map((d) => Object.assign({}, BASE, d));
@@ -89,6 +90,13 @@
       <p class="discret" style="margin-top:0">Touche une carte pour partir de cette forme dans l'idée en cours. Puis transforme-la : une copie exacte n'est pas une création.</p>
       <div class="at-insp">${IDEES.map((x, i) => `<button type="button" data-insp="${i}"><svg viewBox="0 0 230 190" aria-hidden="true">${dessus(Object.assign({}, BASE, x[3]), 1, 10, 95)}</svg><b>${x[0]}</b><span>${x[1]}</span><em>${x[2]}</em></button>`).join("")}</div>
     </div>
+    <div class="carte"><h2 style="margin-top:0">Une méthode quand on n'a pas d'idée</h2>
+      <p><b>Les règles de la recherche d'idées</b>, celles des bureaux d'études : on ne critique aucune idée pendant la recherche, on en cherche beaucoup, on rebondit sur celles des autres. Le tri vient après.</p>
+      <div class="at-carte"><div id="at-etsi" aria-live="polite">Bloqué ? Tire une carte.</div><button type="button" class="btn" id="at-tirer">Tirer une carte « Et si… »</button></div>
+      <p style="margin-bottom:.2em"><b>Mes deux références</b> : d'où vient ton idée, et ce que tu lui empruntes.</p>
+      <p><label>Référence 1<input type="text" id="at-ref1" class="at-champ" placeholder="exemple : la frégate, pour ses ailes longues et pointues"></label></p>
+      <p><label>Référence 2<input type="text" id="at-ref2" class="at-champ" placeholder="exemple : un planeur de compétition vu en photo, pour son aile étroite"></label></p>
+    </div>
     <div class="at-onglets" role="tablist">${["A", "B", "C"].map((l, i) => `<button type="button" role="tab" data-idee="${i}">Idée ${l}</button>`).join("")}<button type="button" class="at-raz" id="at-raz">Repartir du planeur de départ</button></div>
     <div class="at-duo"><div class="carte at-colle"><div id="at-dessin"></div><div class="at-tuiles" id="at-tuiles"></div></div>
       <div><div class="carte at-bloc"><h3>Son nom</h3><label>Nom du planeur<input type="text" id="at-nom" maxlength="22" placeholder="exemple : Mārara 2"></label><label>Sa devise, ou le nom de l'équipe<input type="text" id="at-devise" maxlength="40" placeholder="exemple : plus loin que le récif"></label></div>
@@ -114,7 +122,7 @@
     CURS.forEach((g) => g[1].forEach((p) => { racine.querySelector(`[data-o="${p[0]}"]`).textContent = val(p[0], d[p[0]]) + " " + p[2]; if (tout) racine.querySelector(`[data-k="${p[0]}"]`).value = d[p[0]]; }));
     $("at-rond").innerHTML = `<button type="button" data-ch="rond" data-v="0" class="${d.rond ? "" : "on"}">Droits</button><button type="button" data-ch="rond" data-v="1" class="${d.rond ? "on" : ""}">Arrondis</button>`;
     $("at-nez").innerHTML = puces("nez", NEZ, d); $("at-der").innerHTML = puces("der", DER, d); $("at-cf").innerHTML = couleurs("cf", d); $("at-ca").innerHTML = couleurs("ca", d);
-    if (tout) { $("at-nom").value = d.nom; $("at-devise").value = d.devise; $("at-pourquoi").value = A.pourquoi || ""; }
+    if (tout) { $("at-ref1").value = A.ref1 || ""; $("at-ref2").value = A.ref2 || ""; $("at-nom").value = d.nom; $("at-devise").value = d.devise; $("at-pourquoi").value = A.pourquoi || ""; }
     racine.querySelectorAll("[data-idee]").forEach((b) => { const i = +b.dataset.idee; b.setAttribute("aria-selected", i === A.n); b.textContent = "Idée " + "ABC"[i] + (A.choisi === i ? " ★" : ""); });
     const li = (t, f) => `<tr><td>${t}</td>${A.idees.map((x, i) => `<td class="n">${f(x, calc(x), i)}</td>`).join("")}</tr>`;
     $("at-comp").innerHTML = `<tr><th></th>${A.idees.map((x, i) => `<th class="n">Idée ${"ABC"[i]}${x.nom ? "<br>" + esc(x.nom) : ""}</th>`).join("")}</tr>`
@@ -128,12 +136,13 @@
   racine.addEventListener("input", (ev) => { const t = ev.target, d = A.idees[A.n];
     if (t.dataset.k) { d[t.dataset.k] = parseFloat(t.value); maj(); }
     else if (t.id === "at-nom") { d.nom = t.value; maj(); } else if (t.id === "at-devise") { d.devise = t.value; maj(); }
-    else if (t.id === "at-pourquoi") { A.pourquoi = t.value; garder(); } });
+    else if (t.id === "at-pourquoi") { A.pourquoi = t.value; garder(); } else if (t.id === "at-ref1" || t.id === "at-ref2") { A[t.id.slice(3)] = t.value; garder(); } });
   racine.addEventListener("change", (ev) => { if (ev.target.dataset.choix != null) { A.choisi = +ev.target.dataset.choix; maj(); } });
   racine.addEventListener("click", (ev) => { const d = A.idees[A.n];
     const ch = ev.target.closest("[data-ch]"); if (ch) { d[ch.dataset.ch] = ch.dataset.ch === "rond" ? +ch.dataset.v : ch.dataset.v; return maj(); }
     const id = ev.target.closest("[data-idee]"); if (id) { A.n = +id.dataset.idee; return maj(true); }
     const insp = ev.target.closest("[data-insp]"); if (insp) { A.idees[A.n] = Object.assign({}, BASE, { nom: d.nom, devise: d.devise, cf: d.cf, ca: d.ca }, IDEES[+insp.dataset.insp][3]); maj(true); return $("at-dessin").scrollIntoView({ block: "center", behavior: "smooth" }); }
+    if (ev.target.id === "at-tirer") { let i; do { i = Math.floor(Math.random() * CARTES.length); } while (CARTES[i] === $("at-etsi").textContent); $("at-etsi").textContent = CARTES[i]; return; }
     if (ev.target.id === "at-raz") { A.idees[A.n] = Object.assign({}, BASE, { nom: d.nom, devise: d.devise, cf: d.cf, ca: d.ca }); return maj(true); }
     if (ev.target.id === "at-impr") { document.body.classList.add("impr-atelier"); window.print(); return setTimeout(() => document.body.classList.remove("impr-atelier"), 500); }
     if (ev.target.id === "at-sim") { const c = calc(d), env = { env: d.b, corde: Math.round(c.cm), envS: d.sb, cordeS: Math.round(d.sc * (1 + d.sk) / 2), m: Math.round((c.m + LEST) * 10) / 10 };
