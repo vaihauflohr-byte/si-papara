@@ -207,6 +207,78 @@ window.SIP = window.SIP || {};
     "Deux façons de transformer une rotation en translation : le pignon qui roule sur une crémaillère, et la vis qui fait avancer un écrou d'un pas par tour");
 
   // =============================================================== meca-cinematique
+  // ============================================================ figures des « Cherche avec moi »
+  // Chaque question montre de quoi elle parle : les points nommés, les distances, les vitesses, le graphe décrit.
+  const figQ = (f) => f.replace("<figure>", '<figure style="margin:12px auto 4px;max-width:min(100%,560px)">').replace("<svg ", '<svg style="width:100%;height:auto;display:block" ');
+  const TM = (x, y, t, o) => T(x, y, t, ' text-anchor="middle"' + (o || ' font-size="12"'));
+  const GRAS = ' font-size="13" font-weight="600"';
+  const VERT = ' font-size="13" font-weight="600" fill="var(--good)"', ACC = ' font-size="13" font-weight="600" fill="var(--accent)"';
+  // véhicule vu de côté : une caisse et deux roues ; (x, y) = coin bas gauche, posé sur le sol
+  const veh = (x, y, w, h, op) => `<g opacity="${op == null ? 1 : op}"><rect x="${x}" y="${y - h - 10}" width="${w}" height="${h}" rx="6" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="1.5"/>
+    <circle cx="${x + w * 0.24}" cy="${y - 9}" r="9" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.5"/><circle cx="${x + w * 0.76}" cy="${y - 9}" r="9" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.5"/></g>`;
+  // cote horizontale de x1 à x2, à la hauteur y, texte dessous
+  const cote = (x1, x2, y, t, o) => `${L(x1, y, x2, y, ' stroke-width="1"')}${L(x1, y - 5, x1, y + 5, ' stroke-width="1"')}${L(x2, y - 5, x2, y + 5, ' stroke-width="1"')}${TM((x1 + x2) / 2, y + 16, t, o)}`;
+
+  // le bras de levage : pivot B sur le châssis, extrémité I ; traj = vrai pour montrer la réponse
+  const brasRobot = (traj) => svg(460, 262, `
+    ${sol(20, 440, 225)}${veh(70, 225, 170, 44)}
+    ${traj ? `<path d="M330 168 A130 130 0 0 0 70 168" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-dasharray="7 5"/>${TM(200, 26, "I décrit un cercle de centre B et de rayon BI", ACC)}` : ""}
+    <line x1="200" y1="168" x2="306.5" y2="93.4" stroke="currentColor" stroke-width="7" stroke-linecap="round" opacity=".5"/>
+    <circle cx="200" cy="168" r="6" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="2"/><circle cx="306.5" cy="93.4" r="5" fill="var(--accent)"/>
+    ${T(188, 160, "B", ' text-anchor="end"' + GRAS)}${T(317, 91, "I", GRAS)}${T(262, 152, "bras", G3)}
+    ${traj ? "" : `${ARC(200, 168, 80, 47, 84)}${T(250, 78, "le bras tourne autour de B", ACC)}`}
+    ${AR(84, 248, 176, 248, "var(--good)")}${T(186, 252, traj ? "châssis : translation rectiligne, des segments" : "le châssis roule tout droit", ' font-size="12" font-weight="600" fill="var(--good)"')}`,
+    traj ? "Le point I décrit un cercle de centre B et de rayon BI ; le châssis est en translation rectiligne" : "Un robot vu de côté : le bras de levage est articulé en B sur le châssis, son extrémité est le point I");
+  const figQBras = figQ(brasRobot(false)), figRBras = figQ(brasRobot(true));
+  const figQBus = figQ(svg(460, 160, `
+    ${sol(20, 440, 115)}${veh(30, 115, 110, 46)}
+    ${L(400, 115, 400, 62, ' stroke-width="3"')}<rect x="391" y="22" width="18" height="42" rx="4" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.5"/><circle cx="400" cy="31" r="4.5" fill="var(--bad,#c9483b)"/><circle cx="400" cy="43" r="4.5" fill="none" stroke="currentColor"/><circle cx="400" cy="55" r="4.5" fill="none" stroke="currentColor"/>
+    ${AR(60, 44, 150, 44, "var(--good)")}${TM(105, 34, "50 km/h", VERT)}${TM(400, 14, "feu", G3)}
+    ${cote(140, 400, 138, "100 m")}`,
+    "Un bus roule à 50 km/h, le feu est 100 m devant lui"));
+  // deux instants d'un même mobile : départ à gauche, arrivée à droite
+  const deuxInstants = (y, dessin, t1, v1, t2, v2) => `${sol(20, 440, y)}${dessin(40, y, 0.4)}${dessin(300, y)}
+    ${TM(86, y + 24, t1)}${TM(86, y + 40, v1, GRAS)}${TM(346, y + 24, t2)}${TM(346, y + 40, v2, GRAS)}
+    ${AR(160, y - 34, 280, y - 34)}${TM(220, y - 44, "a = ?", ACC)}`;
+  const figQAccel = figQ(svg(460, 250, `
+    ${deuxInstants(70, (x, y, op) => veh(x, y, 92, 34, op), "t = 0", "0 km/h", "t = 5,0 s", "45 km/h")}${T(22, 16, "le scooter", GRAS)}
+    ${deuxInstants(195, robot, "t = 0", "0 m/s", "t = 0,40 s", "0,50 m/s")}${T(22, 140, "le robot", GRAS)}`,
+    "Le scooter passe de 0 à 45 km/h en 5,0 s ; le robot passe de 0 à 0,50 m/s en 0,40 s"));
+  const figQMetro = figQ(svg(470, 215, `
+    ${axes(50, 170, 400, 150, "t (s)", "v (km/h)")}
+    <polyline points="50,170 70,60 370,60 410,170" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linejoin="round"/>
+    ${L(50, 60, 70, 60, DASH)}${L(70, 60, 70, 170, DASH)}${L(370, 60, 370, 170, DASH)}
+    ${T(44, 64, "55", ' text-anchor="end" font-size="12"')}${TM(50, 186, "0")}${TM(70, 186, "10")}${TM(370, 186, "160")}${TM(410, 186, "180")}
+    ${TM(58, 40, "①", ACC)}${TM(220, 50, "②", ACC)}${TM(396, 40, "③", ACC)}`,
+    "Vitesse de la rame de métro : elle monte en ligne droite de 0 à 10 s, reste à 55 km/h jusqu'à 160 s, puis descend en ligne droite jusqu'à 0 à 180 s"));
+  const figQDrone = figQ(svg(460, 120, `
+    <g stroke="currentColor" stroke-width="1.6"><rect x="46" y="44" width="34" height="12" rx="3" fill="currentColor" fill-opacity=".2"/><line x1="36" y1="38" x2="58" y2="38"/><line x1="68" y1="38" x2="90" y2="38"/><line x1="47" y1="38" x2="52" y2="44"/><line x1="79" y1="38" x2="74" y2="44"/></g>
+    ${L(96, 50, 396, 50, DASH)}${AR(110, 28, 200, 28, "var(--good)")}${TM(155, 18, "36 km/h", VERT)}
+    <circle cx="404" cy="50" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/>${TM(404, 34, "arrivée", G3)}
+    ${cote(63, 404, 82, "1,5 km")}`,
+    "Un drone vole en ligne droite à 36 km/h sur 1,5 km"));
+  // freinage jusqu'à l'arrêt : vitesse vers l'avant, accélération vers l'arrière, distance à trouver
+  const freinage = (v, a, note, alt) => figQ(svg(460, 170, `
+    ${sol(20, 440, 115)}${veh(30, 115, 96, 38)}${veh(318, 115, 96, 38, 0.35)}
+    ${AR(50, 40, 130, 40, "var(--good)")}${TM(90, 30, v, VERT)}${AR(130, 58, 50, 58)}${TM(196, 62, a, ACC)}
+    ${TM(366, 56, "arrêt : v = 0", G3)}
+    ${cote(126, 414, 138, "distance de freinage ?")}${note ? TM(270, 168, note, G3) : ""}`, alt));
+  const figQFreinAuto = freinage("30 km/h", "a = −6,9 m/s²", "le constructeur annonce 5,1 m", "Un véhicule freine depuis 30 km/h avec une accélération de −6,9 m/s² jusqu'à l'arrêt");
+  const figQFreinCapsule = freinage("60 km/h", "a = −2 m/s²", "", "Une capsule freine depuis 60 km/h avec une accélération de −2 m/s² jusqu'à l'arrêt");
+  const figQPointage = figQ(svg(460, 165, `
+    ${AR(24, 112, 446, 112, "currentColor", 1.4)}${T(446, 104, "x", ' text-anchor="end" font-size="12"')}
+    ${robot(84, 104, 0.4)}${robot(264, 104)}
+    ${L(130, 106, 130, 118)}${L(310, 106, 310, 118)}
+    ${TM(130, 134, "x = 0,313 m", GRAS)}${TM(130, 152, "à t = 0,7 s")}${TM(310, 134, "x = 0,421 m", GRAS)}${TM(310, 152, "à t = 0,8 s")}
+    ${AR(160, 40, 250, 40, "var(--good)")}${TM(205, 30, "v = ?", VERT)}`,
+    "Deux pointages du robot : 0,313 m à 0,7 s et 0,421 m à 0,8 s"));
+  const figQRoue60 = figQ(svg(460, 185, `
+    ${sol(20, 440, 135)}<circle cx="90" cy="95" r="40" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.8"/><circle cx="90" cy="95" r="3.5" fill="currentColor"/>
+    ${L(50, 95, 130, 95, DASH)}${TM(90, 88, "Ø 60 mm", ' font-size="11"')}${ARC(90, 95, 52, 150, 60)}${T(40, 36, "200 tr/min", ACC)}
+    ${AR(150, 95, 230, 95, "var(--good)")}${TM(190, 85, "v = ?", VERT)}
+    ${cote(90, 420, 156, "1,20 m à traverser : combien de tours ?")}`,
+    "Une roue de 60 mm de diamètre tourne à 200 tr/min ; le robot doit traverser 1,20 m"));
+
   C["meca-cinematique"] = {
     titre: "Cinématique : décrire un mouvement", sous: "Position, vitesse, accélération ; lire une courbe v(t) ; les trois lois de mouvement ; la roue qui roule.",
     objectifs: ["Reconnaître une translation et une rotation, et donner la trajectoire d'un point (segment, cercle de centre O et de rayon OA).",
@@ -223,53 +295,53 @@ window.SIP = window.SIP || {};
         <ul><li><b>Translation</b> : la pièce garde son orientation, tous ses points ont la <b>même vitesse</b>. Rectiligne si les trajectoires sont des segments.</li>
         <li><b>Rotation</b> autour d'un axe fixe : chaque point décrit un <b>cercle</b> centré sur l'axe ; tous ont la même vitesse angulaire ω, mais plus un point est loin de l'axe, plus il va vite.</li></ul>
         <div class="retenir">Trajectoire d'un point = la trace de ses positions : « segment de droite » ou « cercle de centre O et de rayon OA ». Le centre et le rayon font partie de la réponse.</div>`,
-        q: "Le bras de levage d'un robot anti-incendie tourne autour du point B (liaison pivot). Quelle est la trajectoire de l'extrémité I du bras ? Et celle du châssis du robot quand il roule tout droit ?", r: `<p>I décrit un <b>cercle de centre B et de rayon BI</b> (le bras est en rotation autour de B). Le châssis qui roule tout droit est en <b>translation rectiligne</b> : chaque point décrit un segment de droite, et tous les points ont la même vitesse.</p>` },
+        q: "Le bras de levage d'un robot anti-incendie tourne autour du point B (liaison pivot). Quelle est la trajectoire de l'extrémité I du bras ? Et celle du châssis du robot quand il roule tout droit ?" + figQBras, r: `<p>I décrit un <b>cercle de centre B et de rayon BI</b> (le bras est en rotation autour de B). Le châssis qui roule tout droit est en <b>translation rectiligne</b> : chaque point décrit un segment de droite, et tous les points ont la même vitesse.</p>${figRBras}` },
       { t: "La vitesse : des mètres par seconde", html: `<p>La vitesse dit de combien la position change à chaque seconde :</p>
         ${F("v = " + fr("Δx", "Δt") + " = " + fr("distance parcourue", "durée") + " &nbsp;&nbsp;en m/s")}
         <p>Les sujets donnent souvent des <b>km/h</b>. Avant tout calcul, on passe en m/s : 1 km = 1 000 m et 1 h = 3 600 s, donc on <b>divise par 3,6</b>.</p>
         ${F("v (m/s) = " + fr("v (km/h)", "3,6") + " &nbsp;&nbsp;·&nbsp;&nbsp; 36 km/h = " + fr("36", "3,6") + " = 10 m/s")}
         <div class="piege">Dans l'autre sens, m/s → km/h, on <b>multiplie</b> par 3,6 : 0,50 m/s = 1,8 km/h. Un robot sumo marche au pas.</div>`,
-        q: "Un bus roule à 50 km/h et se trouve à 100 m d'un feu. Vitesse en m/s ? Temps pour arriver au feu s'il ne ralentit pas ?", r: `<p>v = ${fr("50", "3,6")} = <b>13,9 m/s</b>. Durée : t = ${fr("d", "v")} = ${fr("100", "13,9")} = <b>7,20 s</b>. Au bac 2021, le système avait moins de 4 s pour prévenir le piéton : il a 7,20 s avant le feu, c'est bon.</p><p class="discret">Règle de la classe : on calcule avec les valeurs non arrondies (100 sur 13,888…) et on arrondit le résultat final à 3 chiffres.</p>` },
+        q: "Un bus roule à 50 km/h et se trouve à 100 m d'un feu. Vitesse en m/s ? Temps pour arriver au feu s'il ne ralentit pas ?" + figQBus, r: `<p>v = ${fr("50", "3,6")} = <b>13,9 m/s</b>. Durée : t = ${fr("d", "v")} = ${fr("100", "13,9")} = <b>7,20 s</b>. Au bac 2021, le système avait moins de 4 s pour prévenir le piéton : il a 7,20 s avant le feu, c'est bon.</p><p class="discret">Règle de la classe : on calcule avec les valeurs non arrondies (100 sur 13,888…) et on arrondit le résultat final à 3 chiffres.</p>` },
       { t: "L'accélération : la vitesse change", html: `<p>L'accélération dit de combien la <b>vitesse</b> change à chaque seconde :</p>
         ${F("a = " + fr("Δv", "Δt") + " = " + fr("vitesse finale − vitesse de départ", "durée") + " &nbsp;&nbsp;en m/s²")}
         <p>a = 2 m/s² veut dire : <b>chaque seconde, la vitesse gagne 2 m/s</b>. Si la vitesse diminue (freinage), a est <b>négative</b>.</p>
         <p>Ordres de grandeur : un scooter qui démarre, 2 à 3 m/s² ; une voiture qui freine fort, −7 m/s² ; la chute libre, g = 9,81 m/s² ; notre robot sumo, 1 à 3 m/s².</p>`,
-        q: "Un scooter passe de 0 à 45 km/h en 5,0 s. Son accélération moyenne ? Et celle du robot qui passe de 0 à 0,50 m/s en 0,40 s ?", r: `<p>Scooter : 45 km/h = ${fr("45", "3,6")} = 12,5 m/s ; a = ${fr("12,5 − 0", "5,0")} = <b>2,50 m/s²</b>.<br>Robot : a = ${fr("0,50", "0,40")} = <b>1,25 m/s²</b>. Le robot accélère moins fort que le scooter, mais il atteint sa vitesse de pointe en moins d'une demi-seconde.</p>` },
+        q: "Un scooter passe de 0 à 45 km/h en 5,0 s. Son accélération moyenne ? Et celle du robot qui passe de 0 à 0,50 m/s en 0,40 s ?" + figQAccel, r: `<p>Scooter : 45 km/h = ${fr("45", "3,6")} = 12,5 m/s ; a = ${fr("12,5 − 0", "5,0")} = <b>2,50 m/s²</b>.<br>Robot : a = ${fr("0,50", "0,40")} = <b>1,25 m/s²</b>. Le robot accélère moins fort que le scooter, mais il atteint sa vitesse de pointe en moins d'une demi-seconde.</p>` },
       { t: "Lire la courbe v(t) : pente et aire", html: `${figPenteAire}
         <ul><li>La <b>pente</b> de v(t) est l'accélération : droite qui monte → a &gt; 0 (accélère) ; horizontale → a = 0 (vitesse constante, mouvement <b>uniforme</b>) ; droite qui descend → a &lt; 0 (freine).</li>
         <li>L'<b>aire</b> entre la courbe et l'axe du temps est la <b>distance parcourue</b> (vitesse × durée, morceau par morceau).</li></ul>
         <div class="retenir">Pour nommer un mouvement : la trajectoire (rectiligne, circulaire) + la vitesse (uniforme si constante, uniformément accéléré ou décéléré si la pente est constante).</div>`,
-        q: "Une rame de métro : v(t) monte en droite de 0 à 10 s, reste à 55 km/h de 10 à 160 s, descend en droite jusqu'à 0 à 180 s. Nature du mouvement dans chaque phase ?", r: `<p>Phase 1 (0 à 10 s) : <b>rectiligne uniformément accéléré</b>. Phase 2 (10 à 160 s) : <b>rectiligne uniforme</b>. Phase 3 (160 à 180 s) : <b>rectiligne uniformément décéléré</b>. (Bac 2022, question posée mot pour mot.)</p>` },
+        q: "Une rame de métro : v(t) monte en droite de 0 à 10 s, reste à 55 km/h de 10 à 160 s, descend en droite jusqu'à 0 à 180 s. Nature du mouvement dans chaque phase ?" + figQMetro, r: `<p>Phase 1 (0 à 10 s) : <b>rectiligne uniformément accéléré</b>. Phase 2 (10 à 160 s) : <b>rectiligne uniforme</b>. Phase 3 (160 à 180 s) : <b>rectiligne uniformément décéléré</b>. (Bac 2022, question posée mot pour mot.)</p>` },
       { t: "Loi 1 : vitesse constante", html: `<p>Mouvement <b>uniforme</b> : v ne change pas, a = 0. La distance grandit proportionnellement au temps :</p>
         ${F("x = v·t &nbsp;&nbsp;&nbsp;(+ x<sub>0</sub> si on ne part pas de l'origine)")}
         <p>Sur v(t) : une horizontale, et l'aire est un <b>rectangle</b> v × t. Sur x(t) : une <b>droite</b> de pente v.</p>
         <p>C'est la loi des trajets « de croisière » : un palier de robot, une capsule à 60 km/h, un drone en ligne droite.</p>`,
-        q: "Un drone de livraison parcourt 1,5 km en ligne droite à 36 km/h. Durée du trajet en secondes ?", r: `<p>v = ${fr("36", "3,6")} = 10 m/s et d = 1 500 m : t = ${fr("d", "v")} = ${fr("1 500", "10")} = <b>150 s</b> (2 min 30 s). Les deux conversions d'abord, la formule ensuite.</p>` },
+        q: "Un drone de livraison parcourt 1,5 km en ligne droite à 36 km/h. Durée du trajet en secondes ?" + figQDrone, r: `<p>v = ${fr("36", "3,6")} = 10 m/s et d = 1 500 m : t = ${fr("d", "v")} = ${fr("1 500", "10")} = <b>150 s</b> (2 min 30 s). Les deux conversions d'abord, la formule ensuite.</p>` },
       { t: "Loi 2 : accélération constante", html: `<p>Mouvement <b>uniformément varié</b> : a ne change pas. Alors la vitesse est une droite et la position une parabole :</p>
         ${F("v = a·t + v<sub>0</sub> &nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp; x = ½·a·t² + v<sub>0</sub>·t")}
         <p>v<sub>0</sub> est la vitesse au départ de la phase. Départ arrêté : v<sub>0</sub> = 0, donc v = a·t et x = ½·a·t².</p>
         <p>Pour un <b>freinage</b>, a est négative et on cherche souvent l'instant où v = 0 : t = ${fr("v<sub>0</sub>", "|a|")}, puis la distance de freinage.</p>
         <div class="piege">½·a·t² : c'est t qui est au carré, pas a. Et v<sub>0</sub> en m/s, jamais en km/h.</div>`,
-        q: "Un véhicule autonome freine depuis 30 km/h avec a = −6,9 m/s². Au bout de combien de temps s'arrête-t-il, et sur quelle distance ? Le constructeur annonce 5,1 m : cohérent ?", r: `<p>v<sub>0</sub> = ${fr("30", "3,6")} = 8,33 m/s. Arrêt quand v = 0 : t = ${fr("8,33", "6,9")} = <b>1,21 s</b>.<br>Distance : x = ½ × (−6,9) × 1,21² + 8,33 × 1,21 = −5,03 + 10,06 = <b>5,03 m</b> (ou, aire du triangle : ½ × 8,33 × 1,21 = 5,03 m).<br>5,03 m ≈ 5,1 m : <b>cohérent</b> (bac 2021, Rouen).</p>` },
+        q: "Un véhicule autonome freine depuis 30 km/h avec a = −6,9 m/s². Au bout de combien de temps s'arrête-t-il, et sur quelle distance ? Le constructeur annonce 5,1 m : cohérent ?" + figQFreinAuto, r: `<p>v<sub>0</sub> = ${fr("30", "3,6")} = 8,33 m/s. Arrêt quand v = 0 : t = ${fr("8,33", "6,9")} = <b>1,21 s</b>.<br>Distance : x = ½ × (−6,9) × 1,21² + 8,33 × 1,21 = −5,03 + 10,06 = <b>5,03 m</b> (ou, aire du triangle : ½ × 8,33 × 1,21 = 5,03 m).<br>5,03 m ≈ 5,1 m : <b>cohérent</b> (bac 2021, Rouen).</p>` },
       { t: "Le profil en trapèze", html: `<p>Un déplacement réel a trois phases : on <b>accélère</b>, on roule à <b>vitesse maximale</b>, on <b>freine</b>. Sur v(t) ça dessine un <b>trapèze</b>.</p>
         ${figTrapeze}
         <p>La distance totale est l'<b>aire du trapèze</b> : deux triangles (½ × base × hauteur) et un rectangle. On la calcule <b>phase par phase</b>, jamais avec « v<sub>max</sub> × durée totale ».</p>`,
-        q: "Une capsule Urbanloop roule à 60 km/h puis décélère à −2 m/s² jusqu'à l'arrêt. Durée du freinage ? Distance parcourue pendant le freinage ?", r: `<p>v<sub>0</sub> = ${fr("60", "3,6")} = 16,7 m/s. t = ${fr("16,7", "2")} = <b>8,33 s</b>. Distance = aire du triangle = ½ × 16,7 × 8,33 = <b>69,4 m</b>. (Bac 2024 : avec 25 m parcourus avant le freinage, 94,4 m &lt; 100 m, exigence respectée.)</p>` },
+        q: "Une capsule Urbanloop roule à 60 km/h puis décélère à −2 m/s² jusqu'à l'arrêt. Durée du freinage ? Distance parcourue pendant le freinage ?" + figQFreinCapsule, r: `<p>v<sub>0</sub> = ${fr("60", "3,6")} = 16,7 m/s. t = ${fr("16,7", "2")} = <b>8,33 s</b>. Distance = aire du triangle = ½ × 16,7 × 8,33 = <b>69,4 m</b>. (Bac 2024 : avec 25 m parcourus avant le freinage, 94,4 m &lt; 100 m, exigence respectée.)</p>` },
       { t: "Lire x(t) : la pente, c'est la vitesse", html: `${figXT}
         <p>Sur une courbe de <b>position</b>, la vitesse est la <b>pente</b>. Pour la lire : on prend deux points, Δx sur Δt. Une droite = vitesse constante ; une courbe qui se redresse = la vitesse augmente.</p>
         <p>Au bac, on te donne souvent un <b>pointage vidéo</b> : un tableau de positions toutes les 0,1 s. La vitesse « stabilisée » se lit sur deux lignes consécutives.</p>`,
-        q: "Pointage d'un robot : x = 0,313 m à t = 0,7 s et x = 0,421 m à t = 0,8 s. Vitesse réelle ? Le constructeur annonce 4,3 km/h.", r: `<p>v = ${fr("0,421 − 0,313", "0,8 − 0,7")} = ${fr("0,108", "0,1")} = <b>1,08 m/s</b>. 4,3 km/h = ${fr("4,3", "3,6")} = 1,19 m/s : le robot réel est un peu plus lent que l'annonce (écart ${fr("|1,08 − 1,19|", "1,19")} × 100 = 9,6 %, calculé avec les valeurs non arrondies). (Bac 2025.)</p>` },
+        q: "Pointage d'un robot : x = 0,313 m à t = 0,7 s et x = 0,421 m à t = 0,8 s. Vitesse réelle ? Le constructeur annonce 4,3 km/h." + figQPointage, r: `<p>v = ${fr("0,421 − 0,313", "0,8 − 0,7")} = ${fr("0,108", "0,1")} = <b>1,08 m/s</b>. 4,3 km/h = ${fr("4,3", "3,6")} = 1,19 m/s : le robot réel est un peu plus lent que l'annonce (écart ${fr("|1,08 − 1,19|", "1,19")} × 100 = 9,6 %, calculé avec les valeurs non arrondies). (Bac 2025.)</p>` },
       { t: "La rotation : rad/s et tr/min", html: `<p>Une roue, un moteur, un bras : on décrit leur rotation par la <b>vitesse angulaire ω</b>, en <b>radians par seconde</b>. Un tour = 2π rad = 6,28 rad.</p>
         <p>Les constructeurs donnent la <b>fréquence de rotation N</b> en <b>tours par minute</b> (tr/min). Pour passer de l'un à l'autre : un tour vaut 2π rad, une minute vaut 60 s.</p>
         ${F("ω = " + fr("2π·N", "60") + " &nbsp;&nbsp;·&nbsp;&nbsp; N = " + fr("60·ω", "2π") + " &nbsp;&nbsp;&nbsp;ω en rad/s, N en tr/min")}
         <p>Et comme en translation : angle parcouru θ = ω·t (en rad) ; accélération angulaire α = ${fr("Δω", "Δt")} en rad/s².</p>
         <div class="piege">Toutes les formules qui suivent (v = R·ω, P = C·ω) veulent ω en <b>rad/s</b>. Un N en tr/min dedans donne un résultat 9,55 fois trop grand.</div>`,
-        q: "Le moteur du robot tourne à 6 000 tr/min, sa roue à 200 tr/min (valeurs de nos mBot lestés). Les deux vitesses angulaires ?", r: `<p>Moteur : ω = ${fr("2π × 6 000", "60")} = <b>628 rad/s</b>. Roue : ω = ${fr("2π × 200", "60")} = <b>20,9 rad/s</b>. Le moteur tourne 30 fois plus vite que la roue : c'est le réducteur (cours suivant).</p>` },
+        q: "Le moteur du robot tourne à 6 000 tr/min, sa roue à 200 tr/min (valeurs de nos mBot lestés). Les deux vitesses angulaires ?" + figQ(figChaine), r: `<p>Moteur : ω = ${fr("2π × 6 000", "60")} = <b>628 rad/s</b>. Roue : ω = ${fr("2π × 200", "60")} = <b>20,9 rad/s</b>. Le moteur tourne 30 fois plus vite que la roue : c'est le réducteur (cours suivant).</p>` },
       { t: "La roue qui roule, sans glisser", html: `${figRoue}
         <p>Quand une roue roule <b>sans glisser</b>, à chaque tour le véhicule avance d'un périmètre π·D. La vitesse du véhicule vaut :</p>
         ${F("v = R·ω &nbsp;&nbsp;&nbsp;avec R = " + fr("D", "2") + " en mètres, ω en rad/s")}
         <p>Et dans l'autre sens, si on connaît la vitesse du véhicule : ω = ${fr("v", "R")}, puis N = ${fr("60·ω", "2π")}.</p>`,
-        q: "Roue de 60 mm de diamètre à 200 tr/min. Vitesse du robot en m/s et en km/h ? Combien de tours de roue pour traverser les 1,20 m ?", r: `<p>R = 0,030 m ; ω = 20,9 rad/s ; v = 0,030 × 20,9 = <b>0,628 m/s</b> = 0,628 × 3,6 = <b>2,26 km/h</b>.<br>Un tour = π × 0,060 = 0,188 m ; ${fr("1,20", "0,188")} = <b>6,37 tours</b>.</p>` },
+        q: "Roue de 60 mm de diamètre à 200 tr/min. Vitesse du robot en m/s et en km/h ? Combien de tours de roue pour traverser les 1,20 m ?" + figQRoue60, r: `<p>R = 0,030 m ; ω = 20,9 rad/s ; v = 0,030 × 20,9 = <b>0,628 m/s</b> = 0,628 × 3,6 = <b>2,26 km/h</b>.<br>Un tour = π × 0,060 = 0,188 m ; ${fr("1,20", "0,188")} = <b>6,37 tours</b>.</p>` },
       { t: "Exemple corrigé : la traversée du dohyo", html: `<p>Exigence : <b>1,20 m en moins de 3 s</b>. Profil : accélération uniforme pendant 0,40 s jusqu'à 0,50 m/s, palier, puis freinage uniforme en 0,40 s. Roues de 60 mm.</p>
         <ol><li><b>Accélération</b> : a = ${fr("0,50", "0,40")} = 1,25 m/s². Distance (triangle) : ½ × 0,40 × 0,50 = 0,100 m. Idem au freinage : 0,100 m.</li>
         <li><b>Palier</b> : il reste 1,20 − 0,200 = 1,00 m à 0,50 m/s : t = ${fr("1,00", "0,50")} = 2,00 s.</li>
