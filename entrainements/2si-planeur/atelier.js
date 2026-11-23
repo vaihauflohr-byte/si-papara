@@ -20,10 +20,11 @@
   ];
 
   const CARTES = ["Et si ton aile n'avait aucun angle droit ?", "Et si ton planeur ressemblait à un animal de chez nous ?", "Et si on le reconnaissait à 20 m, rien qu'à sa forme ?", "Et si tu enlevais tout ce qui ne sert à rien ?", "Et si la dérive était la signature de ton équipe ?", "Et si tu mélangeais deux idées de ton équipe ?", "Et si l'aile était la plus longue possible ?", "Et si l'aile était la plus solide possible ?", "Et si ton planeur portait le nom d'un oiseau, d'un vent ou d'un lieu de Tahiti ?", "Et si tu faisais l'inverse de ta première idée ?", "Et si ton planeur devait plaire à un enfant de 6 ans ?", "Et si chaque membre de l'équipe dessinait une idée, sans regarder les autres ?"];
+  let pret = false;
   let A; try { A = JSON.parse(localStorage.getItem(CLE)); } catch (e) { A = null; }
   if (!A || !Array.isArray(A.idees) || A.idees.length !== 3) A = { n: 0, choisi: null, pourquoi: "", idees: [0, 1, 2].map(() => Object.assign({}, BASE)) };
   A.idees = A.idees.map((d) => Object.assign({}, BASE, d));
-  const garder = () => { try { localStorage.setItem(CLE, JSON.stringify(A)); } catch (e) { /* sans stockage : on continue */ } };
+  const garder = () => { try { localStorage.setItem(CLE, JSON.stringify(A)); } catch (e) { /* sans stockage : on continue */ } if (pret && window.PLANEUR_SYNC) window.PLANEUR_SYNC(); };
 
   /* ---------- géométrie ---------- */
   function calc(d) {
@@ -148,5 +149,5 @@
     if (ev.target.id === "at-sim") { const c = calc(d), env = { env: d.b, corde: Math.round(c.cm), envS: d.sb, cordeS: Math.round(d.sc * (1 + d.sk) / 2), m: Math.round((c.m + LEST) * 10) / 10 };
       Object.keys(env).forEach((k) => { const s = document.querySelector(`#sim-entrees [data-s="${k}"]`); if (s) { s.value = env[k]; s.dispatchEvent(new Event("input", { bubbles: true })); } });
       const b = document.querySelector('.pl-nav [data-s="sim"]'); if (b) b.click(); } });
-  maj(true);
+  maj(true); pret = true;
 })();

@@ -29,10 +29,14 @@ table.pl td.g{text-align:left}
 <main class="large nt">
 <div class="eyebrow">Seconde SI · projet planeur · professeur</div>
 <h1>Notes des équipes</h1>
-<p>Un niveau de 1 à 4 par critère, la note sur 20 se calcule seule. <b>Les notes restent sur cet appareil</b> (rien n'est envoyé au site) : exporte le CSV pour les garder ou les reporter dans Pronote.</p>
+<p>Un niveau de 1 à 4 par critère, la note sur 20 se calcule seule. <b>Les notes restent sur cet appareil</b> (elles ne sont pas envoyées au site) : exporte le CSV pour les garder ou les reporter dans Pronote.</p>
 <p class="no-print"><button class="btn" id="add">+ Ajouter une équipe</button> <button class="btn sec" id="csv">Exporter en CSV</button> <button class="btn sec" onclick="window.print()">Imprimer</button> <button class="btn sec" id="raz">Tout effacer</button></p>
 <div class="pl-scroll"><table class="pl" id="t"></table></div>
 <p class="discret" id="regle"></p>
+<h2 class="no-print">Où en est chaque élève</h2>
+<p class="no-print">Lu sur le compte des élèves (il faut être connecté à l'espace professeur dans ce navigateur). <button class="btn sec" id="av-charger">Actualiser</button></p>
+<div class="pl-scroll no-print"><table class="pl" id="av"></table></div>
+<p class="discret no-print" id="av-msg"></p>
 </main>
 <script>
 /* Même barème que la page élève (entrainements/2si-planeur.html) : si tu changes l'un, change l'autre. */
@@ -94,6 +98,34 @@ document.getElementById("csv").onclick = () => {
 };
 document.getElementById("regle").textContent = "Niveaux : 1 = 0 % des points du critère, 2 = 40 %, 3 = 75 %, 4 = 100 % ; les critères d'une même partie comptent autant les uns que les autres. Performance : classement des distances par tiers (2 · 1,5 · 1 point), 0 si le planeur n'a pas volé (distance 0). Partie A : moyenne sur 20 des meilleures notes aux trois séries (espace prof du site).";
 rendu();
+</script>
+<script src="../config.js" onerror="void 0"></script>
+<script>
+  if (window.SIP_CONFIG && SIP_CONFIG.supabaseUrl && SIP_CONFIG.supabaseAnonKey)
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
+</script>
+<script src="../assets/backend.js" onerror="void 0"></script>
+<script>
+/* Avancement des élèves : lu dans projets_eleves (etat.planeur.r), écrit par entrainements/2si-planeur/sync.js */
+(function () {
+  const T = document.getElementById("av"), M = document.getElementById("av-msg"), h = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const m = (x) => (x == null ? "" : String(x).replace(".", ",") + " m");
+  async function charger() {
+    T.innerHTML = ""; M.textContent = "Chargement…";
+    try {
+      if (!window.SIP || !SIP.api || !SIP.api.profSession || !(await SIP.api.profSession())) { M.innerHTML = 'Pas de session professeur dans ce navigateur : <a href="../prof.html">connecte-toi à l\'espace professeur</a>, puis reviens ici.'; return; }
+      const [d, L] = await Promise.all([SIP.api.profDonnees(), SIP.api.profProjets()]), par = {}; (L || []).forEach((r) => (par[r.eleve_id] = r));
+      const E2 = d.eleves.filter((e) => e.niveau === "2SI" && e.actif !== false);
+      T.innerHTML = "<tr><th>Élève</th><th>Équipe</th><th>Étape en cours</th><th class=\"n\">Lignes faites</th><th>Planeur</th><th class=\"n\">Version 1</th><th class=\"n\">Version 2</th><th class=\"n\">Concours</th><th>Dernier travail</th></tr>" +
+        E2.map((e) => { const r = par[e.id], p = r && r.etat && r.etat.planeur, x = (p && p.r) || null;
+          if (!x) return `<tr><td><b>${h(e.nom)}</b></td><td colspan="8" class="discret">rien d'enregistré pour l'instant</td></tr>`;
+          const moy = x.moy || [];
+          return `<tr><td><b>${h(e.nom)}</b></td><td>${h(x.equipe)}</td><td>${x.etape > 8 ? "Terminé" : h(x.etape + " · " + x.titre)}</td><td class="n">${h(x.faits)} / ${h(x.total)}</td><td>${h(x.planeur)}${x.choisi ? "" : x.planeur ? " <span class=\"discret\">(idée pas encore choisie)</span>" : ""}</td><td class="n">${m(moy[0])}</td><td class="n">${m(moy[1])}</td><td class="n">${m(moy[2])}</td><td>${r.maj_eleve ? new Date(r.maj_eleve).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</td></tr>`; }).join("");
+      M.textContent = E2.length ? "Chaque élève a son propre avancement, même dans une équipe." : "Aucun élève de Seconde SI dans la base.";
+    } catch (e) { M.textContent = "Lecture impossible : " + (e.message || e); }
+  }
+  document.getElementById("av-charger").onclick = charger; charger();
+})();
 </script>
 </body>
 </html>

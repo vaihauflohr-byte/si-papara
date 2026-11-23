@@ -166,6 +166,8 @@ Alignement sur le programme de seconde CIT et SI (BO spécial n° 1 du 22 janvie
 
 Le guide (23 novembre) : cadre bleu sous les onglets de la page planeur, visible partout. Il affiche l'étape en cours, la prochaine ligne non cochée des 47 lignes de `ETAPES`, un bouton « Y aller » (table `VA` : identifiant de la ligne → onglet et ancre ; rien = à faire en vrai dans la salle ; `tab` = tableau de bord, pour les séries) et « C'est fait », qui coche la ligne. Toute nouvelle ligne `C(...)` doit recevoir sa destination dans `VA`.
 
+Avancement gardé sur le compte de l'élève (23 novembre) : `entrainements/2si-planeur/sync.js`. Si l'élève de Seconde SI est connecté au site, ses cases cochées, son carnet d'essais, ses réponses et ses trois idées sont enregistrés avec les fonctions `projet_mon_etat` / `projet_enregistrer` de `supabase/projets.sql` (déjà utilisées par les projets BTS 2 ; aucune table nouvelle), dans `etat.planeur` (`d` = page, `a` = atelier, `t` = date, `r` = résumé). À l'ouverture, la version la plus récente gagne, entre l'appareil et le compte. Sans connexion ou si la base ne répond pas, tout reste sur l'appareil et une ligne sous le guide le dit. `2si-planeur-notes.html` a un tableau « Où en est chaque élève » (session professeur nécessaire). Les notes des équipes, elles, restent sur l'appareil du professeur.
+
 ## 5. Ajouter du contenu
 
 Un fichier par groupe de séquences dans `contenu/` (ex. `1si-s3.js`, `tsi-s8.js`). Un module = un chapitre, avec `sequence` (regroupement à l'écran), `competences` (codes de `competences.js`), ses questions et ses mini-fiches :

@@ -245,6 +245,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   <button role="tab" data-s="eval">Évaluation</button>
 </div>
 <div id="guide" class="gd no-print" aria-live="polite"></div>
+<p id="sync-etat" class="discret no-print" style="margin:-10px 0 16px"></p>
 
 
 <!-- ============ LE DÉFI ============ -->
@@ -461,7 +462,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 
 <!-- ============ LES ÉTAPES ============ -->
 <section class="pl-sec" id="s-etapes" hidden>
-  <p><b>Suis les étapes dans l'ordre.</b> Le cadre bleu en haut de la page te dit toujours la prochaine chose à faire. Ouvre l'étape en cours, fais chaque ligne, coche-la. On passe à l'étape suivante quand tout est coché. <span class="discret">Tes réponses sont gardées sur cet appareil.</span></p>
+  <p><b>Suis les étapes dans l'ordre.</b> Le cadre bleu en haut de la page te dit toujours la prochaine chose à faire. Ouvre l'étape en cours, fais chaque ligne, coche-la. On passe à l'étape suivante quand tout est coché. <span class="discret">Connecté, tes réponses sont gardées sur ton compte.</span></p>
   <div id="etapes"></div>
 </section>
 
@@ -635,7 +636,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   </div>
   <div class="carte pl-essais">
     <h2 style="margin-top:0">Carnet d'essais</h2>
-    <p>Trois lancers par version, par le même lanceur et de la même façon. Le site calcule la moyenne, l'écart entre tes versions, et l'écart entre ce que le simulateur avait prévu et ce que tu as mesuré. <span class="discret">Le carnet est gardé sur cet appareil : imprime-le ou recopie-le pour le rendre.</span></p>
+    <p>Trois lancers par version, par le même lanceur et de la même façon. Le site calcule la moyenne, l'écart entre tes versions, et l'écart entre ce que le simulateur avait prévu et ce que tu as mesuré. <span class="discret">Connecté, ton carnet est gardé sur ton compte. Imprime-le pour le rendre.</span></p>
     <p><label>Équipe : <input type="text" id="equipe" style="width:16em;min-width:0" placeholder="noms des membres"></label> &nbsp; <label>Lanceur : <input type="text" id="cran" style="width:10em;min-width:0" placeholder="prénom"></label></p>
     <div class="pl-scroll"><table class="pl" id="t-essais">
       <tr><th>Version</th><th class="n">Masse (g)</th><th class="n">Lancer 1 (m)</th><th class="n">Lancer 2 (m)</th><th class="n">Lancer 3 (m)</th><th class="n">Moyenne</th><th class="n">Prévu par le simulateur (m)</th><th class="n">Écart prévu / mesuré</th><th>Ce que j'observe en vol</th></tr>
@@ -825,7 +826,7 @@ if (boutons.some((b) => b.dataset.s === location.hash.slice(1))) ouvrir(location
 /* ---------- Mémoire locale ---------- */
 const CLE = "sip_2si_planeur";
 let D = {}; try { D = JSON.parse(localStorage.getItem(CLE)) || {}; } catch (e) { D = {}; }
-const garder = () => { try { localStorage.setItem(CLE, JSON.stringify(D)); } catch (e) { /* stockage indisponible : on continue sans */ } };
+const garder = () => { try { localStorage.setItem(CLE, JSON.stringify(D)); } catch (e) { /* stockage indisponible : on continue sans */ } if (window.PLANEUR_SYNC) window.PLANEUR_SYNC(); };
 const nbfr = (x, n = 2) => x.toFixed(n).replace(".", ",");
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -880,6 +881,8 @@ const VA = { "0a": "defi", "1o": "etapes", "1d": "comprendre#n1", "1c": "tab", "
   "6s": "sim", "6a": "onshape#mi7", "6b": "etapes", "6c": "onshape#mi8", "6d": "essais#t-essais", "6e": "essais#bilan", "7b": "essais#t-essais", "7o": "etapes", "7c": "essais#t-essais" };
 document.querySelectorAll("#s-onshape .eyebrow").forEach((e) => { const m = /^Mission (\d)/.exec(e.textContent); if (m) e.parentElement.id = "mi" + m[1]; });
 function prochaine() { for (let i = 0; i < ETAPES.length; i++) for (const x of ETAPES[i].items) if (x.k === "c" && !D.c[x.id]) return { i, x }; return null; }
+window.PLANEUR_RESUME = () => { const tous = [].concat(...ETAPES.map((e) => e.items.filter((x) => x.k === "c"))), p = prochaine(), m = (i) => { const x = moyenne(i); return x == null ? null : Math.round(x * 100) / 100; };
+  return { faits: tous.filter((x) => D.c[x.id]).length, total: tous.length, etape: p ? p.i + 1 : ETAPES.length + 1, titre: p ? ETAPES[p.i].t : "Terminé", equipe: D.equipe || (D.f || {}).equipe || "", moy: [m(0), m(1), m(2)] }; };
 function guide() {
   const el = document.getElementById("guide"), tous = [].concat(...ETAPES.map((e) => e.items.filter((x) => x.k === "c"))), faits = tous.filter((x) => D.c[x.id]).length, p = prochaine();
   const barre = `<div class="gd-barre" role="img" aria-label="${faits} lignes faites sur ${tous.length}"><i style="width:${faits / tous.length * 100}%"></i></div><span class="gd-n">${faits} / ${tous.length}</span>`;
@@ -946,7 +949,7 @@ document.getElementById("csv").onclick = () => {
 };
 T.addEventListener("input", (ev) => { const el = ev.target; if (!el.dataset.k) return; (D.essais[el.dataset.v] = D.essais[el.dataset.v] || {})[el.dataset.k] = el.value; garder(); calcul(); });
 ["equipe", "cran", "modif", "pourquoi", "attendu", "p1", "p2", "p3", "p4"].forEach((id) => { const el = document.getElementById(id); el.value = D[id] || ""; el.oninput = () => { D[id] = el.value; garder(); }; });
-document.getElementById("raz").onclick = () => { if (confirm("Effacer tout le carnet d'essais et les étapes cochées sur cet appareil ?")) { try { localStorage.removeItem(CLE); } catch (e) { /* rien */ } location.reload(); } };
+document.getElementById("raz").onclick = () => { if (confirm("Effacer tout le carnet d'essais et les étapes cochées sur cet appareil ?")) { try { localStorage.setItem(CLE, "{}"); localStorage.setItem("sip_2si_planeur_t", String(Date.now())); } catch (e) { /* rien */ } location.reload(); } };
 calcul(); verifier();
 
 /* ---------- Barème et critères ---------- */
@@ -1093,5 +1096,13 @@ document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Nive
 </script>
 <script src="2si-planeur/interactif.js"></script>
 <script src="2si-planeur/atelier.js"></script>
+<!-- compte de l'élève : l'avancement est aussi gardé sur le site (ignoré si la page est ouverte seule) -->
+<script src="../config.js" onerror="void 0"></script>
+<script>
+  if (window.SIP_CONFIG && SIP_CONFIG.supabaseUrl && SIP_CONFIG.supabaseAnonKey)
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
+</script>
+<script src="../assets/backend.js" onerror="void 0"></script>
+<script src="2si-planeur/sync.js"></script>
 </body>
 </html>
