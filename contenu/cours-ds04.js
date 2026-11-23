@@ -279,6 +279,80 @@ window.SIP = window.SIP || {};
     ${cote(90, 420, 156, "1,20 m à traverser : combien de tours ?")}`,
     "Une roue de 60 mm de diamètre tourne à 200 tr/min ; le robot doit traverser 1,20 m"));
 
+  // ---- Newton : un mobile, ses forces, sa vitesse
+  const ORA = ' font-size="13" font-weight="600" fill="var(--warn)"';
+  const forcesH = (o) => figQ(svg(460, o.note ? 178 : 160, `
+    ${sol(20, 440, 120)}${veh(175, 120, 110, 44)}${TM(230, 96, o.m || "", GRAS)}
+    ${AR(285, 92, 375, 92)}${TM(336, 80, o.F, ACC)}${AR(175, 92, 95, 92, "var(--warn)")}${TM(120, 80, o.f, ORA)}
+    ${o.v ? `${AR(190, 40, 270, 40, "var(--good)")}${TM(230, 30, o.v, VERT)}` : ""}${o.note ? TM(230, 170, o.note) : ""}`, o.alt));
+  const figQScooterCst = forcesH({ F: "F motrice = ?", f: "f = 120 N", v: "45 km/h, constante", alt: "Un scooter à vitesse constante : la force motrice vers l'avant, les résistances de 120 N vers l'arrière" });
+  const figQVoiture = figQ(svg(460, 132, `
+    ${deuxInstants(72, (x, y, op) => veh(x, y, 92, 34, op), "t = 0", "0 km/h", "t = 8,3 s", "100 km/h")}${T(22, 16, "m = 1 600 kg · ΣF = ?", GRAS)}`,
+    "Une voiture de 1 600 kg passe de 0 à 100 km/h en 8,3 s"));
+  const volant = (rep) => figQ(svg(460, 215, `
+    <circle cx="230" cy="118" r="72" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-width="1.8"/><circle cx="230" cy="118" r="4" fill="currentColor"/>
+    ${ARC(230, 118, 34, 20, 160)}${TM(230, 142, "sens de rotation", ' font-size="11"')}${TM(230, 206, "le volant ralentit", GRAS)}
+    <circle cx="230" cy="46" r="5" fill="var(--accent)"/>${T(238, 36, "A", GRAS)}
+    ${rep ? `${AR(230, 46, 140, 46, "var(--good)")}${TM(150, 34, "vitesse", VERT)}${AR(230, 46, 300, 46)}${T(306, 50, "accélération", ACC)}${T(306, 66, "(le long de la trajectoire)", G3)}` : ""}`,
+    rep ? "Au point A, la vitesse est tangente au cercle dans le sens de rotation ; comme le volant ralentit, l'accélération le long de la trajectoire est opposée" : "Un volant d'inertie qui tourne en ralentissant ; le point A est sur son bord, en haut"));
+  const figQVolant = volant(false), figRVolant = volant(true);
+  const figQRobotF = forcesH({ m: "1,0 kg", F: "F = 3,5 N", f: "f = 0,5 N", note: "a = ? Et avec 2,0 kg de masse, même F ?", alt: "Le robot de 1,0 kg reçoit une force motrice de 3,5 N vers l'avant et des résistances de 0,5 N vers l'arrière" });
+  const figQPente8 = figQ(svg(460, 232, `
+    ${L(60, 190, 436, 190, DASH)}${T(378, 182, "θ = 8°", ' font-size="12"')}
+    <g transform="rotate(-8 60 190)">${sol(60, 430, 190)}${veh(190, 190, 104, 42)}${TM(242, 168, "180 kg", GRAS)}
+      ${AR(294, 162, 384, 162)}${TM(344, 150, "F = 400 N", ACC)}${AR(190, 162, 112, 162, "var(--warn)")}${TM(128, 150, "f = 60 N", ORA)}</g>
+    ${AR(234, 140, 234, 208, "currentColor", 2)}${T(242, 222, "P = m·g", ' font-size="12" font-weight="600"')}`,
+    "Un scooter de 180 kg monte une pente de 8° : force motrice de 400 N vers le haut de la pente, résistances de 60 N vers le bas, poids vertical"));
+  const figQDroneV = figQ(svg(460, 215, `
+    <g stroke="currentColor" stroke-width="1.8"><rect x="204" y="100" width="52" height="16" rx="4" fill="currentColor" fill-opacity=".2"/><line x1="186" y1="92" x2="222" y2="92"/><line x1="238" y1="92" x2="274" y2="92"/><line x1="204" y1="92" x2="212" y2="100"/><line x1="256" y1="92" x2="248" y2="100"/></g>
+    ${AR(230, 86, 230, 22)}${T(240, 30, "poussée T = ?", ACC)}${AR(230, 120, 230, 184, "var(--warn)")}${T(240, 180, "P = m·g", ORA)}
+    ${AR(350, 130, 350, 76, "var(--good)")}${T(360, 106, "a = 2,0 m/s²", VERT)}${T(92, 112, "m = 1,8 kg", GRAS)}`,
+    "Un drone de 1,8 kg décolle : poussée des hélices vers le haut, poids vers le bas, accélération de 2,0 m/s² vers le haut"));
+  const figQLogistique = forcesH({ m: "60 kg", F: "F = 180 N", f: "f = 40 N", note: "exigence : atteindre 2,0 m/s en moins de 1 s", alt: "Un robot logistique de 60 kg : force motrice de 180 N vers l'avant, résistances de 40 N vers l'arrière" });
+
+  // ---- transmission : une chaîne de blocs, de gauche à droite
+  // B : [titre, valeur, seconde valeur éventuelle] ; une valeur à trouver (avec « ? ») ressort en couleur
+  const chaine = (y, B, W) => { const n = B.length, g = 18, w = ((W || 420) - 12 - g * (n - 1)) / n, h = B.some((b) => b[2]) ? 72 : 56;
+    return B.map((b, i) => { const x = 6 + i * (w + g), val = (t, yy) => TM(x + w / 2, yy, t, /\?/.test(t) ? ' font-size="12.5" font-weight="700" fill="var(--accent)"' : ' font-size="12.5"');
+      return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill="none" stroke="currentColor" stroke-width="1.4"/>${TM(x + w / 2, y + 21, b[0], GRAS)}${val(b[1], y + 40)}${b[2] ? val(b[2], y + 57) : ""}` + (i < n - 1 ? AR(x + w, y + h / 2, x + w + g, y + h / 2) : ""); }).join(""); };
+  const figQPlaque = figQ(svg(480, 232, `
+    <rect x="120" y="10" width="240" height="96" rx="8" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-width="1.8"/>
+    <circle cx="132" cy="22" r="3" fill="currentColor"/><circle cx="348" cy="22" r="3" fill="currentColor"/><circle cx="132" cy="94" r="3" fill="currentColor"/><circle cx="348" cy="94" r="3" fill="currentColor"/>
+    ${TM(240, 36, "MOTORÉDUCTEUR", ' font-size="13" font-weight="700" letter-spacing="1"')}${L(150, 46, 330, 46, ' stroke-width="1"')}
+    ${TM(240, 68, "moteur : 3 000 tr/min", GRAS)}${TM(240, 90, "sortie : 250 tr/min", GRAS)}
+    ${TM(240, 136, "Puis, sur un bras de robot :", ' font-size="12"')}
+    ${chaine(150, [["moteur", "angle = ?"], ["réducteur", "1 sur 308"], ["bras", "tourne de 54°"]], 480)}`,
+    "La plaque d'un motoréducteur : moteur 3 000 tr/min, sortie 250 tr/min ; puis un bras de robot qui tourne de 54° derrière un réducteur de rapport 1 sur 308"));
+  const figQTrois = figQ(svg(480, 262, `
+    ${gear(60, 118, 24, 12, "var(--accent-soft)")}${gear(124, 118, 40, 20)}${gear(260, 118, 96, 48)}
+    ${ARC(60, 118, 36, 110, 20)}
+    ${TM(60, 172, "12 dents", GRAS)}${TM(60, 188, "6 000 tr/min", ' font-size="11"')}${TM(126, 182, "20 dents", GRAS)}${TM(126, 198, "(intermédiaire)", ' font-size="11"')}
+    ${TM(260, 240, "48 dents : vitesse ? sens ?", ACC)}`,
+    "Un pignon de 12 dents à 6 000 tr/min entraîne une roue intermédiaire de 20 dents, qui entraîne une roue de 48 dents"));
+  const figQPoulies = figQ(svg(420, 88, chaine(8, [["moteur", "3 300 tr/min"], ["réducteur", "1 sur 10,215"], ["poulies", "40 dents", "→ 72 dents"], ["roue", "? tr/min"]]),
+    "Chaîne du robot d'assistance : moteur à 3 300 tr/min, réducteur de rapport 1 sur 10,215, poulies de 40 et 72 dents, roue"));
+  const figQVis2 = figQ(svg(420, 208, `
+    ${chaine(8, [["moteur", "9 000 tr/min"], ["roue et vis", "vis : 2 filets", "roue : 15 dents"], ["sortie", "? tr/min"]])}
+    ${TM(210, 106, "Puis, avec un réducteur placé avant :", ' font-size="12.5"')}
+    ${chaine(120, [["moteur", "9 000 tr/min"], ["réducteur", "9 sur 41"], ["roue et vis", "2 filets", "15 dents"], ["sortie", "rapport", "global ?"]])}`,
+    "Un moteur à 9 000 tr/min entraîne une vis à 2 filets et une roue de 15 dents ; puis la même chaîne précédée d'un réducteur 9 sur 41"));
+  const figQPortail = figQ(svg(480, 180, `
+    ${gear(110, 62, 30, 12, "var(--accent-soft)")}${L(30, 100, 210, 100, ' stroke-width="2"')}
+    <path d="M30 100 ${Array.from({ length: 15 }, (_, i) => `l4 -6 l4 0 l4 6`).join(" ")}" fill="none" stroke="currentColor" stroke-width="1.2"/>
+    ${AR(120, 126, 200, 126, "var(--good)")}${TM(160, 144, "d = ?", VERT)}${TM(110, 20, "pignon Ø 60 mm · 20 tours", GRAS)}${TM(110, 172, "le portail (crémaillère)", ' font-size="11"')}
+    ${L(240, 10, 240, 170, DASH)}
+    <rect x="270" y="56" width="190" height="14" rx="3" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="1.3"/>
+    ${Array.from({ length: 18 }, (_, i) => L(276 + i * 10, 56, 282 + i * 10, 70, ' stroke-width="1"')).join("")}
+    <rect x="340" y="44" width="40" height="38" rx="4" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.6"/>${TM(360, 68, "écrou", ' font-size="11"')}
+    ${AR(384, 98, 446, 98, "var(--good)")}${TM(414, 116, "v = ?", VERT)}${TM(365, 20, "vis : pas 5 mm · 300 tr/min", GRAS)}${TM(365, 172, "le vérin (vis et écrou)", ' font-size="11"')}`,
+    "À gauche, un pignon de 60 mm de diamètre qui fait 20 tours sur la crémaillère du portail ; à droite, une vis de pas 5 mm à 300 tr/min qui fait avancer un écrou"));
+  const figQParfait = figQ(svg(420, 88, chaine(8, [["moteur", "0,120 N·m", "3 000 tr/min"], ["réducteur", "parfait", "1 sur 12"], ["sortie", "C = ? · N = ?", "P = ?"]]),
+    "Un moteur de 0,120 N·m à 3 000 tr/min suivi d'un réducteur parfait de rapport 1 sur 12"));
+  const figQAttelle = figQ(svg(420, 88, chaine(8, [["moteur", "couple = ?"], ["réducteur", "1 sur 6 000", "η = 0,24"], ["attelle", "44 N·m"]]),
+    "Un moteur, un réducteur de rapport 1 sur 6 000 et de rendement 0,24, puis l'attelle qui demande 44 N·m"));
+  const figQBoby = figQ(svg(420, 88, chaine(8, [["moteur", "ω = ?"], ["réducteur", "1 sur 20"], ["roue", "Ø 195 mm", "ω = ?"], ["robot", "v = 1,2 m/s"]]),
+    "Chaîne du robot Boby : moteur, réducteur de rapport 1 sur 20, roue de 195 mm de diamètre, robot à 1,2 m/s"));
+
   C["meca-cinematique"] = {
     titre: "Cinématique : décrire un mouvement", sous: "Position, vitesse, accélération ; lire une courbe v(t) ; les trois lois de mouvement ; la roue qui roule.",
     objectifs: ["Reconnaître une translation et une rotation, et donner la trajectoire d'un point (segment, cercle de centre O et de rayon OA).",
@@ -373,14 +447,14 @@ window.SIP = window.SIP || {};
         ${figInertie}
         <p>Un robot qui avance à vitesse constante n'a pas « plus de force motrice que de résistance » : les deux sont <b>égales</b>. Si on coupait toute résistance, il n'aurait même plus besoin de moteur.</p>
         <div class="retenir">Vitesse constante en ligne droite ⇔ ΣF = 0. Ça marche dans le référentiel <b>terrestre</b> (le sol), qu'on dit <b>galiléen</b> : c'est celui qu'on choisit toujours en SI.</div>`,
-        q: "Un scooter roule tout droit à 45 km/h, vitesse constante. Les résistances (air, roulement) valent 120 N. Que vaut la force motrice ?", r: `<p>Vitesse constante : ΣF = 0, donc F motrice = f = <b>120 N</b>. Ni plus ni moins. La vitesse ne dit rien sur la force ; c'est le <b>changement</b> de vitesse qui en demande.</p>` },
+        q: "Un scooter roule tout droit à 45 km/h, vitesse constante. Les résistances (air, roulement) valent 120 N. Que vaut la force motrice ?" + figQScooterCst, r: `<p>Vitesse constante : ΣF = 0, donc F motrice = f = <b>120 N</b>. Ni plus ni moins. La vitesse ne dit rien sur la force ; c'est le <b>changement</b> de vitesse qui en demande.</p>` },
       { t: "2e loi : ΣF = m·a", html: `${F("Σ <b>F</b><sub>ext</sub> = m·<b>a</b> &nbsp;&nbsp;&nbsp;F en N, m en kg, a en m/s²")}
         <p>La <b>somme des forces</b> qui s'exercent sur un objet et son <b>accélération</b> ont même direction et même sens ; leur rapport est la masse.</p>
         <ul><li>Même force, masse double → accélération <b>deux fois plus petite</b> (c'est pour ça que le lest ralentit le démarrage).</li>
         <li>Pas de force nette → pas d'accélération (1<sup>re</sup> loi, cas particulier).</li>
         <li>Dans l'autre sens : si on mesure a, on trouve la force : ΣF = m·a.</li></ul>
         <p>Ordres de grandeur : notre robot (1,0 kg) pousse avec 3 à 4 N ; une voiture (1 600 kg) accélère avec 5 000 N ; le poids d'un kilo, c'est déjà 9,81 N.</p>`,
-        q: "Une voiture de 1 600 kg atteint 100 km/h en 8,3 s, départ arrêté. Accélération moyenne ? Somme des forces ?", r: `<p>100 km/h = ${fr("100", "3,6")} = 27,8 m/s ; a = ${fr("27,8", "8,3")} = <b>3,35 m/s²</b>. ΣF = m·a = 1 600 × 3,35 = <b>5 360 N</b> (≈ 5,3 kN au bac 2021, qui arrondit a à 3,3).</p>` },
+        q: "Une voiture de 1 600 kg atteint 100 km/h en 8,3 s, départ arrêté. Accélération moyenne ? Somme des forces ?" + figQVoiture, r: `<p>100 km/h = ${fr("100", "3,6")} = 27,8 m/s ; a = ${fr("27,8", "8,3")} = <b>3,35 m/s²</b>. ΣF = m·a = 1 600 × 3,35 = <b>5 360 N</b> (≈ 5,3 kN au bac 2021, qui arrondit a à 3,3).</p>` },
       { t: "3e loi : action et réaction", html: `${figAction}
         <p>Quand A pousse B, B pousse A <b>avec la même force</b>, en sens opposé : <b>F</b><sub>A/B</sub> = −<b>F</b><sub>B/A</sub>. Toujours, même si A est plus lourd ou plus fort.</p>
         <p>C'est ainsi que le robot avance : ses roues poussent le sol <b>vers l'arrière</b>, le sol pousse le robot <b>vers l'avant</b>. Cette poussée du sol est la force motrice F. Elle est limitée par l'adhérence : F ≤ μ·m·g (cours Exigences : F = μ·m·g).</p>
@@ -389,21 +463,21 @@ window.SIP = window.SIP || {};
       { t: "L'accélération, pas la vitesse", html: `${figAccel}
         <p>ΣF a le sens de l'<b>accélération</b>, pas de la vitesse. Un robot qui freine avance encore vers l'avant, mais ΣF (et a) pointent vers l'<b>arrière</b>.</p>
         <div class="retenir">Pour dessiner ΣF : demande-toi si la vitesse <b>augmente</b> (ΣF dans le sens de v) ou <b>diminue</b> (ΣF contre v). Et dans un virage à vitesse constante, a pointe vers le <b>centre</b> du virage.</div>`,
-        q: "Un volant d'inertie tourne et ralentit. Au point A du bord, dans quel sens est la vitesse ? Et la composante de l'accélération le long de la trajectoire ?", r: `<p>La vitesse est <b>tangente</b> au cercle, dans le sens de rotation. Comme il ralentit, la composante de l'accélération le long de la trajectoire est <b>opposée à la vitesse</b>.</p>` },
+        q: "Un volant d'inertie tourne et ralentit. Au point A du bord, dans quel sens est la vitesse ? Et la composante de l'accélération le long de la trajectoire ?" + figQVolant, r: `<p>La vitesse est <b>tangente</b> au cercle, dans le sens de rotation. Comme il ralentit, la composante de l'accélération le long de la trajectoire est <b>opposée à la vitesse</b>.</p>${figRVolant}` },
       { t: "Projeter sur un axe : sol plat", html: `<p>ΣF = m·a est une égalité de <b>vecteurs</b>. Pour calculer, on choisit un <b>axe x dans le sens du mouvement</b> et on écrit l'égalité le long de cet axe : les forces dans le sens de x comptent <b>+</b>, celles en sens inverse comptent <b>−</b>.</p>
         <p>Sur sol horizontal (figure de l'écran 1) : le poids P et la réaction R sont verticaux, ils ne comptent pas selon x (et se compensent : R = P).</p>
         ${F("selon x : F − f = m·a &nbsp;&nbsp;→&nbsp;&nbsp; a = " + fr("F − f", "m"))}
         <div class="piege">Oublier f donne une accélération trop grande. Oublier le signe moins de f, aussi. Une force qui n'est pas le long de x ne « disparaît » que si l'énoncé le dit (sol horizontal).</div>`,
-        q: "Le robot (m = 1,0 kg, valeurs de nos mBot lestés) reçoit du sol une force motrice F = 3,5 N ; résistances f = 0,5 N. Accélération ? Et si on double la masse avec du lest (2,0 kg, même F) ?", r: `<p>a = ${fr("3,5 − 0,5", "1,0")} = <b>3,0 m/s²</b>. Avec 2,0 kg : a = ${fr("3,0", "2,0")} = <b>1,5 m/s²</b>, deux fois moins. (En vrai, le lest augmente aussi F par l'adhérence, F ≤ μ·m·g : c'est tout le compromis masse-vitesse du robot sumo.)</p>` },
+        q: "Le robot (m = 1,0 kg, valeurs de nos mBot lestés) reçoit du sol une force motrice F = 3,5 N ; résistances f = 0,5 N. Accélération ? Et si on double la masse avec du lest (2,0 kg, même F) ?" + figQRobotF, r: `<p>a = ${fr("3,5 − 0,5", "1,0")} = <b>3,0 m/s²</b>. Avec 2,0 kg : a = ${fr("3,0", "2,0")} = <b>1,5 m/s²</b>, deux fois moins. (En vrai, le lest augmente aussi F par l'adhérence, F ≤ μ·m·g : c'est tout le compromis masse-vitesse du robot sumo.)</p>` },
       { t: "Projeter sur un axe : la pente", html: `${figPente}
         <p>Sur une pente d'angle θ, le poids n'est plus perpendiculaire à l'axe du mouvement : il a une <b>composante le long de la pente</b>, P·sin θ = m·g·sin θ, qui <b>retient</b> en montée et <b>pousse</b> en descente.</p>
         ${F("montée : F − f − m·g·sin θ = m·a &nbsp;&nbsp;·&nbsp;&nbsp; descente sans moteur ni frottement : a = g·sin θ")}
         <p>Perpendiculairement à la pente, rien ne bouge : R = m·g·cos θ (utile pour l'adhérence).</p>`,
-        q: "Scooter + pilote : 180 kg, pente de 8°, résistances 60 N, force motrice 400 N. Accélération en montée ?", r: `<p>m·g·sin θ = 180 × 9,81 × sin 8° = 246 N. Selon la pente : a = ${fr("400 − 60 − 246", "180")} = ${fr("94", "180")} = <b>0,524 m/s²</b> (avec 245,75 N non arrondi). Sur le plat, ce serait ${fr("340", "180")} = 1,89 m/s² : la pente mange les trois quarts de l'accélération.</p>` },
+        q: "Scooter + pilote : 180 kg, pente de 8°, résistances 60 N, force motrice 400 N. Accélération en montée ?" + figQPente8, r: `<p>m·g·sin θ = 180 × 9,81 × sin 8° = 246 N. Selon la pente : a = ${fr("400 − 60 − 246", "180")} = ${fr("94", "180")} = <b>0,524 m/s²</b> (avec 245,75 N non arrondi). Sur le plat, ce serait ${fr("340", "180")} = 1,89 m/s² : la pente mange les trois quarts de l'accélération.</p>` },
       { t: "L'équilibre : a = 0", html: `<p>La statique du DS 03, c'est la 2<sup>e</sup> loi avec <b>a = 0</b> : ΣF = 0 (et pour la rotation, somme des moments = 0). Un objet <b>immobile</b> ou à <b>vitesse constante</b> est traité pareil.</p>
         <ul><li>Vélo à 16 km/h sur une pente constante : F motrice = f + m·g·sin θ.</li><li>Robot immobile qui pousse un mur : F sol/robot = F mur/robot.</li><li>Drone en vol stationnaire : poussée des hélices = poids.</li></ul>
         <div class="retenir">Avant de calculer, pose la question : la vitesse change-t-elle ? Non → ΣF = 0. Oui → ΣF = m·a.</div>`,
-        q: "Un drone de 1,8 kg décolle verticalement avec a = 2,0 m/s² (air négligé). Poussée des hélices ? Et pour rester en vol stationnaire ?", r: `<p>Axe vertical vers le haut : T − m·g = m·a → T = 1,8 × (9,81 + 2,0) = <b>21,3 N</b>. Stationnaire (a = 0) : T = m·g = 1,8 × 9,81 = <b>17,7 N</b>. La différence, 3,6 N, c'est ce qu'il faut pour accélérer 1,8 kg à 2,0 m/s².</p>` },
+        q: "Un drone de 1,8 kg décolle verticalement avec a = 2,0 m/s² (air négligé). Poussée des hélices ? Et pour rester en vol stationnaire ?" + figQDroneV, r: `<p>Axe vertical vers le haut : T − m·g = m·a → T = 1,8 × (9,81 + 2,0) = <b>21,3 N</b>. Stationnaire (a = 0) : T = m·g = 1,8 × 9,81 = <b>17,7 N</b>. La différence, 3,6 N, c'est ce qu'il faut pour accélérer 1,8 kg à 2,0 m/s².</p>` },
       { t: "En rotation : couple et moment d'inertie", html: `${figRotation}
         <p>Pour faire tourner plus vite un moteur, une roue, un volant, il faut un <b>couple</b> C (en N·m, comme un moment). Ce qui résiste à l'accélération, c'est le <b>moment d'inertie</b> J, en kg·m² : <b>« la masse de la rotation »</b>. Il grandit avec la masse <b>et</b> avec le carré de son éloignement de l'axe (masse m à la distance d : J = m·d² ; disque plein : J = ½·m·R²).</p>
         ${F("ΣC = J·α &nbsp;&nbsp;&nbsp;C en N·m, J en kg·m², α en rad/s² &nbsp;&nbsp;·&nbsp;&nbsp; puis ω = α·t")}
@@ -424,7 +498,7 @@ window.SIP = window.SIP || {};
         <div class="retenir">« a = 3,0 m/s² ; le robot atteint 0,63 m/s en 0,21 s, sur 6,62 cm : l'exigence est respectée. » Avec 2,0 kg : a = 1,5 m/s², t = 0,42 s, exigence non respectée.</div>` },
       { t: "Vérifier une exigence : atteindre 2 m/s en moins de 1 s", html: `<p>Question type du bac (robot logistique, navette, capsule) : on donne la masse, la force motrice, les résistances, et une exigence de <b>temps</b> ou de <b>distance</b>.</p>
         <p>Toujours la même chaîne : <b>bilan → projection → a → cinématique → comparaison → phrase</b>.</p>`,
-        q: "Robot logistique de 60 kg (chargé), force motrice 180 N, résistances 40 N. Exigence : « atteindre 2,0 m/s en moins de 1 s ». Respectée ? Distance parcourue ?", r: `<p>a = ${fr("180 − 40", "60")} = <b>2,33 m/s²</b>. t = ${fr("2,0", "2,33")} = <b>0,857 s</b> &lt; 1 s : <b>exigence respectée</b>. Distance : x = ½ × 2,33 × 0,857² = <b>0,857 m</b>. Si la charge passait à 90 kg : a = 1,56 m/s², t = 1,29 s, non respectée : il faudrait plus de force motrice (plus de couple).</p>` },
+        q: "Robot logistique de 60 kg (chargé), force motrice 180 N, résistances 40 N. Exigence : « atteindre 2,0 m/s en moins de 1 s ». Respectée ? Distance parcourue ?" + figQLogistique, r: `<p>a = ${fr("180 − 40", "60")} = <b>2,33 m/s²</b>. t = ${fr("2,0", "2,33")} = <b>0,857 s</b> &lt; 1 s : <b>exigence respectée</b>. Distance : x = ½ × 2,33 × 0,857² = <b>0,857 m</b>. Si la charge passait à 90 kg : a = 1,56 m/s², t = 1,29 s, non respectée : il faudrait plus de force motrice (plus de couple).</p>` },
       { t: "Les pièges qui coûtent des points", html: `<ul><li>Dessiner ΣF dans le sens de la vitesse quand ça freine : ΣF suit l'<b>accélération</b>.</li><li>Croire qu'il faut une force nette pour garder une vitesse constante : ΣF = 0.</li>
         <li>Oublier une force (f, la pente) ou projeter sans axe (erreurs de signe).</li><li>Confondre masse et poids : P = m·g en newtons ; dans m·a, c'est la masse en kg.</li>
         <li>Des km/h dans v = a·t ; un angle en degrés sans « sin ».</li><li>S'arrêter à a : la question demande presque toujours t ou x ensuite, et une phrase.</li></ul>
@@ -448,12 +522,12 @@ window.SIP = window.SIP || {};
         <ul><li>r <b>&lt; 1</b> : la sortie tourne moins vite, c'est un <b>réducteur</b> (le cas presque général : 1 sur 30, 1 sur 308, 1 sur 6 000…).</li><li>r &gt; 1 : <b>multiplicateur</b> (la roue arrière d'un vélo tourne plus vite que le pédalier).</li></ul>
         <p>Le rapport vaut aussi pour les <b>angles</b> parcourus : θ<sub>s</sub> = r·θ<sub>e</sub>. Avec r = 1 sur 308, un tour de sortie demande 308 tours du moteur.</p>
         <div class="piege">r est « sortie sur entrée », jamais l'inverse. Un robot qui se traîne avec r = 30 au lieu de 1 sur 30 : c'est l'erreur n°1.</div>`,
-        q: "Plaque d'un motoréducteur : moteur 3 000 tr/min, sortie 250 tr/min. Rapport ? Un bras de robot doit tourner de 54° derrière un réducteur 1 sur 308 : angle du moteur ?", r: `<p>r = ${fr("250", "3 000")} = ${fr("1", "12")} = <b>0,0833</b>, réducteur.<br>θ<sub>e</sub> = ${fr("θ<sub>s</sub>", "r")} = 54 × 308 = 16 632° ≈ <b>16 600°</b>, soit ${fr("16 632", "360")} = 46,2 tours de moteur (bac 2022, robot barman).</p>` },
+        q: "Plaque d'un motoréducteur : moteur 3 000 tr/min, sortie 250 tr/min. Rapport ? Un bras de robot doit tourner de 54° derrière un réducteur 1 sur 308 : angle du moteur ?" + figQPlaque, r: `<p>r = ${fr("250", "3 000")} = ${fr("1", "12")} = <b>0,0833</b>, réducteur.<br>θ<sub>e</sub> = ${fr("θ<sub>s</sub>", "r")} = 54 × 308 = 16 632° ≈ <b>16 600°</b>, soit ${fr("16 632", "360")} = 46,2 tours de moteur (bac 2022, robot barman).</p>` },
       { t: "Les engrenages : compter les dents", html: `${figEngrenages}
         <p>Deux roues dentées qui engrènent ont le même pas de dent : quand le pignon avance de 12 dents (un tour), la roue avance aussi de 12 dents, soit 12 sur 48 de tour.</p>
         ${F("r = " + fr("Z<sub>entrée</sub>", "Z<sub>sortie</sub>") + " = " + fr("Z<sub>menante</sub>", "Z<sub>menée</sub>") + " &nbsp;&nbsp;·&nbsp;&nbsp; la petite roue s'appelle le pignon")}
         <p>Un contact <b>extérieur</b> inverse le <b>sens de rotation</b>. Une roue <b>intermédiaire</b> entre les deux ne change pas r (elle est menée puis menante, ses dents se simplifient) : elle sert seulement à remettre le sens.</p>`,
-        q: "Pignon moteur de 12 dents à 6 000 tr/min, roue de 48 dents. Vitesse et sens de la roue ? Avec une roue intermédiaire de 20 dents entre les deux ?", r: `<p>r = ${fr("12", "48")} = ${fr("1", "4")} ; N<sub>s</sub> = ${fr("6 000", "4")} = <b>1 500 tr/min</b>, sens <b>inverse</b> du moteur.<br>Avec l'intermédiaire : r = ${fr("12 × 20", "20 × 48")} = ${fr("1", "4")}, toujours 1 500 tr/min, mais dans le <b>même sens</b> que le moteur (deux inversions).</p>` },
+        q: "Pignon moteur de 12 dents à 6 000 tr/min, roue de 48 dents. Vitesse et sens de la roue ? Avec une roue intermédiaire de 20 dents entre les deux ?" + figQTrois, r: `<p>r = ${fr("12", "48")} = ${fr("1", "4")} ; N<sub>s</sub> = ${fr("6 000", "4")} = <b>1 500 tr/min</b>, sens <b>inverse</b> du moteur.<br>Avec l'intermédiaire : r = ${fr("12 × 20", "20 × 48")} = ${fr("1", "4")}, toujours 1 500 tr/min, mais dans le <b>même sens</b> que le moteur (deux inversions).</p>` },
       { t: "Le train d'engrenages : on multiplie", html: `${figTrain}
         <p>Pour réduire beaucoup, on met des étages <b>en série</b>. Les roues 2 et 3 sont sur le même arbre : même vitesse. Le rapport total est le <b>produit</b> des rapports de chaque étage :</p>
         ${F("r = r<sub>1</sub> × r<sub>2</sub> = " + fr("Z<sub>1</sub>·Z<sub>3</sub>", "Z<sub>2</sub>·Z<sub>4</sub>") + " = " + fr("produit des dents menantes", "produit des dents menées"))}
@@ -463,32 +537,32 @@ window.SIP = window.SIP || {};
         <p>La courroie ne glisse pas : elle avance à la même vitesse sur les deux poulies. Une grande poulie fait donc moins de tours qu'une petite. Les <b>diamètres</b> jouent le rôle des dents :</p>
         ${F("r = " + fr("d<sub>entrée</sub>", "d<sub>sortie</sub>") + " &nbsp;&nbsp;(courroie crantée, chaîne : " + fr("Z<sub>entrée</sub>", "Z<sub>sortie</sub>") + ")")}
         <p>Différence avec l'engrenage : <b>même sens</b> de rotation, pas d'inversion. Et la courroie admet un grand entraxe (le moteur loin de la roue).</p>`,
-        q: "Robot d'assistance : poulies-courroie de 40 et 72 dents après un réducteur 1 sur 10,215, moteur à 3 300 tr/min. Rapport des poulies ? Rapport global ? Vitesse de la roue ?", r: `<p>r<sub>pc</sub> = ${fr("40", "72")} = <b>0,556</b>. r = ${fr("0,556", "10,215")} = <b>0,0544</b>. N<sub>roue</sub> = 3 300 × 0,0544 = <b>180 tr/min</b>, soit ω = ${fr("2π × 180", "60")} = 18,8 rad/s (bac 2025 ; avec des roues de 125 mm, v = 0,0625 × 18,8 = 1,17 m/s).</p>` },
+        q: "Robot d'assistance : poulies-courroie de 40 et 72 dents après un réducteur 1 sur 10,215, moteur à 3 300 tr/min. Rapport des poulies ? Rapport global ? Vitesse de la roue ?" + figQPoulies, r: `<p>r<sub>pc</sub> = ${fr("40", "72")} = <b>0,556</b>. r = ${fr("0,556", "10,215")} = <b>0,0544</b>. N<sub>roue</sub> = 3 300 × 0,0544 = <b>180 tr/min</b>, soit ω = ${fr("2π × 180", "60")} = 18,8 rad/s (bac 2025 ; avec des roues de 125 mm, v = 0,0625 × 18,8 = 1,17 m/s).</p>` },
       { t: "Roue et vis sans fin", html: `${figVis}
         <p>La vis sans fin est une vis dont chaque tour pousse la roue d'<b>une dent</b> (un filet) : un seul étage réduit énormément.</p>
         ${F("r = " + fr("Z<sub>vis</sub> (nombre de filets)", "Z<sub>roue</sub>"))}
         <p>Souvent <b>irréversible</b> : la roue ne peut pas entraîner la vis. Pratique pour un treuil, un portail, une barrière : la charge ne redescend pas moteur coupé, sans frein. Mais le rendement est mauvais (0,3 à 0,7).</p>`,
-        q: "Vis à 2 filets, roue de 15 dents, moteur à 9 000 tr/min. Rapport et vitesse de sortie ? Si cet étage est précédé d'un réducteur 9 sur 41, rapport global ?", r: `<p>r<sub>2</sub> = ${fr("2", "15")} = <b>0,133</b> ; N<sub>s</sub> = 9 000 × 0,133 = <b>1 200 tr/min</b>. Global : r = ${fr("9", "41")} × ${fr("2", "15")} = ${fr("18", "615")} = <b>0,0293</b> (bac 2026, suspension de VTT).</p>` },
+        q: "Vis à 2 filets, roue de 15 dents, moteur à 9 000 tr/min. Rapport et vitesse de sortie ? Si cet étage est précédé d'un réducteur 9 sur 41, rapport global ?" + figQVis2, r: `<p>r<sub>2</sub> = ${fr("2", "15")} = <b>0,133</b> ; N<sub>s</sub> = 9 000 × 0,133 = <b>1 200 tr/min</b>. Global : r = ${fr("9", "41")} × ${fr("2", "15")} = ${fr("18", "615")} = <b>0,0293</b> (bac 2026, suspension de VTT).</p>` },
       { t: "Rotation → translation", html: `${figCrem}
         <ul><li><b>Pignon-crémaillère</b> : le pignon « roule » sur la crémaillère comme une roue sur le sol : v = R·ω, et un tour fait avancer de π·d (d = diamètre primitif).</li>
         <li><b>Vis-écrou</b> : à chaque tour, l'écrou avance d'un <b>pas</b> p : d = p × nombre de tours, v = p × N avec N en tours par seconde.</li></ul>`,
-        q: "Portail : pignon de 60 mm de diamètre, 20 tours. Distance ? Vérin : vis de pas 5 mm à 300 tr/min. Vitesse de l'écrou ?", r: `<p>Portail : d = 20 × π × 0,060 = <b>3,77 m</b>. Vérin : 300 tr/min = 5 tr/s ; v = 5 mm × 5 = <b>25 mm/s</b> (1 500 mm par minute). Course 600 mm → 24 s.</p>` },
+        q: "Portail : pignon de 60 mm de diamètre, 20 tours. Distance ? Vérin : vis de pas 5 mm à 300 tr/min. Vitesse de l'écrou ?" + figQPortail, r: `<p>Portail : d = 20 × π × 0,060 = <b>3,77 m</b>. Vérin : 300 tr/min = 5 tr/s ; v = 5 mm × 5 = <b>25 mm/s</b> (1 500 mm par minute). Course 600 mm → 24 s.</p>` },
       { t: "La puissance se conserve : couple × vitesse", html: `<p>En rotation, la puissance est le produit du <b>couple</b> par la <b>vitesse angulaire</b> :</p>
         ${F("P = C·ω &nbsp;&nbsp;&nbsp;P en W, C en N·m, ω en rad/s")}
         <p>Un réducteur parfait ne crée ni ne perd de puissance : ce qui sort = ce qui entre. Donc si la vitesse est divisée par 30, le couple est <b>multiplié par 30</b> :</p>
         ${F("C<sub>s</sub>·ω<sub>s</sub> = C<sub>e</sub>·ω<sub>e</sub> &nbsp;&nbsp;→&nbsp;&nbsp; C<sub>s</sub> = " + fr("C<sub>e</sub>", "r"))}
         <div class="piege">Avec N en tr/min, P = C·N est faux : convertis en rad/s (ω = 2π·N sur 60). Vérifie : un moteur de 0,120 N·m à 3 000 tr/min fait 0,120 × 314 = 37,7 W, pas 360 W.</div>`,
-        q: "Moteur : 0,120 N·m à 3 000 tr/min. Réducteur parfait de rapport 1 sur 12. Couple et vitesse de sortie ? Puissance ?", r: `<p>C<sub>s</sub> = 0,120 × 12 = <b>1,44 N·m</b> ; N<sub>s</sub> = 250 tr/min, ω<sub>s</sub> = 26,2 rad/s. Puissance : P = 1,44 × 26,2 = <b>37,7 W</b>, la même qu'à l'entrée (0,120 × 314 = 37,7 W). Le couple a été multiplié par 12 parce que la vitesse a été divisée par 12.</p>` },
+        q: "Moteur : 0,120 N·m à 3 000 tr/min. Réducteur parfait de rapport 1 sur 12. Couple et vitesse de sortie ? Puissance ?" + figQParfait, r: `<p>C<sub>s</sub> = 0,120 × 12 = <b>1,44 N·m</b> ; N<sub>s</sub> = 250 tr/min, ω<sub>s</sub> = 26,2 rad/s. Puissance : P = 1,44 × 26,2 = <b>37,7 W</b>, la même qu'à l'entrée (0,120 × 314 = 37,7 W). Le couple a été multiplié par 12 parce que la vitesse a été divisée par 12.</p>` },
       { t: "Le rendement : des pertes en chaleur", html: `<p>Un vrai réducteur frotte : une partie de la puissance part en chaleur. Le <b>rendement</b> η = ${fr("P<sub>s</sub>", "P<sub>e</sub>")} vaut 0,9 pour un bon engrenage, 0,3 à 0,7 pour une vis sans fin.</p>
         ${F("C<sub>s</sub>·ω<sub>s</sub> = η·C<sub>e</sub>·ω<sub>e</sub> &nbsp;&nbsp;→&nbsp;&nbsp; C<sub>s</sub> = " + fr("η·C<sub>e</sub>", "r") + " &nbsp;&nbsp;et&nbsp;&nbsp; C<sub>e</sub> = " + fr("r·C<sub>s</sub>", "η"))}
         <p>La <b>vitesse</b> n'est pas touchée par le rendement (les dents ne glissent pas) : seul le <b>couple</b> est rogné. Plusieurs étages : η = η<sub>1</sub> × η<sub>2</sub> × η<sub>3</sub>, et r = r<sub>1</sub> × r<sub>2</sub> × r<sub>3</sub>.</p>
         <div class="piege">Le couple moteur nécessaire est <b>plus grand</b> à cause des pertes : η au dénominateur. Si tu trouves un moteur qui doit fournir moins grâce au rendement, c'est à l'envers.</div>`,
-        q: "Attelle de rééducation : couple de sortie 44 N·m, réducteur 1 sur 6 000, rendement 0,24. Couple que doit fournir le moteur ?", r: `<p>C<sub>e</sub> = ${fr("r·C<sub>s</sub>", "η")} = ${fr("44", "6 000 × 0,24")} = ${fr("44", "1 440")} = <b>0,0306 N·m</b> = 30,6 mN·m (bac 2024). Sans pertes, 7,3 mN·m auraient suffi : le rendement de 0,24 en demande quatre fois plus.</p>` },
+        q: "Attelle de rééducation : couple de sortie 44 N·m, réducteur 1 sur 6 000, rendement 0,24. Couple que doit fournir le moteur ?" + figQAttelle, r: `<p>C<sub>e</sub> = ${fr("r·C<sub>s</sub>", "η")} = ${fr("44", "6 000 × 0,24")} = ${fr("44", "1 440")} = <b>0,0306 N·m</b> = 30,6 mN·m (bac 2024). Sans pertes, 7,3 mN·m auraient suffi : le rendement de 0,24 en demande quatre fois plus.</p>` },
       { t: "De la roue au robot : vitesse et poussée", html: `<p>Dernier maillon : la roue. Elle transforme la rotation en translation du véhicule, comme un pignon sur une crémaillère (le sol) :</p>
         ${F("v = R·ω<sub>roue</sub> &nbsp;&nbsp;·&nbsp;&nbsp; F<sub>sol/roue</sub> = " + fr("C<sub>roue</sub>", "R") + " &nbsp;&nbsp;(R en m)")}
         <p>Le couple à la roue devient la <b>force de poussée</b> du robot : le sol pousse la roue (3<sup>e</sup> loi, cours Newton), limitée par l'adhérence : F ≤ μ·m·g, sinon ça patine.</p>
         <p>Chaîne complète du bac : N<sub>moteur</sub> → ω<sub>moteur</sub> → ω<sub>roue</sub> = r·ω<sub>moteur</sub> → v = R·ω<sub>roue</sub>. Et dans l'autre sens, à partir d'une vitesse exigée.</p>`,
-        q: "Robot Boby : roues de 195 mm, v = 1,2 m/s, réducteur 1 sur 20. Vitesse angulaire de la roue, puis du moteur en rad/s ?", r: `<p>R = 0,0975 m ; ω<sub>roue</sub> = ${fr("1,2", "0,0975")} = <b>12,3 rad/s</b> ; ω<sub>moteur</sub> = ${fr("ω<sub>roue</sub>", "r")} = 20 × 12,3 = <b>246 rad/s</b> (2 350 tr/min). Bac 2024 : avec 25 % de 850 W, C<sub>m</sub> = ${fr("212,5", "246")} = 0,863 N·m.</p>` },
+        q: "Robot Boby : roues de 195 mm, v = 1,2 m/s, réducteur 1 sur 20. Vitesse angulaire de la roue, puis du moteur en rad/s ?" + figQBoby, r: `<p>R = 0,0975 m ; ω<sub>roue</sub> = ${fr("1,2", "0,0975")} = <b>12,3 rad/s</b> ; ω<sub>moteur</sub> = ${fr("ω<sub>roue</sub>", "r")} = 20 × 12,3 = <b>246 rad/s</b> (2 350 tr/min). Bac 2024 : avec 25 % de 850 W, C<sub>m</sub> = ${fr("212,5", "246")} = 0,863 N·m.</p>` },
       { t: "Exemple corrigé : la chaîne du robot sumo", html: `<p>Moteur : 6 000 tr/min, couple C<sub>e</sub> = 0,0050 N·m. Réducteur 1 sur 30, rendement 0,70. Roues de 60 mm.</p>
         <ol><li><b>Vitesse de la roue</b> : N<sub>s</sub> = ${fr("6 000", "30")} = 200 tr/min ; ω<sub>s</sub> = ${fr("2π × 200", "60")} = 20,9 rad/s.</li>
         <li><b>Vitesse du robot</b> : v = R·ω = 0,030 × 20,9 = <b>0,628 m/s</b> (2,26 km/h).</li>
