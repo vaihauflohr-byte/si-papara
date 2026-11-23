@@ -352,6 +352,66 @@ window.SIP = window.SIP || {};
     "Le chariot après rupture du câble, roues arrière bloquées : en B, l'action du sol R B a une composante N B perpendiculaire à la pente et une composante T B le long de la pente, vers le haut ; en A l'action reste perpendiculaire");
 
   // =============================================================== meca-actions
+  // ============================================================ figures des « Cherche avec moi »
+  // Chaque question montre de quoi elle parle : la situation, les points nommés, les valeurs.
+  const figQ = (f) => f.replace("<figure>", '<figure style="margin:12px auto 4px;max-width:min(100%,560px)">').replace("<svg ", '<svg style="width:100%;height:auto;display:block" ');
+  const TM = (x, y, t, o) => T(x, y, t, ' text-anchor="middle"' + (o || ' font-size="12"'));
+  const GRAS = ' font-size="13" font-weight="600"', ACC = ' font-size="13" font-weight="600" fill="var(--accent)"';
+  const VERT = ' font-size="13" font-weight="600" fill="var(--good)"', ORA = ' font-size="13" font-weight="600" fill="var(--warn)"';
+  const veh = (x, y, w, h, op) => `<g opacity="${op == null ? 1 : op}"><rect x="${x}" y="${y - h - 10}" width="${w}" height="${h}" rx="6" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="1.5"/>
+    <circle cx="${x + w * 0.24}" cy="${y - 9}" r="9" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.5"/><circle cx="${x + w * 0.76}" cy="${y - 9}" r="9" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.5"/></g>`;
+  const coteH = (x1, x2, y, t) => `${L(x1, y, x2, y, ' stroke-width="1"')}${L(x1, y - 5, x1, y + 5, ' stroke-width="1"')}${L(x2, y - 5, x2, y + 5, ' stroke-width="1"')}${TM((x1 + x2) / 2, y + 16, t)}`;
+  const coteV = (x, y1, y2, t) => `${L(x, y1, x, y2, ' stroke-width="1"')}${L(x - 5, y1, x + 5, y1, ' stroke-width="1"')}${L(x - 5, y2, x + 5, y2, ' stroke-width="1"')}${T(x + 9, (y1 + y2) / 2 + 4, t, ' font-size="12"')}`;
+  const caisse = (x, y, w, h, t) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="1.5"/>${t ? TM(x + w / 2, y + h / 2 + 5, t, GRAS) : ""}`;
+
+  const figQMonte = figQ(svg(460, 232, `
+    ${sol(20, 440, 180)}<rect x="120" y="148" width="220" height="12" rx="2" fill="currentColor" fill-opacity=".35" stroke="currentColor" stroke-width="1.4"/>
+    <circle cx="156" cy="170" r="10" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.5"/><circle cx="304" cy="170" r="10" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.5"/>
+    ${caisse(150, 104, 52, 44)}${caisse(204, 104, 52, 44)}${caisse(258, 104, 52, 44)}${TM(230, 96, "120 kg de packs d'eau", GRAS)}
+    <rect x="100" y="64" width="260" height="122" rx="10" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="7 5"/>${TM(230, 56, "E = {chariot + charges}", ACC)}
+    ${AR(176, 126, 176, 206, "var(--warn)")}${TM(176, 224, "① poids des charges", ORA)}
+    ${AR(284, 132, 284, 150, "currentColor", 2)}${TM(352, 224, "② charges sur le plateau", GRAS)}${T(292, 142, "②", ' font-size="13" font-weight="700"')}${T(184, 142, "①", ' font-size="13" font-weight="700" fill="var(--warn)"')}`,
+    "Un chariot de monte-charge porte 120 kg de packs d'eau ; on isole l'ensemble E formé du chariot et des charges, entouré en pointillés"));
+  const figQMat = figQ(svg(460, 222, `
+    ${sol(20, 440, 185)}<rect x="226" y="40" width="8" height="145" fill="currentColor" opacity=".35"/>
+    ${AR(110, 46, 224, 46)}${TM(160, 34, "330 N", ACC)}${L(234, 46, 330, 46, ' stroke-width="1" stroke-dasharray="4 3"')}
+    ${coteV(330, 46, 185, "2,20 m")}${dot(230, 185, 4)}${T(238, 206, "A", GRAS)}`,
+    "Une force horizontale de 330 N est appliquée à 2,20 m au-dessus du sol ; le point A est au sol, au pied du poteau"));
+  const figQPanneau = figQ(svg(460, 250, `
+    ${sol(40, 420, 200)}<rect x="150" y="170" width="150" height="30" fill="currentColor" opacity=".18" stroke="currentColor" stroke-width="1.4"/>
+    <rect x="221" y="40" width="8" height="130" fill="currentColor" opacity=".35"/><rect x="196" y="30" width="58" height="50" rx="3" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="1.4"/>
+    ${AR(96, 56, 194, 56)}${TM(140, 44, "vent : 600 N", ACC)}
+    ${gsym(225, 150)}${AR(225, 158, 225, 224, "var(--warn)")}${T(92, 146, "poids : 3 040 N", ORA)}
+    ${dot(300, 200, 4)}${T(306, 218, "A", GRAS)}
+    ${L(254, 56, 350, 56, ' stroke-width="1" stroke-dasharray="4 3"')}${coteV(350, 56, 200, "1,80 m")}
+    ${coteH(225, 300, 232, "0,45 m")}`,
+    "Un panneau sur son socle : le vent pousse avec 600 N à 1,80 m de hauteur, le poids de 3 040 N agit à 0,45 m de l'arête A"));
+  const figQPlanche = figQ(svg(460, 236, `
+    ${sol(20, 440, 180)}<rect x="60" y="92" width="340" height="10" rx="2" fill="currentColor" fill-opacity=".3" stroke="currentColor" stroke-width="1.4"/>
+    ${L(70, 102, 54, 180)}${L(70, 102, 86, 180)}${L(390, 102, 374, 180)}${L(390, 102, 406, 180)}
+    <circle cx="150" cy="40" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>${L(150, 49, 150, 76)}${L(150, 76, 142, 92)}${L(150, 76, 158, 92)}${L(150, 58, 138, 68)}${L(150, 58, 162, 68)}
+    ${AR(150, 104, 150, 150, "var(--warn)")}${T(158, 144, "70 kg", ORA)}
+    ${AR(70, 86, 70, 30)}${T(30, 40, "N₁ ?", ACC)}${AR(390, 86, 390, 30)}${T(400, 40, "N₂ ?", ACC)}
+    ${coteH(70, 150, 200, "1,0 m")}${coteH(70, 390, 216, "4,0 m")}`,
+    "Une planche de 4,0 m posée sur deux tréteaux à ses extrémités ; une personne de 70 kg se tient à 1,0 m du tréteau de gauche"));
+  const figQCaisse = figQ(svg(460, 190, `
+    ${sol(20, 440, 130)}${caisse(190, 66, 96, 64, "40 kg")}
+    ${AR(84, 98, 188, 98)}${TM(126, 86, "poussée max = ?", ACC)}
+    ${AR(330, 130, 330, 52, "var(--good)")}${T(338, 76, "N = 392 N", VERT)}${AR(286, 144, 206, 144, "var(--warn)")}${T(214, 164, "T retient", ORA)}
+    ${TM(230, 184, "bois sur béton : f = 0,45")}`,
+    "La caisse de 40 kg posée au sol : on la pousse horizontalement, le sol appuie avec N = 392 N et retient avec T ; le coefficient de frottement vaut 0,45"));
+  const figQScooterFrein = figQ(svg(460, 190, `
+    ${sol(20, 440, 120)}${veh(170, 120, 120, 44)}${TM(230, 96, "180 kg", GRAS)}
+    ${AR(190, 44, 270, 44, "var(--good)")}${TM(230, 34, "il roule, et freine", VERT)}
+    ${AR(262, 136, 198, 136, "var(--warn)")}${TM(230, 156, "freinage maximal = ?", ORA)}
+    ${TM(230, 180, "route sèche : f = 0,8 · route mouillée : f = 0,5")}`,
+    "Un scooter de 180 kg freine des deux roues ; le sol le retient vers l'arrière ; coefficient 0,8 sur route sèche, 0,5 sur route mouillée"));
+  const figQCapsule = figQ(svg(460, 200, `
+    ${L(40, 142, 420, 142, ' stroke-width="4"')}<circle cx="230" cy="100" r="40" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.8"/>${dot(230, 100, 3.5)}
+    ${AR(290, 142, 290, 52, "var(--good)")}${T(298, 80, "N = 2 300 N", VERT)}${AR(230, 156, 130, 156, "var(--warn)")}${T(60, 176, "T = 920 N (freinage)", ORA)}
+    ${TM(300, 192, "rail sec : f = 0,5 · rail humide : f = 0,4")}`,
+    "Une roue freinée sur son rail : le rail la porte avec N = 2 300 N et la retient avec T = 920 N ; coefficient 0,5 sur rail sec, 0,4 sur rail humide"));
+
   C["meca-actions"] = {
     titre: "Actions mécaniques et moments",
     sous: "Modéliser une action par une force, faire le bilan des actions extérieures (la question 1 de presque tous les sujets), puis calculer un moment avec son signe.",
@@ -406,7 +466,7 @@ window.SIP = window.SIP || {};
         <div class="deux"><div><p><b>Extérieur à E</b> (on les compte) :</p><ul><li>la Terre → le poids de tout E ;</li><li>la cale → N<sub>A</sub>, N<sub>B</sub> ;</li><li>le câble → T.</li></ul></div>
         <div><p><b>Intérieur à E</b> (on ne les compte pas) :</p><ul><li>la coque sur le chariot ;</li><li>le chariot sur la coque ;</li><li>l'essieu sur la roue.</li></ul></div></div>
         <div class="piege">Par contre, si l'énoncé isole <b>la coque seule</b>, alors l'action du chariot sur la coque devient extérieure et entre dans le tableau. Tout dépend de la frontière : lis bien « on isole … ».</div>`,
-        q: "Un monte-charge porte 120 kg de packs d'eau ; on isole E = {chariot + charges}. Le poids des charges apparaît-il ? Et l'action des charges sur le plateau du chariot ?", r: `<p>Le poids des charges, oui : la Terre est extérieure à E ; en pratique on écrit <b>un seul poids</b> pour tout E, avec la masse totale. L'action des charges sur le plateau, <b>non</b> : charges et chariot sont tous deux dans E, c'est une action intérieure.</p>` },
+        q: "Un monte-charge porte 120 kg de packs d'eau ; on isole E = {chariot + charges}. Le poids des charges apparaît-il ? Et l'action des charges sur le plateau du chariot ?" + figQMonte, r: `<p>Le poids des charges, oui : la Terre est extérieure à E ; en pratique on écrit <b>un seul poids</b> pour tout E, avec la masse totale. L'action des charges sur le plateau, <b>non</b> : charges et chariot sont tous deux dans E, c'est une action intérieure.</p>` },
       { t: "Le moment : pourquoi ?", html: `<p>Pousse une porte près de la charnière : dur. Pousse-la loin : facile. La <b>même force</b> ne produit pas le même <b>effet de rotation</b>. Cet effet, c'est le <b>moment</b> de la force.</p>
         ${figPorte}
         <p>Une force fait <b>avancer</b> (translation) ; un moment fait <b>tourner</b> (rotation) autour d'un point. Le moment dépend de la force <b>et</b> de la distance à laquelle elle agit.</p>` },
@@ -414,11 +474,11 @@ window.SIP = window.SIP || {};
         ${figBras}
         <p><b>d</b> est le <b>bras de levier</b> : la distance du point O à la <b>droite d'action</b> de la force, mesurée <b>à angle droit</b>. Ce n'est pas la distance de O au point d'application, sauf si la force est perpendiculaire à OA.</p>
         <div class="retenir">Le moment est <b>nul</b> quand la droite d'action <b>passe par O</b> (d = 0) : une force appliquée en O, ou un câble qui tire dans l'axe d'une barre articulée en O, ne font pas tourner autour de O. C'est ce qui permet de choisir le bon point pour écrire les moments.</div>`,
-        q: "Une force horizontale de 330 N est appliquée à 2,20 m au-dessus du sol. Quel est son bras de levier par rapport à un point A posé au sol ? Son moment, sans le signe ?", r: `<p>La force est horizontale, A est au sol : d = la hauteur, <b>2,20 m</b>. |M| = 330 × 2,20 = <b>726 N·m</b>.</p>` },
+        q: "Une force horizontale de 330 N est appliquée à 2,20 m au-dessus du sol. Quel est son bras de levier par rapport à un point A posé au sol ? Son moment, sans le signe ?" + figQMat, r: `<p>La force est horizontale, A est au sol : d = la hauteur, <b>2,20 m</b>. |M| = 330 × 2,20 = <b>726 N·m</b>.</p>` },
       { t: "Le signe : dans quel sens ça tourne ?", html: `${figSigne}
         <p>On compte le moment <b>positif</b> quand la force fait tourner autour de O dans le <b>sens trigonométrique</b> (inverse des aiguilles d'une montre), <b>négatif</b> dans le sens des aiguilles.</p>
         <div class="retenir">Méthode : pose un doigt sur O, pousse dans le sens de la force, regarde dans quel sens ça tourne. Le signe fait partie de la réponse : « −726 N·m » est juste, « 726 N·m » ne l'est pas.</div>`,
-        q: "Sur la figure du chariot (écran 7), quel est le signe du moment de N<sub>A</sub> par rapport à B ? Et celui du poids ?", r: `<p>N<sub>A</sub> pousse vers le haut, à droite de B : elle fait tourner le chariot autour de B dans le sens trigonométrique, moment <b>positif</b> : +L × N<sub>A</sub>, avec L = 2,00 m la distance AB (figure). Le poids tire vers le bas, à droite de B : sens des aiguilles d'une montre, moment <b>négatif</b>.</p>` },
+        q: "Sur la figure du chariot, ci-dessous, quel est le signe du moment de N<sub>A</sub> par rapport à B ? Et celui du poids ?" + figQ(figBilan), r: `<p>N<sub>A</sub> pousse vers le haut, à droite de B : elle fait tourner le chariot autour de B dans le sens trigonométrique, moment <b>positif</b> : +L × N<sub>A</sub>, avec L = 2,00 m la distance AB (figure). Le poids tire vers le bas, à droite de B : sens des aiguilles d'une montre, moment <b>négatif</b>.</p>` },
       { t: "Exemple : le support de la station météo", html: `${figSupport}
         <p>Le vent pousse en C (F = 330 N, h = 2,20 m) ; le poids P = 2 240 N agit en G, à a = 0,55 m de l'arête A autour de laquelle le support peut basculer.</p>`,
         q: "Calcule M<sub>A</sub>(F) et M<sub>A</sub>(P), avec leur signe.", r: `<p>F fait tourner le support autour de A dans le sens des aiguilles d'une montre : <b>M<sub>A</sub>(F) = −330 × 2,20 = −726 N·m</b>.<br>P le plaque au sol, sens trigonométrique : <b>M<sub>A</sub>(P) = +2 240 × 0,55 = +1 230 N·m</b>.</p>` },
@@ -426,7 +486,7 @@ window.SIP = window.SIP || {};
         ${F("k = " + fr("|M<sub>A</sub>(P)|", "|M<sub>A</sub>(F)|") + " = " + fr("1 230", "726") + " = 1,69")}
         <p>1,69 ≥ 1,5 : <b>l'exigence est respectée</b>. Autre façon : 1,5 × 726 = 1 089 N·m ≤ 1 230 N·m.</p><p class="discret">On calcule avec les résultats arrondis à 3 chiffres (1 230, pas 1 232) : c'est ce que fait le corrigé. Avec 1 232 on trouve 1,70 : même conclusion.</p>
         <div class="piege">k entre 1 et 1,5 : ça ne bascule pas, mais l'exigence n'est <b>pas</b> respectée. k &lt; 1 : ça bascule.</div>`,
-        q: "Avec le panneau de 600 N de vent à 1,80 m et 3 040 N de poids à 0,45 m de A : k ? Conclusion ?", r: `<p>|M<sub>A</sub>(F)| = 600 × 1,80 = 1 080 N·m ; |M<sub>A</sub>(P)| = 3 040 × 0,45 = 1 370 N·m ; k = ${fr("1 370", "1 080")} = <b>1,27</b>. Il ne bascule pas, mais 1,27 &lt; 1,5 : <b>exigence non respectée</b>. Il faut alourdir le socle ou l'élargir (a plus grand).</p>` },
+        q: "Avec le panneau de 600 N de vent à 1,80 m et 3 040 N de poids à 0,45 m de A : k ? Conclusion ?" + figQPanneau, r: `<p>|M<sub>A</sub>(F)| = 600 × 1,80 = 1 080 N·m ; |M<sub>A</sub>(P)| = 3 040 × 0,45 = 1 370 N·m ; k = ${fr("1 370", "1 080")} = <b>1,27</b>. Il ne bascule pas, mais 1,27 &lt; 1,5 : <b>exigence non respectée</b>. Il faut alourdir le socle ou l'élargir (a plus grand).</p>` },
       { t: "Les pièges qui coûtent des points", html: `<ul><li>Oublier le poids dans le bilan, ou compter une action intérieure (la coque sur le chariot).</li><li>Ajouter « le treuil » alors que le câble est déjà compté.</li><li>Dessiner l'action du sol verticale sur une pente : sans frottement, elle est <b>perpendiculaire à la pente</b>.</li>
         <li>Donner une direction à une pivot (deux inconnues X, Y).</li><li>Prendre la mauvaise distance comme bras de levier (a au lieu de h pour le vent, la longueur de la barre au lieu de la distance perpendiculaire).</li>
         <li>Oublier de convertir : mm → m, kg → N. Oublier le signe du moment. Écrire un moment en N au lieu de N·m.</li><li>Conclure « respectée » dès que k &gt; 1, sans comparer à 1,5.</li></ul>
@@ -450,7 +510,7 @@ window.SIP = window.SIP || {};
         <ul><li>Chariot remonté à vitesse constante ✔ · robot sumo immobile ✔ · bus qui roule à 50 km/h sur une route droite ✔</li><li>Chariot qui démarre, voiture qui freine ✘ : il y a une accélération, c'est la <b>dynamique</b> (plus tard).</li></ul>
         <p>Les <b>hypothèses</b> que l'énoncé donne presque toujours, et qu'il faut citer : <b>problème plan</b> (tout se passe dans une vue de côté), <b>liaisons parfaites</b> (pas de frottement), <b>poids des roues négligé</b>.</p>
         <div class="retenir">« La remontée se fait à vitesse constante : on applique le PFS. » Cette phrase vaut des points.</div>`,
-        q: "Le chariot descend vers le lagon, retenu par le câble, à vitesse constante. Peut-on appliquer le PFS ?", r: `<p><b>Oui</b> : vitesse constante en ligne droite, les forces se compensent. Le sens du mouvement ne change rien aux équations ; seules les forces comptent (et sans frottement, elles sont les mêmes qu'à la montée).</p>` },
+        q: "Le chariot descend vers le lagon, retenu par le câble, à vitesse constante. Peut-on appliquer le PFS ?" + figQ(figPourquoi), r: `<p><b>Oui</b> : vitesse constante en ligne droite, les forces se compensent. Le sens du mouvement ne change rien aux équations ; seules les forces comptent (et sans frottement, elles sont les mêmes qu'à la montée).</p>` },
       { t: "Théorème 1 : la somme des forces est nulle", html: `${F("Σ vecteur F<sub>ext</sub> = vecteur 0 &nbsp;&nbsp;&nbsp;(théorème de la résultante statique)")}
         ${figSomme}
         <p>Toutes les forces du bilan, ajoutées comme des vecteurs, donnent zéro : ce qui pousse vers le haut égale ce qui tire vers le bas, ce qui tire vers la droite égale ce qui tire vers la gauche.</p>
@@ -461,7 +521,7 @@ window.SIP = window.SIP || {};
         <p>Un solide en équilibre ne tourne pas non plus : les moments qui le font tourner dans un sens compensent ceux qui le font tourner dans l'autre. On peut écrire cette équation <b>en n'importe quel point</b> A : on choisit le plus pratique (écran 7).</p>
         <p>Dans un problème plan, le PFS donne donc <b>3 équations</b> : deux pour la résultante, une pour les moments. On peut trouver <b>au plus 3 inconnues</b> par solide isolé.</p>
         <div class="piege">Trop d'inconnues ? (le bus articulé du bac 2021 : 4 inconnues). Il faut isoler <b>séparément</b> une partie du système, puis l'autre.</div>`,
-        q: "Une planche de 4,0 m repose sur deux tréteaux à ses extrémités ; une personne de 70 kg est à 1,0 m du tréteau de gauche. Combien d'inconnues ? Peut-on les trouver ?", r: `<p>Deux inconnues, les actions des deux tréteaux N<sub>1</sub> et N<sub>2</sub> (le poids de la personne est connu, celui de la planche négligé). 2 inconnues ≤ 3 équations : oui. Moments au tréteau de gauche : 4,0·N<sub>2</sub> − 1,0 × 687 = 0 → N<sub>2</sub> = <b>172 N</b> ; puis N<sub>1</sub> = 687 − 172 = <b>515 N</b> (plus proche de la personne, il porte plus).</p>` },
+        q: "Une planche de 4,0 m repose sur deux tréteaux à ses extrémités ; une personne de 70 kg est à 1,0 m du tréteau de gauche. Combien d'inconnues ? Peut-on les trouver ?" + figQPlanche, r: `<p>Deux inconnues, les actions des deux tréteaux N<sub>1</sub> et N<sub>2</sub> (le poids de la personne est connu, celui de la planche négligé). 2 inconnues ≤ 3 équations : oui. Moments au tréteau de gauche : 4,0·N<sub>2</sub> − 1,0 × 687 = 0 → N<sub>2</sub> = <b>172 N</b> ; puis N<sub>1</sub> = 687 − 172 = <b>515 N</b> (plus proche de la personne, il porte plus).</p>` },
       { t: "Sur une pente : P·sin α et P·cos α", html: `<p>Sur une pente, le plus simple est de prendre un repère <b>lié à la pente</b> : x le long de la pente (vers le haut), y perpendiculaire. Le poids, vertical, se <b>décompose</b> alors en deux parts :</p>
         ${figPente}
         ${F("le long de la pente, vers le bas : P·sin α &nbsp;&nbsp;·&nbsp;&nbsp; perpendiculaire à la pente : P·cos α")}
@@ -474,7 +534,7 @@ window.SIP = window.SIP || {};
         ${F("sur x : T − P·sin α = 0 &nbsp;&nbsp;→&nbsp;&nbsp; T = P·sin α")}
         ${F("sur y : N<sub>A</sub> + N<sub>B</sub> − P·cos α = 0 &nbsp;&nbsp;→&nbsp;&nbsp; N<sub>A</sub> + N<sub>B</sub> = P·cos α")}
         <p>L'équation sur x donne T tout de suite. L'équation sur y ne donne que la <b>somme</b> N<sub>A</sub> + N<sub>B</sub> : il manque une équation, celle des moments.</p>`,
-        q: "Pour E = 300 kg sur 18 % : T ? N<sub>A</sub> + N<sub>B</sub> ?", r: `<p>T = P·sin α = <b>521 N</b> : c'est l'effort que le câble doit tenir. N<sub>A</sub> + N<sub>B</sub> = P·cos α = <b>2 900 N</b> (2 896 N). On garde 2 896 pour la suite du calcul.</p>` },
+        q: "Pour E = 300 kg sur 18 % : T ? N<sub>A</sub> + N<sub>B</sub> ?" + figQ(figBilan), r: `<p>T = P·sin α = <b>521 N</b> : c'est l'effort que le câble doit tenir. N<sub>A</sub> + N<sub>B</sub> = P·cos α = <b>2 900 N</b> (2 896 N). On garde 2 896 pour la suite du calcul.</p>` },
       { t: "Choisir le point des moments", html: `<p>L'équation des moments peut s'écrire en n'importe quel point. Le bon point, c'est celui <b>par où passe une inconnue</b> : son moment y est nul, elle <b>disparaît</b> de l'équation.</p>
         ${figPoint}
         <p>Ici N<sub>B</sub> passe par B. En écrivant les moments <b>en B</b>, il ne reste que N<sub>A</sub> comme inconnue (T est déjà connue) : on la trouve directement.</p>
@@ -501,13 +561,13 @@ window.SIP = window.SIP || {};
         ${F("2,00·N<sub>A</sub> − 2 317 + 313 − 156 = 0 &nbsp;→&nbsp; N<sub>A</sub> = " + fr("2 160", "2,00") + " = 1 080 N")}
         <p>Puis N<sub>B</sub> = 2 896 − 1 080 = <b>1 820 N</b> (1 816 N). Les roues arrière, côté lagon et plus près de G, portent plus.</p>
         <div class="piege">Le bras de levier du câble est la distance de B à la <b>droite d'action</b> du câble (0,30 m), pas la distance de B à C le long de la cale.</div>`,
-        q: "Vérifie en écrivant les moments en A : retrouves-tu N<sub>B</sub> ?", r: `<p>En A : −2,00·N<sub>B</sub> + (2,00 − 0,80) × 2 896 + 0,60 × 521 − 0,30 × 521 = 0 (le poids est maintenant à gauche de A : P·cos α fait tourner dans le sens trigo ; T, toujours au-dessus, dans le sens horaire).<br>−2,00·N<sub>B</sub> + 3 475 + 313 − 156 = 0 → N<sub>B</sub> = ${fr("3 632", "2,00")} = <b>1 816 N</b>. ✔</p>` },
+        q: "Vérifie en écrivant les moments en A : retrouves-tu N<sub>B</sub> ?" + figQ(figExemple), r: `<p>En A : −2,00·N<sub>B</sub> + (2,00 − 0,80) × 2 896 + 0,60 × 521 − 0,30 × 521 = 0 (le poids est maintenant à gauche de A : P·cos α fait tourner dans le sens trigo ; T, toujours au-dessus, dans le sens horaire).<br>−2,00·N<sub>B</sub> + 3 475 + 313 − 156 = 0 → N<sub>B</sub> = ${fr("3 632", "2,00")} = <b>1 816 N</b>. ✔</p>` },
       { t: "Conclure sur une exigence", html: `<p>L'exigence du cahier des charges dit par exemple : « chaque essieu supporte au plus 2 000 N » et « les quatre roues restent en appui ».</p>
         <ul><li>N<sub>A</sub> = 1 080 N &gt; 0 et N<sub>B</sub> = 1 820 N &gt; 0 : les deux essieux appuient sur la cale, <b>pas de décollement</b>.</li>
         <li>L'essieu le plus chargé est l'arrière : 1 820 N ≤ 2 000 N, <b>exigence respectée</b>, avec une marge de ${fr("|2 000 − 1 820|", "2 000")} × 100 = <b>9,0 %</b>.</li>
         <li>Le câble doit tenir T = 521 N : un treuil de 1 000 N convient (il n'utilise que 52 % de sa capacité).</li></ul>
         <div class="retenir">Une conclusion = la valeur calculée, la limite, le signe de comparaison, le verdict. « 1 820 N ≤ 2 000 N : l'exigence Id 1.3 est respectée. »</div>`,
-        q: "Le club charge une coque plus lourde : E = 380 kg, mêmes cotes. Sans tout refaire : N<sub>B</sub> dépasse-t-il 2 000 N ?", r: `<p>Toutes les forces sont proportionnelles à P : N<sub>B</sub> = 1 816 × ${fr("380", "300")} = <b>2 300 N</b> &gt; 2 000 N. <b>Exigence non respectée</b> : il faut un chariot plus solide, ou déplacer la charge vers l'essieu avant pour mieux répartir.</p>` },
+        q: "Le club charge une coque plus lourde : E = 380 kg, mêmes cotes. Sans tout refaire : N<sub>B</sub> dépasse-t-il 2 000 N ?" + figQ(figExemple), r: `<p>Toutes les forces sont proportionnelles à P : N<sub>B</sub> = 1 816 × ${fr("380", "300")} = <b>2 300 N</b> &gt; 2 000 N. <b>Exigence non respectée</b> : il faut un chariot plus solide, ou déplacer la charge vers l'essieu avant pour mieux répartir.</p>` },
       { t: "Un solide qui ne subit que deux forces", html: `<p>Cas très utile : si un solide en équilibre ne subit que <b>deux forces</b>, alors elles sont <b>opposées sur la même droite</b> (même norme, sens contraires). La somme nulle impose la norme ; la somme des moments nulle impose la même droite.</p>
         ${figDeuxForces}
         <p>C'est ce qui justifie que l'action de la cale sur une roue libre est <b>perpendiculaire à la cale</b> : la roue (poids négligé, pivot parfaite) ne subit que l'essieu en O et le sol en B ; la droite OB est le rayon de la roue, perpendiculaire à la pente.</p>
@@ -544,14 +604,14 @@ window.SIP = window.SIP || {};
         <p><b>f</b> est le <b>coefficient d'adhérence</b> (ou de frottement, noté aussi μ), <b>sans unité</b>. Il dépend des deux matériaux et de l'état des surfaces (sec, mouillé, algues, huile)… mais <b>pas</b> de la masse ni de la surface de contact.</p>
         <div class="retenir">Le ≤ est la chose à entourer. T ne vaut f·N <b>qu'à la limite du glissement</b>. Avant, T est simplement ce que demande l'équilibre (le PFS la donne), et f·N dit si c'est possible.</div>
         <p>Remarque : une fois que ça glisse, le contact suit encore T = f·N, mais avec un f de glissement un peu plus petit que celui d'adhérence : ça glisse franchement.</p>`,
-        q: "La caisse de l'écran précédent : N = 392 N, f = 0,45 entre le bois et le béton. Jusqu'à quelle poussée reste-t-elle immobile ?", r: `<p>T<sub>max</sub> = f·N = 0,45 × 392,4 = 176,6 N ≈ <b>177 N</b>. Avec 150 N elle tient (150 ≤ 177) ; au-delà de 177 N elle glisse.</p>` },
+        q: "La même caisse de 40 kg : N = 392 N, f = 0,45 entre le bois et le béton. Jusqu'à quelle poussée reste-t-elle immobile ?" + figQCaisse, r: `<p>T<sub>max</sub> = f·N = 0,45 × 392,4 = 176,6 N ≈ <b>177 N</b>. Avec 150 N elle tient (150 ≤ 177) ; au-delà de 177 N elle glisse.</p>` },
       { t: "Le coefficient f : des ordres de grandeur", html: `<table><thead><tr><th>contact</th><th>f</th><th>φ = arctan f</th></tr></thead><tbody>
         <tr><td class="g">pneu / béton ou goudron sec</td><td>0,75 à 0,8</td><td>37° à 39°</td></tr><tr><td class="g">pneu / béton mouillé</td><td>0,5 à 0,55</td><td>27° à 29°</td></tr>
         <tr><td class="g">pneu / cale couverte d'algues, boue</td><td>0,2 à 0,3</td><td>11° à 17°</td></tr><tr><td class="g">gomme de robot / piste</td><td>0,6 à 0,7</td><td>31° à 35°</td></tr>
         <tr><td class="g">acier / acier (sec)</td><td>0,18</td><td>10°</td></tr><tr><td class="g">acier / téflon</td><td>0,04</td><td>2°</td></tr></tbody></table>
         <p>Les sujets donnent toujours f dans un tableau : il faut <b>choisir la bonne ligne</b> (sol sec ou mouillé, matériau) et prendre <b>le cas le plus défavorable</b> quand on vérifie une exigence de sécurité (le plus petit f).</p>
         <div class="piege">f ne dépend pas de la masse : un bout de gomme de 20 g et un robot de 500 g ont le même f sur la même piste. C'est pour ça qu'on peut le mesurer sur un petit échantillon.</div>`,
-        q: "Un scooter de 180 kg (avec son pilote) freine des deux roues. Force de freinage maximale sur route sèche (f = 0,8) ? mouillée (f = 0,5) ?", r: `<p>N total = P = 180 × 9,81 = 1 766 N. Sec : T<sub>max</sub> = 0,8 × 1 766 = <b>1 410 N</b>. Mouillé : 0,5 × 1 766 = <b>883 N</b>. Sur route mouillée, on ne peut freiner qu'à 63 % : la distance d'arrêt augmente d'autant.</p>` },
+        q: "Un scooter de 180 kg (avec son pilote) freine des deux roues. Force de freinage maximale sur route sèche (f = 0,8) ? mouillée (f = 0,5) ?" + figQScooterFrein, r: `<p>N total = P = 180 × 9,81 = 1 766 N. Sec : T<sub>max</sub> = 0,8 × 1 766 = <b>1 410 N</b>. Mouillé : 0,5 × 1 766 = <b>883 N</b>. Sur route mouillée, on ne peut freiner qu'à 63 % : la distance d'arrêt augmente d'autant.</p>` },
       { t: "L'angle φ et le cône d'adhérence", html: `<p>Autre façon de dire la même chose, avec un dessin. L'action R penche d'un angle θ sur la normale, avec tan θ = T sur N. La loi T ≤ f·N devient : <b>tan θ ≤ f</b>. On pose ${F("f = tan φ &nbsp;&nbsp;&nbsp; φ : angle d'adhérence")} et la condition devient simplement <b>θ ≤ φ</b>.</p>
         ${figCone}
         <p>Le <b>cône d'adhérence</b> est le secteur de demi-angle φ autour de la normale au contact. R doit rester <b>dedans</b>. Sur le bord : limite du glissement. Dehors : impossible, ça glisse.</p>
@@ -563,7 +623,7 @@ window.SIP = window.SIP || {};
         ${F(fr("T", "N") + " ≤ f &nbsp;→&nbsp; ça tient &nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp; " + fr("T", "N") + " &gt; f &nbsp;→&nbsp; l'équilibre est impossible, ça glisse")}
         <div class="retenir">La phrase : « T sur N = 0,40 &lt; f = 0,5 : l'action du rail reste dans le cône d'adhérence, la roue ne glisse pas, l'arrêt est possible. » (Urbanloop, bac 2024.) Cite <b>les deux nombres</b>.</div>
         <div class="piege">On compare un rapport à un coefficient (0,40 et 0,5), ou un angle à un angle (21,8° et 26,6°). Jamais θ à f.</div>`,
-        q: "Une capsule freinée demande T = 920 N sur une roue qui porte N = 2 300 N. Rail sec f = 0,5, rail humide f = 0,4. Conclusion ?", r: `<p>T sur N = ${fr("920", "2 300")} = <b>0,40</b>, θ = arctan 0,40 = 21,8°. Sec : 0,40 &lt; 0,5, la roue ne glisse pas. Humide : 0,40 = 0,4, on est <b>exactement à la limite</b> : le freinage reste possible, mais sans aucune marge. Un ABS évite le blocage.</p>` },
+        q: "Une capsule freinée demande T = 920 N sur une roue qui porte N = 2 300 N. Rail sec f = 0,5, rail humide f = 0,4. Conclusion ?" + figQCapsule, r: `<p>T sur N = ${fr("920", "2 300")} = <b>0,40</b>, θ = arctan 0,40 = 21,8°. Sec : 0,40 &lt; 0,5, la roue ne glisse pas. Humide : 0,40 = 0,4, on est <b>exactement à la limite</b> : le freinage reste possible, mais sans aucune marge. Un ABS évite le blocage.</p>` },
       { t: "Un solide posé sur une pente : tan α ≤ f", html: `${figPenteTan}
         <p>Un objet posé sur une planche inclinée d'un angle α, immobile. PFS dans le repère de la pente : <b>T = P·sin α</b> (sur x) et <b>N = P·cos α</b> (sur y). Donc ${F(fr("T", "N") + " = " + fr("P·sin α", "P·cos α") + " = tan α")}</p>
         <p>Il tient tant que <b>tan α ≤ f</b>, c'est-à-dire <b>α ≤ φ</b>. La masse a <b>disparu</b> : lourd ou léger, un objet tient sur la même pente maximale.</p>
@@ -585,7 +645,7 @@ window.SIP = window.SIP || {};
         <table><thead><tr><th>état de la cale</th><th>f</th><th>tan α = 0,18 ≤ f ?</th><th>verdict</th></tr></thead><tbody>
         <tr><td>sèche</td><td>0,75</td><td>oui</td><td>immobile</td></tr><tr><td>mouillée</td><td>0,55</td><td>oui</td><td>immobile</td></tr><tr><td>algues</td><td>0,20</td><td>oui, de peu</td><td>immobile, marge ${fr("|0,20 − 0,18|", "0,20")} × 100 = 10 %</td></tr></tbody></table>
         <div class="retenir">Exigence respectée avec l'option « frein sur les quatre roues ». Mesure complémentaire : brosser la cale pour enlever les algues (f remonte vers 0,55).</div>`,
-        q: "Pourquoi deux roues freinées ne suffisent-elles pas alors que tan α = 0,18 &lt; 0,20 ?", r: `<p>Parce qu'avec deux roues freinées, <b>toute</b> la retenue P·sin α doit passer par le seul essieu B, qui ne porte qu'une partie de l'appui (N<sub>B</sub> = 1 894 N, pas 2 896 N) : le rapport T sur N vaut 0,275 au lieu de 0,18. Freiner les quatre roues répartit la retenue sur tout l'appui.</p>` },
+        q: "Pourquoi deux roues freinées ne suffisent-elles pas alors que tan α = 0,18 &lt; 0,20 ?" + figQ(figChariotFrein), r: `<p>Parce qu'avec deux roues freinées, <b>toute</b> la retenue P·sin α doit passer par le seul essieu B, qui ne porte qu'une partie de l'appui (N<sub>B</sub> = 1 894 N, pas 2 896 N) : le rapport T sur N vaut 0,275 au lieu de 0,18. Freiner les quatre roues répartit la retenue sur tout l'appui.</p>` },
       { t: "Les pièges qui coûtent des points", html: `<ul><li>Écrire T = f·N alors que rien ne glisse : on sait seulement que T ≤ f·N. L'égalité, c'est à la limite.</li><li>Prendre le poids total au lieu de la part portée par les roues motrices (ou par l'essieu freiné).</li>
         <li>Orienter T dans le mauvais sens : elle s'oppose au glissement <b>du solide étudié</b>.</li><li>Comparer θ à f, ou T sur N à φ. Calculatrice en radians.</li>
         <li>Tracer le cône autour de la verticale au lieu de la normale au contact, sur une pente.</li><li>Conclure pour un seul état du sol quand l'exigence dit « même mouillé ».</li><li>Additionner N et T : R = √(N² + T²).</li></ul>

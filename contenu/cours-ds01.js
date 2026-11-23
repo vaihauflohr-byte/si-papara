@@ -167,6 +167,78 @@ window.SIP = window.SIP || {};
     "Trois blocs en cascade : 6,00 W entrent dans le moteur de rendement 0,60, 3,60 W sortent ; le réducteur de rendement 0,80 en laisse 2,88 W ; les roues de rendement 0,90 en laissent 2,59 W. Les pertes partent en chaleur : 2,40 W, 0,72 W, 0,29 W");
 
   // =============================================================== ana-exigences
+  // ============================================================ figures des « Cherche avec moi »
+  // Chaque question montre de quoi elle parle : le diagramme à lire, la chaîne à compléter, les valeurs.
+  const figQ = (f) => f.replace("<figure>", '<figure style="margin:12px auto 4px;max-width:min(100%,560px)">').replace("<svg ", '<svg style="width:100%;height:auto;display:block" ');
+  const TM = (x, y, t, o) => T(x, y, t, ' text-anchor="middle"' + (o || ' font-size="12"'));
+  const GRAS = ' font-size="13" font-weight="600"', ACC = ' font-size="13" font-weight="600" fill="var(--accent)"';
+  const VERT = ' font-size="13" font-weight="600" fill="var(--good)"', ORA = ' font-size="13" font-weight="600" fill="var(--warn)"', GQ = ' font-size="11" fill="var(--ink-3)"';
+  // chaîne de blocs : [titre, valeur, seconde valeur éventuelle] ; une valeur à trouver (avec « ? ») ressort en couleur
+  const chaine = (y, B, W) => { const n = B.length, g = 18, w = ((W || 420) - 12 - g * (n - 1)) / n, h = B.some((b) => b[2]) ? 72 : 56;
+    return B.map((b, i) => { const x = 6 + i * (w + g), val = (t, yy) => TM(x + w / 2, yy, t, /\?/.test(t) ? ' font-size="12.5" font-weight="700" fill="var(--accent)"' : ' font-size="12.5"');
+      return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill="none" stroke="currentColor" stroke-width="1.4"/>${TM(x + w / 2, y + 21, b[0], GRAS)}${val(b[1], y + 40)}${b[2] ? val(b[2], y + 57) : ""}` + (i < n - 1 ? AR(x + w, y + h / 2, x + w + g, y + h / 2) : ""); }).join(""); };
+  // étiquette d'un constituant à placer
+  const puce = (x, y, w, t) => `<rect x="${x}" y="${y}" width="${w}" height="26" rx="13" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="1"/>${TM(x + w / 2, y + 18, t, ' font-size="12.5"')}`;
+  // un axe, le critère de l'exigence, la valeur obtenue
+  const axeQ = (o) => figQ(svg(460, 128, `
+    ${AR(30, 70, 440, 70, "currentColor", 1.4)}${T(440, 58, o.unite, ' text-anchor="end" font-size="12"')}
+    ${L(o.xc, 40, o.xc, 100, ' stroke-width="2"')}${TM(o.xc, 30, o.crit, GRAS)}
+    <rect x="${o.bon === "droite" ? o.xc : 30}" y="62" width="${o.bon === "droite" ? 400 - o.xc : o.xc - 30}" height="16" fill="var(--good)" opacity=".25"/>${TM(o.bon === "droite" ? (o.xc + 400) / 2 : (o.xc + 30) / 2, 116, "zone respectée", VERT)}
+    <circle cx="${o.xv}" cy="70" r="6" fill="var(--accent)"/>${TM(o.xv, o.vy || 54, o.val, ACC)}`, o.alt));
+  const figQVitesse = axeQ({ unite: "vitesse", xc: 250, crit: "exigence : au moins 1,0 m/s", bon: "droite", xv: 120, val: "essai : 3,2 km/h = ? m/s", alt: "Un axe des vitesses : l'exigence demande au moins 1,0 m/s ; l'essai donne 3,2 km/h, à convertir avant de le placer" });
+  const figQMasse = axeQ({ unite: "masse", xc: 240, crit: "exigence : au plus 1 kg", bon: "gauche", xv: 330, vy: 100, val: "robot : 1,04 kg · écart = ?", alt: "Un axe des masses : l'exigence impose au plus 1 kg ; le robot pèse 1,04 kg" });
+  const figQAutonomie = figQ(svg(420, 104, `${chaine(8, [["batterie", "7,4 V", "1 000 mAh"], ["robot", "I = 2,5 A"], ["autonomie", "t = ?"]])}${TM(210, 98, "exigence 1.4 : fonctionner au moins 30 min")}`,
+    "La batterie de 1 000 mAh alimente le robot qui consomme 2,5 A : quelle autonomie, pour une exigence d'au moins 30 min ?"));
+  const figQFils = figQ(svg(460, 200, `
+    <rect x="20" y="20" width="150" height="50" rx="5" fill="none" stroke="currentColor" stroke-width="1.4"/>${TM(95, 50, "microcontrôleur", GRAS)}
+    <rect x="20" y="130" width="150" height="50" rx="5" fill="none" stroke="currentColor" stroke-width="1.4"/>${TM(95, 160, "batterie", GRAS)}
+    <rect x="290" y="75" width="110" height="50" rx="5" fill="none" stroke="currentColor" stroke-width="1.4"/>${TM(345, 105, "hacheur", GRAS)}
+    ${AR(170, 45, 290, 90, "currentColor", 1.6)}${TM(232, 50, "fil ①", GRAS)}${AR(170, 155, 290, 110, "currentColor", 3.4)}${TM(232, 158, "fil ②", GRAS)}
+    ${AR(400, 100, 446, 100)}${TM(424, 88, "moteur", GQ)}`,
+    "Le microcontrôleur est relié au hacheur par le fil 1, la batterie est reliée au hacheur par le fil 2 ; le hacheur alimente le moteur"));
+  // les cinq fonctions sur deux rangées (lisible sur téléphone), puis les constituants à placer, en étiquettes
+  const puces = (P, y) => { let x = 8, yy = y, h = ""; P.forEach((t) => { const w = t.length * 7.2 + 26; if (x + w > 412) { x = 8; yy += 34; } h += puce(x, yy, w, t); x += w + 8; }); return [h, yy + 26]; };
+  const cinq = (P, alt) => { const [h, bas] = puces(P, 190); return figQ(svg(420, bas + 10, `
+    ${chaine(8, [["alimenter", "?"], ["moduler", "?"], ["convertir", "?"]])}
+    <path d="M347 64 V78 H54 V84" fill="none" stroke="var(--accent)" stroke-width="2.6"/>${AR(54, 80, 54, 92)}
+    ${chaine(92, [["transmettre", "?"], ["agir", "?"]], 290)}
+    ${TM(44, 178, "À placer :", ' font-size="12.5" font-weight="600"')}${h}`, alt)); };
+  const figQCinq = cinq(["batterie 7,4 V", "pont en H", "moteur CC", "réducteur 1/48", "roue"], "Les cinq fonctions de la chaîne de puissance, à compléter avec : batterie 7,4 V, pont en H, moteur CC, réducteur 1/48, roue");
+  const figQTrottinette = cinq(["batterie 36 V", "contrôleur", "moteur dans la roue arrière"], "Les cinq fonctions de la chaîne de puissance de la trottinette, à compléter avec : batterie 36 V, contrôleur, moteur dans la roue arrière");
+  const figQVerin = figQ(svg(460, 190, `
+    <rect x="20" y="40" width="250" height="50" rx="8" fill="currentColor" fill-opacity=".08" stroke="currentColor" stroke-width="1.6"/>
+    <rect x="30" y="48" width="70" height="34" rx="4" fill="currentColor" fill-opacity=".25" stroke="currentColor" stroke-width="1.2"/>${TM(65, 70, "moteur", ' font-size="12"')}
+    <rect x="100" y="60" width="150" height="10" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="1"/>${Array.from({ length: 14 }, (_, i) => L(106 + i * 10, 60, 112 + i * 10, 70, ' stroke-width="1"')).join("")}
+    <rect x="170" y="52" width="34" height="26" rx="3" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.4"/>
+    <rect x="204" y="59" width="150" height="12" rx="3" fill="currentColor" fill-opacity=".3" stroke="currentColor" stroke-width="1.2"/>
+    ${AR(300, 34, 356, 34, "var(--good)")}${TM(328, 24, "la tige sort", VERT)}${TM(120, 30, "vérin électrique", GRAS)}${TM(175, 108, "vis", GQ)}${TM(188, 108 + 14, "écrou", GQ)}
+    <circle cx="110" cy="152" r="18" fill="var(--accent-soft)" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 3"/><circle cx="110" cy="152" r="3" fill="currentColor"/>
+    ${L(40, 172, 220, 172, ' stroke-width="2"')}<path d="M40 172 ${Array.from({ length: 15 }, () => "l4 -5 l4 0 l4 5").join(" ")}" fill="none" stroke="currentColor" stroke-width="1.2"/>
+    ${T(240, 158, "pignon-crémaillère", GRAS)}`,
+    "En haut, un vérin électrique : un moteur fait tourner une vis, l'écrou avance et pousse la tige. En bas, un pignon qui roule sur une crémaillère"));
+  const figQSignaux = figQ(svg(480, 172, `
+    ${[0, 1, 2].map((k) => `${L(16 + k * 160, 110, 150 + k * 160, 110, ' stroke-width="1"')}${L(16 + k * 160, 110, 16 + k * 160, 24, ' stroke-width="1"')}`).join("")}
+    <path d="M18 92 C40 30 60 104 82 62 S118 40 148 78" fill="none" stroke="var(--accent)" stroke-width="2.4"/>
+    <path d="M178 96 h18 v-22 h18 v-28 h18 v14 h18 v24 h18 v-36 h18 v20 h16" fill="none" stroke="var(--accent)" stroke-width="2.4"/>
+    <path d="M338 100 h44 v-60 h56 v60 h28" fill="none" stroke="var(--accent)" stroke-width="2.4"/>
+    ${TM(83, 132, "capteur de ligne", GRAS)}${TM(83, 150, "une tension, 0 à 5 V")}${TM(243, 132, "dans la carte", GRAS)}${TM(243, 150, "un nombre, 0 à 1 023")}${TM(403, 132, "bouton « départ »", GRAS)}${TM(403, 150, "appuyé ou non")}
+    ${TM(83, 168, "nature ?", ACC)}${TM(243, 168, "nature ?", ACC)}${TM(403, 168, "nature ?", ACC)}`,
+    "Trois signaux : la tension du capteur de ligne varie continûment entre 0 et 5 V ; la carte la transforme en un nombre entre 0 et 1 023 ; le bouton départ n'a que deux états"));
+  const figQLiens = figQ(svg(480, 96, `
+    ${[["moteur", 6], ["réducteur", 132], ["roue", 258], ["sol", 384]].map(([t, x]) => `<rect x="${x}" y="32" width="90" height="44" rx="5" fill="none" stroke="currentColor" stroke-width="1.4"/>${TM(x + 45, 59, t, GRAS)}`).join("")}
+    ${AR(96, 54, 132, 54)}${AR(222, 54, 258, 54)}${AR(348, 54, 384, 54)}${TM(114, 22, "? et ?", ACC)}${TM(366, 22, "? et ?", ACC)}`,
+    "La chaîne moteur, réducteur, roue, sol : quelles grandeurs écrire sur le lien entre le moteur et le réducteur, et sur le lien entre la roue et le sol ?"));
+  const figQRoueV = figQ(svg(460, 180, `
+    ${sol(20, 440, 135)}<circle cx="110" cy="95" r="40" fill="var(--paper,#fff)" stroke="currentColor" stroke-width="1.8"/><circle cx="110" cy="95" r="3.5" fill="currentColor"/>
+    ${L(70, 95, 150, 95, ' stroke-width="1" stroke-dasharray="4 3"')}${TM(110, 88, "Ø 60 mm", ' font-size="11"')}${ARC(110, 95, 52, 150, 60)}${T(30, 34, "ω = 17,5 rad/s", ACC)}
+    ${AR(170, 80, 250, 80, "var(--good)")}${T(258, 84, "v = ?", VERT)}${AR(170, 112, 250, 112, "var(--warn)")}${T(258, 116, "F = ?", ORA)}
+    ${TM(230, 168, "puissance aux roues : 2,59 W")}`,
+    "Une roue de 60 mm de diamètre tourne à 17,5 rad/s : vitesse du robot et force de poussée, pour une puissance aux roues de 2,59 W"));
+  const figQPertes = figQ(svg(460, 150, `
+    ${AR(40, 58, 160, 58)}${TM(98, 44, "3,60 W entrent", ACC)}<rect x="160" y="28" width="140" height="60" rx="6" fill="none" stroke="currentColor" stroke-width="1.5"/>${TM(230, 54, "réducteur", GRAS)}${TM(230, 74, "η = ?", ACC)}
+    ${AR(300, 58, 420, 58, "var(--good)")}${TM(362, 44, "2,88 W sortent", VERT)}${AR(230, 88, 230, 128, "var(--warn)")}${T(240, 124, "pertes en chaleur = ?", ORA)}`,
+    "Le réducteur reçoit 3,60 W et fournit 2,88 W ; le reste part en chaleur"));
+
   C["ana-exigences"] = {
     titre: "Le diagramme des exigences", sous: "Le cahier des charges en SysML : lire une exigence, suivre ses liens, et conclure « respectée » ou « non respectée » avec un calcul.",
     objectifs: ["Lire un extrait de diagramme des exigences : retrouver une exigence par son Id ou son nom, relever sa valeur, son unité et son sens.",
@@ -207,12 +279,12 @@ window.SIP = window.SIP || {};
         <li>Lis le <b>Text</b> de la boîte, en entier : la valeur, l'unité, le sens.</li>
         <li>Recopie <b>la valeur avec son unité et l'Id</b> : « 3 N au moins (exigence 1.3) ». Une valeur sans Id ni unité ne rapporte pas tous les points.</li></ol>
         <div class="retenir">Une question de lecture vaut souvent 1 ou 2 points faciles : réponds-y toujours, même si la suite te paraît dure.</div>`,
-        q: "« Relever sur le diagramme des exigences la masse maximale du robot et la durée de fonctionnement minimale. »", r: `<p>Masse maximale : <b>1 kg</b> (exigence 1.1 Masse). Durée de fonctionnement minimale : <b>30 min</b> (exigence 1.4 Autonomie).</p>` },
+        q: "« Relever sur le diagramme des exigences la masse maximale du robot et la durée de fonctionnement minimale. »" + figQ(figReq), r: `<p>Masse maximale : <b>1 kg</b> (exigence 1.1 Masse). Durée de fonctionnement minimale : <b>30 min</b> (exigence 1.4 Autonomie).</p>` },
       { t: "Convertir avant de comparer", html: `<p>La valeur que tu calcules n'est pas toujours dans l'unité de l'exigence. On convertit <b>d'abord</b>, on compare <b>ensuite</b>.</p>
         ${F("v en m/s = " + fr("v en km/h", "3,6") + " &nbsp;·&nbsp; 1 nœud = 1,852 km/h &nbsp;·&nbsp; ω en rad/s = " + fr("2π × N en tr/min", "60"))}
         ${F("pente de p % : tan α = " + fr("p", "100") + " &nbsp;·&nbsp; 1 000 mAh = 1,00 Ah &nbsp;·&nbsp; E en Wh = U × Q (V × Ah) &nbsp;·&nbsp; 1 h = 60 min")}
         <p>Exemple du bac 2026 (robot caddie Gita) : pente maximale de 16 % → tan α = 0,16 → α = <b>9,1°</b>.</p>`,
-        q: "L'exigence impose « vitesse d'au moins 1,0 m/s ». L'essai donne 3,2 km/h. Respectée ?", r: `<p>3,2 km/h = ${fr("3,2", "3,6")} = <b>0,889 m/s</b>. 0,889 m/s &lt; 1,0 m/s : <b>non respectée</b>. Sans convertir, on aurait écrit « 3,2 &gt; 1,0, respectée » : faux.</p>` },
+        q: "L'exigence impose « vitesse d'au moins 1,0 m/s ». L'essai donne 3,2 km/h. Respectée ?" + figQVitesse, r: `<p>3,2 km/h = ${fr("3,2", "3,6")} = <b>0,889 m/s</b>. 0,889 m/s &lt; 1,0 m/s : <b>non respectée</b>. Sans convertir, on aurait écrit « 3,2 &gt; 1,0, respectée » : faux.</p>` },
       { t: "Respectée ou non : comparer dans le bon sens", html: `${figAxe}
         <p class="discret">Valeurs d'exemple ; les mBot de la classe sont étudiés dans les cours du DS 04.</p>
         <p>Le robot pesé fait 0,93 kg : 0,93 ≤ 1, l'exigence 1.1 est <b>respectée</b>. Un autre fait 1,04 kg : 1,04 &gt; 1, <b>non respectée</b>, même de 40 g.</p>
@@ -222,7 +294,7 @@ window.SIP = window.SIP || {};
         ${F("écart = " + fr("|valeur obtenue − valeur de l'exigence|", "valeur de l'exigence") + " × 100")}
         <p>Poussée : ${fr("|2,74 − 3|", "3")} × 100 = ${fr("0,26", "3")} × 100 ≈ <b>8,7 %</b>. On est 8,7 % en dessous de ce qui est exigé.</p><p class="discret">Règle de la classe : on calcule avec les valeurs déjà arrondies à 3 chiffres (2,74 N), comme le fait le corrigé. Avec la valeur non arrondie on trouve 8,77 % : même conclusion.</p>
         <div class="piege">La référence, c'est l'exigence (3 N), pas la mesure. Et on ne met pas de signe moins : on dit « en dessous » ou « au-dessus » avec des mots.</div>`,
-        q: "Robot de 1,04 kg, exigence 1 kg : écart relatif ?", r: `<p>${fr("|1,04 − 1|", "1")} × 100 = <b>4 %</b> au-dessus de la masse maximale. Il faut enlever au moins 40 g (sur le lest, le bloc qui satisfait 1.1).</p>` },
+        q: "Robot de 1,04 kg, exigence 1 kg : écart relatif ?" + figQMasse, r: `<p>${fr("|1,04 − 1|", "1")} × 100 = <b>4 %</b> au-dessus de la masse maximale. Il faut enlever au moins 40 g (sur le lest, le bloc qui satisfait 1.1).</p>` },
       { t: "La phrase de conclusion type bac", html: `<p>Une conclusion complète tient en une phrase, toujours construite pareil :</p>
         <div class="formule">« <b>[grandeur] = [valeur obtenue] [unité]</b> &nbsp;[≤ ou ≥]&nbsp; <b>[valeur de l'exigence]</b> : l'exigence <b>[Id]</b> (« nom ») est <b>respectée / n'est pas respectée</b>, avec un écart de <b>[x %]</b>. »</div>
         <p>Exemple : « F = 3,65 N ≥ 3 N : l'exigence 1.3 (« Poussée ») est respectée, avec un écart de 21,7 % au-dessus de l'exigence. »</p>
@@ -235,7 +307,7 @@ window.SIP = window.SIP || {};
         <li><b>Calculer</b> : t = ${fr("Q", "I")} = ${fr("1,00", "1,8")} = 0,556 h = 0,556 × 60 = <b>33,3 min</b>.</li>
         <li><b>Comparer</b> : 33,3 min ≥ 30 min.</li>
         <li><b>Conclure</b> : « t = 33,3 min ≥ 30 min : l'exigence 1.4 (« Autonomie ») est respectée, avec un écart de ${fr("3,3", "30")} × 100 = 11 % au-dessus de l'exigence. »</li></ol>`,
-        q: "Avec un moteur plus gourmand, I = 2,5 A. Conclusion ? Que faut-il changer ?", r: `<p>t = ${fr("1,00", "2,5")} = 0,400 h = <b>24,0 min</b>. 24,0 min &lt; 30 min : l'exigence 1.4 <b>n'est pas respectée</b>, écart ${fr("6", "30")} × 100 = <b>20 %</b>. Il faut une batterie d'au moins Q = I × t = 2,5 × 0,500 = <b>1,25 Ah</b> (1 250 mAh), ou un robot qui consomme moins.</p>` },
+        q: "Avec un moteur plus gourmand, I = 2,5 A. Conclusion ? Que faut-il changer ?" + figQAutonomie, r: `<p>t = ${fr("1,00", "2,5")} = 0,400 h = <b>24,0 min</b>. 24,0 min &lt; 30 min : l'exigence 1.4 <b>n'est pas respectée</b>, écart ${fr("6", "30")} × 100 = <b>20 %</b>. Il faut une batterie d'au moins Q = I × t = 2,5 × 0,500 = <b>1,25 Ah</b> (1 250 mAh), ou un robot qui consomme moins.</p>` },
       { t: "Les pièges qui coûtent des points", html: `<ul><li>Comparer deux unités différentes (km/h et m/s, mAh et Ah, tr/min et rad/s) : convertis d'abord.</li>
         <li>Se tromper de sens : « au plus » → ≤, « au moins » → ≥. Une masse ou un temps petit, c'est bien.</li>
         <li>Confondre les liens : «satisfy» part d'un bloc, «verify» d'un test ; ⊕ relie une exigence mère à ses filles.</li>
@@ -262,7 +334,7 @@ window.SIP = window.SIP || {};
         <div><p><b>Chaîne de puissance</b> : elle transporte l'<b>énergie</b> jusqu'à l'action. Puissance réelle : des watts, des kilowatts.</p></div></div>
         <p>Le point de rencontre : l'<b>ordre</b>. Le microcontrôleur envoie un ordre au <b>pré-actionneur</b> (le hacheur), qui laisse passer plus ou moins d'énergie de la batterie vers le moteur.</p>
         <div class="retenir">Sur un dessin : trait <b>plein</b> = énergie, trait en <b>pointillés</b> = information. L'ordre vient de la chaîne d'information ; l'énergie vient de l'alimentation, jamais du microcontrôleur.</div>`,
-        q: "Un fil relie le microcontrôleur au hacheur ; un autre relie la batterie au hacheur. Lequel transporte de l'énergie ?", r: `<p>Celui qui vient de la <b>batterie</b>. Le fil du microcontrôleur ne transporte qu'un <b>ordre</b> (un signal de quelques mA) : il dit au hacheur « laisse passer 70 % », mais c'est la batterie qui fournit les watts.</p>` },
+        q: "Un fil relie le microcontrôleur au hacheur ; un autre relie la batterie au hacheur. Lequel transporte de l'énergie ?" + figQFils, r: `<p>Celui qui vient de la <b>batterie</b>. Le fil du microcontrôleur ne transporte qu'un <b>ordre</b> (un signal de quelques mA) : il dit au hacheur « laisse passer 70 % », mais c'est la batterie qui fournit les watts.</p>` },
       { t: "La chaîne de puissance : cinq fonctions", html: `<table><thead><tr><th>fonction</th><th>rôle</th><th>constituants typiques</th></tr></thead><tbody>
         <tr><td><b>Alimenter</b></td><td class="g">fournir l'énergie</td><td class="g">batterie, pile, secteur 230 V, panneau photovoltaïque</td></tr>
         <tr><td><b>Moduler</b> (ou distribuer)</td><td class="g">laisser passer tout, rien, ou une partie, sur ordre</td><td class="g">hacheur, pont en H, variateur, relais, contacteur</td></tr>
@@ -270,18 +342,18 @@ window.SIP = window.SIP || {};
         <tr><td><b>Transmettre</b></td><td class="g">adapter le mouvement (couple, vitesse, rotation → translation)</td><td class="g">réducteur, poulies-courroie, pignon-crémaillère, vis-écrou, chaîne</td></tr>
         <tr><td><b>Agir</b></td><td class="g">agir sur la matière d'œuvre</td><td class="g">roue, pince, lame, hélice, tambour</td></tr></tbody></table>
         <p>Le modulateur s'appelle le <b>pré-actionneur</b>, le convertisseur l'<b>actionneur</b>, et le dernier bloc l'<b>effecteur</b>.</p>`,
-        q: "Place : batterie 7,4 V · pont en H · moteur CC · réducteur 1/48 · roue.", r: `<p>Alimenter : <b>batterie</b> ; moduler : <b>pont en H</b> (un hacheur qui sait aussi inverser le sens) ; convertir : <b>moteur CC</b> ; transmettre : <b>réducteur</b> ; agir : <b>roue</b>.</p>` },
+        q: "Place : batterie 7,4 V · pont en H · moteur CC · réducteur 1/48 · roue." + figQCinq, r: `<p>Alimenter : <b>batterie</b> ; moduler : <b>pont en H</b> (un hacheur qui sait aussi inverser le sens) ; convertir : <b>moteur CC</b> ; transmettre : <b>réducteur</b> ; agir : <b>roue</b>.</p>` },
       { t: "Convertir ou transmettre ?", html: `<p>C'est la confusion la plus fréquente au DS.</p>
         <div class="deux"><div><p><b>Convertir</b> : l'énergie <b>change de nature</b>. Électrique → mécanique (moteur), électrique → thermique (résistance), mécanique → électrique (génératrice).</p></div>
         <div><p><b>Transmettre</b> : l'énergie <b>reste mécanique</b>, on adapte seulement le couple et la vitesse (réducteur), ou on passe d'une rotation à une translation (pignon-crémaillère, vis-écrou).</p></div></div>
         <div class="piege">Un réducteur ne « convertit » rien : il entre de la rotation, il sort de la rotation. Il <b>transmet</b>.</div>`,
-        q: "Un vérin électrique (moteur + vis-écrou dans un tube) : il convertit ou il transmet ? Et un pignon-crémaillère ?", r: `<p>Le vérin électrique contient un moteur (<b>convertir</b>, électrique → mécanique) puis une vis-écrou (<b>transmettre</b>, rotation → translation) : dans un sujet, il est souvent placé sous « convertir » parce que sa sortie est mécanique. Le pignon-crémaillère seul : <b>transmettre</b>.</p>` },
+        q: "Un vérin électrique (moteur + vis-écrou dans un tube) : il convertit ou il transmet ? Et un pignon-crémaillère ?" + figQVerin, r: `<p>Le vérin électrique contient un moteur (<b>convertir</b>, électrique → mécanique) puis une vis-écrou (<b>transmettre</b>, rotation → translation) : dans un sujet, il est souvent placé sous « convertir » parce que sa sortie est mécanique. Le pignon-crémaillère seul : <b>transmettre</b>.</p>` },
       { t: "La chaîne d'information : trois fonctions", html: `<div class="table-defil"><table><thead><tr><th>fonction</th><th>rôle</th><th>constituants typiques</th></tr></thead><tbody>
         <tr><td><b>Acquérir</b></td><td class="g">mesurer une grandeur, lire une consigne</td><td class="g">capteur de distance, capteur de ligne, bouton, codeur, thermistance</td></tr>
         <tr><td><b>Traiter</b></td><td class="g">décider, calculer (le programme)</td><td class="g">microcontrôleur, carte Arduino, automate, ordinateur</td></tr>
         <tr><td><b>Communiquer</b></td><td class="g">envoyer l'ordre au pré-actionneur ; informer l'utilisateur ou un autre système</td><td class="g">signal PWM, LED, écran, Bluetooth, Wi-Fi, bus CAN, radio</td></tr></tbody></table></div>
         <p>Les sujets demandent la <b>nature</b> des signaux : <b>analogique</b> (une tension qui varie continûment, 0 à 5 V), <b>numérique</b> (un nombre, après le convertisseur analogique-numérique), <b>logique</b> (vrai / faux, 0 ou 1).</p>`,
-        q: "Le capteur de ligne renvoie une tension de 0 à 5 V ; la carte la transforme en un nombre de 0 à 1 023 ; un bouton « départ » : nature de chaque signal ?", r: `<p>0 à 5 V : <b>analogique</b>. Nombre 0 à 1 023 : <b>numérique</b> (10 bits). Bouton : <b>logique</b> (appuyé ou non).</p>` },
+        q: "Le capteur de ligne renvoie une tension de 0 à 5 V ; la carte la transforme en un nombre de 0 à 1 023 ; un bouton « départ » : nature de chaque signal ?" + figQSignaux, r: `<p>0 à 5 V : <b>analogique</b>. Nombre 0 à 1 023 : <b>numérique</b> (10 bits). Bouton : <b>logique</b> (appuyé ou non).</p>` },
       { t: "Sur chaque lien : un effort et un flux", html: `<p>Sur un lien de puissance, on écrit <b>deux grandeurs</b> : un <b>effort</b> (ce qui pousse) et un <b>flux</b> (ce qui circule). Leur produit est la <b>puissance</b>.</p>
         <table><thead><tr><th>énergie</th><th>effort</th><th>flux</th><th>puissance</th></tr></thead><tbody>
         <tr><td>électrique</td><td>tension U (V)</td><td>courant I (A)</td><td><b>P = U × I</b></td></tr>
@@ -289,7 +361,7 @@ window.SIP = window.SIP || {};
         <tr><td>mécanique de translation</td><td>force F (N)</td><td>vitesse v (m/s)</td><td><b>P = F × v</b></td></tr>
         <tr><td>hydraulique</td><td>pression p (Pa)</td><td>débit q (m³/s)</td><td><b>P = p × q</b></td></tr></tbody></table>
         ${F("ω en rad/s = " + fr("2π × N", "60") + " &nbsp;&nbsp; avec N en tr/min")}`,
-        q: "Quelles grandeurs écrire entre le moteur et le réducteur ? Entre la roue et le sol ? Et 8 000 tr/min, ça fait combien de rad/s ?", r: `<p>Moteur → réducteur : rotation, <b>C (N·m) et ω (rad/s)</b>. Roue → sol : translation, <b>F (N) et v (m/s)</b>. ω = ${fr("2π × 8 000", "60")} = <b>838 rad/s</b>.</p>` },
+        q: "Quelles grandeurs écrire entre le moteur et le réducteur ? Entre la roue et le sol ? Et 8 000 tr/min, ça fait combien de rad/s ?" + figQLiens, r: `<p>Moteur → réducteur : rotation, <b>C (N·m) et ω (rad/s)</b>. Roue → sol : translation, <b>F (N) et v (m/s)</b>. ω = ${fr("2π × 8 000", "60")} = <b>838 rad/s</b>.</p>` },
       { t: "Lire un diagramme de blocs internes (ibd)", html: `${figIbd}
         <p>Le cadre est le système (« ibd [Block] Robot sumo »). Dedans : des <b>blocs</b>, des <b>ports</b> (les petits carrés : par où ça entre, par où ça sort) et des <b>connecteurs</b> qui portent le flux. Au DS, on te demande de remplir, pour chaque connecteur, <b>la nature de l'énergie et les deux grandeurs avec leurs unités</b>.</p>
         <div class="table-defil"><table><thead><tr><th>①</th><th>②</th><th>③</th><th>④</th><th>⑤</th></tr></thead><tbody>
@@ -306,12 +378,12 @@ window.SIP = window.SIP || {};
         <li><b>Sortie moteur</b> : C<sub>m</sub> = 4,3 mN·m = 0,004 3 N·m, ω<sub>m</sub> = 838 rad/s → P = 0,004 3 × 838 = <b>3,60 W</b>.</li>
         <li><b>Sortie réducteur</b> : ω<sub>r</sub> = ${fr("838", "48")} = 17,5 rad/s et C<sub>r</sub> = 0,165 N·m → P = 0,165 × 17,5 = <b>2,89 W</b>.</li></ul>
         <div class="piege">Dans P = C × ω, ω est en <b>rad/s</b>. Avec 8 000 tr/min directement, on trouve 34 W : faux d'un facteur 9,55.</div>`,
-        q: "Roue de 60 mm de diamètre : v = ω<sub>r</sub> × R. Vitesse du robot ? Et la force qu'il pousse si la puissance aux roues est 2,59 W ?", r: `<p>R = 0,030 m : v = 17,5 × 0,030 = <b>0,525 m/s</b>. F = ${fr("P", "v")} = ${fr("2,59", "0,525")} = <b>4,93 N</b>. (Avec les valeurs non arrondies, 4,95 N : même ordre de grandeur, et ≥ 3 N : l'exigence de poussée du cours précédent est tenue.)</p>` },
+        q: "Roue de 60 mm de diamètre : v = ω<sub>r</sub> × R. Vitesse du robot ? Et la force qu'il pousse si la puissance aux roues est 2,59 W ?" + figQRoueV, r: `<p>R = 0,030 m : v = 17,5 × 0,030 = <b>0,525 m/s</b>. F = ${fr("P", "v")} = ${fr("2,59", "0,525")} = <b>4,93 N</b>. (Avec les valeurs non arrondies, 4,95 N : même ordre de grandeur, et ≥ 3 N : l'exigence de poussée du cours précédent est tenue.)</p>` },
       { t: "Le rendement : ce qui sort sur ce qui entre", html: `<p>Chaque bloc perd un peu d'énergie en <b>chaleur</b> (frottements, résistance des fils). La puissance qui sort est plus petite que celle qui entre.</p>
         ${F("η = " + fr("P<sub>utile</sub> (sortie)", "P<sub>absorbée</sub> (entrée)") + " &nbsp;&nbsp; η &lt; 1 &nbsp;&nbsp;·&nbsp;&nbsp; pertes = P<sub>absorbée</sub> − P<sub>utile</sub>")}
         <p>Moteur : 6,00 W entrent, 3,60 W sortent → η<sub>moteur</sub> = ${fr("3,60", "6,00")} = <b>0,60</b> (60 %). Les 2,40 W qui manquent chauffent le moteur.</p>
         <div class="retenir">Un rendement est <b>sans unité</b>, toujours entre 0 et 1 (ou 0 et 100 %). Un résultat de 1,2 signale une erreur : on a inversé la fraction.</div>`,
-        q: "Le réducteur reçoit 3,60 W et en sort 2,88 W. Rendement ? Pertes ?", r: `<p>η = ${fr("2,88", "3,60")} = <b>0,80</b>. Pertes = 3,60 − 2,88 = <b>0,72 W</b>, en chaleur dans les engrenages.</p>` },
+        q: "Le réducteur reçoit 3,60 W et en sort 2,88 W. Rendement ? Pertes ?" + figQPertes, r: `<p>η = ${fr("2,88", "3,60")} = <b>0,80</b>. Pertes = 3,60 − 2,88 = <b>0,72 W</b>, en chaleur dans les engrenages.</p>` },
       { t: "Rendement global : les blocs en cascade", html: `${figCascade}
         ${F("η<sub>global</sub> = η<sub>1</sub> × η<sub>2</sub> × η<sub>3</sub> &nbsp;&nbsp; = 0,60 × 0,80 × 0,90 = 0,432")}
         <p>Vérification : 6,00 × 0,432 = <b>2,59 W</b>, ce qui arrive bien aux roues. Pertes totales : 6,00 − 2,59 = 3,41 W, dont 2,40 W dans le moteur, le bloc le moins efficace.</p>
@@ -323,7 +395,7 @@ window.SIP = window.SIP || {};
         <tr><td class="g">vélo électrique (bac 2023)</td><td>batterie</td><td>variateur</td><td>moteur brushless</td><td>réducteur</td><td>roue</td></tr>
         <tr><td class="g">monte-charge</td><td>secteur 230 V</td><td>variateur</td><td>moteur asynchrone</td><td>réducteur + treuil</td><td>cabine</td></tr>
         <tr><td class="g">pompe de piscine</td><td>secteur 230 V</td><td>contacteur</td><td>moteur asynchrone</td><td>accouplement</td><td>turbine</td></tr></tbody></table></div>`,
-        q: "Trottinette électrique : batterie 36 V, contrôleur, moteur dans la roue arrière. Complète la chaîne. Quelle fonction manque ?", r: `<p>Alimenter : <b>batterie 36 V</b> ; moduler : <b>contrôleur</b> (un onduleur) ; convertir : <b>moteur brushless</b> ; agir : <b>roue</b>. La fonction <b>transmettre</b> n'a pas de bloc : le moteur est directement dans la roue (moteur-roue, pas de réducteur).</p>` },
+        q: "Trottinette électrique : batterie 36 V, contrôleur, moteur dans la roue arrière. Complète la chaîne. Quelle fonction manque ?" + figQTrottinette, r: `<p>Alimenter : <b>batterie 36 V</b> ; moduler : <b>contrôleur</b> (un onduleur) ; convertir : <b>moteur brushless</b> ; agir : <b>roue</b>. La fonction <b>transmettre</b> n'a pas de bloc : le moteur est directement dans la roue (moteur-roue, pas de réducteur).</p>` },
       { t: "Les pièges qui coûtent des points", html: `<ul><li>Mettre le microcontrôleur dans la chaîne de puissance : il donne l'<b>ordre</b>, c'est le hacheur qui module l'énergie.</li>
         <li>Écrire « convertir » pour un réducteur ou une courroie : c'est <b>transmettre</b>.</li>
         <li>Inverser effort et flux : U, C, F sont des <b>efforts</b> ; I, ω, v des <b>flux</b>.</li>

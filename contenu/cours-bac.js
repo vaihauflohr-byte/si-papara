@@ -104,6 +104,28 @@ window.SIP = window.SIP || {};
   const C = {};
 
   // =============================================================== info-programmation
+  // ============================================================ figures des « Cherche avec moi »
+  // Chaque question montre de quoi elle parle : le losange à traduire, l'octet à lire, les cases à remplir.
+  const figQ = (f) => f.replace("<figure>", '<figure style="margin:12px auto 4px;max-width:min(100%,560px)">').replace("<svg ", '<svg style="width:100%;height:auto;display:block" ');
+  const TMq = (x, y, t, o) => T(x, y, t, ' text-anchor="middle"' + (o || ' font-size="12"'));
+  // un test d'algorigramme : le losange, sa branche « oui » vers une action, sa branche « non » qui continue
+  const losange = (l1, l2, action, alt) => figQ(svg(430, 176, `
+    ${AR(150, 4, 150, 30, "currentColor", 1.4)}<path d="M150 30 L284 76 L150 122 L16 76 Z" fill="var(--accent-soft)" stroke="currentColor" stroke-width="1.5"/>
+    ${TMq(150, l2 ? 72 : 80, l1, ' font-size="12.5" font-weight="600"')}${l2 ? TMq(150, 90, l2, ' font-size="12.5" font-weight="600"') : ""}
+    ${AR(284, 76, 320, 76, "currentColor", 1.4)}${TMq(302, 66, "oui")}<rect x="320" y="56" width="104" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>${TMq(372, 81, action, ' font-size="12.5" font-weight="600"')}
+    ${AR(150, 122, 150, 160, "currentColor", 1.4)}${T(158, 146, "non", ' font-size="12"')}`, alt));
+  const figQLosange = losange("v_moy ≥ 50,0 km/h", "ou rafale ≥ 80,0 km/h ?", "alerte ← Vrai", "Un losange de test : v_moy supérieure ou égale à 50,0 km/h, ou rafale supérieure ou égale à 80,0 km/h ; la branche oui mène à l'action alerte reçoit Vrai");
+  const figQLosange2 = losange("v_moy &lt; 40,0 km/h ?", "", "alerte ← Faux", "Un losange de test : v_moy inférieure à 40,0 km/h ; la branche oui mène à l'action alerte reçoit Faux");
+  const figQOctet = figQ(svg(400, 116, bits(101, 26, "(0110 0101)₂ = ?"), "L'octet 0110 0101 dans ses huit cases, avec les poids 128, 64, 32, 16, 8, 4, 2, 1"));
+  const figQCases = figQ(svg(400, 116, Array.from({ length: 8 }, (_, i) => `<rect x="${30 + i * 44}" y="26" width="40" height="36" rx="4" fill="none" stroke="currentColor" stroke-width="1.2"/>${TMq(50 + i * 44, 51, "?", ' font-size="18" font-weight="700" fill="var(--accent)"')}${TMq(50 + i * 44, 20, 128 >> i, ' font-size="11" fill="var(--ink-3)"')}`).join("") + T(30, 84, "37 = ? Remplis les huit cases, en partant du poids le plus grand.", ' font-size="12"'),
+    "Huit cases vides avec leurs poids 128, 64, 32, 16, 8, 4, 2, 1, à remplir pour écrire 37"));
+  const figQQuartets = figQ(svg(400, 116, bits(37, 26, "Un chiffre hexadécimal par paquet de 4 bits : ( ? ? )₁₆") + L(204, 14, 204, 70, ' stroke-width="2" stroke-dasharray="5 4"'),
+    "L'octet 0010 0101 coupé en deux paquets de quatre bits"));
+  // deux cases : le chiffre ou l'octet de gauche et celui de droite, avec leur poids
+  const paire = (x, a, b, pa, pb) => `${[[a, pa, 0], [b, pb, 1]].map(([t, p, k]) => `<rect x="${x + k * 62}" y="30" width="56" height="44" rx="4" fill="${k ? "none" : "var(--accent-soft)"}" stroke="currentColor" stroke-width="1.3"/>${TMq(x + 28 + k * 62, 61, t, ' font-size="22" font-weight="700"')}${TMq(x + 28 + k * 62, 22, p, ' font-size="11" fill="var(--ink-3)"')}`).join("")}${TMq(x + 59, 98, "= ?", ' font-size="14" font-weight="700" fill="var(--accent)"')}`;
+  const figQHexa = figQ(svg(400, 108, paire(40, "4", "E", "× 16", "× 1") + paire(236, "3", "F", "× 16", "× 1"), "Les nombres hexadécimaux 4E et 3F : le chiffre de gauche pèse 16, celui de droite pèse 1"));
+  const figQDeuxOctets = figQ(svg(400, 108, paire(138, "03", "4E", "× 256", "× 1"), "Deux octets, 03 puis 4E : le premier pèse 256, le second pèse 1"));
+
   C["info-programmation"] = {
     titre: "Python et algorigramme", sous: "Lire un programme, le faire tourner à la main, compléter un trou, passer de l'algorigramme au Python.",
     objectifs: ["Lire une ligne de Python et dire ce qu'elle fait : affectation, test, boucle, fonction.", "Faire tourner un programme à la main avec un tableau de suivi et donner les valeurs finales.",
@@ -137,7 +159,7 @@ window.SIP = window.SIP || {};
       { t: "L'algorigramme, c'est le même test dessiné", html: `${figSymboles}
         <p>Pour traduire un losange en Python : la question du losange devient la condition du <code>if</code> ; la branche « oui » est le bloc décalé ; un second losange sur la branche « non » devient <code>elif</code>.</p>
         <div class="retenir">Deux losanges l'un sous l'autre = <code>if … elif …</code> ; pas de rectangle sur la dernière branche « non » = pas de <code>else</code>.</div>`,
-        q: "Imagine un losange qui dit « v_moy ≥ 50,0 km/h ou rafale ≥ 80,0 km/h ? », branche oui vers « alerte ← Vrai ». Quelle ligne Python écris-tu, si les vitesses sont en dixièmes ?", r: `<p><code>if v_moy &gt;= V_ALERTE or rafale &gt;= R_MAX:</code> — ou avec les nombres, <code>if v_moy &gt;= 500 or rafale &gt;= 800:</code>. Le « ou » se traduit par <code>or</code>, et 50,0 km/h par 500.</p>` },
+        q: "Voici un test d'algorigramme. Quelle ligne Python écris-tu, si les vitesses sont en dixièmes de km/h ?" + figQLosange, r: `<p><code>if v_moy &gt;= V_ALERTE or rafale &gt;= R_MAX:</code> — ou avec les nombres, <code>if v_moy &gt;= 500 or rafale &gt;= 800:</code>. Le « ou » se traduit par <code>or</code>, et 50,0 km/h par 500.</p>` },
       { t: "La boucle for : un nombre de tours connu", html: `${code("vitesses = []               # une liste vide, AVANT la boucle\nfor i in range(600):        # i prend 0, 1, 2, …, 599 : 600 tours\n    vitesses.append(lire_vent())\n\nsomme = 0                   # le cumul part de 0, AVANT la boucle\nfor v in vitesses:          # v prend chaque valeur de la liste, dans l'ordre\n    somme = somme + v")}
         <ul><li><code>range(n)</code> compte de 0 à n − 1 : <b>n tours</b>. <code>range(a, b)</code> : de a à b − 1.</li><li><code>for v in liste:</code> parcourt la liste, <code>len(liste)</code> donne sa longueur.</li><li><code>liste.append(x)</code> ajoute x à la fin.</li></ul>
         <div class="piege"><code>range(600)</code> ne contient jamais 600 ; et <code>vitesses[600]</code> n'existe pas (le premier élément est <code>vitesses[0]</code>).</div>`,
@@ -156,7 +178,7 @@ window.SIP = window.SIP || {};
       { t: "Compléter un programme à trous", html: `<p>Au DS, les trous sont toujours dans une de ces lignes : un <b>test</b> (<code>if v ___ vmax</code>), une <b>affectation</b> (<code>vmax = ___</code>), une <b>boucle</b> (<code>range(___)</code>), une <b>condition</b> (<code>elif ___</code>).</p>
         <ol><li>Lis ce que la fonction doit faire (l'énoncé, l'algorigramme, le cahier des charges).</li><li>Garde les <b>noms de variables de l'énoncé</b> et les constantes du programme (<code>V_FIN</code> plutôt que 400, les deux sont acceptés).</li>
         <li>Vérifie au <b>cas limite</b> : « atteint 50 km/h » veut dire <code>&gt;=</code>, pas <code>&gt;</code>.</li><li>Respecte Python : <code>True</code> et <code>False</code> avec majuscule, <code>==</code> pour comparer, <code>or</code> et non « ou ».</li></ol>`,
-        q: "Algorigramme : « v_moy &lt; 40,0 km/h ? » → oui : alerte ← Faux. Complète <code>elif ___:</code> et <code>alerte = ___</code>.", r: `<p><code>elif v_moy &lt; V_FIN:</code> (ou <code>v_moy &lt; 400</code>, en dixièmes) puis <code>alerte = False</code>. Pas <code>v_moy &lt; 40</code> : 40 dixièmes, c'est 4 km/h.</p>` },
+        q: "Voici la suite de l'algorigramme. Complète <code>elif ___:</code> et <code>alerte = ___</code>." + figQLosange2, r: `<p><code>elif v_moy &lt; V_FIN:</code> (ou <code>v_moy &lt; 400</code>, en dixièmes) puis <code>alerte = False</code>. Pas <code>v_moy &lt; 40</code> : 40 dixièmes, c'est 4 km/h.</p>` },
       { t: "Suivre une alerte sur plusieurs cycles", html: `<p>Quand la variable n'est pas modifiée par un cycle, elle <b>garde la valeur du cycle précédent</b>. C'est ce qui évite qu'une alerte clignote quand la mesure hésite autour du seuil (elle s'allume à 50,0 km/h mais ne s'éteint qu'en dessous de 40,0 km/h).</p>
         <table><thead><tr><th>cycle</th><th>v_moy</th><th>rafale</th><th>alerte</th><th>pourquoi</th></tr></thead><tbody>
         <tr><td>1</td><td>356</td><td>614</td><td>False</td><td class="g">356 &lt; 400 : éteinte</td></tr><tr><td>2</td><td>468</td><td>827</td><td><b>True</b></td><td class="g">rafale 827 ≥ 800</td></tr>
@@ -185,26 +207,26 @@ window.SIP = window.SIP || {};
         <div class="retenir">Tout changement de base, c'est : <b>chiffre × poids</b>, puis on additionne.</div>` },
       { t: "Le binaire : des bits et des poids", html: `${figOctet}
         <p>Un <b>octet</b> = 8 bits, numérotés de <b>b7</b> (à gauche, poids 128, le <b>poids fort</b>) à <b>b0</b> (à droite, poids 1, le <b>poids faible</b>). Pour lire : on additionne les poids des bits à 1.</p>`,
-        q: "Que vaut (0110 0101)₂ ?", r: `<p>Bits à 1 : poids 64, 32, 4 et 1 : 64 + 32 + 4 + 1 = <b>101</b>.</p>` },
+        q: "Que vaut (0110 0101)₂ ?" + figQOctet, r: `<p>Bits à 1 : poids 64, 32, 4 et 1 : 64 + 32 + 4 + 1 = <b>101</b>.</p>` },
       { t: "Du décimal au binaire", html: `<p>Méthode des <b>plus grandes puissances</b> : on retire la plus grande puissance de 2 qui rentre, et on recommence avec le reste.</p>
         ${F("182 = 128 + 54 &nbsp;→&nbsp; 54 = 32 + 22 &nbsp;→&nbsp; 22 = 16 + 6 &nbsp;→&nbsp; 6 = 4 + 2")}
         <p>Donc 182 = 128 + 32 + 16 + 4 + 2 : bits à 1 sur 128, 32, 16, 4, 2 → <b>1011 0110</b>.</p>
         <p>Autre méthode, les divisions par 2 : 37 → 18 reste <b>1</b> ; 18 → 9 reste <b>0</b> ; 9 → 4 reste <b>1</b> ; 4 → 2 reste <b>0</b> ; 2 → 1 reste <b>0</b> ; 1 → 0 reste <b>1</b>. Restes lus du dernier au premier : 100101.</p>`,
-        q: "Écris 37 en binaire sur 8 bits.", r: `<p>37 = 32 + 4 + 1 → <b>0010 0101</b>. Sur 8 bits, on complète avec des 0 à gauche.</p>` },
+        q: "Écris 37 en binaire sur 8 bits." + figQCases, r: `<p>37 = 32 + 4 + 1 → <b>0010 0101</b>. Sur 8 bits, on complète avec des 0 à gauche.</p>` },
       { t: "L'hexadécimal : 16 chiffres", html: `<p>En base 16, il faut 16 chiffres : 0 à 9, puis <b>A = 10, B = 11, C = 12, D = 13, E = 14, F = 15</b>.</p>
         <p>Un chiffre hexadécimal = exactement 4 bits (un <b>quartet</b>). Un octet = 2 chiffres, de 00 à FF.</p>
         ${figQuartets}
         <div class="retenir">Binaire → hexa : coupe par 4 <b>depuis la droite</b>, chaque paquet donne un chiffre.</div>`,
-        q: "Écris (0010 0101)₂ en hexadécimal.", r: `<p>0010 → 2, 0101 → 5 : <b>25</b> en hexadécimal (qui vaut 37, pas vingt-cinq !). On écrit parfois 0x25 ou (25)₁₆ pour le rappeler.</p>` },
+        q: "Écris (0010 0101)₂ en hexadécimal." + figQQuartets, r: `<p>0010 → 2, 0101 → 5 : <b>25</b> en hexadécimal (qui vaut 37, pas vingt-cinq !). On écrit parfois 0x25 ou (25)₁₆ pour le rappeler.</p>` },
       { t: "Lire un octet en hexadécimal", html: `<p>Deux chiffres hexadécimaux : le premier pèse 16, le second pèse 1.</p>
         ${F("5A = 5 × 16 + 10 = 90 &nbsp;&nbsp;·&nbsp;&nbsp; D6 = 13 × 16 + 6 = 214 &nbsp;&nbsp;·&nbsp;&nbsp; FF = 15 × 16 + 15 = 255")}
         <div class="piege">11 en hexadécimal n'est pas onze : c'est 1 × 16 + 1 = 17. Et 40 vaut 64. Toujours se demander dans quelle base on lit.</div>`,
-        q: "Que valent 4E et 3F ?", r: `<p>4E = 4 × 16 + 14 = <b>78</b> ; 3F = 3 × 16 + 15 = <b>63</b>.</p>` },
+        q: "Que valent 4E et 3F ?" + figQHexa, r: `<p>4E = 4 × 16 + 14 = <b>78</b> ; 3F = 3 × 16 + 15 = <b>63</b>.</p>` },
       { t: "Deux octets pour un nombre plus grand", html: `<p>Un octet s'arrête à 255. Pour une vitesse en dixièmes (jusqu'à 2 400), il faut <b>deux octets</b> = 16 bits. Le premier transmis est l'octet de <b>poids fort</b> : il pèse 256.</p>
         ${F("N = octet fort × 256 + octet faible")}
         <p>Octets 01 puis D6 : N = 1 × 256 + 214 = 470. En détail : 1 × 256 + 13 × 16 + 6 = 470.</p>
         <div class="piege">Lire 01 D6 comme « 1 + 214 » ou dans l'autre ordre (D6 01 = 54 785) donne n'importe quoi.</div>`,
-        q: "Décode les octets 03 4E (la rafale, en dixièmes de km/h).", r: `<p>N = 3 × 256 + 4 × 16 + 14 = 768 + 64 + 14 = <b>846</b>, soit <b>84,6 km/h</b>.</p>` },
+        q: "Décode les octets 03 4E (la rafale, en dixièmes de km/h)." + figQDeuxOctets, r: `<p>N = 3 × 256 + 4 × 16 + 14 = 768 + 64 + 14 = <b>846</b>, soit <b>84,6 km/h</b>.</p>` },
       { t: "De l'entier à la grandeur physique", html: `<p>La trame transporte un <b>entier</b>. Le format dit comment le lire : « en dixièmes de °C », « en % », « en mm ».</p>
         ${F("grandeur = N × résolution")}
         <p>N = 259 en dixièmes de °C → 25,9 °C. N = 1 818 en mm → 1,818 m. N = 90 en % → 90 %.</p>
