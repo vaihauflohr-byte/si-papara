@@ -26,6 +26,46 @@
 .pl-leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.88rem;margin:0 0 10px}
 .pl-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .pl-et-thumb{width:96px;height:56px;object-fit:contain}
+/* ----- figures à manipuler ----- */
+.lab{--lab-ciel:#e6f1fb;--lab-sol:#dfe9d3;--lab-doigt:#f3c9a5;margin:14px 0;border:1px solid var(--rule);border-radius:10px;background:var(--paper-2);padding:12px 14px 10px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .lab{--lab-ciel:#14222f;--lab-sol:#1b2a1d;--lab-doigt:#b98a66}}
+.lab-tete{font-family:var(--f-disp);font-weight:600;font-size:1.08rem;line-height:1.25;margin-bottom:8px}
+.lab-tete span{display:inline-block;font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:2px 10px;margin-right:9px;vertical-align:2px}
+.lab-fig{background:var(--paper);border:1px solid var(--rule-2);border-radius:8px;overflow:hidden;overflow-x:auto}
+.pl-sec .lab-fig svg{margin:0 auto;width:100%;min-width:540px}.pl-sec [data-lab=pieces] .lab-fig svg{max-width:760px}
+.lab-cmd{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px 22px;margin:10px 0 2px}
+.lab-cmd label{display:block;font-size:.93rem}
+.lab-cmd label>span{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.lab-cmd b{font-family:var(--f-mono);white-space:nowrap}
+.lab-cmd input[type=range]{display:block;width:100%;margin:2px 0 0;padding:0;border:0;min-height:0;background:transparent;accent-color:var(--accent);height:26px}
+.lab-tuiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:8px 0}
+.lab-tuiles div,.dg-fiche>div{background:var(--paper);border:1px solid var(--rule-2);border-radius:var(--r);padding:6px 10px}
+.lab-tuiles span,.dg-fiche>div>span{display:block;font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);line-height:1.25}
+.lab-tuiles b{font-family:var(--f-disp);font-size:1.25rem;font-weight:600;line-height:1.2}
+.lab-msg{margin:0;padding:9px 12px;border-radius:var(--r);border-left:5px solid var(--good);background:var(--good-soft);font-size:.95rem}
+.lab-msg.moyen{border-left-color:var(--warn);background:var(--warn-soft)}.lab-msg.alerte{border-left-color:var(--bad);background:var(--bad-soft)}
+.lab-note{display:block;color:var(--ink-2);font-size:.88rem;margin-top:3px}
+.pc{cursor:pointer;outline:none}.pc-f{transition:fill-opacity .15s}
+.pc-b{fill:var(--accent);fill-opacity:.55}.pc-o{fill:#f08c00;fill-opacity:.4;stroke:#f08c00;stroke-width:2}
+line.pc-o{stroke-linecap:round;fill:none;stroke-opacity:.75}
+.pc-fente{fill:transparent;stroke:currentColor;stroke-width:1.5;stroke-dasharray:4 3}
+.pc:hover .pc-b,.pc.on .pc-b,.pc:focus-visible .pc-b{fill-opacity:1}.pc:hover .pc-o,.pc.on .pc-o,.pc:focus-visible .pc-o{fill-opacity:.85;stroke-opacity:1}
+.pc.on .pc-fente,.pc:hover .pc-fente{stroke:var(--bad);stroke-width:3;stroke-dasharray:none;fill:var(--bad-soft);fill-opacity:.6}
+.pc-pt{fill:var(--paper);stroke:var(--ink);stroke-width:1.5}.pc.on .pc-pt{fill:var(--bad);stroke:var(--bad)}
+.pc-n{font-size:13px;font-weight:700;fill:var(--ink);pointer-events:none}.pc.on .pc-n{fill:#fff}
+.pc-t{font-size:12.5px;font-weight:600;letter-spacing:.06em;fill:var(--ink-3)}.pc-l{font-size:13px;fill:currentColor}
+.pc-liste,.dg-choix{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.pc-liste button,.dg-choix button{font:inherit;font-size:.92rem;padding:6px 12px;border-radius:999px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer;text-align:left}
+.pc-liste button i{font-style:normal;font-weight:700;display:inline-flex;width:20px;height:20px;border-radius:50%;border:1.5px solid currentColor;align-items:center;justify-content:center;font-size:.78rem;margin-right:7px}
+.pc-liste button.on,.dg-choix button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.pc-fiche{background:var(--paper);border:1px solid var(--rule-2);border-left:5px solid var(--accent);border-radius:var(--r);padding:8px 14px}
+.pc-fiche h3{margin:.2em 0}.pc-fiche p{margin:.35em 0}
+.dg-choix{margin-top:0}
+.dg-fiche{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.dg-fiche>div{border-left:5px solid var(--warn)}.dg-fiche.ok>div{border-left-color:var(--good)}
+.dg-fiche>div>b{font-weight:600}.dg-fiche>p{grid-column:1/-1;margin:2px 0 0;display:flex;flex-wrap:wrap;gap:6px}
+@media (max-width:640px){.dg-fiche{grid-template-columns:1fr}}
+@media print{.lab-cmd,.pc-liste,.dg-choix{display:none}}
 /* ----- simulateur ----- */
 #s-sim{--sim-ciel:#e6f1fb;--sim-ciel2:#f6fafe;--sim-sol:#dfe9d3;--sim-herbe:#7fa861;--sim-aile:#f08c00;--sim-aile-b:#b56a00;--sim-grille:rgba(29,63,122,.10)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #s-sim{--sim-ciel:#14222f;--sim-ciel2:#101a24;--sim-sol:#1b2a1d;--sim-herbe:#4f7a45;--sim-aile:#f5a033;--sim-aile-b:#f5a033;--sim-grille:rgba(143,176,238,.14)}}
@@ -162,6 +202,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <h2 style="margin-top:0">De quoi est fait un planeur</h2>
     <p>Trois pièces imprimées, qui s'emboîtent sans colle. C'est le <b>planeur de départ</b> : tu vas le construire dans Onshape, puis le transformer.</p>
     <img class="pl-img" src="2si-planeur/img/pieces.png" alt="Les trois pièces du planeur écartées : l'aile et le stabilisateur au-dessus du fuselage, avec le nez, la fente et la dérive repérés" loading="lazy">
+    <div data-lab="pieces"></div>
   </div>
 
   <div class="carte">
@@ -192,9 +233,9 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 
 <!-- ============ COMPRENDRE ============ -->
 <section class="pl-sec" id="s-comprendre" hidden>
-  <p><b>Sept idées pour comprendre pourquoi un planeur vole loin.</b> Chacune se termine par ce qu'elle change pour ton planeur. Lis les trois premières avant de dessiner, les autres avant de le transformer.</p>
+  <p><b>Sept idées pour comprendre pourquoi un planeur vole loin.</b> Dans les cadres « À toi de jouer », bouge les curseurs et regarde ce qui change. Chacune se termine par ce qu'elle change pour ton planeur. Lis les trois premières avant de dessiner, les autres avant de le transformer.</p>
 
-  <div class="carte"><div class="eyebrow">Notion 1</div>
+  <div class="carte" id="n1"><div class="eyebrow">Notion 1</div>
     <h2 style="margin-top:.1em">Trois forces sur un planeur</h2>
     <svg viewBox="0 0 640 230" role="img" aria-label="Un planeur en vol avec ses trois forces : la portance vers le haut, le poids vers le bas, la traînée vers l'arrière">
       <defs><marker id="fa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
@@ -209,19 +250,13 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
       <li>Le <b>poids</b> le tire vers le bas. Il dépend de la masse : 20 g ou 30 g, ça change tout.</li>
       <li>La <b>traînée</b> le freine. Un planeur n'a pas de moteur : il ralentit et descend peu à peu.</li>
     </ul>
+    <div data-lab="forces"></div>
     <p class="astuce"><b>Pour ton planeur :</b> une grande aile porte plus, mais elle pèse plus lourd et freine plus. Tout le projet consiste à trouver le bon compromis.</p>
   </div>
 
-  <div class="carte"><div class="eyebrow">Notion 2</div>
+  <div class="carte" id="n2"><div class="eyebrow">Notion 2</div>
     <h2 style="margin-top:.1em">La finesse : combien il avance pour 1 m de descente</h2>
-    <svg viewBox="0 0 640 210" role="img" aria-label="Un planeur lâché à 1,5 mètre de haut se pose 9 mètres plus loin : sa finesse est de 6">
-      <line x1="40" y1="170" x2="620" y2="170" stroke="currentColor" stroke-width="2"/><line x1="70" y1="50" x2="70" y2="170" stroke="currentColor" stroke-width="1.5"/>
-      <path d="M70 50 L590 170" stroke="var(--accent)" stroke-width="3" stroke-dasharray="9 6" fill="none"/><circle cx="590" cy="170" r="6" fill="#b42318"/>
-      <g transform="translate(250 92) rotate(13)" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M-34 0 h62 v-12 l-9 0 -7 12"/><path d="M-14 -5 l26 2" stroke-width="5" stroke="#f08c00"/></g>
-      <text x="58" y="115" font-size="15" font-weight="600" fill="currentColor" text-anchor="end">1,5 m</text><text x="58" y="132" font-size="12" fill="currentColor" text-anchor="end">hauteur</text>
-      <text x="330" y="194" font-size="15" font-weight="600" fill="currentColor" text-anchor="middle">9 m de distance</text>
-      <text x="470" y="60" font-size="16" font-weight="600" fill="var(--accent)" text-anchor="middle">finesse = 9 sur 1,5 = 6</text>
-    </svg>
+    <div data-lab="finesse"></div>
     <div class="formule">finesse = <span class="frac"><span class="nu">distance parcourue</span><span class="sr"> sur </span><span class="de">hauteur perdue</span></span></div>
     <p>Une finesse de 6 veut dire : <b>6 m en avant pour 1 m de descente</b>. C'est la note de ton planeur : plus elle est grande, plus il va loin en partant de la même hauteur.</p>
     <div class="pl-scroll"><table class="pl">
@@ -233,10 +268,12 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <p class="astuce"><b>Pour ton planeur :</b> ce qui améliore la finesse, c'est <b>moins de traînée</b> (fuselage fin, pièces bien droites, pas de bavures) et une <b>aile longue et étroite</b> (notion 7). En lançant à la main, tu ajoutes de la vitesse : la distance dépend aussi du lancer, c'est pour ça que le même élève lance toujours de la même façon.</p>
   </div>
 
-  <div class="carte"><div class="eyebrow">Notion 3</div>
+  <div class="carte" id="n3"><div class="eyebrow">Notion 3</div>
     <h2 style="margin-top:.1em">Le centre de gravité : le réglage qui décide de tout</h2>
     <img class="pl-img" src="2si-planeur/img/m6.png" alt="Planeur posé en équilibre sur une cale placée sous l'aile" loading="lazy" style="max-height:300px;width:auto">
     <p>Le <b>centre de gravité</b> (on l'écrit G) est le point où le planeur tient en équilibre. Pose-le sur un doigt : G est juste au-dessus.</p>
+    <div data-lab="equilibre"></div>
+    <p>Voilà ce que ça donne en vol :</p>
     <div class="pl-trio">
       <figure class="pl-fig"><svg viewBox="0 0 200 90" role="img" aria-label="Trajectoire qui monte puis retombe"><line x1="6" y1="78" x2="194" y2="78" stroke="currentColor" stroke-width="1.5"/><path d="M10 56 Q60 2 108 16 Q128 24 122 44 L140 78" fill="none" stroke="#b42318" stroke-width="3" stroke-dasharray="6 5"/></svg><figcaption><b>G trop en arrière</b><br>il lève le nez, ralentit, tombe</figcaption></figure>
       <figure class="pl-fig"><svg viewBox="0 0 200 90" role="img" aria-label="Trajectoire longue et régulière"><line x1="6" y1="78" x2="194" y2="78" stroke="currentColor" stroke-width="1.5"/><path d="M10 30 Q100 34 190 78" fill="none" stroke="#146c43" stroke-width="3" stroke-dasharray="6 5"/></svg><figcaption><b>G au bon endroit</b><br>il vole à plat, loin</figcaption></figure>
@@ -253,7 +290,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <p class="astuce"><b>Pour ton planeur :</b> on règle G avec du <b>lest dans le nez</b>, par petites quantités (1 à 3 g). Pas assez, il cabre. Trop, il pique. Si l'arrière de ton planeur est léger, il faut moins de lest, et le planeur entier est plus léger.</p>
   </div>
 
-  <div class="carte"><div class="eyebrow">Notion 4</div>
+  <div class="carte" id="n4"><div class="eyebrow">Notion 4</div>
     <h2 style="margin-top:.1em">La charge alaire : la masse que porte chaque cm² d'aile</h2>
     <svg viewBox="0 0 640 170" role="img" aria-label="Deux planeurs avec la même aile : celui de 18 grammes vole lentement, celui de 30 grammes doit voler vite et descend plus vite">
       <g fill="none" stroke="currentColor" stroke-width="2.5"><rect x="50" y="46" width="220" height="42"/><rect x="370" y="46" width="220" height="42"/></g>
@@ -265,10 +302,11 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     </svg>
     <div class="formule">charge alaire = <span class="frac"><span class="nu">masse du planeur</span><span class="sr"> sur </span><span class="de">surface de l'aile</span></span></div>
     <p>Plus la charge alaire est <b>petite</b>, plus le planeur peut voler lentement sans tomber. Un planeur chargé doit aller vite, et un lancer un peu mou ne lui suffit pas.</p>
+    <div data-lab="aile"></div>
     <p class="astuce"><b>Pour ton planeur :</b> deux façons de baisser la charge alaire : <b>enlever de la masse</b> (pièces plus fines, arrière allégé, donc moins de lest) ou <b>agrandir l'aile</b> (mais elle pèse alors plus lourd). Le planeur de départ est à environ 0,30 g/cm².</p>
   </div>
 
-  <div class="carte"><div class="eyebrow">Notion 5</div>
+  <div class="carte" id="n5"><div class="eyebrow">Notion 5</div>
     <h2 style="margin-top:.1em">La stabilité : ce qui le garde droit</h2>
     <img class="pl-img" src="2si-planeur/img/pieces.png" alt="Les pièces du planeur : aile, stabilisateur, dérive, fuselage, nez" loading="lazy" style="max-height:380px;width:auto">
     <ul>
@@ -285,20 +323,14 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <p class="astuce"><b>Pour ton planeur :</b> un stabilisateur et une dérive trop petits, et le planeur part dans tous les sens. Trop grands, ils alourdissent la queue et il faut plus de lest. Le planeur de départ a un stabilisateur qui fait environ un quart de la surface de l'aile : c'est un bon repère.</p>
   </div>
 
-  <div class="carte"><div class="eyebrow">Notion 6</div>
+  <div class="carte" id="n6"><div class="eyebrow">Notion 6</div>
     <h2 style="margin-top:.1em">Le calage : pourquoi la fente de l'aile penche</h2>
-    <svg viewBox="0 0 640 150" role="img" aria-label="L'aile est inclinée de quelques degrés vers le haut à l'avant, alors que le stabilisateur est à plat">
-      <path d="M60 98 q6 -20 30 -20 h300 l24 14 h150 v8 H80 q-16 0 -20 -2 z" fill="var(--accent-soft)" stroke="currentColor" stroke-width="2"/>
-      <line x1="170" y1="62" x2="330" y2="78" stroke="#f08c00" stroke-width="7" stroke-linecap="round"/><line x1="470" y1="86" x2="555" y2="86" stroke="#f08c00" stroke-width="6" stroke-linecap="round"/>
-      <line x1="170" y1="78" x2="345" y2="78" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3"/>
-      <text x="250" y="48" font-size="15" font-weight="600" fill="currentColor" text-anchor="middle">aile : l'avant est 2 à 3 mm plus haut</text><text x="512" y="72" font-size="15" font-weight="600" fill="currentColor" text-anchor="middle">stabilisateur : à plat</text>
-      <text x="96" y="126" font-size="13" fill="currentColor">nez</text><text x="320" y="138" font-size="13" fill="currentColor" text-anchor="middle">Le pointillé montre une aile qui serait à plat.</text>
-    </svg>
+    <div data-lab="calage"></div>
     <p>L'aile est un peu relevée à l'avant par rapport au stabilisateur. Cette petite inclinaison s'appelle le <b>calage</b>. Sans elle, l'aile ne porte pas assez et le planeur plonge.</p>
     <p class="astuce"><b>Pour ton planeur :</b> garde l'inclinaison de la fente du planeur de départ (2,4 mm sur 45 mm). Si ton planeur bien équilibré monte quand même en cloche, la fente penche trop. S'il descend trop vite, elle ne penche pas assez.</p>
   </div>
 
-  <div class="carte"><div class="eyebrow">Notion 7</div>
+  <div class="carte" id="n7"><div class="eyebrow">Notion 7</div>
     <h2 style="margin-top:.1em">La forme de l'aile : longue et étroite, ou courte et large ?</h2>
     <svg viewBox="0 0 640 170" role="img" aria-label="Deux ailes de même surface : une longue et étroite de 200 par 45 millimètres, une courte et large de 150 par 60 millimètres">
       <rect x="40" y="40" width="300" height="68" fill="#f08c00" opacity=".3" stroke="currentColor" stroke-width="2.5"/><rect x="400" y="28" width="225" height="90" fill="#f08c00" opacity=".3" stroke="currentColor" stroke-width="2.5"/>
@@ -309,6 +341,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     </svg>
     <div class="formule">allongement = <span class="frac"><span class="nu">envergure</span><span class="sr"> sur </span><span class="de">corde</span></span></div>
     <p>À surface égale, une aile <b>longue et étroite</b> freine moins qu'une aile courte et large : l'air s'échappe moins par les bouts. C'est pour ça que les vrais planeurs ont des ailes immenses et fines.</p>
+    <div data-lab="allong"></div>
     <p class="astuce"><b>Pour ton planeur :</b> l'envergure est limitée à 210 mm. Pour augmenter l'allongement, il reste à <b>réduire la corde</b> ou à <b>effiler les bouts</b>. Mais une aile trop étroite et trop fine se plie au lancer.</p>
   </div>
 
@@ -466,7 +499,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <div id="sim-svg" class="sim-ecran"></div>
     <div class="sim-tuiles" id="sim-res"></div>
     <div class="sim-actions no-print">
-      <div><button class="btn sec" id="sim-ref">Garder ce vol en gris pour comparer</button> <button class="btn sec" id="sim-ref0">Effacer le vol gris</button></div>
+      <div><button class="btn" id="sim-jouer">▶ Voir le vol</button> <button class="btn sec" id="sim-ref">Garder ce vol en gris pour comparer</button> <button class="btn sec" id="sim-ref0">Effacer le vol gris</button></div>
       <div>Noter cette distance dans mon carnet : <button class="btn" data-carnet="0">Version 1</button> <button class="btn" data-carnet="1">Version 2</button> <span id="sim-ok" class="discret"></span></div>
     </div>
   </div>
@@ -518,6 +551,8 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   </div>
   <div class="carte">
     <h2 style="margin-top:0">Lire le vol de ton planeur</h2>
+    <div data-lab="diag"></div>
+    <details><summary>Voir tous les cas dans un tableau</summary>
     <div class="pl-scroll"><table class="pl">
       <tr><th></th><th>Ce que tu vois</th><th>Cause probable</th><th>Modification à essayer</th></tr>
       <tr><td class="pl-vol"><svg viewBox="0 0 150 62" role="img" aria-label="Trajectoire qui monte puis retombe à pic"><line x1="4" y1="54" x2="146" y2="54" stroke="currentColor" stroke-width="1.5"/><path d="M6 40 Q40 2 74 12 Q88 18 84 30 L96 54" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="5 4"/></svg></td><td><b>Il lève le nez, ralentit, puis tombe</b></td><td>Centre de gravité trop en arrière</td><td>Ajouter un peu de lest dans le nez (1 à 3 g), puis relancer</td></tr>
@@ -525,7 +560,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
       <tr><td class="pl-vol"><svg viewBox="0 0 150 62" role="img" aria-label="Trajectoire vue de dessus qui tourne sur le côté"><line x1="4" y1="54" x2="146" y2="54" stroke="currentColor" stroke-width="1.5"/><path d="M6 20 Q80 18 120 50" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="5 4"/><text x="146" y="14" font-size="9" text-anchor="end" fill="currentColor">vu de dessus</text></svg></td><td><b>Il part toujours du même côté</b></td><td>Aile pas centrée, ou dérive tordue</td><td>Recentrer l'aile, vérifier la dérive</td></tr>
       <tr><td class="pl-vol"><svg viewBox="0 0 150 62" role="img" aria-label="Trajectoire droite et courte"><line x1="4" y1="54" x2="146" y2="54" stroke="currentColor" stroke-width="1.5"/><path d="M6 26 Q50 26 84 54" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="5 4"/></svg></td><td><b>Il vole droit mais pas loin</b></td><td>Trop lourd, ou trop de traînée</td><td>Alléger la queue, affiner le fuselage</td></tr>
       <tr><td class="pl-vol"><svg viewBox="0 0 150 62" role="img" aria-label="Planeur vu de face avec les ailes pliées vers le haut"><line x1="4" y1="54" x2="146" y2="54" stroke="currentColor" stroke-width="1.5"/><path d="M0 0" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="5 4"/><path d="M30 14 Q60 44 75 44 Q90 44 120 14" fill="none" stroke="#f08c00" stroke-width="3.5"/><rect x="72" y="38" width="6" height="12" fill="var(--accent)"/><text x="146" y="14" font-size="9" text-anchor="end" fill="currentColor">vu de face</text></svg></td><td><b>L'aile se plie au lancer</b></td><td>Aile trop fine ou trop longue</td><td>Raccourcir l'aile ou l'épaissir de 0,2 mm</td></tr>
-    </table></div>
+    </table></div></details>
   </div>
 </section>
 
@@ -795,10 +830,22 @@ document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Nive
     return ["ok", "Vol à plat", `Point d'équilibre à ${pct} % de la corde. Change un réglage à la fois pour voir s'il peut aller plus loin.`];
   }
 
+  let ech = null, anim = 0;
+  function jouer() {
+    cancelAnimationFrame(anim); const r = dernier, svg = document.querySelector("#sim-svg svg"); if (!r || !svg || !ech) return;
+    const mob = svg.querySelector("#sim-mobile"), poses = svg.querySelector("#sim-poses"), ecran = document.getElementById("sim-svg"), t0 = performance.now(); let i = 0;
+    poses.style.opacity = 0.18;
+    const pas = (t) => { const tt = (t - t0) / 1000; while (i < r.pts.length - 1 && r.pts[i][3] < tt) i++;
+      const p = r.pts[i], a = -Math.atan2(Math.sin(p[2]) * ech.sz, Math.cos(p[2]) * ech.sx) * 180 / Math.PI, x = ech.X(p[0]);
+      mob.innerHTML = `<g transform="translate(${x.toFixed(1)} ${ech.Z(p[1]).toFixed(1)}) rotate(${a.toFixed(1)}) scale(1.7)"><path d="M16 0 H-14 L-14 -9 L-9 -9 L-5 0" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linejoin="round"/><path d="M-4 -2.5 h11" stroke="var(--sim-aile)" stroke-width="4.5" stroke-linecap="round"/></g>`;
+      if (ecran.scrollWidth > ecran.clientWidth) ecran.scrollLeft = Math.max(0, x / 900 * ecran.scrollWidth - ecran.clientWidth / 2);
+      if (i < r.pts.length - 1) anim = requestAnimationFrame(pas); else setTimeout(() => { mob.innerHTML = ""; poses.style.opacity = 1; }, 700); };
+    anim = requestAnimationFrame(pas);
+  }
   function dessin(r) {
     const s = D.sim, W = 900, H = 350, mg = 50, mb = 50, mh = 20; const dmax = Math.max(12, Math.ceil(Math.max(r.distance, ref ? ref.distance : 0) + 1.5)), zmax = Math.max(2.4, Math.max(r.hmax, ref ? ref.hmax : 0) + 0.4);
     const sx = (W - mg - 16) / dmax, sz = (H - mb - mh) / zmax, X = (x) => mg + Math.max(0, x) * sx, Z = (z) => H - mb - z * sz;
-    const chemin = (P) => P.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Z(p[1]).toFixed(1)).join(" ");
+    ech = { X, Z, sx, sz }; const chemin = (P) => P.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Z(p[1]).toFixed(1)).join(" ");
     let g = ""; const pas = dmax > 24 ? 5 : dmax > 12 ? 2 : 1;
     for (let x = 0; x <= dmax; x += pas) g += `<line x1="${X(x)}" y1="${Z(0)}" x2="${X(x)}" y2="${Z(0) + 7}" stroke="currentColor"/><text x="${X(x)}" y="${Z(0) + 22}" font-size="13" text-anchor="middle" fill="currentColor">${x}</text>`;
     for (let z = 1; z <= zmax; z++) g += `<text x="${mg - 9}" y="${Z(z) + 4}" font-size="12" text-anchor="end" fill="currentColor">${z} m</text><line x1="${mg}" y1="${Z(z)}" x2="${W}" y2="${Z(z)}" stroke="currentColor" stroke-width=".6" stroke-dasharray="2 7" opacity=".45"/>`;
@@ -814,14 +861,14 @@ document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Nive
       <line x1="${X(0)}" y1="${Z(s.h0)}" x2="${fx}" y2="${fy}" stroke="${cl}" stroke-width="${lancer ? 5 : 3}" stroke-linecap="round"/><path d="M0 0 l-11 -5 v10 z" fill="${cl}" transform="translate(${fx + 8} ${fy}) rotate(${-s.g0})"/>
       <text x="${X(0) + 8}" y="${Math.min(Z(s.h0), fy) - 12}" font-size="12.5" font-weight="600" fill="${cl}">lancer : ${fmt(s.v0, 1)} m/s</text>
       ${ref ? `<path d="${chemin(ref.pts)}" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".33"/><circle cx="${X(ref.distance)}" cy="${Z(0)}" r="5" fill="currentColor" opacity=".45"/><text x="${X(ref.distance) - 9}" y="${Z(0) - 9}" font-size="12.5" text-anchor="end" fill="currentColor" opacity=".7">vol gris : ${fmt(ref.distance, 1)} m</text>` : ""}
-      <path d="${chemin(r.pts)}" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-dasharray="8 6" stroke-linecap="round"/>${av}
+      <path d="${chemin(r.pts)}" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-dasharray="8 6" stroke-linecap="round"/><g id="sim-poses">${av}</g><g id="sim-mobile"></g>
       <line x1="${xd}" y1="${Z(0)}" x2="${xd}" y2="${Z(0) - 44}" stroke="var(--bad)" stroke-width="2.5"/><circle cx="${xd}" cy="${Z(0)}" r="6" fill="var(--bad)"/>
       <rect x="${drap}" y="${Z(0) - 64}" width="68" height="24" rx="4" fill="var(--bad)"/><text x="${drap + 34}" y="${Z(0) - 47}" font-size="14" font-weight="700" text-anchor="middle" fill="#fff">${fmt(Math.max(0, r.distance), 1)} m</text>
     </svg>`;
   }
 
   function calculer() {
-    const s = D.sim, r = M.simuler(enSI(s)); dernier = r; const v = verdict(r, s);
+    cancelAnimationFrame(anim); const s = D.sim, r = M.simuler(enSI(s)); dernier = r; const v = verdict(r, s);
     document.getElementById("sim-d").textContent = fmt(Math.max(0, r.distance), 1);
     const dl = document.getElementById("sim-delta"); if (ref) { const e = r.distance - ref.distance; dl.textContent = (e >= 0 ? "+" : "−") + fmt(Math.abs(e), 1) + " m par rapport au vol gris"; dl.className = "sim-delta " + (e > 0.05 ? "plus" : e < -0.05 ? "moins" : ""); } else { dl.textContent = ""; dl.className = "sim-delta"; }
     const vd = document.getElementById("sim-verdict"); vd.className = "sim-verdict " + v[0]; vd.innerHTML = `<i aria-hidden="true">${{ ok: "✓", moyen: "!", alerte: "✕" }[v[0]]}</i><div><b>${v[1]}</b><span>${v[2]}</span></div>`;
@@ -837,6 +884,7 @@ document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Nive
   $in.addEventListener("change", (ev) => { const k = cle(ev.target); if (k && ev.target.dataset.n) ev.target.value = D.sim[k]; });
   ["focusin", "pointerdown"].forEach((t) => $in.addEventListener(t, (ev) => { const k = cle(ev.target); if (k && k !== actif) { actif = k; calculer(); } }));
   document.querySelectorAll("[data-ex]").forEach((b) => b.onclick = () => { D.sim = Object.assign({}, DEF, EX[b.dataset.ex]); actif = null; ecrire(); garder(); calculer(); });
+  document.getElementById("sim-jouer").onclick = jouer;
   document.getElementById("sim-ref").onclick = () => { ref = dernier; calculer(); };
   document.getElementById("sim-ref0").onclick = () => { ref = null; calculer(); };
   document.querySelectorAll("[data-carnet]").forEach((b) => b.onclick = () => { const i = b.dataset.carnet, v = (Math.round(Math.max(0, dernier.distance) * 10) / 10).toString();
@@ -845,5 +893,6 @@ document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Nive
   ecrire(); calculer();
 })();
 </script>
+<script src="2si-planeur/interactif.js"></script>
 </body>
 </html>
