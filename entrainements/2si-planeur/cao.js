@@ -243,6 +243,7 @@
         <tr><td>Contraindre</td><td>Horizontal · Vertical · Parallèle · Perpendiculaire · Égal · Fixer</td><td>H · V · B · Maj+L · E · Maj+J</td></tr>
         <tr><td>Lâcher l'outil, annuler un tracé</td><td></td><td>Échap</td></tr>
         <tr><td>Retirer ce qui est sélectionné</td><td>Clic dessus, puis Supprimer</td><td>Suppr</td></tr>
+        <tr><td>Menu d'un objet</td><td>Clic droit dessus (sur tablette : appui long)</td><td></td></tr>
         <tr><td>Tourner la vue</td><td>Bouton droit de la souris, ou le cube</td><td></td></tr>
         <tr><td>Zoomer · tout voir</td><td>Molette · Ajuster</td><td>F</td></tr>
         <tr><td>Regarder l'esquisse bien en face</td><td>Normale à l'esquisse</td><td>N</td></tr>
@@ -256,7 +257,7 @@
       <div class="cao-outils" id="cao-outils"></div>
       <div class="cao-corps">
         <div class="cao-arbre" id="cao-arbre"></div>
-        <div class="cao-vue"><div id="cao-dialogue"></div><div class="cao-scene"><canvas id="a3-cv" width="760" height="460" aria-label="Vue 3D : fais glisser pour tourner"></canvas><div id="a3-esq"></div><div class="a3-boite" id="a3-boite" hidden><span id="a3-pre"></span><input id="a3-val" type="text" inputmode="decimal" autocomplete="off" aria-label="Valeur de la cote, en millimètres"><span id="a3-unite">mm</span><button type="button" data-o="val-ok" title="Valider la valeur (Entrée)" aria-label="Valider la valeur">✓</button></div></div><div class="cao-cotes" id="a3-cotes"></div>
+        <div class="cao-vue"><div id="cao-dialogue"></div><div class="cao-scene"><canvas id="a3-cv" width="760" height="460" aria-label="Vue 3D : fais glisser pour tourner"></canvas><div id="a3-esq"></div><div class="cao-menu" id="cao-menu" hidden role="menu"></div><div class="a3-boite" id="a3-boite" hidden><span id="a3-pre"></span><input id="a3-val" type="text" inputmode="decimal" autocomplete="off" aria-label="Valeur de la cote, en millimètres"><span id="a3-unite">mm</span><button type="button" data-o="val-ok" title="Valider la valeur (Entrée)" aria-label="Valider la valeur">✓</button></div></div><div class="cao-cotes" id="a3-cotes"></div>
           <div class="cao-vues"><svg id="cao-cube" viewBox="-50 -50 100 100" role="group" aria-label="Cube de vue : clique une face pour regarder la pièce de ce côté"></svg><span id="cao-vues"><button type="button" data-vue="iso" title="Vue en perspective cavalière">Iso</button><button type="button" data-o="plans" id="cao-pl" title="Afficher ou masquer les trois plans de départ (touche P)">Plans</button><button type="button" data-o="eclate" id="cao-ecl" title="Écarter les trois pièces pour voir comment elles s'assemblent">Éclaté</button><button type="button" data-o="rendu" id="cao-rendu" title="Changer l'affichage">Arêtes</button></span><span class="cao-z" id="cao-esqv"><button type="button" data-o="longueurs" id="cao-lg" title="Afficher ou cacher la longueur de tous les traits, entre parenthèses">Longueurs</button><button type="button" data-o="normale" title="Regarder l'esquisse bien en face (touche N)">Normale à l'esquisse</button></span><span class="cao-z"><button type="button" data-o="zplus" title="Zoom avant" aria-label="Zoom avant">+</button><button type="button" data-o="zmoins" title="Zoom arrière" aria-label="Zoom arrière">−</button><button type="button" data-o="zfit" title="Tout voir">Ajuster</button></span></div></div>
       </div>
       <div class="cao-msg" id="cao-msg" aria-live="polite"></div>
@@ -269,7 +270,7 @@
       <p class="discret">Fichiers en millimètres, chaque pièce posée à plat : prêts pour l'imprimante. Si tu changes l'aile ou le stabilisateur, leurs fentes doivent suivre : le contrôle te donne leurs coordonnées, ou le bouton les replace pour toi.</p>
       <details class="a3-plan"><summary><b>Plan coté du planeur de départ</b>, pour le reconstruire toi-même, fonction par fonction</summary><div id="a3-plan"></div></details></div>`;
   const cv = $("a3-cv"), cx = cv.getContext("2d", { willReadFrequently: true }), esq = $("a3-esq");
-  let piece = "essai", mode = "piece", outil = "sel", esqId = 0, vue = { a: -0.6, b: 0.45, z: 1, px: 0, py: 0, e: 0, k0: 0 }, sel = null, trace = null, pt0 = null, curseur = null, dial = null, vueMasse = false, E = null, TR = [], attente = 0, prise = null, pan = null, tire = null, muet = false, info = "", hist = [], futur = [], courant = null, dernier = null, aNormal = true, tour = null, modeAvant = "piece", zEss = 0, edit = null, cot1 = null, infer = null, traceG = {}, traceO = [], mesures = false, rayon = 5, esqAvant = null, survol = "", choixPlan = false, PL2 = [], vueAvant = null, planSel = null, arcE = null, voirPlans = false, cs1 = null, doigt = null, plein = false;
+  let piece = "essai", mode = "piece", outil = "sel", esqId = 0, vue = { a: -0.6, b: 0.45, z: 1, px: 0, py: 0, e: 0, k0: 0 }, sel = null, trace = null, pt0 = null, curseur = null, dial = null, vueMasse = false, E = null, TR = [], attente = 0, prise = null, pan = null, tire = null, muet = false, info = "", hist = [], futur = [], courant = null, dernier = null, aNormal = true, tour = null, modeAvant = "piece", zEss = 0, edit = null, cot1 = null, infer = null, traceG = {}, traceO = [], mesures = false, rayon = 5, esqAvant = null, survol = "", choixPlan = false, PL2 = [], vueAvant = null, planSel = null, arcE = null, voirPlans = false, cs1 = null, doigt = null, plein = false, long = null;
   const tactile = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches), DESSIN = ["ligne", "rect", "rectc", "cercle"];      // doigt : sur un écran tactile, le point se pose quand on lève le doigt
   const NOMR = { par: ["Parallèle", "ces deux traits restent parallèles"], per: ["Perpendiculaire", "ces deux traits restent perpendiculaires"], eg: ["Égal", "ces deux traits gardent la même longueur"] };
   const NOMPL = { dessus: "Dessus", face: "Face", droite: "Droite" };
@@ -597,7 +598,7 @@
   const abandon = () => { tire = null; pan = null; tour = null; doigt = null; if (!trace && !pt0) curseur = null; if (!prise) return; const b = prise, k = Km(), ct = k && k.c[b.c]; prise = null; if (!ct) return;          // le deuxième doigt arrive : ce que le premier avait commencé est défait
     if (b.arcb) { ct.b = b.av[0]; ct.br = b.av[1]; ct.a = b.av[2]; } else if (b.seg) ct.p = copie(b.av); else if (b.av0) { if (ct.k === "cercle") { ct.c = b.av0[0]; ct.r = b.av0[1]; } else ct.p = b.av0; } };
   scene.addEventListener("pointerdown", (e) => { if (e.pointerType !== "touch" || e.target.closest("#a3-boite")) return; doigts.set(e.pointerId, [e.clientX, e.clientY]);
-    if (doigts.size === 2) { abandon(); cancelAnimationFrame(anim3); const [a, b] = [...doigts.values()]; pince = { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, z: vue.z, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2, px: vue.px, py: vue.py }; }
+    if (doigts.size === 2) { if (long) { clearTimeout(long.t); long = null; } abandon(); cancelAnimationFrame(anim3); const [a, b] = [...doigts.values()]; pince = { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, z: vue.z, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2, px: vue.px, py: vue.py }; }
     if (doigts.size >= 2) { e.stopPropagation(); e.preventDefault(); } }, true);
   scene.addEventListener("pointermove", (e) => { if (!doigts.has(e.pointerId)) return; doigts.set(e.pointerId, [e.clientX, e.clientY]); if (!pince && !finPince) return; e.stopPropagation(); if (!pince || doigts.size < 2) return;
     const [a, b] = [...doigts.values()], r = cv.getBoundingClientRect(), z2 = Math.max(0.3, Math.min(14, pince.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pince.d)), f = z2 / pince.z;
@@ -729,10 +730,27 @@
     const p = ct.k === "cercle" ? (i === 0 ? ct.c : null) : ct.p[i]; if (!p || p[0] !== 0 || p[1] !== 0 || (ct.q || []).some((c) => c.a === i && c.b < 0)) return;
     ct.q = (ct.q || []).concat(att0(i)); dire("Coïncident : ce point est maintenant attaché à l'origine.");
   }
+  const objet = (T) => { const dm = T.closest("[data-dim]"), gl = T.closest("[data-gl]"), pt = T.closest("[data-i]"), sg = T.closest("[data-s]"), ab = T.closest("[data-b]"), ar = T.closest("[data-a]"), ce = T.closest(".a3-oh");          // ce qui est sous le pointeur, dans le même ordre que la sélection
+    return dm ? { c: +dm.dataset.dc, t: dm.dataset.dim, i: +dm.dataset.di } : gl ? { c: +gl.dataset.gc, t: gl.dataset.gl, i: +gl.dataset.gi } : pt ? { c: +pt.dataset.c, t: "p", i: +pt.dataset.i } : sg ? { c: +sg.dataset.c, t: "s", i: +sg.dataset.s } : ab ? { c: +ab.dataset.c, t: "b", i: +ab.dataset.b } : ar ? { c: +ar.dataset.c, t: "a", i: +ar.dataset.a } : ce ? { c: +ce.dataset.c, t: "o", i: 0 } : null; };
+  let menuFrais = false;                      // menu ouvert par un appui long : le clic qui suit, quand le doigt se lève, ne doit rien déclencher
+  function menu(x, y, cible, frais) {                 // le menu du clic droit, comme dans Onshape : ce qu'on peut faire de l'objet visé, puis la vue
+    const k = K(), ct = cible && k && k.c[cible.c], M = $("cao-menu"), r = scene.getBoundingClientRect(), it = (o, t) => `<button type="button" role="menuitem" data-o="${o}">${t}</button>`; let h = "";
+    trace = null; pt0 = null; curseur = null; cot1 = null; cs1 = null; outil = "sel"; sel = ct ? cible : null;
+    if (ct && cible.t === "p" && ct.k === "poly") h = it("conge", "Congé d'esquisse sur ce coin") + it("fixe", "Fixer ce point") + (ct.p.length > 3 ? it("suppr", "Supprimer ce point") : "");
+    else if (ct && cible.t === "p") h = it("fixe", "Fixer le centre") + it("suppr", "Supprimer le cercle");
+    else if (ct && cible.t === "s") h = it("horiz", "Horizontal") + it("vert", "Vertical") + it("fixe", "Fixer ce trait") + it("suppr", "Supprimer tout le contour");
+    else if (ct && cible.t === "o") h = it("suppr", "Supprimer le cercle");
+    else if (ct && (cible.t === "a" || cible.t === "b")) h = it("cote-mod", "Changer le rayon") + it("suppr", cible.t === "a" ? "Retirer l'arrondi" : "Remettre le trait droit");
+    else if (ct && ["d", "q", "dd", "an"].includes(cible.t)) h = it("cote-mod", "Changer la valeur") + it("suppr", "Retirer la cote");
+    else if (ct) h = it("suppr", "Retirer la contrainte");
+    M.innerHTML = (h ? h + "<hr>" : "") + it("normale", "Normale à l'esquisse") + it("zfit", "Tout voir") + it("valider", "Valider l'esquisse"); M.hidden = false; menuFrais = !!frais; maj();
+    M.style.left = Math.max(4, Math.min(r.width - M.offsetWidth - 4, x - r.left)) + "px"; M.style.top = Math.max(4, Math.min(r.height - M.offsetHeight - 4, y - r.top)) + "px";
+  }
+  document.addEventListener("pointerdown", (e) => { const M = $("cao-menu"); menuFrais = false; if (M && !M.hidden && !e.target.closest("#cao-menu")) M.hidden = true; }, true);
   const appui = (e, relache) => {              // relache : sur un écran tactile, c'est en levant le doigt qu'on pose le point
     if (!K() || (!relache && !e.target.closest("#a3-svg"))) return;
     if (!relache && e.button === 1) { cancelAnimationFrame(anim3); pan = [e.clientX, e.clientY, vue.px, vue.py]; esq.setPointerCapture(e.pointerId); e.preventDefault(); return; }      // bouton du milieu : on déplace la vue
-    if (!relache && e.button === 2) { cancelAnimationFrame(anim3); tour = [e.clientX, e.clientY, vue.a, vue.b]; esq.setPointerCapture(e.pointerId); e.preventDefault(); return; }      // bouton droit : on tourne la vue, comme dans Onshape
+    if (!relache && e.button === 2) { cancelAnimationFrame(anim3); tour = [e.clientX, e.clientY, vue.a, vue.b, objet(e.target)]; esq.setPointerCapture(e.pointerId); e.preventDefault(); return; }      // bouton droit : on tourne la vue, comme dans Onshape
     if (!relache) {
     if (edit && edit.flot && edit.t === "d") { const s2 = e.target.closest("[data-s]"), k0 = K(), ct = k0 && k0.c[edit.c], n = ct && ct.p ? ct.p.length : 0;          // Cote : un deuxième trait cliqué, et c'est l'angle entre les deux qu'on cote
       if (s2 && +s2.dataset.c === edit.c && +s2.dataset.s !== edit.i) { e.preventDefault(); const i = edit.i, j = +s2.dataset.s, coin = j === (i + 1) % n ? j : i === (j + 1) % n ? i : -1; edit = null;
@@ -742,6 +760,7 @@
     }
     const brut = souris(e), T = e.target; if (!brut || (penche() && (outil !== "sel" || T.closest("[data-i]")))) { $("cao-msg").textContent = "L'esquisse est vue trop de côté pour y dessiner. Clique sur « Normale à l'esquisse » (touche N)."; return; }
     const A = accroche(brut, e), p = A.p.slice(), k = K(), zero = (x) => !e.shiftKey && x[0] === 0 && x[1] === 0;
+    if (!relache && e.pointerType === "touch" && outil === "sel") { clearTimeout(long && long.t); const lg = { x: e.clientX, y: e.clientY, o: objet(e.target) }; lg.t = setTimeout(() => { if (long !== lg) return; long = null; abandon(); menu(lg.x, lg.y, lg.o, true); }, 600); long = lg; }          // au doigt : un appui long ouvre le même menu que le clic droit
     if (!relache && e.pointerType === "touch" && (DESSIN.includes(outil) || (outil === "arc" && arcE))) { doigt = e.pointerId; esq.setPointerCapture(e.pointerId); e.preventDefault(); infer = A; curseur = p; if (arcE) { const c0 = Km().c[arcE.c]; if (c0) courber(c0, arcE.i, brut); } return esquisse(); }          // au doigt : on vise d'abord, le point se pose en levant le doigt
     if (outil === "ligne") { e.preventDefault(); const hv = (a, b) => (e.shiftKey ? null : a[1] === b[1] && a[0] !== b[0] ? 1 : a[0] === b[0] && a[1] !== b[1] ? 0 : null);
       if (!trace) { trace = [p]; traceG = {}; traceO = zero(p) ? [0] : []; }
@@ -787,7 +806,7 @@
     cancelAnimationFrame(anim3); pan = [e.clientX, e.clientY, vue.px, vue.py]; esq.setPointerCapture(e.pointerId);
     if (sel) { sel = null; esquisse(); } };
   esq.addEventListener("pointerdown", (e) => appui(e, false));
-  esq.addEventListener("pointermove", (e) => { if (!$("a3-svg")) return;
+  esq.addEventListener("pointermove", (e) => { if (!$("a3-svg")) return; if (long && Math.hypot(e.clientX - long.x, e.clientY - long.y) > 9) { clearTimeout(long.t); long = null; }
     if (tour) { vue.a = tour[2] + (e.clientX - tour[0]) * 0.01; vue.b = Math.max(-1.5708, Math.min(1.5708, tour[3] + (e.clientY - tour[1]) * 0.01)); return peindre(1); }
     if (edit) { if (edit.flot) { const q = souris(e); if (q) { majFlot(q); esquisse(); } } return; }
     if (arcE || (prise && prise.arcb)) { const z = arcE || prise, k = Km(), ct = k && k.c[z.c], q = souris(e); if (!ct || !q) return; courber(ct, z.i, q); if (prise) prise.bouge = true; return esquisse(); }
@@ -810,7 +829,9 @@
     if (pan) { vue.px = pan[2] + e.clientX - pan[0]; vue.py = pan[3] + e.clientY - pan[1]; return peindre(1); }
     if (trace || pt0 || doigt === e.pointerId) { const q = souris(e); if (q) { infer = accroche(q, e); curseur = infer.p; esquisse(); } return; }
     if (outil === "ligne" || outil === "rect" || outil === "rectc" || outil === "cercle") { const q = souris(e), A = q && accroche(q, e), cle = A && A.co ? (A.co.o ? "o" : A.co.c + ":" + A.co.i) : ""; if (cle !== survol) { survol = cle; infer = cle ? A : null; esquisse(); } } });      // avant le premier clic : on montre le point où la souris s'accroche
-  const lacher = (e) => { if (doigt != null && e && e.pointerId === doigt) { doigt = null; if (e.type === "pointerup") return appui(e, true); if (!trace && !pt0) curseur = null; infer = null; return esquisse(); }
+  const lacher = (e) => { if (long) { clearTimeout(long.t); long = null; }
+    if (tour && e && e.type === "pointerup" && Math.hypot(e.clientX - tour[0], e.clientY - tour[1]) < 4) { const c = tour[4]; tour = null; return menu(e.clientX, e.clientY, c); }          // clic droit sans bouger : le menu
+    if (doigt != null && e && e.pointerId === doigt) { doigt = null; if (e.type === "pointerup") return appui(e, true); if (!trace && !pt0) curseur = null; infer = null; return esquisse(); }
     if (tour || pan) { tour = null; pan = null; propre(); } if (!prise) return; const b = prise; prise = null; if (!b.bouge) return esquisse(); if (b.arcb) { arcE = { c: b.c, i: b.i, av: b.av }; return finArc(true); }
     if (!b.dim && !b.seg) { const k = Km(), ct = k && k.c[b.c]; if (ct) attacher(ct, b.i); } complet(); };
   esq.addEventListener("pointerup", lacher); esq.addEventListener("pointercancel", lacher);
@@ -840,7 +861,7 @@
     if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return; const t = e.key.toLowerCase(), clic = (o) => { const b = racine.querySelector(`[data-o="${o}"]`); if (b) { e.preventDefault(); b.click(); } };      // les raccourcis d'Onshape
     if (mode === "esquisse") { if (e.shiftKey) return t === "f" ? clic("conge") : t === "j" ? clic("fixe") : t === "l" ? clic("per") : undefined; const R = { l: "ligne", g: "rect", r: "rectc", c: "cercle", a: "arc", d: "cote", h: "horiz", v: "vert", b: "par", e: "eg", n: "normale", f: "zfit" }; if (R[t]) clic(R[t]); }
     else if (!dial) { if (e.shiftKey && t === "s") clic("esquisse"); else if (e.shiftKey && t === "e") clic("extruder"); else if (!e.shiftKey && t === "f") clic("zfit"); else if (!e.shiftKey && t === "p") clic("plans"); } });
-  racine.addEventListener("click", (e) => { const d = idee(), t = e.target;
+  racine.addEventListener("click", (e) => { const d = idee(), t = e.target; if (menuFrais) { menuFrais = false; return; } if (t.closest("#cao-menu")) $("cao-menu").hidden = true;          // un choix dans le menu le referme ; ailleurs, c'est l'appui suivant qui le referme
     const pc = t.closest("[data-piece]"); if (pc) { piece = pc.dataset.piece; mode = "piece"; aCadrer = true; vue.e = 0; dial = null; vueMasse = false; aNormal = true; quitter(); courant = photo(); return maj(); }
     if (t.closest("[data-vue]")) return voir(-0.6, 0.45); const fc = t.closest("[data-face]"); if (fc) { const f = FACES[+fc.dataset.face]; return voir(f[2], f[3]); }
     if (t.id === "a3-stl" && E && E.bon) { telecharger(d, (d.nom || "planeur") + "_" + AT.lettre()); $("a3-msg").textContent = "Trois fichiers exportés : fuselage, aile, stabilisateur."; return; }
