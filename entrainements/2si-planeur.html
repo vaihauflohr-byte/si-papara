@@ -187,6 +187,18 @@ table.pl th.pl-pg{background:var(--accent);color:var(--accent-ink);text-align:le
 .cao-dial.esq{width:auto;display:flex;align-items:center;gap:12px;padding:6px 10px}.cao-dial.esq h4{margin:0}.cao-dial.esq small{color:var(--ink-3)}.cao-dial.esq .cao-bt{margin:0}.cao-dial.esq .cao-bt button{padding:3px 11px}
 @media (max-width:760px){.cao-dial.esq{position:static;box-shadow:none;border-radius:0;border-width:0 0 1px;justify-content:space-between}}
 .cao-vues button.on{background:#cfe0f7;border-color:#1b5fbf;color:#0c2f66}
+.cao-scene{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.cao button{touch-action:manipulation}.a3-gl rect.a3-gz,.a3-gl:hover rect.a3-gz,.a3-gl.on rect.a3-gz{fill:transparent;stroke:none}#a3-svg:not(.o-sel) .a3-gl{pointer-events:none}
+.a3-boite button{font:inherit;font-weight:700;min-height:0;padding:1px 8px;border:1px solid #1f8a4c;border-radius:4px;background:#1f8a4c;color:#fff;cursor:pointer}
+.cao-hist button svg{display:block;margin:auto}.cao-hist button.on{background:rgba(255,255,255,.3)}
+@media (pointer: coarse){.a3-sh,.a3-oh{stroke-width:26}.a3-dh{stroke-width:28}.cao-outils button.ico{min-width:44px}.cao-outils button{min-height:54px}.cao-vues button,.cao-pb{padding:9px 13px;font-size:.9rem}.cao-hist button{width:44px;height:36px}.cao .a3-boite input,.cao .cao-cotes input,.cao .cao-dial input,.cao .cao-dial select{font-size:16px}.a3-boite button{padding:6px 12px}.cao-x{padding:0 14px;font-size:1rem}.cao-dial button{padding:9px 14px}}
+.cao.plein{position:fixed;top:0;left:0;right:0;bottom:0;z-index:3000;margin:0;border:0;border-radius:0;display:flex;flex-direction:column}
+.cao.plein .cao-corps{flex:1;min-height:0;grid-template-rows:minmax(0,1fr)}.cao.plein .cao-arbre{overflow:auto}
+.cao.plein .cao-vue{display:flex;flex-direction:column;min-height:0}.cao.plein .cao-scene{flex:1;min-height:0}
+.cao.plein #a3-cv{position:absolute;top:0;left:0;width:100%;height:100%}
+.cao.plein .cao-msg{height:2.6em;min-height:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cao.plein .cao-cotes{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;min-height:44px;height:44px;flex:none}
+@media (max-width:760px){.cao.plein .cao-corps{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}.cao.plein .cao-arbre{max-height:20vh}.cao.plein.dessin .cao-arbre{display:none}.cao.plein.dessin .cao-corps{grid-template-rows:minmax(0,1fr)}.cao.plein .cao-outils,.cao.plein .cao-onglets{flex-wrap:nowrap;overflow-x:auto}.cao.plein .cao-outils button,.cao.plein .cao-onglets button{flex:none}.cao.plein .cao-vues{flex-wrap:nowrap}}
+html.cao-fige,html.cao-fige body{overflow:hidden}
 .cao-vues{flex-direction:column;align-items:flex-end;pointer-events:none}.cao-vues>*{pointer-events:auto}.cao-z{display:flex;gap:4px}
 @media (max-width:760px){.cao .cao-vue .cao-vues{position:static;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;padding:6px 8px;background:var(--cao-barre);border-top:1px solid var(--cao-bord)}.cao .cao-vues #cao-cube{width:62px;height:62px;margin-right:auto}}
 #cao-cube{width:88px;height:88px;cursor:pointer;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))}

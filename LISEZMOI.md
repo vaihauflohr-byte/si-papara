@@ -209,6 +209,12 @@ Atelier 3D, l'esquisse se comporte comme celle d'Onshape (23 novembre, soir). Da
 
 Récupérer les STL de chaque élève (23 novembre, nuit) : page `entrainements/2si-planeur-notes.html#stl` (lien dans l'espace professeur et dans l'onglet « Évaluation » du projet). Pour chaque élève de Seconde SI qui a travaillé connecté : dessin du planeur vu de dessus, contrôle avant impression (prêt / à corriger), esquisses définies, choix de l'idée (A, B, C), bouton « Ses 3 STL (ZIP) ». Le bouton « Tout télécharger » fabrique un seul ZIP : un dossier par élève avec ses trois STL, plus `recapitulatif.csv` (idée, contrôle, masses, lest, volumes, problèmes). Les STL sont calculés dans le navigateur du professeur à partir du planeur enregistré (`etat.planeur.a`, table `projets_eleves`) ; le ZIP est écrit sans bibliothèque (pas de compression). Conditions : `supabase/projets.sql` installé sur la base, élèves connectés au site quand ils travaillent, professeur connecté à l'espace professeur dans le même navigateur.
 
+Atelier 3D, ergonomie souris et tablette (23 novembre, nuit) :
+- **Plein écran** (bouton en haut à droite de l'atelier, Échap pour sortir) : l'atelier prend toute la fenêtre, la vue occupe la place qui reste (`.cao.plein`, `ratio()` lit alors la hauteur de `.cao-scene`). Ce n'est pas le plein écran du navigateur : pas de restriction de clavier sur iPad.
+- **Tablette.** Deux doigts : zoomer et déplacer, l'endroit pincé reste sous les doigts (écouteurs en capture sur `.cao-scene`, `abandon()` défait ce que le premier doigt avait commencé). Un doigt avec un outil de tracé : on vise (croix, aimantation, coordonnées), le point se pose en levant le doigt (`appui(e, relache)`). Cibles plus grosses quand le pointeur est grossier (`tactile`), boutons de 44 px, champs en 16 px pour que Safari ne zoome pas, bouton ✓ dans la boîte de cote, boîtes automatiques sans clavier. Testé avec l'émulation tactile de Chrome, pas sur un vrai iPad.
+- **Souris comme dans Onshape** : bouton droit = tourner, bouton du milieu (ou Maj) = déplacer, molette = zoomer ; Tab valide une boîte de cote comme Entrée.
+- Les barres (outils, arbre, boîtes) ne sont réécrites que si leur contenu change (`HT`) : un clic en cours n'est plus perdu, et les symboles de contrainte ne gênent plus les clics hors de l'outil Sélection.
+
 ## 5. Ajouter du contenu
 
 Un fichier par groupe de séquences dans `contenu/` (ex. `1si-s3.js`, `tsi-s8.js`). Un module = un chapitre, avec `sequence` (regroupement à l'écran), `competences` (codes de `competences.js`), ses questions et ses mini-fiches :
