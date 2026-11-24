@@ -197,6 +197,7 @@ Atelier 3D, l'esquisse se comporte comme celle d'Onshape (23 novembre, soir). Da
 - **Deux ordres possibles**, comme dans Onshape : Esquisse puis le plan, ou le plan (dans l'arbre ou dans la vue) puis Esquisse (`selPlan`).
 - **Contrainte Fixe** (ancre) : le point ou le trait cliqué ne bouge plus (`fixer`, entrées `fx` de `ct.q`). Utile pour rendre noire une forme libre sans la coter partout.
 - **Arc** (touche A) : on clique un trait du contour, il se courbe pour passer sous la souris, on clique pour le poser. L'arc est gardé comme une flèche sur le trait (`ct.b`, ou un rayon coté `ct.br`) ; `arcs(ct)` en donne le centre et le rayon, `arrondi(ct)` le découpe en petits traits pour le moteur. Sa cote « R » se change par double-clic ; l'arc se tire à la souris ; Suppr remet le trait droit. Refusé s'il fait se croiser le contour ou sortir du plan (`arcBon`). Un congé ne se pose pas sur un coin qui touche un arc.
+- **Tirer à la souris.** Le point tiré suit exactement la souris (donc reste sur la grille) ; si une cote l'en empêche, il ne la suit qu'en hauteur ou qu'en largeur (`resoudre(ct, fixe, mou, axe)`) ; sinon il est bloqué. Pendant un tracé à la Ligne, Retour arrière enlève le dernier point.
 
 ## 5. Ajouter du contenu
 
