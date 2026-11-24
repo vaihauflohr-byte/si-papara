@@ -205,6 +205,7 @@ Atelier 3D, l'esquisse se comporte comme celle d'Onshape (23 novembre, soir). Da
 - **Rectangle à partir du centre**, bouton « Plans » (touche P), aide-mémoire des gestes sous le texte d'introduction, contraintes en petits boutons pour que la barre tienne sur une ligne.
 - **Esquisses entièrement définies, pour l'évaluation.** `Planeur3D.definition(d)` compte, par pièce, les esquisses dont tous les traits sont noirs. L'atelier l'affiche sous le tableau de l'assemblage, et la page du professeur dans la colonne « Esquisses définies » (F fuselage, A aile, S stabilisateur) : c'est le critère B1. L'aile et le stabilisateur de départ, quand ils sont rectangulaires, arrivent entièrement définis (origine, côtés droits, deux cotes) : on les modifie en changeant une cote, comme dans Onshape. Le fuselage de départ reste libre (bleu).
 - **Cote d'angle.** Outil Cote, clic sur un trait puis sur un trait voisin : la boîte demande l'angle du coin, en degrés (`ct.an`, numéro du point → angle). Elle se dessine comme un petit arc dans le coin, se change par double-clic, se retire avec Suppr. Le solveur refuse une solution qui écraserait un trait à rien.
+- **Défi 5, « tout en noir »**, sur la pièce d'essai : après le biseau et le trou, rendre les deux esquisses entièrement définies (contrainte Horizontal, cotes de longueur, cote de diamètre, deux cotes de position). C'est le critère de réussite des missions Onshape (« tous les traits noirs »). Il ne compte pas dans les lignes à cocher de l'onglet « Les étapes ».
 
 ## 5. Ajouter du contenu
 
