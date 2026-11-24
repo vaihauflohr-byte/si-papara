@@ -33,8 +33,9 @@ table.pl td.g{text-align:left}
 <p class="no-print"><button class="btn" id="add">+ Ajouter une équipe</button> <button class="btn sec" id="csv">Exporter en CSV</button> <button class="btn sec" onclick="window.print()">Imprimer</button> <button class="btn sec" id="raz">Tout effacer</button></p>
 <div class="pl-scroll"><table class="pl" id="t"></table></div>
 <p class="discret" id="regle"></p>
-<h2 class="no-print">Où en est chaque élève</h2>
-<p class="no-print">Lu sur le compte des élèves (il faut être connecté à l'espace professeur dans ce navigateur). <button class="btn sec" id="av-charger">Actualiser</button></p>
+<h2 class="no-print" id="stl">Où en est chaque élève, et ses fichiers à imprimer</h2>
+<p class="no-print">Lu sur le compte des élèves (il faut être connecté à l'espace professeur dans ce navigateur). Les fichiers STL sont fabriqués ici, à partir du planeur que l'élève a dessiné dans l'atelier 3D : en millimètres, chaque pièce posée à plat.</p>
+<p class="no-print"><button class="btn" id="av-zip" disabled>Tout télécharger : les STL de tous les élèves (un fichier ZIP)</button> <button class="btn sec" id="av-charger">Actualiser</button></p>
 <div class="pl-scroll no-print"><table class="pl" id="av"></table></div>
 <p class="discret no-print" id="av-msg"></p>
 </main>
@@ -107,27 +108,68 @@ rendu();
 </script>
 <script src="../assets/backend.js" onerror="void 0"></script>
 <script>
-/* Avancement des élèves : lu dans projets_eleves (etat.planeur.r), écrit par entrainements/2si-planeur/sync.js */
+/* Avancement des élèves et fichiers à imprimer : lus dans projets_eleves (etat.planeur), écrits par entrainements/2si-planeur/sync.js.
+   Les STL sont fabriqués ici, dans le navigateur du professeur, à partir du planeur enregistré par l'élève. */
 (function () {
-  const T = document.getElementById("av"), M = document.getElementById("av-msg"), h = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const m = (x) => (x == null ? "" : String(x).replace(".", ",") + " m");
+  const T = document.getElementById("av"), M = document.getElementById("av-msg"), Z = document.getElementById("av-zip"), h = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const m = (x) => (x == null ? "" : String(x).replace(".", ",") + " m"), fr = (x, d) => Number(x).toFixed(d).replace(".", ","), propre = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w\-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "eleve";
+  let LIGNES = [];                             // une ligne par élève qui a un planeur : { e, a, n (idée retenue pour l'impression) }
+  /* ---------- un fichier ZIP sans compression, écrit ici (pas de bibliothèque) ---------- */
+  const TC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = (u) => { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = TC[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  function zip(F) {                            // F : [{ nom, data (Uint8Array) }]
+    const enc = new TextEncoder(), P = [], C = [], j = new Date(), heure = (j.getHours() << 11) | (j.getMinutes() << 5) | (j.getSeconds() >> 1), date = ((j.getFullYear() - 1980) << 9) | ((j.getMonth() + 1) << 5) | j.getDate(); let pos = 0;
+    F.forEach((f) => { const nom = enc.encode(f.nom), crc = crc32(f.data), n = f.data.length, a = new DataView(new ArrayBuffer(30)), c = new DataView(new ArrayBuffer(46));
+      a.setUint32(0, 0x04034b50, true); a.setUint16(4, 20, true); a.setUint16(6, 0x0800, true); a.setUint16(10, heure, true); a.setUint16(12, date, true); a.setUint32(14, crc, true); a.setUint32(18, n, true); a.setUint32(22, n, true); a.setUint16(26, nom.length, true);
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(12, heure, true); c.setUint16(14, date, true); c.setUint32(16, crc, true); c.setUint32(20, n, true); c.setUint32(24, n, true); c.setUint16(28, nom.length, true); c.setUint32(42, pos, true);
+      P.push(a.buffer, nom, f.data); C.push(c.buffer, nom); pos += 30 + nom.length + n; });
+    const tc = C.reduce((s, x) => s + x.byteLength, 0), fin = new DataView(new ArrayBuffer(22)); fin.setUint32(0, 0x06054b50, true); fin.setUint16(8, F.length, true); fin.setUint16(10, F.length, true); fin.setUint32(12, tc, true); fin.setUint32(16, pos, true);
+    return new Blob(P.concat(C, [fin.buffer]), { type: "application/zip" });
+  }
+  const donner = (blob, nom) => { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nom; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+  /* ---------- le planeur d'un élève ---------- */
+  const idee = (L) => L.a.idees[L.n], lettre = (n) => "ABC"[n] || String(n + 1);
+  function etat(L) { try { return Planeur3D.etude(idee(L)); } catch (x) { return null; } }
+  function vignette(d) {                       // le planeur vu de dessus : fuselage, aile, stabilisateur
+    try { const V = Planeur3D.vues(d), pts = (P, dx) => P.map((p) => (p[0] + dx).toFixed(1) + "," + p[1].toFixed(1)).join(" "), ca = /^#[0-9a-f]{6}$/i.test(d.ca) ? d.ca : "#f08c00", cf = /^#[0-9a-f]{6}$/i.test(d.cf) ? d.cf : "#3b5b92";
+      return `<svg viewBox="-4 -112 220 224" width="92" height="94" role="img" aria-label="Planeur vu de dessus"><rect x="0" y="-2.5" width="210" height="5" fill="${cf}"/>` + V.aile.map((P) => `<polygon points="${pts(P, 88.3)}" fill="${ca}" stroke="#222" stroke-width="1"/>`).join("") + V.stab.map((P) => `<polygon points="${pts(P, 182.3)}" fill="${ca}" stroke="#222" stroke-width="1"/>`).join("") + "</svg>"; } catch (x) { return ""; }
+  }
+  function fichiers(L) {                       // les trois STL d'un élève, rangés dans un dossier à son nom
+    const d = idee(L), M3 = Planeur3D.maillages(d), dos = propre(L.e.nom), base = dos + "_" + propre(d.nom || "planeur");
+    return Object.keys(M3).map((k) => ({ nom: `${dos}/${base}_${k}.stl`, data: new Uint8Array(Planeur3D.stl(M3[k])) }));
+  }
+  function recap() {                           // un tableau à ouvrir dans un tableur : qui, quelle idée, prêt ou pas, masses
+    const R = [["Élève", "Équipe", "Idée", "Nom du planeur", "Contrôle avant impression", "Masse sans lest (g)", "Lest (g)", "Fuselage (cm3)", "Aile (cm3)", "Stabilisateur (cm3)", "Problèmes"]];
+    LIGNES.forEach((L) => { const E = etat(L), d = idee(L), x = (L.r && L.r.r) || {}; R.push([L.e.nom, x.equipe || "", lettre(L.n), d.nom || "", !E ? "illisible" : E.bon ? "prêt" : "à corriger", E ? fr(E.m, 1) : "", E ? fr(Math.max(0, E.lest), 1) : "", E ? fr(E.P.fus.v, 2) : "", E ? fr(E.P.aile.v, 2) : "", E ? fr(E.P.stab.v, 2) : "", E && !E.bon ? E.L.filter((y) => y[0] === "ko").map((y) => y[1]).join(" / ") : ""]); });
+    return new TextEncoder().encode("﻿" + R.map((l) => l.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(";")).join("\r\n"));
+  }
   async function charger() {
-    T.innerHTML = ""; M.textContent = "Chargement…";
+    T.innerHTML = ""; M.textContent = "Chargement…"; LIGNES = []; Z.disabled = true;
     try {
       if (!window.SIP || !SIP.api || !SIP.api.profSession || !(await SIP.api.profSession())) { M.innerHTML = 'Pas de session professeur dans ce navigateur : <a href="../prof.html">connecte-toi à l\'espace professeur</a>, puis reviens ici.'; return; }
-      const [d, L] = await Promise.all([SIP.api.profDonnees(), SIP.api.profProjets()]), par = {}; (L || []).forEach((r) => (par[r.eleve_id] = r));
+      const [d, Lp] = await Promise.all([SIP.api.profDonnees(), SIP.api.profProjets()]), par = {}; (Lp || []).forEach((r) => (par[r.eleve_id] = r));
       const E2 = d.eleves.filter((e) => e.niveau === "2SI" && e.actif !== false);
-      T.innerHTML = "<tr><th>Élève</th><th>Équipe</th><th>Étape en cours</th><th class=\"n\">Lignes faites</th><th>Planeur</th><th class=\"n\">Version 1</th><th class=\"n\">Version 2</th><th class=\"n\">Concours</th><th>Dernier travail</th><th title=\"Esquisses entièrement définies (tous les traits noirs) : fuselage, aile, stabilisateur. Sert au critère B1.\">Esquisses définies</th><th>À imprimer</th></tr>" +
+      T.innerHTML = "<tr><th>Élève</th><th>Équipe</th><th>Étape en cours</th><th class=\"n\">Lignes faites</th><th>Planeur</th><th class=\"n\">Version 1</th><th class=\"n\">Version 2</th><th class=\"n\">Concours</th><th>Dernier travail</th><th title=\"Esquisses entièrement définies (tous les traits noirs) : fuselage, aile, stabilisateur. Sert au critère B1.\">Esquisses définies</th><th>Contrôle</th><th>À imprimer</th></tr>" +
         E2.map((e) => { const r = par[e.id], p = r && r.etat && r.etat.planeur, x = (p && p.r) || null;
-          if (!x) return `<tr><td><b>${h(e.nom)}</b></td><td colspan="10" class="discret">rien d'enregistré pour l'instant</td></tr>`;
-          const moy = x.moy || []; let def = "";
-          try { if (p.a && p.a.idees) { const dd = p.a.idees[p.a.choisi == null ? p.a.n || 0 : p.a.choisi], Df = Planeur3D.definition(dd); def = [["F", "fus"], ["A", "aile"], ["S", "stab"]].map((q) => `${q[0]} ${Df[q[1]].ok}/${Df[q[1]].n}`).join(" · "); } } catch (er) { def = ""; }
-          return `<tr><td><b>${h(e.nom)}</b></td><td>${h(x.equipe)}</td><td>${x.etape > 8 ? "Terminé" : h(x.etape + " · " + x.titre)}</td><td class="n">${h(x.faits)} / ${h(x.total)}</td><td>${h(x.planeur)}${x.choisi ? "" : x.planeur ? " <span class=\"discret\">(idée pas encore choisie)</span>" : ""}</td><td class="n">${m(moy[0])}</td><td class="n">${m(moy[1])}</td><td class="n">${m(moy[2])}</td><td>${r.maj_eleve ? new Date(r.maj_eleve).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</td><td style="white-space:nowrap">${h(def)}</td><td>${p.a && p.a.idees ? `<button class="btn sec" data-stl="${h(e.id)}">3 fichiers STL</button>` : ""}</td></tr>`; }).join("");
-      T.onclick = (ev) => { const b = ev.target.closest("[data-stl]"); if (!b) return; const e = E2.find((x) => String(x.id) === b.dataset.stl), a = par[e.id].etat.planeur.a, d = a.idees[a.choisi == null ? a.n || 0 : a.choisi];
-        try { const et = Planeur3D.etude(d); if (!et.bon && !confirm("Le contrôle avant impression de cet élève n'est pas tout vert :\n" + et.L.filter((x) => x[0] === "ko").map((x) => "- " + x[1]).join("\n") + "\nTélécharger quand même ?")) return; Planeur3D.telecharger(d, e.nom + "_" + (d.nom || "planeur")); } catch (x) { alert("Fichiers impossibles à fabriquer : " + (x.message || x)); } };
-      M.textContent = E2.length ? "Chaque élève a son propre avancement, même dans une équipe." : "Aucun élève de Seconde SI dans la base.";
+          if (!x) return `<tr><td><b>${h(e.nom)}</b></td><td colspan="11" class="discret">rien d'enregistré pour l'instant</td></tr>`;
+          const moy = x.moy || [], a = p.a && Array.isArray(p.a.idees) && p.a.idees.length ? p.a : null; let def = "", ctl = "", dessin = "", bout = "";
+          if (a) { const L = { e, a, r: p, n: Math.max(0, Math.min(a.idees.length - 1, a.choisi == null ? a.n || 0 : a.choisi)) }, i = LIGNES.push(L) - 1, E = etat(L), dd = idee(L);
+            try { const Df = Planeur3D.definition(dd); def = [["F", "fus"], ["A", "aile"], ["S", "stab"]].map((q) => `${q[0]} ${Df[q[1]].ok}/${Df[q[1]].n}`).join(" · "); } catch (er) { def = ""; }
+            ctl = !E ? "illisible" : E.bon ? '<span style="color:var(--good);font-weight:600">✓ prêt</span>' : `<span style="color:var(--bad);font-weight:600" title="${h(E.L.filter((y) => y[0] === "ko").map((y) => y[1]).join("\n"))}">✗ à corriger</span>`;
+            dessin = vignette(dd);
+            bout = (a.idees.length > 1 ? `<select data-idee="${i}" style="width:auto;display:inline-block;padding:4px 6px;min-height:0;font-size:.9rem" aria-label="Idée à imprimer pour ${h(e.nom)}">${a.idees.map((q, n) => `<option value="${n}" ${n === L.n ? "selected" : ""}>Idée ${lettre(n)}${a.choisi === n ? " (choisie)" : ""}</option>`).join("")}</select> ` : "") + `<button class="btn sec" data-stl="${i}">Ses 3 STL (ZIP)</button>`; }
+          return `<tr><td><b>${h(e.nom)}</b></td><td>${h(x.equipe)}</td><td>${x.etape > 8 ? "Terminé" : h(x.etape + " · " + x.titre)}</td><td class="n">${h(x.faits)} / ${h(x.total)}</td><td>${dessin}<br>${h(x.planeur)}${x.choisi ? "" : x.planeur ? " <span class=\"discret\">(idée pas encore choisie)</span>" : ""}</td><td class="n">${m(moy[0])}</td><td class="n">${m(moy[1])}</td><td class="n">${m(moy[2])}</td><td>${r.maj_eleve ? new Date(r.maj_eleve).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</td><td style="white-space:nowrap">${h(def)}</td><td style="white-space:nowrap">${ctl}</td><td style="white-space:nowrap">${bout}</td></tr>`; }).join("");
+      Z.disabled = !LIGNES.length;
+      M.textContent = !E2.length ? "Aucun élève de Seconde SI dans la base." : LIGNES.length ? `${LIGNES.length} planeur${LIGNES.length > 1 ? "s" : ""} à imprimer sur ${E2.length} élève${E2.length > 1 ? "s" : ""}. Chaque élève a son propre planeur, même dans une équipe. Un planeur n'arrive ici que si l'élève était connecté au site quand il a travaillé.` : "Aucun planeur enregistré pour l'instant : les élèves doivent être connectés au site quand ils travaillent dans l'atelier.";
     } catch (e) { M.textContent = "Lecture impossible : " + (e.message || e); }
   }
+  T.onchange = (ev) => { const s = ev.target.closest("[data-idee]"); if (!s) return; const L = LIGNES[+s.dataset.idee]; if (!L) return; L.n = +s.value; const E = etat(L); M.textContent = `${L.e.nom}, idée ${lettre(L.n)} : ` + (!E ? "planeur illisible." : E.bon ? "contrôle avant impression tout vert." : "à corriger. " + E.L.filter((y) => y[0] === "ko").map((y) => y[1]).join(" ")); };
+  T.onclick = (ev) => { const b = ev.target.closest("[data-stl]"); if (!b) return; const L = LIGNES[+b.dataset.stl]; if (!L) return;
+    try { const E = etat(L); if (E && !E.bon && !confirm("Le contrôle avant impression de cet élève n'est pas tout vert :\n" + E.L.filter((x) => x[0] === "ko").map((x) => "- " + x[1]).join("\n") + "\nTélécharger quand même ?")) return; donner(zip(fichiers(L)), propre(L.e.nom) + "_planeur_STL.zip"); }
+    catch (x) { alert("Fichiers impossibles à fabriquer : " + (x.message || x)); } };
+  Z.onclick = () => { const F = [], rates = []; LIGNES.forEach((L) => { try { fichiers(L).forEach((f) => F.push(f)); } catch (x) { rates.push(L.e.nom); } });
+    if (!F.length) { M.textContent = "Aucun fichier à fabriquer."; return; } F.push({ nom: "recapitulatif.csv", data: recap() });
+    const j = new Date(), deux = (x) => String(x).padStart(2, "0"); donner(zip(F), `planeurs_2SI_STL_${j.getFullYear()}-${deux(j.getMonth() + 1)}-${deux(j.getDate())}.zip`); M.textContent = `Fichier ZIP fabriqué : ${F.length - 1} fichiers STL, un dossier par élève, et un récapitulatif à ouvrir dans un tableur.` + (rates.length ? " Planeurs illisibles, laissés de côté : " + rates.join(", ") + "." : ""); };
   document.getElementById("av-charger").onclick = charger; charger();
 })();
 </script>
