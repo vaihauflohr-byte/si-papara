@@ -203,6 +203,7 @@ Atelier 3D, l'esquisse se comporte comme celle d'Onshape (23 novembre, soir). Da
 - **Solveur** : `resoudre` est maintenant une méthode de Newton amortie (Levenberg-Marquardt) sur le système écrit par `systeme(ct)` (écarts et dérivées de chaque contrainte) ; la même matrice sert à `definis` pour le bleu / noir. Il déplace les points le moins possible, tombe juste (au centième), et dit « impossible » quand les contraintes se contredisent.
 - **Cote tapée juste après le tracé**, comme dans Onshape : après un rectangle, une boîte attend la largeur, puis la hauteur ; après un cercle, le diamètre. On peut l'ignorer : continuer à cliquer, Échap ou une lettre de raccourci la referment.
 - **Rectangle à partir du centre**, bouton « Plans » (touche P), aide-mémoire des gestes sous le texte d'introduction, contraintes en petits boutons pour que la barre tienne sur une ligne.
+- **Esquisses entièrement définies, pour l'évaluation.** `Planeur3D.definition(d)` compte, par pièce, les esquisses dont tous les traits sont noirs. L'atelier l'affiche sous le tableau de l'assemblage, et la page du professeur dans la colonne « Esquisses définies » (F fuselage, A aile, S stabilisateur) : c'est le critère B1. L'aile et le stabilisateur de départ, quand ils sont rectangulaires, arrivent entièrement définis (origine, côtés droits, deux cotes) : on les modifie en changeant une cote, comme dans Onshape. Le fuselage de départ reste libre (bleu).
 
 ## 5. Ajouter du contenu
 

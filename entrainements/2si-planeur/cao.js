@@ -25,9 +25,10 @@
     return [[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny], [b[0] - nx, b[1] - ny], [a[0] - nx, a[1] - ny]]; };          // fente : rectangle posé sur un trait, de hauteur h (m : marge)
   function fentes(G, id) { const c = [{ k: "cercle", c: [TROU[0], TROU[1]], r: TROU[2] }]; if (G && G.A) c.push(poly(rr(G.A.l, G.A.h))); if (G && G.S) c.push(poly(rr(G.S.l, G.S.h)));
     return [{ t: "esq", id, auto: 1, c }, { t: "ext", id: id + 1, auto: 1, e: id, op: "cut", tout: 1, prof: 5 }]; }
+  const cote4 = (ct) => { const P = ct.p; return P.length === 4 && !P[0][0] && !P[0][1] && !P[1][0] && P[2][1] === P[1][1] && P[3][0] === P[2][0] && !P[3][1] ? Object.assign(ct, { g: { 0: 0, 1: 1, 2: 0, 3: 1 }, d: { 0: P[1][1], 1: P[2][0] }, q: [{ a: 0, b: -1, k: 0, v: 0, co: 1 }, { a: 0, b: -1, k: 1, v: 0, co: 1 }] }) : ct; };      // une demi-aile rectangulaire arrive entièrement définie : attachée à l'origine, côtés droits, deux cotes
   function defauts(d, k, G) {
-    if (k === "aile") return [{ t: "esq", id: 1, c: [poly(demiAile(d))] }, { t: "ext", id: 2, e: 1, op: "new", prof: d.ea || 0.8 }];
-    if (k === "stab") return [{ t: "esq", id: 1, c: [poly(demiStab(d))] }, { t: "ext", id: 2, e: 1, op: "new", prof: d.es || 0.6 }];
+    if (k === "aile") return [{ t: "esq", id: 1, c: [cote4(poly(demiAile(d)))] }, { t: "ext", id: 2, e: 1, op: "new", prof: d.ea || 0.8 }];
+    if (k === "stab") return [{ t: "esq", id: 1, c: [cote4(poly(demiStab(d)))] }, { t: "ext", id: 2, e: 1, op: "new", prof: d.es || 0.6 }];
     return [{ t: "esq", id: 1, c: [poly(corps(d))] }, { t: "ext", id: 2, e: 1, op: "new", prof: 5 }, { t: "esq", id: 3, c: [poly(derive(d))] }, { t: "ext", id: 4, e: 3, op: "add", prof: 1 }].concat(fentes(G, 5));
   }
   const fonctions = (d, k, G) => (d.cao && Array.isArray(d.cao[k]) ? d.cao[k] : defauts(d, k, G));
@@ -169,7 +170,46 @@
     return { aile: pleins(e.S.aile.FE), stab: pleins(e.S.stab.FE), fus: pleins(fonctions(d, "fus", e.G)) }; }
   function telecharger(d, base) { const M = maillages(d), b = String(base || "planeur").trim().replace(/[^\w\-]+/g, "_").slice(0, 30) || "planeur";
     Object.keys(M).forEach((k, i) => setTimeout(() => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([stl(M[k])], { type: "model/stl" })); a.download = `${b}_${k}.stl`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }, i * 400)); }
-  window.Planeur3D = { etude, maillages, stl, telecharger, vues, moteur, maillage, props };
+  /* ---------- contraintes d'une esquisse : le système à résoudre, le solveur, et ce qui est entièrement défini ---------- */
+  function systeme(ct) {                       // les contraintes d'un contour, écrites comme des écarts à annuler (r) avec leurs dérivées (J : une ligne par contrainte, deux colonnes par point)
+    const P = ct.p, n = P.length, r = [], J = [], g = ct.g || {}, d = ct.d || {}, ligne = () => new Float64Array(2 * n), met = (L, a, b, x, y) => { L[2 * b] += x; L[2 * b + 1] += y; L[2 * a] -= x; L[2 * a + 1] -= y; };
+    for (const s in g) { const i = +s, j = (i + 1) % n, k = g[s]; if (i >= n) continue; const L = ligne(); L[2 * i + k] = 1; L[2 * j + k] = -1; r.push(P[i][k] - P[j][k]); J.push(L); }
+    for (const s in d) { const i = +s, j = (i + 1) % n; if (i >= n) continue; const dx = P[j][0] - P[i][0], dy = P[j][1] - P[i][1], l = Math.hypot(dx, dy), L = ligne(); met(L, i, j, l > 1e-9 ? dx / l : 1, l > 1e-9 ? dy / l : 0); r.push(l - d[s]); J.push(L); }
+    (ct.r2 || []).forEach((c) => { if (c.i >= n || c.j >= n) return; const i1 = c.i, i2 = (c.i + 1) % n, j1 = c.j, j2 = (c.j + 1) % n, U = [P[i2][0] - P[i1][0], P[i2][1] - P[i1][1]], V = [P[j2][0] - P[j1][0], P[j2][1] - P[j1][1]], lu = Math.hypot(U[0], U[1]) || 1e-9, lv = Math.hypot(V[0], V[1]) || 1e-9, e = Math.sqrt(lu * lv), L = ligne();
+      if (c.t === "eg") { met(L, i1, i2, U[0] / lu, U[1] / lu); met(L, j1, j2, -V[0] / lv, -V[1] / lv); r.push(lu - lv); }
+      else if (c.t === "par") { met(L, i1, i2, V[1] / e, -V[0] / e); met(L, j1, j2, -U[1] / e, U[0] / e); r.push((U[0] * V[1] - U[1] * V[0]) / e); }
+      else { met(L, i1, i2, V[0] / e, V[1] / e); met(L, j1, j2, U[0] / e, U[1] / e); r.push((U[0] * V[0] + U[1] * V[1]) / e); } J.push(L); });
+    (ct.q || []).forEach((c) => { if (c.a >= n || c.b >= n) return; const L = ligne(); L[2 * c.a + c.k] = 1; if (c.b >= 0) L[2 * c.b + c.k] = -1; r.push(P[c.a][c.k] - (c.b < 0 ? 0 : P[c.b][c.k]) - c.v); J.push(L); });
+    return { r, J };
+  }
+  function gauss(A, b) {                       // résout A·x = b (pivot partiel) ; rien si la matrice est singulière
+    const m = b.length; for (let c = 0; c < m; c++) { let p = c; for (let l = c + 1; l < m; l++) if (Math.abs(A[l][c]) > Math.abs(A[p][c])) p = l; if (Math.abs(A[p][c]) < 1e-14) return null; if (p !== c) { const t = A[c]; A[c] = A[p]; A[p] = t; const u = b[c]; b[c] = b[p]; b[p] = u; }
+      for (let l = c + 1; l < m; l++) { const f = A[l][c] / A[c][c]; if (!f) continue; for (let x = c; x < m; x++) A[l][x] -= f * A[c][x]; b[l] -= f * b[c]; } }
+    const x = new Float64Array(m); for (let c = m - 1; c >= 0; c--) { let s = b[c]; for (let y = c + 1; y < m; y++) s -= A[c][y] * x[y]; x[c] = s / A[c][c]; } return x;
+  }
+  function resoudre(ct, fixe, mou, axe) {      // déplace les points, le moins possible, pour tenir contraintes et cotes (méthode de Newton amortie). « fixe » : point(s) qui ne bougent pas (axe : seulement en x, 0, ou en y, 1). Faux si c'est impossible.
+    const P = ct.p, n = P.length, F = Array.isArray(fixe) ? fixe : [fixe], lib = []; for (let i = 0; i < n; i++) for (let k = 0; k < 2; k++) if (!(F.includes(i) && (axe == null || axe === k))) lib.push(2 * i + k);
+    let S0 = systeme(ct); if (!S0.r.length) return true; const m = lib.length, col = new Int32Array(2 * n).fill(-1); lib.forEach((v, x) => (col[v] = x)); const norme = (r) => { let s = 0; for (const x of r) s += x * x; return s; }; let e0 = norme(S0.r), mu = 1e-4;
+    for (let it = 0; it < 90 && e0 > 1e-18 && m; it++) {
+      const A = [], b = new Float64Array(m); for (let x = 0; x < m; x++) { A.push(new Float64Array(m)); A[x][x] = mu; }          // (JᵀJ + μ·I)·δ = −Jᵀ·r, sur les coordonnées libres
+      S0.J.forEach((L, c) => { const nz = []; for (let v = 0; v < 2 * n; v++) if (L[v] && col[v] >= 0) nz.push(v); nz.forEach((u) => { b[col[u]] -= L[u] * S0.r[c]; nz.forEach((v) => (A[col[u]][col[v]] += L[u] * L[v])); }); });
+      const dl = gauss(A, b); if (!dl) { mu *= 10; continue; } const av = P.map((p) => p.slice()); lib.forEach((v, x) => (P[v >> 1][v & 1] += dl[x])); const S1 = systeme(ct), e1 = norme(S1.r);
+      if (e1 < e0) { S0 = S1; e0 = e1; mu = Math.max(1e-11, mu / 5); } else { av.forEach((p, i) => (P[i] = p)); mu *= 8; if (mu > 1e9) break; } }
+    const err = Math.max(0, ...S0.r.map(Math.abs)); P.forEach((p, i) => (P[i] = fin(p))); return err < 1e-4;
+  }
+  function definis(ct) {                       // quels points ne peuvent plus bouger du tout : c'est ce qui fait passer un trait du bleu au noir
+    if (ct.k === "cercle") { const pin = {}; (ct.q || []).forEach((c) => (pin[c.k] = 1)); const f = !!(pin[0] && pin[1]); return { pts: [f], tout: f && !!ct.dd }; }
+    const P = ct.p, n = P.length, m = 2 * n, L = systeme(ct).J;
+    const piv = []; let li = 0;                 // élimination de Gauss : une coordonnée est fixée si sa ligne ne dépend plus d'aucune autre
+    for (let c = 0; c < m && li < L.length; c++) { let b = li; for (let r = li + 1; r < L.length; r++) if (Math.abs(L[r][c]) > Math.abs(L[b][c])) b = r; if (Math.abs(L[b][c]) < 1e-7) continue; const t = L[li]; L[li] = L[b]; L[b] = t; const pv = L[li][c]; for (let x = 0; x < m; x++) L[li][x] /= pv;
+      for (let r = 0; r < L.length; r++) if (r !== li && Math.abs(L[r][c]) > 1e-12) { const f = L[r][c]; for (let x = 0; x < m; x++) L[r][x] -= f * L[li][x]; } piv.push(c); li++; }
+    const fx = new Array(m).fill(false); piv.forEach((c, r) => { let seul = true; for (let x = 0; x < m; x++) if (x !== c && Math.abs(L[r][x]) > 1e-6) { seul = false; break; } fx[c] = seul; });
+    const pts = P.map((_, i) => fx[2 * i] && fx[2 * i + 1]); return { pts, tout: pts.every(Boolean) };
+  }
+  function definition(d) {                     // pour chaque pièce : combien d'esquisses dessinées, et combien sont entièrement définies (tous leurs traits noirs)
+    const G = etude(d).G, R = {}; ["fus", "aile", "stab"].forEach((k) => { const E1 = fonctions(d, k, G).filter((f) => f.t === "esq" && !f.auto && (f.c || []).some(valable)); R[k] = { n: E1.length, ok: E1.filter((f) => f.c.filter(valable).every((ct) => definis(ct).tout)).length }; }); return R;
+  }
+  window.Planeur3D = { etude, maillages, stl, telecharger, vues, moteur, maillage, props, definition };
 
   /* ============================== L'ÉCRAN ============================== */
   document.addEventListener("DOMContentLoaded", () => {
@@ -214,7 +254,7 @@
       <div class="cao-onglets" role="tablist">${Object.keys(PIECES).map((k) => `<button type="button" role="tab" data-piece="${k}">${PIECES[k].nom}</button>`).join("")}</div>
     </div>
     <div class="carte" id="a3-defis"></div>
-    <div class="carte" id="a3-bilan"><h3 style="margin-top:0">Assemblage : les trois pièces du planeur</h3><div class="pl-scroll"><table class="pl" id="a3-tab"></table></div><div class="at-tuiles" id="a3-tuiles"></div>
+    <div class="carte" id="a3-bilan"><h3 style="margin-top:0">Assemblage : les trois pièces du planeur</h3><div class="pl-scroll"><table class="pl" id="a3-tab"></table></div><div class="at-tuiles" id="a3-tuiles"></div><p id="a3-def" style="margin:.6em 0 0"></p>
       <h3>Contrôle avant impression</h3><ul class="at-cons" id="a3-cons"></ul>
       <p class="no-print" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center"><button type="button" class="btn" id="a3-stl">Exporter mes trois fichiers STL</button> <button type="button" class="btn sec" data-o="fentes">Replacer les fentes et le trou du lest</button> <span class="discret" id="a3-msg"></span></p>
       <p class="discret">Fichiers en millimètres, chaque pièce posée à plat : prêts pour l'imprimante. Si tu changes l'aile ou le stabilisateur, leurs fentes doivent suivre : le contrôle te donne leurs coordonnées, ou le bouton les replace pour toi.</p>
@@ -243,42 +283,6 @@
     ct.q = (ct.q || []).map((c) => Object.assign({}, c, { a: fP(c.a), b: c.b < 0 ? -1 : fP(c.b) })).filter((c) => c.a != null && c.b != null);
     ct.r2 = (ct.r2 || []).map((c) => Object.assign({}, c, { i: fS(c.i), j: fS(c.j) })).filter((c) => c.i != null && c.j != null);
   }
-  function systeme(ct) {                       // les contraintes d'un contour, écrites comme des écarts à annuler (r) avec leurs dérivées (J : une ligne par contrainte, deux colonnes par point)
-    const P = ct.p, n = P.length, r = [], J = [], g = ct.g || {}, d = ct.d || {}, ligne = () => new Float64Array(2 * n), met = (L, a, b, x, y) => { L[2 * b] += x; L[2 * b + 1] += y; L[2 * a] -= x; L[2 * a + 1] -= y; };
-    for (const s in g) { const i = +s, j = (i + 1) % n, k = g[s]; if (i >= n) continue; const L = ligne(); L[2 * i + k] = 1; L[2 * j + k] = -1; r.push(P[i][k] - P[j][k]); J.push(L); }
-    for (const s in d) { const i = +s, j = (i + 1) % n; if (i >= n) continue; const dx = P[j][0] - P[i][0], dy = P[j][1] - P[i][1], l = Math.hypot(dx, dy), L = ligne(); met(L, i, j, l > 1e-9 ? dx / l : 1, l > 1e-9 ? dy / l : 0); r.push(l - d[s]); J.push(L); }
-    (ct.r2 || []).forEach((c) => { if (c.i >= n || c.j >= n) return; const i1 = c.i, i2 = (c.i + 1) % n, j1 = c.j, j2 = (c.j + 1) % n, U = [P[i2][0] - P[i1][0], P[i2][1] - P[i1][1]], V = [P[j2][0] - P[j1][0], P[j2][1] - P[j1][1]], lu = Math.hypot(U[0], U[1]) || 1e-9, lv = Math.hypot(V[0], V[1]) || 1e-9, e = Math.sqrt(lu * lv), L = ligne();
-      if (c.t === "eg") { met(L, i1, i2, U[0] / lu, U[1] / lu); met(L, j1, j2, -V[0] / lv, -V[1] / lv); r.push(lu - lv); }
-      else if (c.t === "par") { met(L, i1, i2, V[1] / e, -V[0] / e); met(L, j1, j2, -U[1] / e, U[0] / e); r.push((U[0] * V[1] - U[1] * V[0]) / e); }
-      else { met(L, i1, i2, V[0] / e, V[1] / e); met(L, j1, j2, U[0] / e, U[1] / e); r.push((U[0] * V[0] + U[1] * V[1]) / e); } J.push(L); });
-    (ct.q || []).forEach((c) => { if (c.a >= n || c.b >= n) return; const L = ligne(); L[2 * c.a + c.k] = 1; if (c.b >= 0) L[2 * c.b + c.k] = -1; r.push(P[c.a][c.k] - (c.b < 0 ? 0 : P[c.b][c.k]) - c.v); J.push(L); });
-    return { r, J };
-  }
-  function gauss(A, b) {                       // résout A·x = b (pivot partiel) ; rien si la matrice est singulière
-    const m = b.length; for (let c = 0; c < m; c++) { let p = c; for (let l = c + 1; l < m; l++) if (Math.abs(A[l][c]) > Math.abs(A[p][c])) p = l; if (Math.abs(A[p][c]) < 1e-14) return null; if (p !== c) { const t = A[c]; A[c] = A[p]; A[p] = t; const u = b[c]; b[c] = b[p]; b[p] = u; }
-      for (let l = c + 1; l < m; l++) { const f = A[l][c] / A[c][c]; if (!f) continue; for (let x = c; x < m; x++) A[l][x] -= f * A[c][x]; b[l] -= f * b[c]; } }
-    const x = new Float64Array(m); for (let c = m - 1; c >= 0; c--) { let s = b[c]; for (let y = c + 1; y < m; y++) s -= A[c][y] * x[y]; x[c] = s / A[c][c]; } return x;
-  }
-  function resoudre(ct, fixe, mou, axe) {      // déplace les points, le moins possible, pour tenir contraintes et cotes (méthode de Newton amortie). « fixe » : point(s) qui ne bougent pas (axe : seulement en x, 0, ou en y, 1). Faux si c'est impossible.
-    const P = ct.p, n = P.length, F = Array.isArray(fixe) ? fixe : [fixe], lib = []; for (let i = 0; i < n; i++) for (let k = 0; k < 2; k++) if (!(F.includes(i) && (axe == null || axe === k))) lib.push(2 * i + k);
-    let S0 = systeme(ct); if (!S0.r.length) return true; const m = lib.length, col = new Int32Array(2 * n).fill(-1); lib.forEach((v, x) => (col[v] = x)); const norme = (r) => { let s = 0; for (const x of r) s += x * x; return s; }; let e0 = norme(S0.r), mu = 1e-4;
-    for (let it = 0; it < 90 && e0 > 1e-18 && m; it++) {
-      const A = [], b = new Float64Array(m); for (let x = 0; x < m; x++) { A.push(new Float64Array(m)); A[x][x] = mu; }          // (JᵀJ + μ·I)·δ = −Jᵀ·r, sur les coordonnées libres
-      S0.J.forEach((L, c) => { const nz = []; for (let v = 0; v < 2 * n; v++) if (L[v] && col[v] >= 0) nz.push(v); nz.forEach((u) => { b[col[u]] -= L[u] * S0.r[c]; nz.forEach((v) => (A[col[u]][col[v]] += L[u] * L[v])); }); });
-      const dl = gauss(A, b); if (!dl) { mu *= 10; continue; } const av = P.map((p) => p.slice()); lib.forEach((v, x) => (P[v >> 1][v & 1] += dl[x])); const S1 = systeme(ct), e1 = norme(S1.r);
-      if (e1 < e0) { S0 = S1; e0 = e1; mu = Math.max(1e-11, mu / 5); } else { av.forEach((p, i) => (P[i] = p)); mu *= 8; if (mu > 1e9) break; } }
-    const err = Math.max(0, ...S0.r.map(Math.abs)); P.forEach((p, i) => (P[i] = fin(p))); return err < 1e-4;
-  }
-  function definis(ct) {                       // quels points ne peuvent plus bouger du tout : c'est ce qui fait passer un trait du bleu au noir
-    if (ct.k === "cercle") { const pin = {}; (ct.q || []).forEach((c) => (pin[c.k] = 1)); const f = !!(pin[0] && pin[1]); return { pts: [f], tout: f && !!ct.dd }; }
-    const P = ct.p, n = P.length, m = 2 * n, L = systeme(ct).J;
-    const piv = []; let li = 0;                 // élimination de Gauss : une coordonnée est fixée si sa ligne ne dépend plus d'aucune autre
-    for (let c = 0; c < m && li < L.length; c++) { let b = li; for (let r = li + 1; r < L.length; r++) if (Math.abs(L[r][c]) > Math.abs(L[b][c])) b = r; if (Math.abs(L[b][c]) < 1e-7) continue; const t = L[li]; L[li] = L[b]; L[b] = t; const pv = L[li][c]; for (let x = 0; x < m; x++) L[li][x] /= pv;
-      for (let r = 0; r < L.length; r++) if (r !== li && Math.abs(L[r][c]) > 1e-12) { const f = L[r][c]; for (let x = 0; x < m; x++) L[r][x] -= f * L[li][x]; } piv.push(c); li++; }
-    const fx = new Array(m).fill(false); piv.forEach((c, r) => { let seul = true; for (let x = 0; x < m; x++) if (x !== c && Math.abs(L[r][x]) > 1e-6) { seul = false; break; } fx[c] = seul; });
-    const pts = P.map((_, i) => fx[2 * i] && fx[2 * i + 1]); return { pts, tout: pts.every(Boolean) };
-  }
-
   /* ---------- annuler / rétablir ---------- */
   const etatP = () => JSON.stringify(piece === "essai" ? lib().f : (idee().cao && idee().cao[piece]) || null), photo = () => ({ p: piece, l: AT.lettre(), j: etatP() });
   const noter = () => { const n = photo(); if (courant && courant.p === n.p && courant.l === n.l && courant.j !== n.j) { hist.push(courant); if (hist.length > 80) hist.shift(); futur = []; } courant = n; };
@@ -542,6 +546,8 @@
     if (!E) return;
     $("a3-tab").innerHTML = `<tr><th>Pièce</th><th class="n">Épaisseur</th><th class="n">Volume</th><th class="n">Masse</th></tr>` + Object.values(E.P).map((p) => `<tr><td>${p.nom}</td><td class="n">${fr(p.ep, 1)} mm</td><td class="n">${fr(p.v, 1)} cm³</td><td class="n">${fr(p.m, 1)} g</td></tr>`).join("") + `<tr><td><b>Total sans lest</b></td><td></td><td class="n"><b>${fr(E.P.fus.v + E.P.aile.v + E.P.stab.v, 1)} cm³</b></td><td class="n"><b>${fr(E.m, 1)} g</b></td></tr>`;
     $("a3-tuiles").innerHTML = [["Équilibre sans lest", fr(E.xg, 0) + " mm du nez"], ["Équilibre visé", fr(E.cible, 0) + " mm du nez"], ["Lest à ajouter", E.lest < -0.5 ? "impossible" : fr(Math.max(0, E.lest), 1) + " g"], ["Masse prête à voler", fr(E.m + Math.max(0, E.lest), 1) + " g"]].map((x) => `<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join("");
+    try { const Df = definition(idee()), N = { fus: "fuselage", aile: "aile", stab: "stabilisateur" }, tout = Object.keys(N).every((k) => Df[k].n && Df[k].ok === Df[k].n);
+      $("a3-def").innerHTML = `<b>Esquisses entièrement définies</b> (tous les traits noirs) : ` + Object.keys(N).map((k) => `${N[k]} <b class="${Df[k].n && Df[k].ok === Df[k].n ? "a3-et ok" : "a3-et bl"}">${Df[k].ok} sur ${Df[k].n}</b>`).join(" · ") + `. <span class="discret">${tout ? "Tout est défini : une cote changée suffit pour modifier la pièce." : "Une esquisse bien définie se modifie en changeant une seule cote : c'est regardé dans l'évaluation (critère B)."}</span>`; } catch (x) { $("a3-def").textContent = ""; }
     $("a3-cons").innerHTML = E.L.map((x) => `<li class="${x[0]}">${x[1]}</li>`).join("");
     $("a3-stl").disabled = !E.bon; $("a3-msg").textContent = E.bon ? "" : "Corrige les lignes rouges pour pouvoir exporter.";
     const co = (L) => L.map((p) => `(${fr(p[0], p[0] % 1 ? 1 : 0)} ; ${fr(p[1], p[1] % 1 ? 1 : 0)})`).join(" → "), B0 = { nez: "biseau", der: "droite", b: 200, c0: 45, k: 1, fl: 0, rond: 0, sb: 80, sc: 25, sk: 1 }, c1 = (L) => L.map(fin).map((p) => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]);
