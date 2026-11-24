@@ -254,11 +254,11 @@ SIP.definirModule({
   SIP.definirModule({
     id: "2si-pl-onshape", sequence: SEQ, niveaux: ["2SI"],
     titre: "Planeur 2 · Dessiner et imprimer",
-    description: "Esquisse, cote, extrusion dans Onshape ; préparer une pièce pour l'imprimante 3D.",
+    description: "Esquisse, cote, extrusion dans l'atelier 3D ; préparer une pièce pour l'imprimante 3D.",
     nbQuestions: 10,
     questions: [
       { fiche: "2si-pl-esquisse", gen: (r) => { const L = r.pick([40, 50, 60, 70, 80]), h = r.pick([15, 20, 25, 30]); const m = r.int(0, 2);
-        const Q = [[`Dans Onshape, le dessin plat <b>A</b> (un contour fermé avec ses dimensions) s'appelle…`, ["Une esquisse", "Une extrusion", "Un assemblage", "Un fichier STL"], "On commence toujours par une <b>esquisse</b> : un dessin plat, tracé sur un plan."],
+        const Q = [[`Dans l'atelier 3D, le dessin plat <b>A</b> (un contour fermé avec ses dimensions) s'appelle…`, ["Une esquisse", "Une extrusion", "Un assemblage", "Un fichier STL"], "On commence toujours par une <b>esquisse</b> : un dessin plat, tracé sur un plan."],
           [`Quel outil transforme le dessin plat <b>A</b> en volume <b>B</b> ?`, ["Extruder", "Coter", "Esquisse", "Exporter"], "<b>Extruder</b> donne une épaisseur à l'esquisse : le contour plat devient un volume."],
           [`Les nombres <b>${L}</b> et <b>${h}</b> écrits sur l'esquisse A sont…`, ["Des cotes : elles fixent les dimensions en mm", "Des numéros de pièce", "Des épaisseurs d'impression", "Des masses en grammes"], "Une <b>cote</b> impose une dimension. Changer la cote change la pièce."]][m];
         return { type: "qcm", enonce: esquisseP(L, h) + Q[0], choix: Q[1], bonne: 0, explication: Q[2] }; } },
@@ -267,7 +267,7 @@ SIP.definirModule({
       { fiche: "2si-pl-esquisse", gen: (r) => { const L = r.pick([40, 50, 60, 80]), h = r.pick([15, 20, 25]), e = r.pick([2, 4, 5]); const V = L * h * e / 1000;
         return { enonce: `${esquisseP(L, h)}L'esquisse <b>A</b> est extrudée de <b>${e} mm</b> pour donner la pièce <b>B</b>. Calcule le volume de B, en cm³. <span class="discret">(1 cm³ = 1 000 mm³)</span>`, reponse: V, unite: "cm³", tolerance: 2, explication: `${L} × ${h} × ${e} = ${L * h * e} mm³ = <b>${N(V, 3)} cm³</b>.` }; } },
       { fiche: "2si-pl-esquisse", gen: (r) => { const noir = r.pick([true, false]);
-        return { type: "qcm", enonce: `Dans Onshape, les traits de ton esquisse sont <b>${noir ? "noirs" : "bleus"}</b>. Qu'est-ce que cela veut dire ?`, choix: noir ? ["Elle est entièrement cotée : elle ne peut plus se déformer", "Il manque encore des cotes", "Il y a une erreur", "Elle est déjà imprimée"] : ["Il manque encore des cotes : elle peut se déformer", "Elle est entièrement cotée", "Il y a une erreur", "Elle est déjà extrudée"], bonne: 0, explication: "Traits <b>bleus</b> = encore libres, il manque des cotes. Traits <b>noirs</b> = l'esquisse est complètement définie." }; } },
+        return { type: "qcm", enonce: `Dans l'atelier 3D, comme dans les logiciels professionnels, tous les traits de ton esquisse sont <b>${noir ? "noirs" : "bleus"}</b>. Qu'est-ce que cela veut dire ?`, choix: noir ? ["Elle est entièrement cotée : elle ne peut plus se déformer", "Il manque encore des cotes", "Il y a une erreur", "Elle est déjà imprimée"] : ["Il manque encore des cotes : elle peut se déformer", "Elle est entièrement cotée", "Il y a une erreur", "Elle est déjà extrudée"], bonne: 0, explication: "Traits <b>bleus</b> = encore libres, il manque des cotes. Traits <b>noirs</b> = l'esquisse est complètement définie." }; } },
       { type: "qcm", fiche: "2si-pl-esquisse", enonce: "Pour obtenir une pièce pleine en extrudant une esquisse, son contour doit être…", choix: ["Fermé", "Ouvert", "En pointillés", "Plus grand que 100 mm"], bonne: 0, explication: "Un contour <b>fermé</b> délimite une surface ; un contour ouvert ne donne pas de volume." },
       { type: "qcm", fiche: "2si-pl-impression", enonce: "Quel type de fichier envoie-t-on vers le logiciel de l'imprimante 3D ?", choix: ["Un fichier STL", "Un fichier Word", "Une photo", "Une esquisse"], bonne: 0, explication: "On <b>exporte</b> la pièce en <b>STL</b> (unité : millimètre), puis le trancheur prépare les couches." },
       { fiche: "2si-pl-impression", gen: (r) => { const P = r.pick([["Une aile fine", "0,8"], ["Un stabilisateur", "0,6"], ["Une aile très fine", "0,6"], ["Une plaque", "1"]]);
@@ -281,14 +281,14 @@ SIP.definirModule({
       { fiche: "2si-pl-impression", gen: (r) => { const b = r.pick([180, 200, 210]), c = r.pick([40, 50]), e = r.pick([0.6, 0.8, 1]); const V = b * c * e / 1000; const m = V * 1.24;
         return { enonce: `${aile(b, c)}Cette aile a une épaisseur de <b>${N(e)} mm</b>. Son volume est donc de <b>${N(V, 3)} cm³</b>. Le PLA pèse <b>1,24 g par cm³</b>. Calcule la masse de l'aile.`, reponse: m, unite: "g", tolerance: 3, explication: `Masse = volume × masse volumique = ${N(V, 3)} × 1,24 = <b>${N(m, 3)} g</b>.` }; } },
       { fiche: "2si-pl-impression", gen: (r) => { const vf = r.pas(9, 12, 0.5), va = r.pas(5, 8, 0.5), vs = r.pick([1, 1.5]); const m = (vf + va + vs) * 1.24;
-        return { enonce: `Onshape donne ces volumes : fuselage <b>${N(vf)} cm³</b>, aile <b>${N(va)} cm³</b>, stabilisateur <b>${N(vs)} cm³</b>. Le PLA pèse <b>1,24 g par cm³</b>. Calcule la masse du planeur, sans lest.`, reponse: m, unite: "g", tolerance: 2, explication: `Volume total : ${N(vf)} + ${N(va)} + ${N(vs)} = ${N(vf + va + vs)} cm³. Masse = ${N(vf + va + vs)} × 1,24 = <b>${N(m, 3)} g</b>.` }; } },
+        return { enonce: `L'atelier 3D donne ces volumes : fuselage <b>${N(vf)} cm³</b>, aile <b>${N(va)} cm³</b>, stabilisateur <b>${N(vs)} cm³</b>. Le PLA pèse <b>1,24 g par cm³</b>. Calcule la masse du planeur, sans lest.`, reponse: m, unite: "g", tolerance: 2, explication: `Volume total : ${N(vf)} + ${N(va)} + ${N(vs)} = ${N(vf + va + vs)} cm³. Masse = ${N(vf + va + vs)} × 1,24 = <b>${N(m, 3)} g</b>.` }; } },
       { fiche: "2si-pl-impression", gen: (r) => { const max = 30, a = r.pick([7, 9, 10, 12]), f = r.pick([11, 13, 15, 17, 21]), s = r.pick([1, 2]), l = r.pick([0, 2, 3]); const t = a + f + s + l; const ok = t <= max;
         return { type: "qcm", enonce: `Cahier des charges : masse maximale <b>${max} g</b>, lest compris. Ton planeur : aile ${a} g, fuselage ${f} g, stabilisateur ${s} g, lest ${l} g. Est-il conforme ?`, choix: [ok ? `Oui : ${t} g, c'est sous la limite` : `Non : ${t} g, c'est trop lourd`, ok ? `Non : ${t} g, c'est trop lourd` : `Oui : ${t} g, c'est sous la limite`, `Oui : ${t - l - s} g`], bonne: 0, explication: `${a} + ${f} + ${s} + ${l} = <b>${t} g</b>, ${ok ? "inférieur ou égal" : "supérieur"} à ${max} g.` }; } }
     ],
     fiches: [
-      { id: "2si-pl-esquisse", titre: "Onshape : esquisse puis extrusion",
-        recto: "Quelles sont les étapes pour créer une pièce dans Onshape ?",
-        verso: `${esquisse}<ol><li>Choisir un <b>plan</b> et créer une <b>esquisse</b></li><li>Tracer un contour <b>fermé</b></li><li>Mettre les <b>cotes</b> (touche D) : les traits passent du bleu au noir</li><li><b>Extruder</b> : donner l'épaisseur</li></ol><p class="astuce">Une pièce se modifie en changeant ses cotes, pas en la redessinant.</p>`,
+      { id: "2si-pl-esquisse", titre: "Atelier 3D : esquisse puis extrusion",
+        recto: "Quelles sont les étapes pour créer une pièce dans l'atelier 3D ?",
+        verso: `${esquisse}<ol><li>Choisir un <b>plan</b> et créer une <b>esquisse</b></li><li>Tracer un contour <b>fermé</b></li><li>Mettre les <b>cotes</b> : les traits passent du bleu au noir</li><li><b>Extruder</b> : donner l'épaisseur</li></ol><p class="astuce">Une pièce se modifie en changeant ses cotes, pas en la redessinant.</p>`,
         quiz: [{ enonce: "L'outil qui donne une épaisseur à une esquisse est…", choix: ["Extruder", "Coter", "Exporter"], bonne: 0 }, { enonce: "Une esquisse aux traits bleus est…", choix: ["Pas encore entièrement cotée", "Terminée", "Fausse"], bonne: 0 }] },
       { id: "2si-pl-impression", titre: "Préparer une pièce pour l'impression 3D",
         recto: "Que faut-il vérifier avant d'envoyer une pièce à l'imprimante 3D ?",

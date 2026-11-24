@@ -176,7 +176,8 @@
     <div class="carte" id="a3-bilan"><h3 style="margin-top:0">Assemblage : les trois pièces du planeur</h3><div class="pl-scroll"><table class="pl" id="a3-tab"></table></div><div class="at-tuiles" id="a3-tuiles"></div>
       <h3>Contrôle avant impression</h3><ul class="at-cons" id="a3-cons"></ul>
       <p class="no-print" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center"><button type="button" class="btn" id="a3-stl">Exporter mes trois fichiers STL</button> <button type="button" class="btn sec" data-o="fentes">Replacer les fentes et le trou du lest</button> <span class="discret" id="a3-msg"></span></p>
-      <p class="discret">Fichiers en millimètres, chaque pièce posée à plat : prêts pour l'imprimante. Si tu changes l'aile ou le stabilisateur, leurs fentes doivent suivre : le contrôle te donne leurs coordonnées, ou le bouton les replace pour toi.</p></div>`;
+      <p class="discret">Fichiers en millimètres, chaque pièce posée à plat : prêts pour l'imprimante. Si tu changes l'aile ou le stabilisateur, leurs fentes doivent suivre : le contrôle te donne leurs coordonnées, ou le bouton les replace pour toi.</p>
+      <details class="a3-plan"><summary><b>Plan coté du planeur de départ</b>, pour le reconstruire toi-même, fonction par fonction</summary><div id="a3-plan"></div></details></div>`;
   const cv = $("a3-cv"), cx = cv.getContext("2d", { willReadFrequently: true }), esq = $("a3-esq");
   let piece = "essai", mode = "piece", outil = "sel", esqId = 0, vue = { a: -0.6, b: 0.45, z: 1 }, zoom = { k: 1, x: 0, y: 0 }, sel = null, trace = null, pt0 = null, curseur = null, dial = null, vueMasse = false, vueConge = false, E = null, TR = [], attente = 0, prise = null, pan = null, tire = null, muet = false, info = "", hist = [], futur = [], courant = null, dernier = null;
   const C = () => PIECES[piece], lib = () => { const o = AT.libre(); if (!Array.isArray(o.f)) o.f = []; return o; };
@@ -337,6 +338,14 @@
     $("a3-tuiles").innerHTML = [["Équilibre sans lest", fr(E.xg, 0) + " mm du nez"], ["Équilibre visé", fr(E.cible, 0) + " mm du nez"], ["Lest à ajouter", E.lest < -0.5 ? "impossible" : fr(Math.max(0, E.lest), 1) + " g"], ["Masse prête à voler", fr(E.m + Math.max(0, E.lest), 1) + " g"]].map((x) => `<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join("");
     $("a3-cons").innerHTML = E.L.map((x) => `<li class="${x[0]}">${x[1]}</li>`).join("");
     $("a3-stl").disabled = !E.bon; $("a3-msg").textContent = E.bon ? "" : "Corrige les lignes rouges pour pouvoir exporter.";
+    const co = (L) => L.map((p) => `(${fr(p[0], p[0] % 1 ? 1 : 0)} ; ${fr(p[1], p[1] % 1 ? 1 : 0)})`).join(" → "), B0 = { nez: "biseau", der: "droite", b: 200, c0: 45, k: 1, fl: 0, rond: 0, sb: 80, sc: 25, sk: 1 }, c1 = (L) => L.map(fin).map((p) => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]);
+    $("a3-plan").innerHTML = `<p><b>Méthode :</b> onglet de la pièce, « Vider la pièce », puis Esquisse et Ligne : clique à peu près chaque point, ferme le contour, puis touche chaque point et tape ses deux cotes. Valide, extrude. Le contrôle te dit si c'est bon ; Annuler (↶) te sauve d'une erreur.</p>
+      <div class="pl-scroll"><table class="pl"><tr><th>Pièce</th><th>Fonctions</th><th>Points du contour, en mm</th></tr>
+      <tr><td rowspan="3"><b>Fuselage</b><br><span class="discret">depuis le nez ; hauteur</span></td><td>Esquisse 1 → Extruder, <b>Nouveau</b>, 5 mm</td><td>${co(corps(B0))}</td></tr>
+      <tr><td>Esquisse 2 → Extruder, <b>Ajouter</b>, 1 mm<br><span class="discret">la dérive</span></td><td>${co(derive(B0))}</td></tr>
+      <tr><td>Esquisse 3 → Extruder, <b>Supprimer</b>, à travers tout<br><span class="discret">pour ton aile et ton stabilisateur actuels ; zoome</span></td><td>Trou du lest : cercle de 4,2 mm de diamètre, centre (12 ; 8).${E.G.A ? "<br>Fente de l'aile : " + co(c1(rr(E.G.A.l, E.G.A.h))) : ""}${E.G.S ? "<br>Fente du stabilisateur : " + co(c1(rr(E.G.S.l, E.G.S.h))) : ""}</td></tr>
+      <tr><td><b>Aile</b>, la moitié<br><span class="discret">vers l'arrière ; depuis le fuselage</span></td><td>Esquisse 1 → Extruder, <b>Nouveau</b>, 0,8 mm</td><td>${co(demiAile(B0))}</td></tr>
+      <tr><td><b>Stabilisateur</b>, la moitié</td><td>Esquisse 1 → Extruder, <b>Nouveau</b>, 0,6 mm</td><td>${co(demiStab(B0))}</td></tr></table></div>`;
   }
   const complet = () => { clearTimeout(attente); attente = setTimeout(() => { maj(); noter(); muet = true; AT.rafraichir(); muet = false; }, 100); };
 
