@@ -85,9 +85,9 @@
     return R;
   }
   function moteur(F) {                        // fonctions d'une pièce → bandes horizontales ; dans chaque bande et chaque couche d'épaisseur, la matière est une liste de trapèzes
-    const E = {}; F.forEach((f) => { if (f.t === "esq") E[f.id] = [].concat(...(f.c || []).filter(valable).map(anneau).map((P) => P.map((p, i) => { const q = P[(i + 1) % P.length]; return [p[0], p[1], q[0], q[1]]; }))); });
-    const X = F.filter((f) => f.t === "ext" && E[f.e] && E[f.e].length && (f.tout || f.prof > 0)).map((f) => ({ cut: f.op === "cut", p: f.tout ? Infinity : +f.prof, ar: E[f.e] }));
-    const zmax = Math.max(0, ...X.filter((x) => !x.cut && isFinite(x.p)).map((x) => x.p)), zs = [...new Set(X.map((x) => Math.round(Math.min(x.p, zmax) * 1000) / 1000).filter((z) => z > 0))].sort((a, b) => a - b);
+    const E = {}, H = {}; F.forEach((f) => { if (f.t === "esq") H[f.id] = Math.max(0, +f.h || 0); if (f.t === "esq") E[f.id] = [].concat(...(f.c || []).filter(valable).map(anneau).map((P) => P.map((p, i) => { const q = P[(i + 1) % P.length]; return [p[0], p[1], q[0], q[1]]; }))); });
+    const X = F.filter((f) => f.t === "ext" && E[f.e] && E[f.e].length && (f.tout || f.prof > 0)).map((f) => { const h = H[f.e] || 0, p = f.tout ? Infinity : +f.prof, cut = f.op === "cut", dedans = cut && h > 0 && isFinite(p); return { cut, z0: cut ? (dedans ? Math.max(0, h - p) : 0) : h, z1: cut ? (dedans ? h : p) : h + p, ar: E[f.e] }; });          // la matière s'ajoute au-dessus de l'esquisse ; elle s'enlève vers l'intérieur de la pièce (sous une face, au-dessus du plan de départ)
+    const zmax = Math.max(0, ...X.filter((x) => !x.cut && isFinite(x.z1)).map((x) => x.z1)), zs = [...new Set([].concat(...X.map((x) => [x.z0, x.z1])).map((z) => Math.round(Math.min(z, zmax) * 1000) / 1000).filter((z) => z > 0))].sort((a, b) => a - b);
     const ar = [].concat(...X.map((x) => x.ar)), ys = []; ar.forEach((e) => ys.push(e[1]));
     for (let i = 0; i < ar.length; i++) for (let j = i + 1; j < ar.length; j++) { const a = ar[i], b = ar[j], d = (a[2] - a[0]) * (b[3] - b[1]) - (a[3] - a[1]) * (b[2] - b[0]); if (Math.abs(d) < 1e-12) continue;
       const t = ((b[0] - a[0]) * (b[3] - b[1]) - (b[1] - a[1]) * (b[2] - b[0])) / d, u = ((b[0] - a[0]) * (a[3] - a[1]) - (b[1] - a[1]) * (a[2] - a[0])) / d; if (t > 0 && t < 1 && u > 0 && u < 1) ys.push(a[1] + t * (a[3] - a[1])); }
@@ -95,7 +95,7 @@
     for (let j = 0; j < Y.length - 1; j++) { const y0 = Y[j], y1 = Y[j + 1], ym = (y0 + y1) / 2;
       const S = X.map((x) => { const c = x.ar.filter((e) => Math.min(e[1], e[3]) <= y0 + 1e-6 && Math.max(e[1], e[3]) >= y1 - 1e-6).map((e) => [xA(e, ym), e]).sort((p, q) => p[0] - q[0]), I = [];
         for (let i = 0; i + 1 < c.length; i += 2) if (c[i + 1][0] - c[i][0] > EPS) I.push([c[i][0], c[i][1], c[i + 1][0], c[i + 1][1]]); return I; });
-      B.push({ y0, y1, T: zs.map((z) => { let R = []; X.forEach((x, i) => { if (x.p >= z - 1e-9) R = combine(R, S[i], x.cut ? (a, b) => a && !b : (a, b) => a || b); }); return R; }) }); }
+      B.push({ y0, y1, T: zs.map((z, k) => { const zm = (z + (k ? zs[k - 1] : 0)) / 2; let R = []; X.forEach((x, i) => { if (x.z0 < zm && x.z1 > zm) R = combine(R, S[i], x.cut ? (a, b) => a && !b : (a, b) => a || b); }); return R; }) }); }
     return { B, zs, zmax };
   }
   const trap = (b, t) => [[xA(t[1], b.y0), b.y0], [xA(t[3], b.y0), b.y0], [xA(t[3], b.y1), b.y1], [xA(t[1], b.y1), b.y1]];
@@ -140,7 +140,7 @@
     if (rac) R.push({ t: "esq", id: -1, c: [{ k: "poly", p: [[rac[0], -e - 0.01], [rac[1], -e - 0.01], [rac[1], e + 0.01], [rac[0], e + 0.01]] }] }, { t: "ext", id: -2, e: -1, op: "add", prof: ep });
     return R;
   }
-  function demi(d, k) { const e = k === "aile" ? 5 : 2.5, F = fonctions(d, k), M0 = moteur(F), c = coupe(M0, 0.2), rac = c.length ? [c[0][0], c[c.length - 1][1]] : null, FE = entier(F, e, rac, M0.zmax); return { M: moteur(FE), FE, ep: M0.zmax, rac }; }
+  function demi(d, k) { const e = k === "aile" ? 5 : 2.5, F = fonctions(d, k), M0 = moteur(F), c = coupe(M0, 0.2), rac = c.length ? [c[0][0], c[c.length - 1][1]] : null; let ep = 0; M0.zs.forEach((z, j) => { if (coupe(M0, 0.2, j).length) ep = z; }); ep = ep || M0.zmax; const FE = entier(F, e, rac, ep); return { M: moteur(FE), FE, ep, rac }; }          // ep : l'épaisseur contre le fuselage (c'est elle qui entre dans la fente), même si la pièce est plus épaisse ailleurs
   const memo = new Map();                      // une étude par état de planeur : l'onglet « Créer » en demande plusieurs à chaque affichage
   function etude(d) {
     const cle = JSON.stringify([d.cao, d.b, d.c0, d.k, d.fl, d.rond, d.sb, d.sc, d.sk, d.nez, d.der, d.ea, d.es]); if (memo.has(cle)) return memo.get(cle);
@@ -240,7 +240,7 @@
       <p style="margin:0">Il fonctionne comme Onshape, sans compte. <b>1.</b> Tu cliques <b>Esquisse</b>, puis le plan où dessiner : l'esquisse se trace dans la vue 3D, sur ce plan. Tu traces des contours fermés : <b>Ligne</b>, <b>Rectangle</b>, <b>Cercle</b>. <b>2.</b> Tu fixes leurs dimensions avec <b>Cote</b> : un trait <b>bleu</b> peut encore bouger, un trait <b>noir</b> est entièrement fixé par ses cotes et ses contraintes. <b>3.</b> Tu valides, puis tu cliques <b>Extruder</b> : <b>Nouveau</b> ou <b>Ajouter</b> pour mettre de la matière, <b>Supprimer</b> pour en enlever. Tu travailles sur <b id="a3-qui"></b>.</p>
       <details class="a3-aide"><summary><b>Aide-mémoire</b> : les gestes et les raccourcis, les mêmes que dans Onshape</summary><div class="pl-scroll"><table class="pl">
         <tr><th>Pour…</th><th>Geste</th><th>Touche</th></tr>
-        <tr><td>Commencer une esquisse</td><td>Esquisse, puis un plan (ou le plan d'abord)</td><td>Maj+S</td></tr>
+        <tr><td>Commencer une esquisse</td><td>Esquisse, puis un plan (ou le plan d'abord). Sur une pièce qui a déjà de la matière : clique une de ses faces, en bleu, pour dessiner dessus.</td><td>Maj+S</td></tr>
         <tr><td>Tracer</td><td>Ligne · Rectangle par sommet · Rectangle à partir du centre · Cercle · Arc. Deux clics, ou appuyer, tirer, lâcher.</td><td>L · G · R · C · A</td></tr>
         <tr><td>Arrondir un coin</td><td>Congé : clique le coin, tape le rayon. C'est le geste d'Onshape.</td><td>Maj + F</td></tr>
         <tr><td>Plus d'outils</td><td>La barre montre d'abord six outils. « Plus d'outils » ajoute l'arc, la courbe libre et les contraintes ; ils restent aussi dans le menu du clic droit.</td><td></td></tr>
@@ -316,7 +316,12 @@
   const calme = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const FACES = [["Face", [0, 0, 1], 0, 0], ["Arrière", [0, 0, -1], Math.PI, 0], ["Dessus", [0, 1, 0], 0, 1.5708], ["Dessous", [0, -1, 0], 0, -1.5708], ["Droite", [1, 0, 0], -1.5708, 0], ["Gauche", [-1, 0, 0], 1.5708, 0]];
   const DEC = { essai: 0, fus: 0, aile: 26, stab: 18 };       // de combien chaque pièce monte dans la vue éclatée, en mm
-  let AR = [], ctr = [0, 0, 0], rendu = 0, aCadrer = true, anim3 = 0, net = 0;
+  let AR = [], ctr = [0, 0, 0], rendu = 0, aCadrer = true, anim3 = 0, net = 0, hE = 0, FP = [];          // hE : hauteur du plan de l'esquisse ouverte ; FP : les faces de la pièce où l'on peut poser une esquisse
+  function facesP() {                          // faces plates du dessus de la pièce : leur hauteur, et leurs morceaux dans le repère de l'esquisse
+    const M = moteur(lireF()), R = [];
+    M.zs.forEach((z, k) => { const Q = []; M.B.forEach((b) => (k < M.zs.length - 1 ? combine(b.T[k], b.T[k + 1], (a, c) => a && !c) : b.T[k]).forEach((t) => Q.push(trap(b, t)))); if (Q.length) R.push({ h: z, Q }); });
+    return R.sort((a, b) => b.h - a.h).slice(0, 5);
+  }
   const diff1 = (P, Q) => { const R = []; P.forEach((a) => { let x = a[0]; Q.forEach((b) => { if (b[1] <= x || b[0] >= a[1]) return; if (b[0] > x + EPS) R.push([x, b[0]]); x = Math.max(x, b[1]); }); if (a[1] > x + EPS) R.push([x, a[1]]); }); return R; };
   function aretes(M) {                         // les vraies arêtes de la pièce : contours du dessus et du dessous de chaque couche, et coins vifs
     const A = [], V = {}, vert = (x, y, z0, z1) => { const c = Math.round(x * 40) + "," + Math.round(y * 40) + "," + z0; if (!V[c]) { V[c] = 1; A.push([[x, y, z0], [x, y, z1]]); } }, nk = M.zs.length;
@@ -344,14 +349,14 @@
     if (!TR.length) { const L = C().lim; ctr = monde([(L[0][0] + L[0][1]) / 2, (L[1][0] + L[1][1]) / 2]); }          // pièce vide : on regarde les plans de départ
     if (mode === "piece") { const F = lireF(), pris = {}; F.forEach((f) => { if (f.t === "ext") pris[f.e] = 1; });          // comme dans Onshape : une esquisse pas encore extrudée reste visible ; celle qu'on extrude est en orange
       F.forEach((f) => { if (f.t !== "esq") return; const choisi = !!dial && dial.e === f.id; if (pris[f.id] && !choisi) return;
-        (f.c || []).filter(valable).forEach((ct) => { const R = anneau(ct).map(monde); R.forEach((u, i) => AR.push({ p: [u, R[(i + 1) % R.length]], g: piece, c: choisi ? [240, 140, 0] : [27, 95, 191], dessus: choisi ? 1 : 0 })); }); }); }
+        (f.c || []).filter(valable).forEach((ct) => { const R = anneau(ct).map((u) => monde(u, +f.h || 0)); R.forEach((u, i) => AR.push({ p: [u, R[(i + 1) % R.length]], g: piece, c: choisi ? [240, 140, 0] : [27, 95, 191], dessus: 1 })); }); }); }          // dessus : le trait se voit même à travers la pièce, sinon une esquisse posée au fond resterait cachée
   }
   function plans() {                           // les trois plans de départ, comme dans Onshape : celui de l'esquisse et les deux autres
     const L = C().lim, o = monde([0, 0]), u1 = monde([1, 0]), v1 = monde([0, 1]), u = [u1[0] - o[0], u1[1] - o[1], u1[2] - o[2]], v = [v1[0] - o[0], v1[1] - o[1], v1[2] - o[2]], w = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
     const pt = (q) => [o[0] + u[0] * q[0] + v[0] * q[1] + w[0] * q[2], o[1] + u[1] * q[0] + v[1] * q[1] + w[1] * q[2], o[2] + u[2] * q[0] + v[2] * q[1] + w[2] * q[2]], h = Math.min(L[0][1] - L[0][0], L[1][1] - L[1][0]) * 0.45, dm = !!C().demi;
     return [[dm ? "dessus" : "face", [[L[0][0], L[1][0], 0], [L[0][1], L[1][0], 0], [L[0][1], L[1][1], 0], [L[0][0], L[1][1], 0]].map(pt)], [dm ? "face" : "dessus", [[L[0][0], 0, -h], [L[0][1], 0, -h], [L[0][1], 0, h], [L[0][0], 0, h]].map(pt)], ["droite", [[0, L[1][0], -h], [0, L[1][1], -h], [0, L[1][1], h], [0, L[1][0], h]].map(pt)]];
   }
-  const ratio = () => { const w = cv.clientWidth || 760; if (plein) return Math.max(140, racine.querySelector(".cao-scene").clientHeight) / w; return racine.offsetWidth > 760 ? Math.max(360, Math.min(0.78 * w, window.innerHeight - 290)) / w : 0.85; };      // hauteur de la vue : elle tient dans la fenêtre, et ne dépend pas de ce qui est écrit autour (sinon le dessin glisserait sous la souris)
+  const ratio = () => { const w = cv.clientWidth || 760; if (plein) return Math.max(140, racine.querySelector(".cao-scene").clientHeight) / w; return racine.offsetWidth > 760 ? Math.max(330, Math.min(0.78 * w, window.innerHeight - 314)) / w : 0.85; };      // hauteur de la vue : elle tient dans la fenêtre, et ne dépend pas de ce qui est écrit autour (sinon le dessin glisserait sous la souris)
   const rot = (v, a, b) => { const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b), x1 = v[0] * ca + v[2] * sa, z1 = -v[0] * sa + v[2] * ca; return [x1, v[1] * cb - z1 * sb, v[1] * sb + z1 * cb]; };
   function cadre(a, b) {                       // l'échelle qui fait tenir toute la pièce dans la vue, sous cet angle
     const w = cv.clientWidth || 760, h = w * ratio(); let mx = 1, my = 1;
@@ -387,6 +392,7 @@
         if (Math.abs(aire(R).a) < 900 * q * q) return;          // plan vu par la tranche : pas de nom
         const hg = R.slice().sort((r1, r2) => Math.round(r1[1]) - Math.round(r2[1]) || r1[0] - r2[0])[0]; cx.fillStyle = sombre ? "rgba(210,225,255,.95)" : "rgba(20,55,115,.9)"; cx.fillText(NOMPL[pn[0]], hg[0] + 4 * q, hg[1] - 5 * q); });
       const o = P(monde([0, 0]), "essai"); cx.beginPath(); cx.arc(o[0], o[1], 4.5 * q, 0, 6.3); cx.fillStyle = sombre ? "#1c232d" : "#fff"; cx.fill(); cx.strokeStyle = sombre ? "#e2e8f0" : "#1a202c"; cx.stroke(); cx.beginPath(); cx.arc(o[0], o[1], 1.5 * q, 0, 6.3); cx.fillStyle = cx.strokeStyle; cx.fill(); cx.restore(); }
+    if (mode === "piece" && choixPlan && FP.length) { cx.save(); FP.forEach((f) => f.Q.forEach((Qd) => { const R = Qd.map((u) => P(monde(u, f.h), piece)); cx.beginPath(); R.forEach((r, j) => (j ? cx.lineTo(r[0], r[1]) : cx.moveTo(r[0], r[1]))); cx.closePath(); cx.fillStyle = "rgba(27,95,191,.42)"; cx.fill(); PL2.push({ id: "face", h: f.h, p: R.map((r) => [r[0] / q, r[1] / q]) }); })); cx.restore(); }          // comme dans Onshape : on peut dessiner sur une face de la pièce
     cube(); if (mode === "esquisse") esquisse();
   }
   const propre = () => { clearTimeout(net); net = setTimeout(() => peindre(), 150); };       // une fois le geste fini, on recalcule l'image fine
@@ -410,7 +416,7 @@
   }
   function conseil() {                         // hors du défi 1 : le bouton du prochain geste évident, pour ne jamais rester bloqué
     if (dial || piece === "essai" && !lib().d1) return null; const F = lireF(), E1 = F.filter((f) => f.t === "esq" && (f.c || []).some(valable));
-    if (mode === "piece") return choixPlan ? ["plan-" + C().pl] : !F.length ? ["esquisse"] : E1.some((f) => !F.some((x) => x.t === "ext" && x.e === f.id)) ? ["extruder"] : null;
+    if (mode === "piece") return choixPlan ? [FP.length ? "face-0" : "plan-" + C().pl] : !F.length ? ["esquisse"] : E1.some((f) => !F.some((x) => x.t === "ext" && x.e === f.id)) ? ["extruder"] : null;
     const k = K(), L = k ? (k.c || []).filter(valable) : []; return L.length && outil === "sel" && !sel && !edit && !trace && L.every((ct) => definis(ct).tout) ? ["valider"] : null;
   }
   /* ---------- barre d'outils, arbre des fonctions, boîtes ---------- */
@@ -423,7 +429,7 @@
           fin = `<i></i>` + bt("suppr", "suppr", "Supprimer", "", "Suppr") + bt("effacer", "gomme", "Effacer", "", "", "Effacer toute l'esquisse") + `<i></i>` + bt("plus", "plus", tous ? "Moins d'outils" : "Plus d'outils", tous ? "on ico" : "", "", tous ? "Ne garder que les outils de base" : "Montrer tous les outils : arc, courbe libre, contraintes") + `<i></i>` + bt("valider", "ok", "Valider", "vert", "", "Valider l'esquisse");
         return tous ? T.sel + T.ligne + T.rect + T.rectc + T.cercle + T.arc + T.spline + T.conge + T.cote + `<i></i>` + T.horiz + T.vert + T.par + T.per + T.eg + T.fixe + fin
           : BASE.map((x) => T[x]).join("") + (BASE.includes(outil) ? "" : T[outil] || "") + fin; })();          // l'outil en cours reste visible, même s'il vient d'un raccourci ou du menu du clic droit
-    const M = matiere(), A = { piece: choixPlan ? "Esquisse : choisis son plan. Clique « " + NOMPL[C().pl] + " » dans l'arbre, à gauche, ou dans la vue." : !F.length ? "Pièce vide. Clique sur Esquisse pour commencer." : M && M.zmax ? "Clique sur une fonction de l'arbre pour la modifier. Fais glisser la vue pour tourner la pièce ; la molette zoome ; Maj + glisser, ou le bouton du milieu, la déplace ; clique une face du cube pour la regarder de ce côté." : "Pas encore de volume. Clique sur Extruder pour donner une épaisseur à une esquisse.",
+    const M = matiere(), A = { piece: choixPlan ? (FP.length ? "Esquisse : clique une face de la pièce (en bleu) pour dessiner dessus, ou le plan « " + NOMPL[C().pl] + " » pour dessiner au fond." : "Esquisse : choisis son plan. Clique « " + NOMPL[C().pl] + " » dans l'arbre, à gauche, ou dans la vue.") : !F.length ? "Pièce vide. Clique sur Esquisse pour commencer." : M && M.zmax ? "Clique sur une fonction de l'arbre pour la modifier. Fais glisser la vue pour tourner la pièce ; la molette zoome ; Maj + glisser, ou le bouton du milieu, la déplace ; clique une face du cube pour la regarder de ce côté." : "Pas encore de volume. Clique sur Extruder pour donner une épaisseur à une esquisse.",
       sel: "Sélection : fais glisser un point ou un trait ; glisse le fond pour déplacer la vue. Double-clique un trait pour y ajouter un point, une cote pour changer sa valeur. Molette : zoom. Bouton droit : tourner.",
       ligne: trace ? "Ligne : clique pour poser chaque point. Pour fermer le contour, reclique sur le premier point (en vert). Un trait bien droit reçoit sa contrainte horizontale ou verticale. Retour arrière : enlever le dernier point." : "Ligne : clique pour poser le premier point. Commence sur l'origine si tu peux : le dessin y restera attaché.",
       rect: pt0 ? "Rectangle : clique le coin opposé." : "Rectangle : clique un premier coin. Sur l'origine, c'est le mieux : le dessin y restera attaché.", rectc: pt0 ? "Rectangle à partir du centre : clique un coin." : "Rectangle à partir du centre : clique le centre, puis un coin.", cercle: pt0 ? "Cercle : clique un point du bord." : "Cercle : clique le centre.",
@@ -435,8 +441,8 @@
   }
   function arbre() {
     const c = C(), F = lireF(), M = matiere(), pr = M ? props(M) : { v: 0, m: 0 };
-    const res = (f) => (f.t === "esq" ? ((f.c || []).length ? (f.c.length > 1 ? f.c.length + " contours" : "1 contour") : "vide") : { new: "Nouveau", add: "Ajouter", cut: "Supprimer" }[f.op] + " · " + (f.tout ? "à travers tout" : fr(f.prof, 1) + " mm"));
-    HT.arbre = `<h4>Fonctions</h4><div class="cao-l gris"><span>Origine</span></div>` + ["dessus", "face", "droite"].map((x) => `<div class="cao-l plan${choixPlan ? " choix" : ""}${planSel === x ? " actif" : ""}"><button type="button" class="cao-f" data-o="plan-${x}" title="Plan de départ « ${NOMPL[x]} »">${NOMPL[x]}</button></div>`).join("")
+    const res = (f) => (f.t === "esq" ? ((f.c || []).length ? (f.c.length > 1 ? f.c.length + " contours" : "1 contour") : "vide") + (f.h > 0 ? " · sur la pièce" : "") : { new: "Nouveau", add: "Ajouter", cut: "Supprimer" }[f.op] + " · " + (f.tout ? "à travers tout" : fr(f.prof, 1) + " mm"));
+    HT.arbre = `<h4>Fonctions</h4><div class="cao-l gris"><span>Origine</span></div>` + ["dessus", "face", "droite"].map((x) => `<div class="cao-l plan${choixPlan ? " choix" : ""}${planSel === x ? " actif" : ""}"><button type="button" class="cao-f" data-o="plan-${x}" title="Plan de départ « ${NOMPL[x]} »">${NOMPL[x]}</button></div>`).join("") + (choixPlan ? FP.map((f, i) => `<div class="cao-l plan choix"><button type="button" class="cao-f" data-o="face-${i}" title="Dessiner sur cette face de la pièce"><b>Face de la pièce</b><small>à ${val(f.h)} mm de hauteur</small></button></div>`).join("") : "")
       + F.map((f) => `<div class="cao-l${mode === "esquisse" && f.id === esqId ? " actif" : ""}"><button type="button" class="cao-f" data-f="${f.id}"><b>${nomF(F, f)}</b><small>${res(f)}</small></button><button type="button" class="cao-x" data-del="${f.id}" title="Supprimer cette fonction" aria-label="Supprimer ${nomF(F, f)}">✕</button></div>`).join("")
       + (c.demi ? `<div class="cao-l gris"><span>Symétrie 1<small>automatique</small></span></div>` : "") + (F.length ? "" : `<p class="cao-vide">Aucune fonction.</p>`)
       + `<h4>Pièces</h4><div class="cao-l gris"><span>${c.nom}<small>${pr.v ? fr(pr.v, 2) + " cm³ · " + fr(pr.m, 1) + " g" : "pas encore de volume"}</small></span></div><div class="cao-res"><button type="button" class="cao-re" data-o="origine">${piece === "essai" ? "Vider la pièce" : "Revenir à la pièce de départ"}</button>${piece === "essai" ? "" : `<button type="button" class="cao-re" data-o="vider">Vider la pièce, pour la construire moi-même</button>`}</div>`;
@@ -446,24 +452,26 @@
   const lireDial = () => { if (!dial) return; const i = $("cao-prof"), s = $("cao-esq"); if (i) dial.prof = parseFloat(String(i.value).replace(",", ".")) || 0; if (s) dial.e = +s.value; };
   function dialogue() {
     const D = $("cao-dialogue"), c = C();
-    if (!dial && mode === "esquisse") { const F0 = lireF(), f = F0.find((x) => x.id === esqId && x.t === "esq"); HT.dial = f ? `<div class="cao-dial esq"><h4>${nomF(F0, f)}</h4><small>Plan d'esquisse : ${c.plan}</small><div class="cao-bt"><button type="button" data-o="valider" class="vert" title="Valider l'esquisse" aria-label="Valider l'esquisse">✓</button><button type="button" data-o="esq-non" title="Fermer l'esquisse sans garder les changements" aria-label="Fermer l'esquisse sans garder les changements">✕</button></div></div>` : ""; return; }      // comme dans Onshape : la boîte de l'esquisse, avec ✓ et ✕
+    if (!dial && mode === "esquisse") { const F0 = lireF(), f = F0.find((x) => x.id === esqId && x.t === "esq"); HT.dial = f ? `<div class="cao-dial esq"><h4>${nomF(F0, f)}</h4><small>${f.h > 0 ? "Sur la pièce, face à " + val(f.h) + " mm" : "Plan d'esquisse : " + c.plan}</small><div class="cao-bt"><button type="button" data-o="valider" class="vert" title="Valider l'esquisse" aria-label="Valider l'esquisse">✓</button><button type="button" data-o="esq-non" title="Fermer l'esquisse sans garder les changements" aria-label="Fermer l'esquisse sans garder les changements">✕</button></div></div>` : ""; return; }      // comme dans Onshape : la boîte de l'esquisse, avec ✓ et ✕
     if (!dial && !(vueMasse && mode === "piece")) { HT.dial = ""; return; }
     if (!dial) { const M = matiere(), pr = M ? props(M) : { v: 0 }; HT.dial = `<div class="cao-dial"><h4>Propriétés de masse</h4>` + (pr.v ? `<table><tr><td>Volume</td><td>${fr(pr.v, 2)} cm³</td></tr><tr><td>Masse (PLA, 1,24 g/cm³)</td><td>${fr(pr.m, 2)} g</td></tr><tr><td>Centre de gravité · ${c.ch[0].toLowerCase()}</td><td>${fr(pr.x, 1)} mm</td></tr><tr><td>Centre de gravité · ${c.ch[1].toLowerCase()}</td><td>${fr(pr.y, 1)} mm</td></tr><tr><td>Épaisseur</td><td>${fr(M.zmax, 1)} mm</td></tr></table>` : `<p>Cette pièce n'a pas encore de volume.</p>`) + `<div class="cao-bt"><button type="button" data-o="masse">Fermer</button></div></div>`; return; }
     const F = lireF(), E1 = F.filter((f) => f.t === "esq"), f0 = dial.id && F.find((f) => f.id === dial.id);
+    const eD = E1.find((f) => f.id === dial.e), hD = eD ? +eD.h || 0 : 0; let note = dial.op === "cut" ? (hD ? "Supprimer : la matière est enlevée sous la face, vers l'intérieur de la pièce." : "Supprimer : l'esquisse enlève de la matière à la pièce.") : dial.op === "add" ? (hD ? "Ajouter : la matière monte au-dessus de la face." : "Ajouter : la matière s'ajoute à la pièce.") : "Nouveau : l'esquisse devient une pièce.";
+    if (dial.op !== "cut") { const v0 = props(moteur(F.filter((f) => f.id !== dial.id))).v, Fa = apercu(), v1 = Fa ? props(moteur(Fa)).v : v0; if (v0 > 0 && Math.abs(v1 - v0) < 1e-6) note = `<b class="cao-alerte">Attention : cette matière est déjà à l'intérieur de la pièce, on ne verra aucune différence.</b> Augmente la profondeur, ou dessine cette esquisse sur une face de la pièce.`; }
     HT.dial = `<div class="cao-dial"><h4>${f0 ? nomF(F, f0) : "Extrusion " + (F.filter((f) => f.t === "ext").length + 1)}</h4>
       <div class="cao-op">${[["new", "Nouveau"], ["add", "Ajouter"], ["cut", "Supprimer"]].map((o) => `<button type="button" data-op="${o[0]}" class="${dial.op === o[0] ? "on" : ""}">${o[1]}</button>`).join("")}</div>
       <label>Esquisse <select id="cao-esq">${E1.map((f) => `<option value="${f.id}" ${f.id === dial.e ? "selected" : ""}>${nomF(F, f)}</option>`).join("")}</select></label>
       <label>Limite <select id="cao-lim"><option value="0">Borgne</option><option value="1" ${dial.tout ? "selected" : ""}>À travers tout</option></select></label>
       ${dial.tout ? "" : `<label>Profondeur <input type="number" id="cao-prof" value="${dial.prof}" step="0.2" min="0.2"> mm</label>`}
-      <p class="discret">${dial.op === "cut" ? "Supprimer : l'esquisse enlève de la matière à la pièce." : dial.op === "add" ? "Ajouter : la matière s'ajoute à la pièce." : "Nouveau : l'esquisse devient une pièce."}</p>
+      <p class="discret">${note}</p>
       <div class="cao-bt"><button type="button" data-o="ext-ok" class="vert">✓</button><button type="button" data-o="ext-non">✕</button></div></div>`;
   }
   /* ---------- l'esquisse ---------- */
   /* ---------- l'esquisse, dessinée dans la vue 3D, sur le plan de la pièce ---------- */
-  function monde(p) {                          // un point de l'esquisse, placé dans l'espace (là où charger() pose la pièce)
-    if (piece === "essai") return [p[0], p[1], -zEss / 2]; if (piece === "fus") return [p[0], p[1], -2.5];
+  function monde(p, h) {                       // un point de l'esquisse, placé dans l'espace (là où charger() pose la pièce) ; h : hauteur du plan de l'esquisse au-dessus du plan de départ
+    if (h == null) h = hE; if (piece === "essai") return [p[0], p[1], -zEss / 2 + h]; if (piece === "fus") return [p[0], p[1], -2.5 + h];
     const o = E && E.S[piece], r0 = o && o.rac ? o.rac[0] : 0, ep = o ? o.ep : 0;
-    return piece === "aile" ? [XA + JEU / 2 + p[0], YFA - (p[0] - r0 + JEU / 2) * T3 - ep / 2, p[1] + 5] : [XS + JEU / 2 + p[0], YFS - ep / 2, p[1] + 2.5];
+    return piece === "aile" ? [XA + JEU / 2 + p[0], YFA - (p[0] - r0 + JEU / 2) * T3 - ep / 2 + h, p[1] + 5] : [XS + JEU / 2 + p[0], YFS - ep / 2 + h, p[1] + 2.5];
   }
   const ecranDe = (w) => { const W = cv.clientWidth || 760, k = (vue.k0 || 3) * vue.z, r = rot([w[0] - ctr[0], w[1] - ctr[1], w[2] - ctr[2]], vue.a, vue.b); return [W / 2 + vue.px + r[0] * k, W * ratio() / 2 + vue.py - r[1] * k]; };
   function matrice() { const O = ecranDe(monde([0, 0])), U = ecranDe(monde([1, 0])), V = ecranDe(monde([0, 1])); return [U[0] - O[0], U[1] - O[1], V[0] - O[0], V[1] - O[1], O[0], O[1]]; }      // du millimètre de l'esquisse au pixel de l'écran
@@ -490,6 +498,7 @@
     const pnt = (ci, i, q, def, vi, rz) => `<circle class="a3-ph" data-c="${ci}" data-i="${i}" cx="${n1(q[0])}" cy="${n1(q[1])}" r="${rz || (tactile ? 19 : 11)}"/><circle class="a3-p${def ? " fx" : ""}${vi === 2 ? " li" : vi ? " vi" : ""}${estS(ci, "p", i) || (cot1 && cot1.c === ci && cot1.i === i) ? " on" : ""}" cx="${n1(q[0])}" cy="${n1(q[1])}" r="${vi ? 3.2 : 3.8}"/>`;
     /* le plan d'esquisse, sa grille, l'origine */
     const coinsL = [[L[0][0], L[1][0]], [L[0][1], L[1][0]], [L[0][1], L[1][1]], [L[0][0], L[1][1]]]; let g = `<polygon points="${pl(coinsL)}" class="a3-plan"/>`;
+    lireF().forEach((f) => { if (f.t === "esq" && f.id !== esqId) (f.c || []).filter(valable).forEach((ct) => (g += `<polygon points="${pl(anneau(ct))}" class="a3-autre"/>`)); });          // comme dans Onshape : le reste du dessin ne disparaît pas
     const grille = (pasG, cl) => { for (let u = Math.ceil(L[0][0] / pasG) * pasG; u <= L[0][1] + 1e-9; u += pasG) g += `<line x1="${u}" y1="${L[1][0]}" x2="${u}" y2="${L[1][1]}" class="${cl}"/>`; for (let v = Math.ceil(L[1][0] / pasG) * pasG; v <= L[1][1] + 1e-9; v += pasG) g += `<line x1="${L[0][0]}" y1="${v}" x2="${L[0][1]}" y2="${v}" class="${cl}"/>`; };
     if (ech >= 12) grille(1, "a3-g2"); grille(10, "a3-g");
     const tri = coinsL.map(S).sort((a, b) => Math.round(a[1]) - Math.round(b[1]) || a[0] - b[0]), hg = c.demi ? tri.slice(2).sort((a, b) => a[0] - b[0])[0] : tri[0]; hors += tx([hg[0] + 3, hg[1] + (c.demi ? 15 : -6)], 11, c.plan, 'class="a3-pn"');          // le nom du plan, dans un coin libre
@@ -577,6 +586,7 @@
   function maj(leger) {
     try { const d0 = idee(), Fp = piece !== "essai" && mode === "piece" ? apercu() : null; E = etude(Fp ? Object.assign({}, d0, { cao: Object.assign({}, d0.cao, { [piece]: Fp }) }) : d0); } catch (x) { E = null; console.error("atelier 3D", x); }
     if (mode === "esquisse" && !K()) { mode = "piece"; quitter(); }
+    { const k0 = mode === "esquisse" ? K() : null; hE = k0 ? Math.max(0, +k0.h || 0) : 0; try { FP = mode === "piece" && choixPlan ? facesP() : []; } catch (x) { FP = []; } }
     if (!leger) arbre();                        // l'arbre d'abord : sa hauteur donne celle de la vue 3D
     const des = mode === "esquisse", avant = TR.length; esq.hidden = !des; $("cao").classList.toggle("dessin", des); $("cao-vues").hidden = des; $("cao-esqv").hidden = !des; $("cao-ecl").hidden = piece === "essai"; $("cao-lg").classList.toggle("on", mesures); if (!des) { $("a3-cotes").innerHTML = ""; $("a3-boite").hidden = true; }
     if (modeAvant === "esquisse" && !des) { aCadrer = true; if (vueAvant) { vue.a = vueAvant[0]; vue.b = vueAvant[1]; } } if (modeAvant !== "esquisse" && des) { aNormal = true; vueAvant = [vue.a, vue.b]; } modeAvant = mode;          // l'esquisse fermée, on retrouve la vue 3D d'avant
@@ -611,12 +621,20 @@
     if (tire[6]) { vue.px = tire[4] + dx; vue.py = tire[5] + dy; } else { vue.a = tire[2] + dx * 0.01; vue.b = Math.max(-1.5708, Math.min(1.5708, tire[3] + dy * 0.01)); } peindre(1); });       // Maj ou bouton du milieu : on déplace ; sinon on tourne
   const finTire = (e) => { if (!tire) return; const clic = e && e.type === "pointerup" && Math.hypot(e.clientX - tire[0], e.clientY - tire[1]) < 5; tire = null; propre();
     if (clic && PL2.length && mode === "piece") { const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, dedans = (Pg) => { let c = false; for (let i = 0, j = Pg.length - 1; i < Pg.length; j = i++) { const a = Pg[i], b = Pg[j]; if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
-      const T = PL2.filter((pn) => dedans(pn.p)).sort((p1, p2) => Math.abs(aire(p1.p).a) - Math.abs(aire(p2.p).a))[0]; if (T) (choixPlan ? choisirPlan(T.id) : selPlan(T.id)); else if (planSel) { planSel = null; maj(); } } };          // plusieurs plans sous la souris : le plus petit à l'écran
+      const T = PL2.filter((pn) => dedans(pn.p)).sort((p1, p2) => (p2.h != null) - (p1.h != null) || (p2.h || 0) - (p1.h || 0) || Math.abs(aire(p1.p).a) - Math.abs(aire(p2.p).a))[0]; if (T) (T.h != null ? choisirPlan(C().pl, T.h) : choixPlan ? choisirPlan(T.id) : selPlan(T.id)); else if (planSel) { planSel = null; maj(); } } };          // plusieurs plans sous la souris : le plus petit à l'écran
   cv.addEventListener("pointerup", finTire); cv.addEventListener("pointercancel", finTire);
   cv.addEventListener("contextmenu", (e) => e.preventDefault()); cv.addEventListener("dblclick", () => voir(vue.a, vue.b));
   cv.addEventListener("wheel", (e) => { e.preventDefault(); const r = cv.getBoundingClientRect(), mx = e.clientX - r.left - r.width / 2, my = e.clientY - r.top - r.height / 2, z2 = Math.max(0.3, Math.min(14, vue.z * (e.deltaY < 0 ? 1.2 : 1 / 1.2))), f = z2 / vue.z;
     vue.px = mx - (mx - vue.px) * f; vue.py = my - (my - vue.py) * f; vue.z = z2; peindre(1); propre(); }, { passive: false });      // la molette zoome vers le pointeur
   if (window.ResizeObserver) { let lg = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w && w !== lg) { lg = w; vue.k0 = cadre(vue.a, vue.b); peindre(); } }).observe(cv); }
+  const secA = racine.closest(".pl-sec");
+  function large() {                           // sur ordinateur et tablette, l'atelier sort de la colonne de texte et prend toute la largeur de la fenêtre
+    const el = $("cao"), st = el.style; st.width = st.marginLeft = ""; if (plein || window.innerWidth < 900 || (secA && secA.hidden)) return;
+    const r = el.getBoundingClientRect(), W = document.documentElement.clientWidth - 16; if (r.width && W > r.width + 8) { st.width = W + "px"; st.marginLeft = (8 - r.left) + "px"; }
+  }
+  function placer() { const nav = document.querySelector(".pl-nav"), bas = nav ? nav.getBoundingClientRect().height : 0; window.scrollTo(0, Math.max(0, $("cao").getBoundingClientRect().top + window.scrollY - bas - 2)); }          // l'atelier vient se caler sous les onglets : il occupe tout l'écran
+  if (secA && window.MutationObserver) new MutationObserver(() => { if (secA.hidden) return; large(); aCadrer = true; maj(); placer(); }).observe(secA, { attributes: true, attributeFilter: ["hidden"] });
+  let lFen = window.innerWidth; window.addEventListener("resize", () => { if (window.innerWidth === lFen) return; lFen = window.innerWidth; large(); clearTimeout(net); net = setTimeout(() => { vue.k0 = cadre(vue.a, vue.b); peindre(); }, 120); });
   let hFen = window.innerHeight; window.addEventListener("resize", () => { if (window.innerHeight === hFen || (racine.offsetWidth <= 760 && !plein)) return; hFen = window.innerHeight; clearTimeout(net); net = setTimeout(() => { vue.k0 = cadre(vue.a, vue.b); peindre(); }, 120); });
   const scene = racine.querySelector(".cao-scene"), doigts = new Map(); let pince = null, finPince = false;
   const abandon = () => { tire = null; pan = null; tour = null; doigt = null; if (!trace && !pt0) curseur = null; if (!prise) return; const b = prise, k = Km(), ct = k && k.c[b.c]; prise = null; if (!ct) return;          // le deuxième doigt arrive : ce que le premier avait commencé est défait
@@ -736,10 +754,10 @@
     dire("Contrainte posée : ce trait restera " + (o === "horiz" ? "horizontal" : "vertical") + "."); return complet();
   }
   function selPlan(id) { const m = mode; if (m === "esquisse") return; planSel = planSel === id ? null : id; dial = null; vueMasse = false; dire(planSel ? "Plan « " + NOMPL[id] + " » sélectionné. Clique sur Esquisse pour dessiner dessus." : ""); maj(); }      // comme dans Onshape : on peut choisir le plan d'abord, Esquisse ensuite
-  function choisirPlan(id) {                   // le plan cliqué reçoit la nouvelle esquisse, si c'est celui où la pièce est posée
+  function choisirPlan(id, h) {                // le plan cliqué reçoit la nouvelle esquisse, si c'est celui où la pièce est posée ; h : on a cliqué une face de la pièce, à cette hauteur
     if (id !== C().pl) { dire("Pas ce plan-là : cette pièce est posée à plat sur « " + NOMPL[C().pl] + " ». C'est sur ce plan qu'on la dessine."); return maj(); }
-    esqAvant = etatP(); const F = ecrireF(), nid = suivant(F); F.push({ t: "esq", id: nid, c: [] }); quitter(); esqId = nid; mode = "esquisse"; dial = null; vueMasse = false; aNormal = true; outil = "ligne";
-    dire("Esquisse ouverte sur le plan « " + NOMPL[id] + " ». Choisis Ligne, Rectangle ou Cercle, puis clique sur le plan."); return complet();
+    esqAvant = etatP(); const F = ecrireF(), nid = suivant(F); F.push(Object.assign({ t: "esq", id: nid, c: [] }, h > 0 ? { h } : {})); quitter(); esqId = nid; mode = "esquisse"; dial = null; vueMasse = false; aNormal = true; outil = "ligne";
+    dire(h > 0 ? "Esquisse ouverte sur la face de la pièce, à " + val(h) + " mm de hauteur. La pièce reste visible derrière. Choisis Ligne, Rectangle ou Cercle." : "Esquisse ouverte sur le plan « " + NOMPL[id] + " ». Choisis Ligne, Rectangle ou Cercle, puis clique sur le plan."); return complet();
   }
   function fixer(ci, Lp) {                     // contrainte Fixe : les points donnés ne bougent plus
     const k = Km(), ct = k && k.c[ci]; if (!ct) return; const P = ct.k === "cercle" ? [ct.c] : ct.p; ct.q = (ct.q || []).slice();
@@ -899,7 +917,7 @@
     const ff = t.closest("[data-f]"); if (ff) { const f = lireF().find((x) => x.id === +ff.dataset.f); if (!f) return; quitter(); vueMasse = false; if (f.t === "esq") { esqAvant = etatP(); esqId = f.id; mode = "esquisse"; dial = null; aNormal = true; } else { mode = "piece"; dial = { id: f.id, e: f.e, op: f.op, tout: f.tout ? 1 : 0, prof: f.prof || 5 }; } return maj(); }
     const op = t.closest("[data-op]"); if (op && dial) { lireDial(); dial.op = op.dataset.op; if (dial.op !== "cut") dial.tout = 0; dialogue(); racine.querySelectorAll(".guide").forEach((x) => x.classList.remove("guide")); const g = guide(), bg = g && g[0] && racine.querySelector(`[data-o="${g[0]}"]`); if (bg) bg.classList.add("guide"); return maj(1); }
     const b = t.closest("[data-o]"); if (!b) return; const o = b.dataset.o, kc = () => { const k = Km(); return sel && k && k.c[sel.c]; }; if (o === "val-ok") return edit ? appliquer() : undefined; if (edit) { edit = null; $("a3-boite").hidden = true; }
-    if (o === "plein") { plein = !plein; $("cao").classList.toggle("plein", plein); document.documentElement.classList.toggle("cao-fige", plein); b.classList.toggle("on", plein); b.title = plein ? "Quitter le plein écran (Échap)" : "Plein écran : l'atelier prend toute la fenêtre"; b.setAttribute("aria-label", b.title);
+    if (o === "plein") { plein = !plein; $("cao").classList.toggle("plein", plein); large(); if (!plein) setTimeout(placer, 40); document.documentElement.classList.toggle("cao-fige", plein); b.classList.toggle("on", plein); b.title = plein ? "Quitter le plein écran (Échap)" : "Plein écran : l'atelier prend toute la fenêtre"; b.setAttribute("aria-label", b.title);
       requestAnimationFrame(() => { vue.px = vue.py = 0; vue.z = 1; vue.k0 = cadre(vue.a, vue.b); peindre(); if (!plein) $("cao").scrollIntoView({ block: "nearest" }); }); return; }
     if (o === "annuler") return reculer(hist, futur, "annuler"); if (o === "retablir") return reculer(futur, hist, "rétablir");
     if (o === "zplus" || o === "zmoins") return animer({ z: Math.max(0.3, Math.min(14, vue.z * (o === "zplus" ? 1.4 : 1 / 1.4))) }, 180);
@@ -908,7 +926,8 @@
     if (o === "eclate") return eclater();
     if (o === "rendu") { rendu = (rendu + 1) % 3; b.textContent = ["Arêtes", "Ombré", "Traits"][rendu]; b.title = ["Ombré, avec les arêtes", "Ombré, sans les arêtes", "Dessin au trait, arêtes cachées effacées"][rendu] + " (clique pour changer)"; return peindre(); }
     if (o === "masse") { vueMasse = !vueMasse; dial = null; return maj(); }
-    if (o === "esquisse") { const deja = choixPlan, ps = planSel; quitter(); dial = null; vueMasse = false; mode = "piece"; if (ps) { choixPlan = true; return choisirPlan(ps); } choixPlan = !deja; if (choixPlan) dire("Esquisse : choisis d'abord son plan, comme dans Onshape. Pour cette pièce, c'est « " + NOMPL[C().pl] + " » : clique-le dans l'arbre, à gauche, ou dans la vue."); return maj(); }
+    if (o === "esquisse") { const deja = choixPlan, ps = planSel; quitter(); dial = null; vueMasse = false; mode = "piece"; if (ps) { choixPlan = true; return choisirPlan(ps); } choixPlan = !deja; if (choixPlan) dire(facesP().length ? "Esquisse : choisis où dessiner, comme dans Onshape. Clique une face de la pièce (en bleu), dans la vue ou dans l'arbre. Ou le plan « " + NOMPL[C().pl] + " », pour dessiner au fond de la pièce." : "Esquisse : choisis d'abord son plan, comme dans Onshape. Pour cette pièce, c'est « " + NOMPL[C().pl] + " » : clique-le dans l'arbre, à gauche, ou dans la vue."); return maj(); }
+    if (o.indexOf("face-") === 0) { const f = FP[+o.slice(5)]; return f ? choisirPlan(C().pl, f.h) : maj(); }
     if (o.indexOf("plan-") === 0) { const id = o.slice(5); if (!choixPlan) return selPlan(id); return choisirPlan(id); }
     if (o === "esq-non") { const s0 = { p: piece, l: AT.lettre(), j: esqAvant }; mode = "piece"; quitter(); if (esqAvant === undefined || s0.j === etatP()) { dire("Esquisse fermée."); return maj(); } if (courant) { hist.push(courant); futur = []; } dire("Esquisse fermée sans garder les changements. Annuler (↶) les fait revenir."); return remettre(s0); }
     if (o === "plans") { voirPlans = !voirPlans; b.classList.toggle("on", voirPlans); return peindre(); }
@@ -948,6 +967,6 @@
     if (o === "origine" || o === "vider") { if (piece === "essai") { const l = lib(); l.f = []; } else if (o === "vider") { d.cao = d.cao || {}; d.cao[piece] = []; } else if (d.cao) delete d.cao[piece]; mode = "piece"; quitter(); dial = null; dire(o === "vider" || piece === "essai" ? "Pièce vide. Annuler (↶) la fait revenir." : "Pièce remise à son état de départ."); return complet(); }
     if (o === "fentes" && E) { d.cao = d.cao || {}; const F = (Array.isArray(d.cao.fus) ? d.cao.fus : JSON.parse(JSON.stringify(fonctions(d, "fus", E.G)))).filter((f) => !f.auto); d.cao.fus = F.concat(fentes(E.G, suivant(F))); if (piece === "fus") { mode = "piece"; quitter(); } $("a3-msg").textContent = "Fentes et trou du lest replacés."; return complet(); } });
   window.addEventListener("planeur-idee", () => { if (muet) return; quitter(); dial = null; hist = []; futur = []; if (piece !== "essai") mode = "piece"; maj(); courant = photo(); });
-  maj(); courant = photo();
+  large(); maj(); courant = photo(); if (secA && !secA.hidden && location.hash === "#cao") setTimeout(placer, 60);
   });
 })();
