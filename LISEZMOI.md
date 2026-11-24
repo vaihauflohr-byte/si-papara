@@ -194,6 +194,8 @@ Atelier 3D, l'esquisse se comporte comme celle d'Onshape (23 novembre, soir). Da
 - **Hauteur de la vue** : `ratio()` ne dépend plus de la hauteur de l'arbre (la vue grandissait à chaque affichage et le dessin glissait sous la souris pendant les premiers clics) ; elle tient dans la fenêtre.
 - **Plan de l'esquisse.** Comme dans Onshape, le bouton Esquisse demande d'abord le plan : l'arbre liste « Dessus », « Face », « Droite » ; la vue 3D montre les trois plans (toujours quand la pièce est vide), et un clic sur le bon plan, dans l'arbre ou dans la vue, ouvre l'esquisse. Un mauvais plan est refusé avec une explication (`choisirPlan`, `plans`).
 - **Vue 3D.** Une esquisse validée mais pas encore extrudée reste visible, en bleu. Quand la boîte d'extrusion est ouverte, la pièce montrée est un aperçu en jaune, qui suit la profondeur tapée (`apercu`), et l'esquisse utilisée est en orange. En fermant une esquisse, on retrouve l'angle de vue d'avant.
+- **Deux ordres possibles**, comme dans Onshape : Esquisse puis le plan, ou le plan (dans l'arbre ou dans la vue) puis Esquisse (`selPlan`).
+- **Contrainte Fixe** (ancre) : le point ou le trait cliqué ne bouge plus (`fixer`, entrées `fx` de `ct.q`). Utile pour rendre noire une forme libre sans la coter partout.
 
 ## 5. Ajouter du contenu
 
