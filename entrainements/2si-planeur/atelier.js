@@ -137,7 +137,7 @@
       + li("Je choisis", (x, k, i) => `<input type="radio" name="at-choix" data-choix="${i}" ${A.choisi === i ? "checked" : ""} aria-label="Je choisis l'idée ${"ABC"[i]}">`);
     garder(); if (pret) window.dispatchEvent(new Event("planeur-idee"));
   }
-  if (!A.essai || !Array.isArray(A.essai.p)) A.essai = { p: [[0, 0], [40, 0], [40, 30], [0, 30]], ep: 2 };
+  if (!A.essai || !Array.isArray(A.essai.p)) A.essai = { p: [], ep: 0 };   // pièce d'essai de l'atelier 3D : vide au départ
   window.PlaneurAtelier = { idee: () => A.idees[A.n], titre: () => "l'idée " + "ABC"[A.n] + (A.idees[A.n].nom ? " « " + A.idees[A.n].nom + " »" : ""), lettre: () => "ABC"[A.n], libre: () => A.essai, garder, rafraichir: () => maj(true) };
 
   racine.addEventListener("input", (ev) => { const t = ev.target, d = A.idees[A.n];

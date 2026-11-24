@@ -102,65 +102,48 @@
     Object.keys(M).forEach((k, i) => setTimeout(() => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([stl(M[k])], { type: "model/stl" })); a.download = `${b}_${k}.stl`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }, i * 400)); }
   window.Planeur3D = { etude, maillages, stl, telecharger, depart, aile, stab, demiAile, demiStab, extruder, surface };
 
-  /* ============================== L'ÉCRAN ============================== */
+  /* ============================== L'ÉCRAN (façon Onshape) ============================== */
   document.addEventListener("DOMContentLoaded", () => {
   const racine = document.getElementById("atelier3d"), AT = window.PlaneurAtelier; if (!racine || !AT) return;
   const $ = (id) => document.getElementById(id), idee = () => AT.idee(), rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-  /* Les quatre esquisses. hv : du point de la pièce vers l'écran (h vers la droite, v vers le haut) ; pt : l'inverse. */
+  /* hv : du point de la pièce vers l'écran (h vers la droite, v vers le haut) ; pt : l'inverse. demi : pièce dessinée par moitié (symétrie). */
   const PIECES = {
-    essai: { nom: "Pièce d'essai", K: 4, ox: 60, oy: 262, H: 285, h: [0, 130], v: [0, 60], lire: () => AT.libre().p, ecrire: (L) => (AT.libre().p = L), hv: (p) => p, pt: (q) => q, ch: ["Vers la droite", "Vers le haut"],
-      aide: "Entraîne-toi ici. Les défis sont juste en dessous." },
-    fus: { nom: "Fuselage", K: 3, ox: 20, oy: 150, H: 175, h: [0, 210], v: [0, 45], lire: () => fuselage(idee()), ecrire: (L) => (idee().fus = L), hv: (p) => p, pt: (q) => q, ch: ["Depuis le nez", "Hauteur"],
-      aide: "Vu de côté. Les deux fentes et le trou du lest (en rouge) se placent tout seuls : garde de la matière autour." },
-    aile: { nom: "Aile", K: 4, ox: 150, oy: 62, H: 450, h: [0, 100], v: [-95, 10], lire: () => (libre(idee().ail) ? idee().ail : demiAile(idee())), ecrire: (L) => (idee().ail = L), hv: (p) => [p[1], -p[0]], pt: (q) => [-q[1], q[0]], ch: ["Vers l'arrière", "Depuis le fuselage"], demi: 5,
-      aide: "Vue de dessus. Tu dessines la moitié droite : l'autre moitié est sa symétrie. Les deux points collés au fuselage (bande grise) donnent la corde au centre." },
-    stab: { nom: "Stabilisateur", K: 5, ox: 200, oy: 50, H: 215, h: [0, 47.5], v: [-30, 5], lire: () => (libre(idee().stb) ? idee().stb : demiStab(idee())), ecrire: (L) => (idee().stb = L), hv: (p) => [p[1], -p[0]], pt: (q) => [-q[1], q[0]], ch: ["Vers l'arrière", "Depuis le fuselage"], demi: 2.5,
-      aide: "Vu de dessus, moitié droite. La corde au centre ne doit pas dépasser 26 mm, sinon sa fente sort du fuselage." } };
+    essai: { nom: "Pièce d'essai", plan: "Plan de dessus", K: 4, ox: 60, oy: 262, H: 285, h: [0, 140], v: [0, 60], lire: () => AT.libre().p, ecrire: (L) => (AT.libre().p = L), hv: (p) => p, pt: (q) => q, ch: ["X", "Y"] },
+    fus: { nom: "Fuselage", plan: "Plan de face", K: 3, ox: 20, oy: 150, H: 175, h: [0, 210], v: [0, 45], lire: () => fuselage(idee()), ecrire: (L) => (idee().fus = L), hv: (p) => p, pt: (q) => q, ch: ["Depuis le nez", "Hauteur"] },
+    aile: { nom: "Aile", plan: "Plan de dessus", K: 4, ox: 150, oy: 62, H: 450, h: [0, 100], v: [-95, 10], lire: () => (libre(idee().ail) ? idee().ail : demiAile(idee())), ecrire: (L) => (idee().ail = L), hv: (p) => [p[1], -p[0]], pt: (q) => [-q[1], q[0]], ch: ["Vers l'arrière", "Depuis le fuselage"], demi: 5, cle: "ail", rc: [25, 70] },
+    stab: { nom: "Stabilisateur", plan: "Plan de dessus", K: 5, ox: 200, oy: 50, H: 215, h: [0, 47.5], v: [-30, 5], lire: () => (libre(idee().stb) ? idee().stb : demiStab(idee())), ecrire: (L) => (idee().stb = L), hv: (p) => [p[1], -p[0]], pt: (q) => [-q[1], q[0]], ch: ["Vers l'arrière", "Depuis le fuselage"], demi: 2.5, cle: "stb", rc: [10, 26] } };
+  const IC = { esq: '<path d="M3 17l2-6 8-8 4 4-8 8z M11 5l4 4"/>', ext: '<path d="M4 13h12v4H4z M10 11V3 M7 6l3-3 3 3"/>', sel: '<path d="M5 3l10 8-5 1-2 5z"/>', ligne: '<path d="M4 16L16 4"/><circle cx="4" cy="16" r="1.6"/><circle cx="16" cy="4" r="1.6"/>', rect: '<rect x="3.5" y="5.5" width="13" height="9"/>', cote: '<path d="M3 5v10 M17 5v10 M3 10h14 M6 7l-3 3 3 3 M14 7l3 3-3 3"/>', h: '<path d="M3 10h14"/>', v: '<path d="M10 3v14"/>', suppr: '<path d="M5 5l10 10 M15 5L5 15"/>', gomme: '<path d="M4 14l7-9 5 4-6 7H6z M3 17h14"/>', ok: '<path d="M4 10l4 4 8-9"/>' };
+  const bt = (id, ic, txt, cl) => `<button type="button" data-o="${id}" class="${cl || ""}" title="${txt}"><svg viewBox="0 0 20 20" aria-hidden="true">${IC[ic]}</svg><span>${txt}</span></button>`;
   racine.innerHTML = `
-    <div class="carte"><h2 style="margin-top:0">L'atelier 3D : dessiner ses pièces, sans compte et sans installation</h2>
-      <p>Tous les logiciels de conception 3D travaillent de la même façon, en trois gestes. Tu les fais ici :</p>
-      <ol class="at-dem"><li><b>L'esquisse</b> : tu dessines un contour fermé, à plat, avec des points reliés par des traits.</li><li><b>Les cotes</b> : tu donnes à chaque point sa position exacte, en millimètres. Un dessin sans cote n'est qu'un croquis.</li><li><b>L'extrusion</b> : tu donnes une épaisseur au contour. Il devient une pièce.</li></ol>
-      <p>Tu travailles sur <b id="a3-qui"></b>. Change d'idée dans l'onglet « Créer ».</p></div>
-    <div class="at-onglets" role="tablist">${Object.keys(PIECES).map((k) => `<button type="button" role="tab" data-piece="${k}">${PIECES[k].nom}</button>`).join("")}</div>
-    <div class="a3-duo">
-      <div class="carte"><h3 style="margin-top:0">1 · L'esquisse <span class="discret" style="font-weight:400">· 1 carreau = 1 cm</span></h3>
-        <p class="discret" style="margin-top:0" id="a3-aide"></p>
-        <div id="a3-esq"></div>
-        <p class="discret"><b>Déplacer</b> : fais glisser un point. <b>Ajouter un point</b> : double-clique sur un trait. <b>Supprimer</b> : touche un point, puis le bouton.</p>
-        <p class="no-print" style="display:flex;flex-wrap:wrap;gap:6px"><button type="button" class="btn sec" id="a3-suppr" disabled>Supprimer le point</button> <button type="button" class="btn sec" id="a3-rect">Repartir d'un rectangle</button> <button type="button" class="btn sec" id="a3-raz">Repartir de la forme de départ</button></p>
-        <h3>2 · Les cotes</h3>
-        <div class="a3-cotes" id="a3-cotes"></div>
-        <h3>3 · L'extrusion</h3>
-        <div class="at-puces" id="a3-ep"></div><p class="discret" id="a3-epnote"></p></div>
-      <div><div class="carte a3-vue"><canvas id="a3-cv" width="640" height="400" aria-label="Vue 3D : fais glisser pour tourner"></canvas>
-          <div class="at-puces"><button type="button" data-vue="3d" class="on">Vue 3D</button><button type="button" data-vue="dessus">De dessus</button><button type="button" data-vue="cote">De côté</button><button type="button" data-vue="face">De face</button></div>
-          <p class="discret" style="margin:.4em 0 0">Fais glisser pour tourner. La pièce en cours est en couleur vive.</p></div>
-        <div class="carte" id="a3-defis"></div>
-        <div class="carte" id="a3-bilan"><h3 style="margin-top:0">Les trois pièces du planeur</h3><div class="pl-scroll"><table class="pl" id="a3-tab"></table></div><div class="at-tuiles" id="a3-tuiles"></div></div></div></div>
-    <div class="carte"><h2 style="margin-top:0">Contrôle avant impression</h2><ul class="at-cons" id="a3-cons"></ul>
-      <p class="no-print"><button type="button" class="btn" id="a3-stl">Télécharger mes trois fichiers STL</button> <span class="discret" id="a3-msg"></span></p>
-      <p class="discret">Les fichiers sont en millimètres, chaque pièce posée à plat : prêts pour l'imprimante. Envoie-les au professeur.</p></div>`;
+    <div class="carte"><h2 style="margin-top:0">L'atelier 3D</h2>
+      <p style="margin:0">Il fonctionne comme Onshape, sans compte : <b>1.</b> tu ouvres une <b>esquisse</b> et tu traces un contour fermé avec <b>Ligne</b> ou <b>Rectangle</b> ; <b>2.</b> tu fixes les longueurs avec <b>Cote</b> ; <b>3.</b> tu valides l'esquisse, puis tu cliques <b>Extruder</b> et tu donnes la profondeur. Tu travailles sur <b id="a3-qui"></b>.</p></div>
+    <div class="cao" id="cao">
+      <div class="cao-titre"><b>Atelier 3D</b><span id="cao-doc"></span></div>
+      <div class="cao-outils" id="cao-outils"></div>
+      <div class="cao-corps">
+        <div class="cao-arbre" id="cao-arbre"></div>
+        <div class="cao-vue"><div id="cao-dialogue"></div><div id="a3-esq"></div><canvas id="a3-cv" width="760" height="460" aria-label="Vue 3D : fais glisser pour tourner"></canvas>
+          <div class="cao-vues" id="cao-vues"><button type="button" data-vue="3d">Iso</button><button type="button" data-vue="dessus">Dessus</button><button type="button" data-vue="cote">Face</button><button type="button" data-vue="face">Droite</button></div></div>
+      </div>
+      <div class="cao-msg" id="cao-msg" aria-live="polite"></div>
+      <div class="cao-onglets" role="tablist">${Object.keys(PIECES).map((k) => `<button type="button" role="tab" data-piece="${k}">${PIECES[k].nom}</button>`).join("")}</div>
+    </div>
+    <div class="carte" id="a3-defis"></div>
+    <div class="carte" id="a3-bilan"><h3 style="margin-top:0">Assemblage : les trois pièces du planeur</h3><div class="pl-scroll"><table class="pl" id="a3-tab"></table></div><div class="at-tuiles" id="a3-tuiles"></div>
+      <h3>Contrôle avant impression</h3><ul class="at-cons" id="a3-cons"></ul>
+      <p class="no-print"><button type="button" class="btn" id="a3-stl">Exporter mes trois fichiers STL</button> <span class="discret" id="a3-msg"></span></p>
+      <p class="discret">Fichiers en millimètres, chaque pièce posée à plat : prêts pour l'imprimante. Envoie-les au professeur.</p></div>`;
   const cv = $("a3-cv"), cx = cv.getContext("2d", { willReadFrequently: true }), esq = $("a3-esq");
-  let piece = "essai", vue = { a: -0.6, b: 0.45 }, sel = -1, E = null, TR = [], attente = 0, prise = -1, tire = null;
-  const C = () => PIECES[piece], pts = () => C().lire();
-  const prendre = () => { const L = pts().map((p) => p.slice()); C().ecrire(L); return L; };      // l'esquisse devient celle de l'élève
+  let piece = "essai", mode = "piece", outil = "sel", vue = { a: -0.6, b: 0.45 }, sel = null, trace = null, curseur = null, rect0 = null, dial = false, E = null, TR = [], attente = 0, prise = -1, tire = null, muet = false, info = "";
+  const C = () => PIECES[piece], pts = () => C().lire() || [];
+  const aEsq = () => pts().length >= 3, aExt = () => (piece === "essai" ? aEsq() && AT.libre().ep > 0 : true);
+  const prendre = () => { const L = pts().map((p) => p.slice()); C().ecrire(L); return L; };
   const borne = (q) => [Math.max(C().h[0], Math.min(C().h[1], q[0])), Math.max(C().v[0], Math.min(C().v[1], q[1]))];
-  function poser(L, i, q) {                    // place le point i ; sur une demi-pièce, les deux bouts restent collés au fuselage
-    let p = arr(C().pt(borne(q)));
-    if (C().demi) { if (i === 0) p = [0, 0]; else if (i === L.length - 1) p = [Math.max(piece === "stab" ? 10 : 25, Math.min(piece === "stab" ? 26 : 70, p[0])), 0]; }
-    L[i] = p;
-  }
-  function scene() {
-    const d = idee(), cf = rgb(d.cf), ca = rgb(d.ca), T = [], terne = (c, k) => (piece === "essai" || piece === k ? c : c.map((x) => x * 0.55 + 105));
-    if (piece === "essai") { const o = AT.libre(); try { extruder(o.p, null, o.ep).forEach((t) => T.push({ p: t.map((v) => [v[0] + 40, v[1] - 5, v[2] - o.ep / 2]), c: [29, 79, 156] })); } catch (e) { /* esquisse impossible */ } return T; }
-    const M = maillages(d), la = racineA(d) + JEU;
-    M.fuselage.forEach((t) => T.push({ p: t.map((v) => [v[0], v[1], v[2] - EF / 2]), c: terne(cf, "fus") }));
-    M.aile.forEach((t) => T.push({ p: t.map((v) => [XA + JEU / 2 + v[0], 5.3 + (la - v[0]) * T3 + v[2], v[1]]), c: terne(ca, "aile") }));
-    M.stabilisateur.forEach((t) => T.push({ p: t.map((v) => [XS + JEU / 2 + v[0], 4.1 + v[2], v[1]]), c: terne(ca, "stab") }));
-    return T;
-  }
+  const fixer = (L, i, p) => { const c = C(); p = arr(p); if (c.demi) { if (i === 0) p = [0, 0]; else if (i === L.length - 1) p = [Math.max(c.rc[0], Math.min(c.rc[1], p[0])), 0]; else p[1] = Math.max(0, p[1]); } L[i] = p; };
+  const poser = (L, i, q) => fixer(L, i, C().pt(borne(q)));
+  const nseg = (L) => (C().demi ? L.length - 1 : L.length);
   function peindre() {
-    const W = cv.width, Hh = cv.height, img = cx.createImageData(W, Hh), px = img.data, zb = new Float32Array(W * Hh).fill(-1e9), ca = Math.cos(vue.a), sa = Math.sin(vue.a), cb = Math.cos(vue.b), sb = Math.sin(vue.b), k = 2.55;
+    const W = cv.width, Hh = cv.height, img = cx.createImageData(W, Hh), px = img.data, zb = new Float32Array(W * Hh).fill(-1e9), ca = Math.cos(vue.a), sa = Math.sin(vue.a), cb = Math.cos(vue.b), sb = Math.sin(vue.b), k = Math.min(W / 250, Hh / 150);
     const proj = (v) => { const x = v[0] - 105, y = v[1] - 10, z = v[2], x1 = x * ca + z * sa, z1 = -x * sa + z * ca, y1 = y * cb - z1 * sb, z2 = y * sb + z1 * cb; return [W / 2 + x1 * k, Hh / 2 - y1 * k, z2]; };
     for (const t of TR) { const a = proj(t.p[0]), b = proj(t.p[1]), c = proj(t.p[2]), ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
       const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, l = Math.hypot(nx, ny, nz) || 1, den = ux * vy - uy * vx; if (Math.abs(den) < 1e-6) continue;
@@ -170,63 +153,145 @@
         const z = a[2] + s * uz + u * vz, i = y * W + x; if (z > zb[i]) { zb[i] = z; px[4 * i] = r; px[4 * i + 1] = g; px[4 * i + 2] = bl; px[4 * i + 3] = 255; } } }
     cx.putImageData(img, 0, 0);
   }
+  function scene() {
+    const d = idee(), cf = rgb(d.cf), ca = rgb(d.ca), T = [], terne = (c, k) => (piece === k ? c : c.map((x) => x * 0.5 + 115));
+    if (piece === "essai") { const o = AT.libre(); if (aExt()) try { extruder(o.p, null, o.ep).forEach((t) => T.push({ p: t.map((v) => [v[0] + 45, v[1] - 5, v[2] - o.ep / 2]), c: [240, 140, 0] })); } catch (e) { /* esquisse impossible */ } return T; }
+    const M = maillages(d), la = racineA(d) + JEU;
+    M.fuselage.forEach((t) => T.push({ p: t.map((v) => [v[0], v[1], v[2] - EF / 2]), c: terne(cf, "fus") }));
+    M.aile.forEach((t) => T.push({ p: t.map((v) => [XA + JEU / 2 + v[0], 5.3 + (la - v[0]) * T3 + v[2], v[1]]), c: terne(ca, "aile") }));
+    M.stabilisateur.forEach((t) => T.push({ p: t.map((v) => [XS + JEU / 2 + v[0], 4.1 + v[2], v[1]]), c: terne(ca, "stab") }));
+    return T;
+  }
+  /* ---------- la barre d'outils, l'arbre des fonctions, la boîte d'extrusion ---------- */
+  function outils() {
+    const on = (k) => (outil === k ? "on" : "");
+    $("cao-outils").innerHTML = mode === "piece" ? bt("esquisse", "esq", "Esquisse") + bt("extruder", "ext", "Extruder", aEsq() ? "" : "off")
+      : bt("sel", "sel", "Sélection", on("sel")) + bt("ligne", "ligne", "Ligne", on("ligne")) + bt("rect", "rect", "Rectangle", on("rect")) + bt("cote", "cote", "Cote", on("cote")) + `<i></i>` + bt("horiz", "h", "Horizontal") + bt("vert", "v", "Vertical") + bt("suppr", "suppr", "Supprimer le point") + bt("effacer", "gomme", "Effacer l'esquisse") + `<i></i>` + bt("valider", "ok", "Valider l'esquisse", "vert");
+    const A = { piece: aEsq() ? (aExt() ? "Clique sur « Esquisse 1 » dans l'arbre pour la modifier, ou sur « Extrusion 1 » pour changer la profondeur. Fais glisser la vue pour tourner la pièce." : "L'esquisse est prête. Clique sur Extruder pour lui donner une épaisseur.") : "Pièce vide. Clique sur Esquisse pour commencer.",
+      sel: "Sélection : fais glisser un point. Touche un trait pour le choisir. Double-clique sur un trait pour y ajouter un point.", ligne: trace ? (C().demi ? "Ligne : clique pour poser chaque point. Termine en cliquant sur la bande du fuselage." : "Ligne : clique pour poser chaque point. Termine en recliquant sur le premier point.") : "Ligne : le contour est fermé. Pour le redessiner, clique sur « Effacer l'esquisse ».",
+      rect: rect0 ? "Rectangle : clique le coin opposé." : (C().demi ? "Rectangle : clique le coin du bout de l'aile, à l'arrière." : "Rectangle : clique un premier coin."), cote: "Cote : touche un trait, puis tape sa longueur exacte en millimètres." };
+    $("cao-msg").textContent = info || A[mode === "piece" ? "piece" : outil]; info = "";
+  }
+  function arbre() {
+    const c = C(), o = AT.libre(), d = idee(), ep = piece === "essai" ? o.ep : piece === "fus" ? 5 : piece === "aile" ? d.ea || 0.8 : d.es || 0.6, l = (cl, id, t, n) => `<button type="button" class="cao-f ${cl}" ${id ? `data-o="${id}"` : "disabled"}><b>${t}</b>${n ? `<small>${n}</small>` : ""}</button>`;
+    let vol = ""; if (piece === "essai") vol = aExt() ? fr(surface(o.p).a * o.ep / 1000, 2) + " cm³" : ""; else if (E) { const p = E.P[piece]; vol = fr(p.v, 1) + " cm³ · " + fr(p.m, 1) + " g"; }
+    $("cao-arbre").innerHTML = `<h4>Fonctions</h4>${l("gris", "", "Origine")}${l("gris", "", c.plan)}
+      ${l(aEsq() ? (mode === "esquisse" ? "actif" : "") : "vide", "esquisse", "Esquisse 1", aEsq() ? pts().length + " points" : "à faire")}
+      ${l(aExt() ? "" : "vide", aEsq() ? "extruder" : "", "Extrusion 1", aExt() ? fr(ep, 1) + " mm" : "à faire")}
+      ${piece === "fus" ? l("gris", "", "Fentes et trou du lest", "automatique") + l("gris", "", "Dérive fine", "1 mm, automatique") : ""}${c.demi ? l("gris", "", "Symétrie", "automatique") : ""}
+      <h4>Pièces</h4>${l(aExt() ? "" : "vide", "", c.nom, vol || "pas encore de volume")}`;
+    $("cao-doc").textContent = "Planeur, " + AT.titre() + " · " + c.nom;
+    racine.querySelectorAll("[data-piece]").forEach((b) => b.setAttribute("aria-selected", b.dataset.piece === piece));
+  }
+  function dialogue() {
+    const D = $("cao-dialogue"); if (!dial) { D.innerHTML = ""; return; }
+    const o = AT.libre(), d = idee(), ep = piece === "essai" ? o.ep || 5 : piece === "fus" ? 5 : piece === "aile" ? d.ea || 0.8 : d.es || 0.6;
+    D.innerHTML = `<div class="cao-dial"><h4>Extrusion 1</h4><p>Esquisse à extruder : <b>Esquisse 1</b></p><label>Profondeur <input type="number" id="cao-prof" value="${ep}" step="${piece === "essai" ? 0.5 : 0.2}" min="0.2" ${piece === "fus" ? "disabled" : ""}> mm</label>
+      <p class="discret">${piece === "fus" ? "Le corps du fuselage fait toujours 5 mm : c'est le cahier des charges." : piece === "essai" ? "" : "Un multiple de 0,2 mm (la hauteur d'une couche), entre 0,4 et 1,6 mm."}</p><div><button type="button" data-o="ext-ok" class="vert">✓ Valider</button><button type="button" data-o="ext-non">✕</button></div></div>`;
+    const i = $("cao-prof"); if (i && !i.disabled) { i.focus(); i.select(); }
+  }
+  /* ---------- l'esquisse ---------- */
   function esquisse() {
-    const c = C(), d = idee(), K = c.K, X = (h) => c.ox + h * K, Y = (v) => c.oy - v * K, L = pts(), Q = L.map(c.hv), pl = (R) => R.map((q) => X(q[0]).toFixed(1) + "," + Y(q[1]).toFixed(1)).join(" "), coul = piece === "fus" ? d.cf : piece === "essai" ? "#1d4f9c" : d.ca;
+    const c = C(), d = idee(), K = c.K, X = (h) => c.ox + h * K, Y = (v) => c.oy - v * K, L = pts(), Q = L.map(c.hv), pl = (R) => R.map((q) => X(q[0]).toFixed(1) + "," + Y(q[1]).toFixed(1)).join(" ");
     let g = ""; for (let h = Math.ceil(c.h[0] / 10) * 10; h <= c.h[1]; h += 10) g += `<line x1="${X(h)}" y1="${Y(c.v[0])}" x2="${X(h)}" y2="${Y(c.v[1])}" class="a3-g"/>`; for (let v = Math.ceil(c.v[0] / 10) * 10; v <= c.v[1]; v += 10) g += `<line x1="${X(c.h[0])}" y1="${Y(v)}" x2="${X(c.h[1])}" y2="${Y(v)}" class="a3-g"/>`;
-    let plus = "";
-    if (piece === "fus") plus = `<path d="M${X(XD)} ${Y(c.v[1])} V${Y(YD)} H${X(210)}" fill="none" stroke="currentColor" stroke-dasharray="5 4" opacity=".7"/><text x="${X(XD) + 6}" y="${Y(c.v[1]) + 12}" font-size="11.5" fill="currentColor">zone de la dérive : 1 mm d'épaisseur</text>` + E.H.map((h) => `<polygon points="${pl(h)}" fill="var(--paper)" stroke="var(--bad)" stroke-width="1.2"/>`).join("") + `<line x1="${X(E.cible)}" y1="${Y(-2)}" x2="${X(E.cible)}" y2="${Y(-6)}" stroke="var(--good)" stroke-width="3"/><text x="${X(E.cible)}" y="${Y(-6) + 12}" font-size="11.5" text-anchor="middle" fill="var(--good)" font-weight="700">équilibre visé</text><text x="${X(0)}" y="${Y(-6) + 12}" font-size="11.5" fill="currentColor">nez</text>`;
-    if (c.demi) plus = `<rect x="${X(-c.demi * 2)}" y="${Y(8)}" width="${c.demi * 2 * K}" height="${(8 - c.v[0]) * K}" fill="currentColor" opacity=".13"/><text x="${X(-c.demi) }" y="${Y(8) - 5}" font-size="11.5" text-anchor="middle" fill="currentColor">fuselage</text><text x="${X(c.h[1])}" y="${Y(8) - 5}" font-size="11.5" text-anchor="end" fill="currentColor">bout de l'aile →</text><text x="${X(c.h[1])}" y="${Y(c.v[0]) - 4}" font-size="11.5" text-anchor="end" fill="currentColor">arrière ↓</text>`;
-    const ferme = c.demi ? "polyline" : "polygon";
-    esq.innerHTML = `<svg viewBox="0 0 670 ${c.H}" id="a3-svg" role="img" aria-label="Esquisse : ${c.nom}">${g}<polygon points="${pl(Q)}" fill="${coul}" fill-opacity=".4" stroke="none"/><${ferme} points="${pl(Q)}" fill="none" stroke="${coul}" stroke-width="2.5" stroke-linejoin="round"/>${plus}
-      ${Q.map((q, i) => `<circle class="a3-p${i === sel ? " on" : ""}" data-i="${i}" cx="${X(q[0])}" cy="${Y(q[1])}" r="7"/><text x="${X(q[0]) + 9}" y="${Y(q[1]) - 8}" font-size="11" fill="currentColor" style="pointer-events:none">${i + 1}</text>`).join("")}</svg>`;
-    $("a3-suppr").disabled = sel < 0 || L.length <= 3 || (c.demi && (sel === 0 || sel === L.length - 1));
-    const p = sel >= 0 && L[sel]; if (!p) { $("a3-cotes").innerHTML = `<p class="discret">Touche un point pour lire et taper ses cotes.</p>`; return; }
-    const sv = L[(sel + 1) % L.length], fixe = c.demi && sel === 0, bout = c.demi && sel === L.length - 1;
-    $("a3-cotes").innerHTML = `<b>Point ${sel + 1}</b><label>${c.ch[0]} <input type="number" step="0.5" data-cote="0" value="${p[0]}" ${fixe ? "disabled" : ""}> mm</label><label>${c.ch[1]} <input type="number" step="0.5" data-cote="1" value="${p[1]}" ${fixe || bout ? "disabled" : ""}> mm</label><span class="discret">Trait jusqu'au point ${(sel + 1) % L.length + 1} : ${fr(Math.hypot(sv[0] - p[0], sv[1] - p[1]), 1)} mm</span>`;
+    let plus = `<circle cx="${X(0)}" cy="${Y(0)}" r="3.5" fill="currentColor"/><text x="${X(0) - 6}" y="${Y(0) + 15}" font-size="11" text-anchor="end" fill="currentColor">origine</text>`;
+    if (piece === "fus" && E) plus += `<path d="M${X(XD)} ${Y(c.v[1])} V${Y(YD)} H${X(210)}" fill="none" stroke="currentColor" stroke-dasharray="5 4" opacity=".7"/><text x="${X(XD) + 6}" y="${Y(c.v[1]) + 12}" font-size="11.5" fill="currentColor">zone de la dérive : 1 mm</text>` + E.H.map((h) => `<polygon points="${pl(h)}" fill="var(--paper)" stroke="var(--bad)" stroke-width="1.2"/>`).join("") + `<line x1="${X(E.cible)}" y1="${Y(-2)}" x2="${X(E.cible)}" y2="${Y(-6)}" stroke="var(--good)" stroke-width="3"/><text x="${X(E.cible)}" y="${Y(-6) + 12}" font-size="11.5" text-anchor="middle" fill="var(--good)" font-weight="700">équilibre visé</text>`;
+    if (c.demi) plus += `<rect x="${X(-c.demi * 2)}" y="${Y(8)}" width="${c.demi * 2 * K}" height="${(8 - c.v[0]) * K}" fill="currentColor" opacity=".13"/><text x="${X(-c.demi)}" y="${Y(8) - 5}" font-size="11.5" text-anchor="middle" fill="currentColor">fuselage</text><text x="${X(c.h[1])}" y="${Y(8) - 5}" font-size="11.5" text-anchor="end" fill="currentColor">bout →</text><text x="${X(c.h[1])}" y="${Y(c.v[0]) - 4}" font-size="11.5" text-anchor="end" fill="currentColor">arrière ↓</text>`;
+    const n = nseg(L), cotes = trace ? "" : Array.from({ length: Math.max(0, n) }, (_, i) => { const a = Q[i], b = Q[(i + 1) % Q.length], lg = Math.hypot(b[0] - a[0], b[1] - a[1]), on = sel && sel.t === "s" && sel.i === i; if (lg < 7 && !on) return "";
+      const mx = (X(a[0]) + X(b[0])) / 2, my = (Y(a[1]) + Y(b[1])) / 2, nx = -(Y(b[1]) - Y(a[1])), ny = X(b[0]) - X(a[0]), k = (Math.abs(nx) > Math.abs(ny) ? 22 : 12) / (Math.hypot(nx, ny) || 1); return `<text class="a3-ct${on ? " on" : ""}" x="${mx + nx * k}" y="${my + ny * k + 4}" text-anchor="middle">${fr(lg, 1)}</text>`; }).join("");
+    const segs = trace ? "" : Array.from({ length: Math.max(0, n) }, (_, i) => { const a = Q[i], b = Q[(i + 1) % Q.length]; return `<line class="a3-s${sel && sel.t === "s" && sel.i === i ? " on" : ""}" data-s="${i}" x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}"/>`; }).join("");
+    let tr = ""; if (trace) { const T = trace.map(c.hv), tous = curseur ? T.concat([curseur]) : T; tr = `<polyline points="${pl(tous)}" class="a3-tr"/>` + T.map((q, i) => `<circle class="a3-p${i === 0 ? " dep" : ""}" cx="${X(q[0])}" cy="${Y(q[1])}" r="${i === 0 ? 8 : 5}"/>`).join(""); }
+    if (rect0 && curseur) { const a = rect0, b = curseur; tr += `<polygon points="${pl([a, [b[0], a[1]], b, [a[0], b[1]]])}" class="a3-tr"/>`; }
+    esq.innerHTML = `<svg viewBox="0 0 670 ${c.H}" id="a3-svg" class="o-${outil}" role="img" aria-label="Esquisse : ${c.nom}">${g}${Q.length >= 3 ? `<polygon points="${pl(Q)}" class="a3-f${trace ? " vieux" : ""}"/>` : ""}${plus}${segs}${cotes}
+      ${trace ? "" : Q.map((q, i) => `<circle class="a3-p${sel && sel.t === "p" && sel.i === i ? " on" : ""}" data-i="${i}" cx="${X(q[0])}" cy="${Y(q[1])}" r="6.5"/>`).join("")}${tr}</svg>
+      <div class="cao-cotes" id="a3-cotes"></div>`;
+    const B = $("a3-cotes"); if (!sel || trace) { B.innerHTML = ""; return; }
+    if (sel.t === "p" && L[sel.i]) { const p = L[sel.i], fixe = c.demi && sel.i === 0, bout = c.demi && sel.i === L.length - 1;
+      B.innerHTML = `<b>Point</b><label>${c.ch[0]} <input type="number" step="0.5" data-cote="0" value="${p[0]}" ${fixe ? "disabled" : ""}> mm</label><label>${c.ch[1]} <input type="number" step="0.5" data-cote="1" value="${p[1]}" ${fixe || bout ? "disabled" : ""}> mm</label>`; }
+    if (sel.t === "s" && L[sel.i]) { const a = L[sel.i], b = L[(sel.i + 1) % L.length]; B.innerHTML = `<b>Cote du trait</b><label>Longueur <input type="number" step="0.5" min="1" data-long value="${Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) * 10) / 10}"> mm</label>`; if (outil === "cote") { const i = B.querySelector("input"); i.focus(); i.select(); } }
   }
   function defis() {
-    const o = AT.libre(), a = surface(o.p).a, v = a * o.ep / 1000, pres = (x, y) => Math.abs(x - y) < 0.011, D = $("a3-defis"); D.hidden = piece !== "essai"; $("a3-bilan").hidden = piece === "essai"; if (piece !== "essai") return;
-    const xs = o.p.map((p) => p[0]), ys = o.p.map((p) => p[1]), l = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys), d1 = o.p.length === 4 && pres(l, 60) && pres(h, 20) && pres(a, 1200) && pres(o.ep, 5), d2 = o.p.length === 5 && pres(l, 60) && pres(h, 20) && pres(a, 1152) && pres(o.ep, 5);
-    if (d1) o.d1 = true; if (d2) o.d2 = true;
-    D.innerHTML = `<h3 style="margin-top:0">Ta pièce d'essai</h3><div class="at-tuiles"><div><span>Largeur × hauteur</span><b>${fr(l, 1)} × ${fr(h, 1)} mm</b></div><div><span>Épaisseur</span><b>${fr(o.ep, 1)} mm</b></div><div><span>Volume</span><b>${fr(v, 2)} cm³</b></div><div><span>Masse en PLA</span><b>${fr(v * RHO, 1)} g</b></div></div>
-      <ul class="at-cons" style="margin-top:10px"><li class="${o.d1 ? "ok" : "av"}"><b>Défi 1 : la plaque.</b> Un rectangle de 60 × 20 mm, extrudé de 5 mm. Volume attendu : 6,00 cm³.</li>
-      <li class="${o.d2 ? "ok" : "av"}"><b>Défi 2 : le nez en biseau.</b> Sur la même plaque, ajoute un point et coupe un coin : 12 mm d'un côté, 8 mm de l'autre. Volume attendu : 5,76 cm³.</li></ul>
-      <p class="discret">Astuce : place les points à peu près, puis tape leurs cotes exactes. ${o.d1 && o.d2 ? "<b>Les deux défis sont réussis : passe au fuselage.</b>" : ""}</p>`;
+    const o = AT.libre(), D = $("a3-defis"); D.hidden = piece !== "essai"; $("a3-bilan").hidden = piece === "essai"; if (piece !== "essai") return;
+    const ok = aExt(), a = aEsq() ? surface(o.p).a : 0, v = a * o.ep / 1000, pres = (x, y) => Math.abs(x - y) < 0.011, xs = o.p.map((p) => p[0]), ys = o.p.map((p) => p[1]), l = aEsq() ? Math.max(...xs) - Math.min(...xs) : 0, h = aEsq() ? Math.max(...ys) - Math.min(...ys) : 0;
+    if (ok && o.p.length === 4 && pres(l, 60) && pres(h, 20) && pres(a, 1200) && pres(o.ep, 5)) o.d1 = true; if (ok && o.p.length === 5 && pres(l, 60) && pres(h, 20) && pres(a, 1152) && pres(o.ep, 5)) o.d2 = true;
+    D.innerHTML = `<h3 style="margin-top:0">Deux défis pour apprendre</h3><div class="at-tuiles"><div><span>Largeur × hauteur</span><b>${fr(l, 1)} × ${fr(h, 1)} mm</b></div><div><span>Profondeur</span><b>${fr(ok ? o.ep : 0, 1)} mm</b></div><div><span>Volume</span><b>${fr(ok ? v : 0, 2)} cm³</b></div><div><span>Masse en PLA</span><b>${fr(ok ? v * RHO : 0, 1)} g</b></div></div>
+      <ul class="at-cons" style="margin-top:10px"><li class="${o.d1 ? "ok" : "av"}"><b>Défi 1 : la plaque.</b> Esquisse → Rectangle → Cote : 60 mm et 20 mm → Valider → Extruder de 5 mm. Volume attendu : 6,00 cm³.</li>
+      <li class="${o.d2 ? "ok" : "av"}"><b>Défi 2 : le nez en biseau.</b> Rouvre l'esquisse, ajoute un point sur un trait (double-clic) et coupe un coin : 12 mm d'un côté, 8 mm de l'autre. Volume attendu : 5,76 cm³.</li></ul>
+      ${o.d1 && o.d2 ? `<p><b>Les deux défis sont réussis.</b> Passe à l'onglet « Fuselage », en bas de l'atelier.</p>` : ""}`;
   }
   function maj(leger) {
-    const d = idee(); E = etude(d); TR = scene(); peindre(); esquisse(); defis();
+    const d = idee(); try { E = etude(d); } catch (e) { E = null; }
+    esq.hidden = mode !== "esquisse"; cv.hidden = $("cao-vues").hidden = mode !== "piece";
+    if (mode === "piece") { TR = scene(); peindre(); } else esquisse();
     if (leger) return;
-    $("a3-qui").textContent = AT.titre(); $("a3-aide").textContent = C().aide; racine.querySelectorAll("[data-piece]").forEach((b) => b.setAttribute("aria-selected", b.dataset.piece === piece));
-    $("a3-tab").innerHTML = `<tr><th>Pièce</th><th class="n">Épaisseur</th><th class="n">Volume</th><th class="n">Masse</th></tr>` + Object.values(E.P).map((p) => `<tr><td>${p.nom}</td><td class="n">${fr(p.ep, 1)} mm</td><td class="n">${fr(p.v, 1)} cm³</td><td class="n">${fr(p.m, 1)} g</td></tr>`).join("") + `<tr><td><b>Total sans lest</b></td><td></td><td class="n"><b>${fr(E.P.fus.v + E.P.aile.v + E.P.stab.v, 1)} cm³</b></td><td class="n"><b>${fr(E.m, 1)} g</b></td></tr>`;
+    outils(); arbre(); dialogue(); defis(); $("a3-qui").textContent = AT.titre();
+    if (!E) return;
+    $("a3-tab").innerHTML = `<tr><th>Pièce</th><th class="n">Profondeur</th><th class="n">Volume</th><th class="n">Masse</th></tr>` + Object.values(E.P).map((p) => `<tr><td>${p.nom}</td><td class="n">${fr(p.ep, 1)} mm</td><td class="n">${fr(p.v, 1)} cm³</td><td class="n">${fr(p.m, 1)} g</td></tr>`).join("") + `<tr><td><b>Total sans lest</b></td><td></td><td class="n"><b>${fr(E.P.fus.v + E.P.aile.v + E.P.stab.v, 1)} cm³</b></td><td class="n"><b>${fr(E.m, 1)} g</b></td></tr>`;
     $("a3-tuiles").innerHTML = [["Équilibre sans lest", fr(E.xg, 0) + " mm du nez"], ["Équilibre visé", fr(E.cible, 0) + " mm du nez"], ["Lest à ajouter", E.lest < 0 ? "impossible" : fr(E.lest, 1) + " g"], ["Masse prête à voler", fr(E.m + Math.max(0, E.lest), 1) + " g"]].map((x) => `<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join("");
     $("a3-cons").innerHTML = E.L.map((x) => `<li class="${x[0]}">${x[1]}</li>`).join("");
-    $("a3-stl").disabled = !E.bon; $("a3-msg").textContent = E.bon ? "" : "Corrige les lignes rouges pour pouvoir télécharger.";
-    const ch = { essai: [[1, 2, 3, 5, 8], AT.libre().ep], fus: [[5], 5], aile: [[0.6, 0.8, 1.0, 1.2], d.ea || 0.8], stab: [[0.4, 0.6, 0.8], d.es || 0.6] }[piece];
-    $("a3-ep").innerHTML = ch[0].map((x) => `<button type="button" data-ep="${x}" class="${ch[1] === x ? "on" : ""}">Extruder de ${fr(x, 1)} mm</button>`).join("");
-    $("a3-epnote").textContent = piece === "fus" ? "Le corps du fuselage fait toujours 5 mm : c'est le cahier des charges. La dérive, dans le cadre en pointillé, est extrudée de 1 mm seulement pour ne pas alourdir la queue." : piece === "essai" ? "" : "Les épaisseurs sont des multiples de 0,2 mm : la hauteur d'une couche de l'imprimante. Plus épais : plus solide, mais plus lourd.";
+    $("a3-stl").disabled = !E.bon; $("a3-msg").textContent = E.bon ? "" : "Corrige les lignes rouges pour pouvoir exporter.";
   }
-  let muet = false;
-  const complet = () => { clearTimeout(attente); attente = setTimeout(() => { maj(); muet = true; AT.rafraichir(); muet = false; }, 120); };
+  const complet = () => { clearTimeout(attente); attente = setTimeout(() => { maj(); muet = true; AT.rafraichir(); muet = false; }, 100); };
+  const dire = (t) => { info = t; };
+  const quitter = () => { trace = null; rect0 = null; curseur = null; sel = null; outil = "sel"; };
 
+  /* ---------- souris dans la vue 3D et dans l'esquisse ---------- */
   cv.addEventListener("pointerdown", (e) => { tire = [e.clientX, e.clientY, vue.a, vue.b]; cv.setPointerCapture(e.pointerId); });
   cv.addEventListener("pointermove", (e) => { if (!tire) return; vue.a = tire[2] + (e.clientX - tire[0]) * 0.01; vue.b = Math.max(-1.5, Math.min(1.5, tire[3] + (e.clientY - tire[1]) * 0.01)); peindre(); });
   cv.addEventListener("pointerup", () => (tire = null)); cv.addEventListener("pointercancel", () => (tire = null));
   const souris = (e) => { const c = C(), r = $("a3-svg").getBoundingClientRect(), k = 670 / r.width; return [((e.clientX - r.left) * k - c.ox) / c.K, (c.oy - (e.clientY - r.top) * k) / c.K]; };
-  esq.addEventListener("pointerdown", (e) => { const c = e.target.closest("[data-i]"); if (!c) { if (sel !== -1) { sel = -1; esquisse(); } return; } prise = sel = +c.dataset.i; prendre(); esq.setPointerCapture(e.pointerId); e.preventDefault(); esquisse(); });
-  esq.addEventListener("pointermove", (e) => { if (prise < 0) return; poser(pts(), prise, souris(e)); maj(true); });
+  const accroche = (e) => { const c = C(); return c.hv(arr(c.pt(borne(souris(e))))); };          // point de l'écran, aimanté sur 0,5 mm
+  function fermer() {                          // le tracé devient le contour de la pièce
+    const c = C(), L = trace.map((p) => p.slice()); trace = null; curseur = null;
+    if (L.length < 3 || croise(c.demi ? miroir(L, c.demi) : L)) { dire("Ce contour n'est pas valable (trop peu de points, ou des traits qui se croisent). L'ancienne esquisse est gardée."); return maj(); }
+    c.ecrire(L); outil = "sel"; dire("Contour fermé. Fixe maintenant ses longueurs avec Cote, puis valide l'esquisse."); complet();
+  }
+  esq.addEventListener("pointerdown", (e) => {
+    if (!e.target.closest("#a3-svg")) return; const c = C(), q = accroche(e), p = c.pt(q);
+    if (outil === "ligne") { if (!trace) return; e.preventDefault();
+      if (c.demi) { if (q[0] <= 2.5 && trace.length >= 2) { trace.push([Math.max(c.rc[0], Math.min(c.rc[1], p[0])), 0]); return fermer(); } trace.push([p[0], Math.max(0.5, p[1])]); }
+      else { const d0 = trace.length ? c.hv(trace[0]) : null; if (d0 && trace.length >= 3 && Math.hypot(q[0] - d0[0], q[1] - d0[1]) * c.K < 12) return fermer(); trace.push(p); }
+      return maj(); }
+    if (outil === "rect") { e.preventDefault(); if (trace === null && aEsq()) { dire("Le contour existe déjà. Pour repartir d'un rectangle, clique d'abord sur « Effacer l'esquisse »."); return maj(); }
+      if (c.demi) { trace = [[0, 0], [0, Math.max(5, p[1])], [Math.max(c.rc[0], Math.min(c.rc[1], p[0])), Math.max(5, p[1])], [Math.max(c.rc[0], Math.min(c.rc[1], p[0])), 0]]; return fermer(); }
+      if (!rect0) { rect0 = q; curseur = q; return maj(); } const a = rect0; rect0 = null; if (Math.abs(q[0] - a[0]) < 1 || Math.abs(q[1] - a[1]) < 1) return maj();
+      const x0 = Math.min(a[0], q[0]), x1 = Math.max(a[0], q[0]), y0 = Math.min(a[1], q[1]), y1 = Math.max(a[1], q[1]); trace = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(c.pt); return fermer(); }
+    const pt = e.target.closest("[data-i]"), sg = e.target.closest("[data-s]");
+    if (pt && outil === "sel") { prise = +pt.dataset.i; sel = { t: "p", i: prise }; prendre(); esq.setPointerCapture(e.pointerId); e.preventDefault(); return maj(); }
+    if (sg) { sel = { t: "s", i: +sg.dataset.s }; return maj(); }
+    if (pt) { sel = { t: "p", i: +pt.dataset.i }; return maj(); }
+    if (sel) { sel = null; maj(); } });
+  esq.addEventListener("pointermove", (e) => { if (!$("a3-svg")) return; if (prise >= 0) { poser(pts(), prise, souris(e)); return maj(true); } if (trace || rect0) { curseur = accroche(e); esquisse(); } });
   const lacher = () => { if (prise < 0) return; prise = -1; complet(); }; esq.addEventListener("pointerup", lacher); esq.addEventListener("pointercancel", lacher);
-  esq.addEventListener("dblclick", (e) => { if (e.target.closest("[data-i]")) return; const c = C(), L = prendre(), q = souris(e), Q = L.map(c.hv), n = c.demi ? Q.length - 1 : Q.length; let m = 1e9, k = -1;
-    for (let i = 0; i < n; i++) { const x = distSeg(q, Q[i], Q[(i + 1) % Q.length]); if (x < m) { m = x; k = i; } } if (m > 8) return; L.splice(k + 1, 0, arr(c.pt(borne(q)))); sel = k + 1; complet(); });
-  racine.addEventListener("change", (e) => { const t = e.target; if (t.dataset.cote == null || sel < 0) return; const L = prendre(), p = L[sel].slice(); p[+t.dataset.cote] = parseFloat(String(t.value).replace(",", ".")) || 0; poser(L, sel, C().hv(p)); complet(); });
-  racine.addEventListener("click", (e) => { const d = idee(), t = e.target;
-    const pc = t.closest("[data-piece]"); if (pc) { piece = pc.dataset.piece; sel = -1; return maj(); }
-    const v = t.closest("[data-vue]"); if (v) { vue = { "3d": { a: -0.6, b: 0.45 }, dessus: { a: 0, b: 1.5 }, cote: { a: 0, b: 0 }, face: { a: -1.5708, b: 0 } }[v.dataset.vue]; racine.querySelectorAll("[data-vue]").forEach((b) => b.classList.toggle("on", b === v)); return peindre(); }
-    const ep = t.closest("[data-ep]"); if (ep) { const x = +ep.dataset.ep; if (piece === "essai") AT.libre().ep = x; else if (piece === "aile") d.ea = x; else if (piece === "stab") d.es = x; return complet(); }
-    if (t.id === "a3-suppr" && sel >= 0) { prendre().splice(sel, 1); sel = -1; return complet(); }
-    if (t.id === "a3-rect") { C().ecrire({ essai: [[0, 0], [40, 0], [40, 30], [0, 30]], fus: [[0, 0], [0, 12], [210, 12], [210, 0]], aile: [[0, 0], [0, 95], [45, 95], [45, 0]], stab: [[0, 0], [0, 37.5], [25, 37.5], [25, 0]] }[piece]); sel = -1; return complet(); }
-    if (t.id === "a3-raz") { if (piece === "essai") AT.libre().p = [[0, 0], [40, 0], [40, 30], [0, 30]]; else delete d[{ fus: "fus", aile: "ail", stab: "stb" }[piece]]; sel = -1; return complet(); }
-    if (t.id === "a3-stl" && E.bon) { telecharger(d, (d.nom || "planeur") + "_" + AT.lettre()); $("a3-msg").textContent = "Trois fichiers téléchargés : fuselage, aile, stabilisateur."; } });
-  window.addEventListener("planeur-idee", () => { if (muet) return; sel = -1; maj(); });
+  esq.addEventListener("dblclick", (e) => { if (outil !== "sel" || trace || !e.target.closest("#a3-svg") || e.target.closest("[data-i]")) return; const c = C(), L = prendre(), q = souris(e), Q = L.map(c.hv), n = nseg(L); let m = 1e9, k = -1;
+    for (let i = 0; i < n; i++) { const x = distSeg(q, Q[i], Q[(i + 1) % Q.length]); if (x < m) { m = x; k = i; } } if (m > 8) return; L.splice(k + 1, 0, arr(c.pt(borne(q)))); sel = { t: "p", i: k + 1 }; complet(); });
+  racine.addEventListener("change", (e) => { const t = e.target, c = C(); if (!sel) return;
+    if (t.dataset.cote != null && sel.t === "p") { const L = prendre(), p = L[sel.i].slice(); p[+t.dataset.cote] = parseFloat(String(t.value).replace(",", ".")) || 0; poser(L, sel.i, c.hv(p)); return complet(); }
+    if (t.dataset.long != null && sel.t === "s") { const L = prendre(), i = sel.i, j = (i + 1) % L.length, a = L[i], b = L[j], lg = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, v = Math.max(1, parseFloat(String(t.value).replace(",", ".")) || lg);
+      const al = (k) => Math.abs(a[k] - b[k]) < 0.01;      // trait aligné sur la grille : les points alignés avec son bout le suivent (un rectangle reste un rectangle)
+      if (al(0) !== al(1)) { const k = al(1) ? 0 : 1, vieux = b[k], dv = (b[k] >= a[k] ? v : -v) - (b[k] - a[k]); L.forEach((p, n) => { if (n !== i && Math.abs(p[k] - vieux) < 0.01) { const q = p.slice(); q[k] += dv; fixer(L, n, q); } }); }
+      else fixer(L, j, [a[0] + (b[0] - a[0]) * v / lg, a[1] + (b[1] - a[1]) * v / lg]);
+      return complet(); } });
+  document.addEventListener("keydown", (e) => { if ($("s-cao").hidden || /INPUT|TEXTAREA/.test(e.target.tagName)) { if (e.key === "Enter" && e.target.id === "cao-prof") racine.querySelector('[data-o="ext-ok"]').click(); return; }
+    if (e.key === "Escape") { if (dial) { dial = false; return maj(); } if (trace || rect0) { trace = null; rect0 = null; curseur = null; outil = "sel"; dire("Tracé annulé."); maj(); } }
+    if ((e.key === "Delete" || e.key === "Backspace") && mode === "esquisse" && sel && sel.t === "p") { e.preventDefault(); racine.querySelector('[data-o="suppr"]').click(); } });
+  racine.addEventListener("click", (e) => { const d = idee(), t = e.target, c = C();
+    const pc = t.closest("[data-piece]"); if (pc) { piece = pc.dataset.piece; mode = "piece"; dial = false; quitter(); return maj(); }
+    const v = t.closest("[data-vue]"); if (v) { vue = { "3d": { a: -0.6, b: 0.45 }, dessus: { a: 0, b: 1.5 }, cote: { a: 0, b: 0 }, face: { a: -1.5708, b: 0 } }[v.dataset.vue]; return peindre(); }
+    if (t.id === "a3-stl" && E && E.bon) { telecharger(d, (d.nom || "planeur") + "_" + AT.lettre()); $("a3-msg").textContent = "Trois fichiers exportés : fuselage, aile, stabilisateur."; return; }
+    const b = t.closest("[data-o]"); if (!b) return; const o = b.dataset.o, L = pts();
+    if (o === "esquisse") { mode = "esquisse"; dial = false; quitter(); if (!aEsq()) { outil = "rect"; dire("Esquisse ouverte sur le " + c.plan.toLowerCase() + ". Choisis Rectangle ou Ligne, puis clique dans la grille."); } return maj(); }
+    if (o === "extruder") { if (!aEsq()) { dire("Il faut d'abord une esquisse fermée."); return maj(); } mode = "piece"; quitter(); dial = true; return maj(); }
+    if (o === "ext-non") { dial = false; return maj(); }
+    if (o === "ext-ok") { let x = parseFloat(String(($("cao-prof") || {}).value).replace(",", ".")) || 0; dial = false;
+      if (piece === "essai") AT.libre().ep = Math.max(0.2, Math.min(20, Math.round(x * 10) / 10)); else if (piece !== "fus") { x = Math.max(0.4, Math.min(1.6, Math.round(x / 0.2) * 0.2)); d[piece === "aile" ? "ea" : "es"] = Math.round(x * 10) / 10; } dire("Extrusion faite : la pièce a maintenant un volume."); return complet(); }
+    if (o === "valider") { if (trace) { dire("Ferme d'abord le contour."); return maj(); } mode = "piece"; quitter(); dire(aExt() ? "Esquisse validée : la pièce est mise à jour." : "Esquisse validée. Clique maintenant sur Extruder."); return complet(); }
+    if (["sel", "ligne", "rect", "cote"].includes(o)) { outil = o; rect0 = null; curseur = null; if (o === "ligne" && !aEsq() && !trace) trace = c.demi ? [[0, 0]] : []; if (o !== "ligne" && trace) trace = null; return maj(); }
+    if (o === "effacer") { sel = null; rect0 = null; trace = c.demi ? [[0, 0]] : []; outil = "ligne"; if (piece === "essai") AT.libre().p = []; dire("Esquisse effacée. Trace le nouveau contour avec Ligne, ou choisis Rectangle." + (piece === "essai" ? "" : " L'ancien contour reste en gris tant que le nouveau n'est pas fermé.")); return maj(); }
+    if (o === "suppr") { if (!sel || sel.t !== "p") { dire("Touche d'abord un point."); return maj(); } if (L.length <= 3 || (c.demi && (sel.i === 0 || sel.i === L.length - 1))) { dire("Ce point ne peut pas être supprimé."); return maj(); } prendre().splice(sel.i, 1); sel = null; return complet(); }
+    if (o === "horiz" || o === "vert") { if (!sel || sel.t !== "s") { dire("Touche d'abord un trait, puis clique sur " + (o === "horiz" ? "Horizontal" : "Vertical") + "."); return maj(); }
+      const M = prendre(), i = sel.i, j = (i + 1) % M.length, a = c.hv(M[i]), q = c.hv(M[j]); poser(M, j, o === "horiz" ? [q[0], a[1]] : [a[0], q[1]]); return complet(); } });
+  window.addEventListener("planeur-idee", () => { if (muet) return; quitter(); if (piece !== "essai") mode = "piece"; maj(); });
   maj();
   });
 })();

@@ -126,18 +126,43 @@ table.pl th.pl-pg{background:var(--accent);color:var(--accent-ink);text-align:le
 .gd-n{font-family:var(--f-mono);font-size:.82rem;font-weight:600;text-align:right;white-space:nowrap}
 [id^="mi"],[id^="n"],#vocab,#cout,#diag{scroll-margin-top:70px}
 @media (max-width:640px){.gd{grid-template-columns:1fr}.gd-b{justify-content:flex-start}.gd-n{text-align:left}}
-.a3-duo{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;align-items:start;margin-bottom:12px}
-.a3-duo>div>.carte{margin:0 0 12px}.a3-duo>.carte{margin:0}
-#a3-cv{display:block;width:100%;height:auto;touch-action:none;cursor:grab;border-radius:8px;background:var(--paper-2);border:1px solid var(--rule-2)}
-.pl-sec #a3-esq svg{width:100%;margin:0;touch-action:none;background:var(--paper);border:1px solid var(--rule-2);border-radius:8px}
-.a3-g{stroke:var(--at-grille,rgba(29,63,122,.12));stroke-width:1}
-#s-cao{--at-grille:rgba(29,63,122,.12)}
+.cao{--cao-bord:#c3ccd8;--cao-fond:#f4f6f9;--cao-barre:#e9edf2;border:1px solid var(--cao-bord);border-radius:8px;overflow:hidden;margin:0 0 14px;background:var(--cao-fond);color:var(--ink)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .cao{--cao-bord:#3a4658;--cao-fond:#161c25;--cao-barre:#1f2733}}
+.cao-titre{display:flex;gap:14px;align-items:baseline;background:#1b3f7a;color:#fff;padding:7px 14px;font-size:.95rem}.cao-titre b{font-family:var(--f-disp);font-size:1.05rem;letter-spacing:.03em}.cao-titre span{opacity:.85}
+.cao-outils{display:flex;flex-wrap:wrap;gap:4px;align-items:stretch;background:var(--cao-barre);border-bottom:1px solid var(--cao-bord);padding:5px 8px;min-height:58px}
+.cao-outils button,.cao-dial button{font:inherit;font-size:.74rem;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:62px;padding:5px 7px;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--ink);cursor:pointer}
+.cao-outils button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.cao-outils button:hover{background:var(--paper);border-color:var(--cao-bord)}.cao-outils button.on{background:#cfe0f7;border-color:#1b5fbf;color:#0c2f66}
+.cao-outils button.off{opacity:.4}.cao-outils button.vert,.cao-dial button.vert{background:#1f8a4c;color:#fff;border-color:#1f8a4c}
+.cao-outils i{width:1px;background:var(--cao-bord);margin:4px 5px}
+.cao-corps{display:grid;grid-template-columns:200px minmax(0,1fr)}
+.cao-arbre{border-right:1px solid var(--cao-bord);background:var(--paper);padding:6px 0;font-size:.88rem}
+.cao-arbre h4{margin:6px 12px 4px;font-family:var(--f-disp);font-size:.78rem;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.cao-f{display:block;width:100%;text-align:left;font:inherit;border:0;border-left:3px solid transparent;background:transparent;color:var(--ink);padding:5px 12px;cursor:pointer;min-height:0;border-radius:0}
+.cao-f b{font-weight:500}.cao-f small{display:block;color:var(--ink-3);font-size:.78rem}.cao-f:disabled{cursor:default;opacity:1}
+.cao-f.gris{color:var(--ink-3)}.cao-f.vide b{font-style:italic;color:var(--ink-3)}.cao-f.actif,.cao-f:not(:disabled):hover{background:var(--accent-soft);border-left-color:var(--accent)}
+.cao-vue{position:relative;min-height:300px;background:var(--cao-fond)}
+#a3-cv{display:block;width:100%;height:auto;touch-action:none;cursor:grab}
+.pl-sec #a3-esq svg{display:block;width:100%;margin:0;touch-action:none}
+#a3-svg.o-ligne,#a3-svg.o-rect{cursor:crosshair}#a3-svg.o-cote .a3-s{cursor:pointer}
+.a3-g{stroke:var(--at-grille,rgba(29,63,122,.13));stroke-width:1}
+#s-cao{--at-grille:rgba(29,63,122,.13)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #s-cao{--at-grille:rgba(143,176,238,.16)}}
-.a3-p{fill:var(--paper);stroke:var(--ink);stroke-width:2;cursor:grab}.a3-p:hover{fill:var(--accent-soft)}.a3-p.on{fill:var(--bad);stroke:var(--bad)}
-.a3-cotes{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;background:var(--paper-2);border:1px solid var(--rule-2);border-radius:var(--r);padding:8px 12px}
-.a3-cotes input{width:5.5em;font:inherit;font-family:var(--f-mono);padding:4px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);min-height:0}
-.a3-cotes p{margin:0}
-@media (max-width:900px){.a3-duo{grid-template-columns:1fr}}
+.a3-f{fill:#f08c00;fill-opacity:.22;stroke:none}.a3-f.vieux{fill:currentColor;fill-opacity:.1}
+.a3-s{stroke:#1b5fbf;stroke-width:3;stroke-linecap:round}.a3-s.on{stroke:#f08c00;stroke-width:4.5}
+.a3-p{fill:var(--paper);stroke:#1b5fbf;stroke-width:2;cursor:grab}.a3-p.on{fill:#f08c00;stroke:#f08c00}.a3-p.dep{fill:#1f8a4c;stroke:#1f8a4c}
+.a3-tr{fill:none;stroke:#1b5fbf;stroke-width:2.5;stroke-dasharray:6 4}
+.a3-ct{font-size:11.5px;font-family:var(--f-mono);fill:var(--ink-2);pointer-events:none}.a3-ct.on{fill:#c46a00;font-weight:700}
+.cao-cotes{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:6px 12px;border-top:1px solid var(--cao-bord);background:var(--paper);min-height:42px;font-size:.92rem}
+.cao-cotes input,.cao-dial input{width:5.5em;font:inherit;font-family:var(--f-mono);padding:4px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);min-height:0}
+.cao-vues{position:absolute;right:8px;top:8px;display:flex;gap:4px}.cao-vues button{font:inherit;font-size:.76rem;padding:3px 9px;border:1px solid var(--cao-bord);border-radius:4px;background:var(--paper);color:var(--ink);cursor:pointer;min-height:0}
+.cao-dial{position:absolute;left:10px;top:10px;z-index:2;width:250px;background:var(--paper);border:1px solid var(--cao-bord);border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.18);padding:10px 12px;font-size:.9rem}
+.cao-dial h4{margin:0 0 6px;font-family:var(--f-disp)}.cao-dial p{margin:.3em 0}.cao-dial div{display:flex;gap:6px;margin-top:8px}.cao-dial button{flex-direction:row;font-size:.88rem;border-color:var(--cao-bord);min-width:0;padding:5px 12px}
+.cao-msg{border-top:1px solid var(--cao-bord);background:var(--paper);padding:7px 12px;font-size:.92rem;min-height:2.4em}
+.cao-onglets{display:flex;flex-wrap:wrap;background:var(--cao-barre);border-top:1px solid var(--cao-bord)}
+.cao-onglets button{font:inherit;font-size:.9rem;padding:8px 16px;border:0;border-right:1px solid var(--cao-bord);border-top:3px solid transparent;background:transparent;color:var(--ink);cursor:pointer;border-radius:0;min-height:0}
+.cao-onglets button[aria-selected="true"]{background:var(--paper);border-top-color:#1b5fbf;font-weight:600}
+@media (max-width:760px){.cao-corps{grid-template-columns:1fr}.cao-arbre{border-right:0;border-bottom:1px solid var(--cao-bord);display:flex;flex-wrap:wrap;align-items:center}.cao-arbre h4{width:100%}.cao-f{width:auto}.cao-f.gris{display:none}.cao-outils button{min-width:50px}}
 /* ----- simulateur ----- */
 #s-sim{--sim-ciel:#e6f1fb;--sim-ciel2:#f6fafe;--sim-sol:#dfe9d3;--sim-herbe:#7fa861;--sim-aile:#f08c00;--sim-aile-b:#b56a00;--sim-grille:rgba(29,63,122,.10)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #s-sim{--sim-ciel:#14222f;--sim-ciel2:#101a24;--sim-sol:#1b2a1d;--sim-herbe:#4f7a45;--sim-aile:#f5a033;--sim-aile-b:#f5a033;--sim-grille:rgba(143,176,238,.14)}}
@@ -766,14 +791,14 @@ const ETAPES = [
     B("equipe"),
     C("2d", "Lis « Le vocabulaire de l'ingénieur » dans l'onglet « Le défi ». Tu dois pouvoir dire le besoin, deux fonctions et deux exigences du planeur.") ] },
   { t: "Apprendre à dessiner en 3D", img: "m2", but: "Les trois gestes de base : l'esquisse, les cotes, l'extrusion.", items: [
-    C("a1", "Ouvre l'onglet « Atelier 3D », sur la pièce d'essai. Déplace un point, ajoute un point, supprime-le. Fais tourner la vue 3D."),
-    C("a2", "Défi 1 : la plaque de 60 × 20 mm, extrudée de 5 mm. Le site doit afficher 6,00 cm³."),
+    C("a1", "Ouvre l'onglet « Atelier 3D », sur la pièce d'essai. Clique Esquisse, trace un rectangle, valide, puis clique Extruder. Fais tourner la pièce."),
+    C("a2", "Défi 1 : la plaque. Avec l'outil Cote, donne 60 mm et 20 mm aux côtés, puis extrude de 5 mm. Le site doit afficher 6,00 cm³."),
     C("a3", "Défi 2 : le nez en biseau, sur la même plaque. Le site doit afficher 5,76 cm³."),
     C("3f", "Fais la série « Planeur 2 · Dessiner et imprimer ».") ] },
   { t: "Connaître le planeur de départ", img: "m6_nu", but: "Un planeur complet qui vole, le même pour toutes les équipes. Tu dois savoir comment il est fait.", items: [
-    C("a4", "Dans l'« Atelier 3D », regarde les trois esquisses du planeur de départ : fuselage, aile, stabilisateur. Repère les deux fentes et le trou du lest."),
+    C("a4", "Dans l'« Atelier 3D », ouvre l'esquisse du fuselage, de l'aile et du stabilisateur du planeur de départ (onglets du bas). Repère les deux fentes et le trou du lest."),
     C("a5", "Relève la masse des trois pièces, le point d'équilibre sans lest et le lest à ajouter."),
-    C("a6", "Épaissis l'aile à 1,2 mm : que deviennent la masse et le lest ? Reviens ensuite à 0,8 mm."),
+    C("a6", "Clique sur « Extrusion 1 » de l'aile et passe sa profondeur à 1,2 mm : que deviennent la masse et le lest ? Reviens ensuite à 0,8 mm."),
     C("3g", "Explique au professeur à quoi servent les deux fentes, le trou du nez et la dérive fine.") ] },
   { t: "Concevoir ma version 1", img: "m7a", but: "Transformer le planeur de départ pour qu'il aille plus loin, sans sortir du cahier des charges.", items: [
     C("5n", "Avant de modifier, lis les notions 4 à 7 de l'onglet « Comprendre » : charge alaire, stabilité, calage, forme de l'aile."),
