@@ -228,6 +228,10 @@ Atelier 3D, courbes et prise en main (24 novembre) :
 - **On voit le reste du dessin** : esquisse ouverte, la pièce reste bien visible derrière et les autres esquisses sont en pointillé gris ; une esquisse validée mais pas extrudée se voit même à travers la pièce.
 - **Extrusion sans effet signalée** : si « Ajouter » ne change pas le volume (matière déjà dans la pièce), la boîte le dit en rouge et propose de dessiner sur une face.
 - Demi-pièces : l'épaisseur qui entre dans la fente est celle mesurée contre le fuselage, plus l'épaisseur maximale (un relief sur l'aile n'épaissit plus son emplanture).
+- **Une esquisse posée sur une face suit cette face** : elle garde la référence de l'extrusion qui a fait la face (`hr = [extrusion, 1 dessus | 0 fond de poche]`, résolue par `etages()`). Si on change la profondeur de la semelle, le bossage, le trou et la poche dessinés dessus montent ou descendent avec elle. Extrusion supprimée : l'esquisse garde sa dernière hauteur (`h`).
+- **Hauteur de l'atelier constante** : l'arbre des fonctions défile dans sa colonne au lieu d'étirer l'atelier (il passait de 627 à 883 px sur le fuselage et poussait les onglets de pièces hors de l'écran) ; il défile tout seul jusqu'à la fonction ouverte.
+- **Arêtes** : plus de faux traits verticaux sur les cylindres et les congés (`vif()`, `aigu()` dans `aretes()`).
+- Pièce d'épreuve construite à la souris dans l'atelier (semelle en L cotée, deux congés, bossage rond, trou traversant, poche, relief en courbe libre), puis modifiée : c'est elle qui a fait apparaître les trois défauts ci-dessus.
 - Vérifié sans navigateur : 2 000 contours au hasard (courbes, congés, arcs mélangés), volume du maillage égal au volume calculé, aucune courbe hors de la boîte de ses points.
 
 ## 5. Ajouter du contenu
