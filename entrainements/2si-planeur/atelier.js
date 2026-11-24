@@ -15,7 +15,7 @@
     ["L'albatros", "Des ailes immenses et fines, aux bouts arrondis.", "Très grand allongement. Attention : une aile fine se plie au lancer.", { b: 210, c0: 40, k: 0.6, fl: 4, rond: 1, sb: 70, sc: 22, der: "ronde", nez: "rond" }],
     ["La frégate (ʻōtaha)", "Des ailes longues, pointues, tirées vers l'arrière.", "Belle silhouette, bonne finesse. Le bout pointu est fragile.", { b: 210, c0: 48, k: 0.3, fl: 34, sk: 0.4, sb: 90, der: "requin", nez: "pointu" }],
     ["Le martinet", "Une aile en croissant, tirée vers l'arrière.", "Belle allure. La flèche recule le point d'équilibre : surveille le lest dans l'atelier 3D.", { b: 190, c0: 46, k: 0.4, fl: 27, sk: 0.5, der: "requin", nez: "pointu" }],
-    ["La raie manta", "Une aile large en triangle, très solide.", "Elle porte beaucoup et ne se plie pas, mais elle freine : petit allongement.", { b: 170, c0: 50, k: 0.3, fl: 34, sb: 60, sc: 20, der: "basse", nez: "rond" }],
+    ["La raie manta", "Une aile large en triangle, très solide.", "Elle porte beaucoup et ne se plie pas, mais elle freine : petit allongement.", { b: 170, c0: 50, k: 0.3, fl: 20, sb: 60, sc: 20, der: "basse", nez: "rond" }],
     ["Le poisson volant (mārara)", "Des ailes larges et rondes, comme des nageoires.", "Facile à lancer, vol lent. Moins de finesse qu'une aile étroite.", { b: 180, c0: 50, k: 0.6, fl: 0, rond: 1, sb: 90, sc: 26, sk: 0.6, der: "ronde", nez: "rond" }]
   ];
 
@@ -35,13 +35,14 @@
     return R;
   }
   const chemin = (L, x0) => "M" + L.map((p) => (x0 + p[0]).toFixed(1) + " " + p[1].toFixed(1)).join(" L") + " Z";
+  const libres = (d, k, x0) => P3.vues(d)[k].map((L) => chemin(L, x0)).join(" ");      // pièce redessinée dans l'atelier 3D
   function aileD(d) {
-    if (P3 && Array.isArray(d.ail) && d.ail.length >= 3) return chemin(P3.aile(d), XA);   // contour de l'aile vue de dessus, en mm (x le long du fuselage, y le long de l'envergure)
+    if (P3 && d.cao && d.cao.aile) return libres(d, "aile", XA);   // contour de l'aile vue de dessus, en mm (x le long du fuselage, y le long de l'envergure)
     const ct = d.c0 * d.k, h = d.b / 2, x1 = XA + d.fl, r = d.rond ? ct / 2 : 0, yb = h - r;
     const bout = (s) => r ? `L${x1} ${s * yb} A${r} ${r} 0 0 ${s > 0 ? 0 : 1} ${x1 + ct} ${s * yb}` : `L${x1} ${s * h} L${x1 + ct} ${s * h}`;
     return `M${XA} 0 ${bout(-1)} L${XA + d.c0} 0 Z M${XA} 0 ${bout(1)} L${XA + d.c0} 0 Z`;
   }
-  function stabD(d) { if (P3 && Array.isArray(d.stb) && d.stb.length >= 3) return chemin(P3.stab(d), XS); const t = d.sc * d.sk, h = d.sb / 2, x1 = XS + d.sc - t; return `M${XS} 0 L${x1} ${-h} L${XS + d.sc} ${-h} L${XS + d.sc} ${h} L${x1} ${h} Z`; }
+  function stabD(d) { if (P3 && d.cao && d.cao.stab) return libres(d, "stab", XS); const t = d.sc * d.sk, h = d.sb / 2, x1 = XS + d.sc - t; return `M${XS} 0 L${x1} ${-h} L${XS + d.sc} ${-h} L${XS + d.sc} ${h} L${x1} ${h} Z`; }
   const bord = (c) => (c === "#eef1f4" || c === "#f1c40f" ? "var(--ink-3)" : "none");
   function dessus(d, E, ox, yc) {
     return `<g transform="translate(${ox} ${yc}) scale(${E})"><rect x="0" y="-2.5" width="210" height="5" fill="${d.cf}" stroke="${bord(d.cf)}" stroke-width=".5"/>
@@ -49,7 +50,7 @@
       <rect x="${d.der === "basse" ? 182 : 190}" y="-.6" width="${d.der === "basse" ? 28 : 20}" height="1.2" fill="${d.cf}" stroke="${bord(d.cf)}" stroke-width=".3"/></g>`;
   }
   function cote(d, F, fx, fy) {
-    return `<g transform="translate(${fx} ${fy}) scale(${F} ${-F})"><path d="M52 0 ${NEZ[d.nez][1]} L140 10 L150 5 L180 5 L180 8 ${DER[d.der][1]} Z" fill="${d.cf}" stroke="${bord(d.cf)}" stroke-width=".5"/>
+    return `<g transform="translate(${fx} ${fy}) scale(${F} ${-F})"><path d="${P3 && d.cao && d.cao.fus ? libres(d, "fus", 0) : `M52 0 ${NEZ[d.nez][1]} L140 10 L150 5 L180 5 L180 8 ${DER[d.der][1]} Z`}" fill="${d.cf}" stroke="${bord(d.cf)}" stroke-width=".5"/>
       <circle cx="12" cy="8" r="2.1" fill="var(--paper)"/><line x1="${XA}" y1="${5.7 + d.c0 * 0.0523}" x2="${XA + d.c0}" y2="5.7" stroke="${d.ca}" stroke-width="1.6" stroke-linecap="round"/>
       <line x1="${XS}" y1="4.4" x2="${XS + d.sc}" y2="4.4" stroke="${d.ca}" stroke-width="1.3" stroke-linecap="round"/></g>`;
   }
@@ -73,7 +74,7 @@
     L.push(c.ct >= 12 ? ["ok", "Le bout de l'aile est assez large pour s'imprimer."] : ["ko", "Le bout de l'aile fait moins de 12 mm : il cassera. Élargis-le."]);
     L.push(c.rapport < 15 ? ["ko", `Stabilisateur trop petit (${fr(c.rapport, 0)} % de l'aile) : le planeur sera instable. Vise 20 à 30 %.`] : c.rapport > 35 ? ["av", `Stabilisateur grand (${fr(c.rapport, 0)} % de l'aile) : stable, mais il alourdit la queue.`] : ["ok", `Stabilisateur à ${fr(c.rapport, 0)} % de la surface de l'aile : bon repère.`]);
     L.push(c.m + c.lest <= 30 ? ["ok", `Masse estimée avec le lest : ${fr(c.m + c.lest, 1)} g, sous les 30 g.`] : ["ko", `Masse estimée avec le lest : ${fr(c.m + c.lest, 1)} g. C'est plus que 30 g : réduis l'aile.`]);
-    if (c.e) c.e.L.filter((x) => x[0] === "ko" && /fente|glisser|avant|lest :/.test(x[1])).forEach((x) => L.push(["ko", x[1] + " (voir l'onglet « Atelier 3D »)"]));
+    if (c.e) c.e.L.filter((x) => x[0] === "ko" && /fente|glisser|avant|lest :|épaisseur|volume/.test(x[1])).forEach((x) => L.push(["ko", x[1] + " (voir l'onglet « Atelier 3D »)"]));
     if (c.al < 3) L.push(["av", "Aile courte et large : elle freine. C'est ton choix, mais tu perds de la finesse."]);
     if (d.fl > 25) L.push(["av", "Aile en flèche : le point d'équilibre recule. Prévois plus de lest, et vérifie dans le simulateur."]);
     return L;
@@ -137,11 +138,11 @@
       + li("Je choisis", (x, k, i) => `<input type="radio" name="at-choix" data-choix="${i}" ${A.choisi === i ? "checked" : ""} aria-label="Je choisis l'idée ${"ABC"[i]}">`);
     garder(); if (pret) window.dispatchEvent(new Event("planeur-idee"));
   }
-  if (!A.essai || !Array.isArray(A.essai.p)) A.essai = { p: [], ep: 0 };   // pièce d'essai de l'atelier 3D : vide au départ
+  if (!A.essai || !Array.isArray(A.essai.f)) A.essai = { f: [] };   // pièce d'essai de l'atelier 3D : vide au départ
   window.PlaneurAtelier = { idee: () => A.idees[A.n], titre: () => "l'idée " + "ABC"[A.n] + (A.idees[A.n].nom ? " « " + A.idees[A.n].nom + " »" : ""), lettre: () => "ABC"[A.n], libre: () => A.essai, garder, rafraichir: () => maj(true) };
 
   racine.addEventListener("input", (ev) => { const t = ev.target, d = A.idees[A.n];
-    if (t.dataset.k) { d[t.dataset.k] = parseFloat(t.value); delete d[t.dataset.k[0] === "s" ? "stb" : "ail"]; maj(); }
+    if (t.dataset.k) { d[t.dataset.k] = parseFloat(t.value); if (d.cao) delete d.cao[t.dataset.k[0] === "s" ? "stab" : "aile"]; maj(); }
     else if (t.id === "at-nom") { d.nom = t.value; maj(); } else if (t.id === "at-devise") { d.devise = t.value; maj(); }
     else if (t.id === "at-pourquoi") { A.pourquoi = t.value; garder(); } else if (t.id === "at-ref1" || t.id === "at-ref2") { A[t.id.slice(3)] = t.value; garder(); } });
   racine.addEventListener("change", (ev) => { if (ev.target.dataset.choix != null) { A.choisi = +ev.target.dataset.choix; maj(); } });

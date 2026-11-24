@@ -151,7 +151,19 @@ table.pl th.pl-pg{background:var(--accent);color:var(--accent-ink);text-align:le
 .a3-f{fill:#f08c00;fill-opacity:.22;stroke:none}.a3-f.vieux{fill:currentColor;fill-opacity:.1}
 .a3-s{stroke:#1b5fbf;stroke-width:3;stroke-linecap:round}.a3-s.on{stroke:#f08c00;stroke-width:4.5}
 .a3-p{fill:var(--paper);stroke:#1b5fbf;stroke-width:2;cursor:grab}.a3-p.on{fill:#f08c00;stroke:#f08c00}.a3-p.dep{fill:#1f8a4c;stroke:#1f8a4c}
-.a3-tr{fill:none;stroke:#1b5fbf;stroke-width:2.5;stroke-dasharray:6 4}
+.a3-tr{fill:none;stroke:#1b5fbf;stroke-width:2.5;stroke-dasharray:6 4;pointer-events:none}
+.a3-o{fill:#f08c00;fill-opacity:.22;stroke:#1b5fbf;stroke-width:3;cursor:pointer}.a3-o.on{stroke:#f08c00;stroke-width:4.5}
+.a3-f{pointer-events:none}.a3-autre{fill:currentColor;fill-opacity:.07;stroke:currentColor;stroke-opacity:.35;stroke-width:1;stroke-dasharray:4 3;pointer-events:none}
+.a3-gab{fill:none;stroke:var(--good);stroke-width:1.6;stroke-dasharray:4 3;pointer-events:none}
+.cao-l{display:flex;align-items:stretch;border-left:3px solid transparent}.cao-l>span{padding:5px 12px;flex:1}.cao-l small{display:block;color:var(--ink-3);font-size:.78rem}
+.cao-l.gris{color:var(--ink-3)}.cao-l.actif,.cao-l:not(.gris):hover{background:var(--accent-soft);border-left-color:var(--accent)}
+.cao-l .cao-f{flex:1;border-left:0;background:transparent}.cao-l .cao-f:hover{background:transparent;border-left-color:transparent}
+.cao-x{font:inherit;font-size:.8rem;border:0;background:transparent;color:var(--ink-3);cursor:pointer;padding:0 9px;min-height:0;border-radius:0}.cao-x:hover{color:var(--bad)}
+.cao-vide{margin:4px 12px;color:var(--ink-3);font-style:italic}
+.cao-re{font:inherit;font-size:.8rem;margin:10px 12px 4px;padding:4px 10px;border:1px solid var(--cao-bord);border-radius:4px;background:transparent;color:var(--ink-2);cursor:pointer;min-height:0}
+.cao-dial label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0}.cao-dial select{font:inherit;padding:4px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);min-height:0}
+.cao-dial .cao-op{display:flex;gap:0;margin:0 0 8px}.cao-dial .cao-op button{flex:1;border-radius:0;justify-content:center;padding:5px 4px;font-size:.84rem}.cao-dial .cao-op button.on{background:#1b5fbf;color:#fff;border-color:#1b5fbf}
+.cao-sep{color:var(--ink-3)}
 .a3-ct{font-size:11.5px;font-family:var(--f-mono);fill:var(--ink-2);pointer-events:none}.a3-ct.on{fill:#c46a00;font-weight:700}
 .cao-cotes{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:6px 12px;border-top:1px solid var(--cao-bord);background:var(--paper);min-height:42px;font-size:.92rem}
 .cao-cotes input,.cao-dial input{width:5.5em;font:inherit;font-family:var(--f-mono);padding:4px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);min-height:0}
@@ -794,9 +806,10 @@ const ETAPES = [
     C("a1", "Ouvre l'onglet « Atelier 3D », sur la pièce d'essai. Clique Esquisse, trace un rectangle, valide, puis clique Extruder. Fais tourner la pièce."),
     C("a2", "Défi 1 : la plaque. Avec l'outil Cote, donne 60 mm et 20 mm aux côtés, puis extrude de 5 mm. Le site doit afficher 6,00 cm³."),
     C("a3", "Défi 2 : le nez en biseau, sur la même plaque. Le site doit afficher 5,76 cm³."),
+    C("a8", "Défi 3 : le trou. Nouvelle esquisse, un cercle de 4 mm de diamètre, puis Extruder, Supprimer, À travers tout. Le site doit afficher 5,70 cm³."),
     C("3f", "Fais la série « Planeur 2 · Dessiner et imprimer ».") ] },
   { t: "Connaître le planeur de départ", img: "m6_nu", but: "Un planeur complet qui vole, le même pour toutes les équipes. Tu dois savoir comment il est fait.", items: [
-    C("a4", "Dans l'« Atelier 3D », ouvre l'esquisse du fuselage, de l'aile et du stabilisateur du planeur de départ (onglets du bas). Repère les deux fentes et le trou du lest."),
+    C("a4", "Dans l'« Atelier 3D », onglet « Fuselage » : lis l'arbre des fonctions du planeur de départ. Quelle extrusion fait le corps, laquelle fait la dérive, laquelle perce les fentes et le trou du lest ?"),
     C("a5", "Relève la masse des trois pièces, le point d'équilibre sans lest et le lest à ajouter."),
     C("a6", "Clique sur « Extrusion 1 » de l'aile et passe sa profondeur à 1,2 mm : que deviennent la masse et le lest ? Reviens ensuite à 0,8 mm."),
     C("3g", "Explique au professeur à quoi servent les deux fentes, le trou du nez et la dérive fine.") ] },
@@ -804,7 +817,7 @@ const ETAPES = [
     C("5n", "Avant de modifier, lis les notions 4 à 7 de l'onglet « Comprendre » : charge alaire, stabilité, calage, forme de l'aile."),
     C("5i", "Dans l'onglet « Créer », dessine trois idées vraiment différentes. Compare-les, choisis-en une et écris pourquoi."),
     C("5j", "Donne un nom à ton planeur, et choisis ses couleurs."),
-    C("a7", "Dans l'« Atelier 3D », dessine le fuselage de ton idée, retouche l'aile si tu veux, choisis les épaisseurs. Change une chose à la fois et regarde la masse."),
+    C("a7", "Dans l'« Atelier 3D », dessine le fuselage de ton idée, retouche l'aile si tu veux, choisis les épaisseurs. Change une chose à la fois et regarde la masse. Si l'aile change, replace sa fente."),
     C("5s", "Entre les valeurs de ta version 1 dans l'onglet « Simulateur », règle le point d'équilibre, puis note la distance prévue dans ton carnet."),
     C("5k", "Avec la masse de tes pièces, calcule ce que coûte ton planeur (onglet « Le défi », « Ce que coûte ton planeur »)."),
     C("4c", "Relève dans l'atelier 3D les dimensions et le volume de chaque pièce, puis remplis la fiche ci-dessous."),
@@ -915,7 +928,7 @@ function verifier() {
 /* ---------- Le guide : la prochaine chose à faire, visible dans tous les onglets ---------- */
 /* destination de chaque ligne : "onglet" ou "onglet#identifiant" ; "tab" = tableau de bord ; rien = à faire en vrai, dans la salle */
 const VA = { "0a": "defi", "1o": "etapes", "1d": "comprendre#n1", "1c": "tab", "2e": "etapes", "2d": "defi#vocab",
-  a1: "cao", a2: "cao", a3: "cao", "3f": "tab", a4: "cao", a5: "cao", a6: "cao",
+  a1: "cao", a2: "cao", a3: "cao", a8: "cao", "3f": "tab", a4: "cao", a5: "cao", a6: "cao",
   "5n": "comprendre#n4", "5i": "creer", "5j": "creer", a7: "cao", "5s": "sim", "5k": "defi#cout", "4c": "etapes", "4d": "etapes", "4e": "cao",
   "5a": "tab", "5p": "essais", "5c": "comprendre#n3", "5d": "essais#t-essais", "5e": "essais#t-essais", "5f": "essais#diag", "5q": "essais#g-essais", "5g": "essais#modif",
   "6s": "sim", "6a": "cao", "6b": "etapes", "6c": "cao", "6d": "essais#t-essais", "6e": "essais#bilan", "7b": "essais#t-essais", "7o": "etapes", "7c": "essais#t-essais" };
@@ -1135,8 +1148,7 @@ document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Nive
 })();
 </script>
 <script src="2si-planeur/interactif.js"></script>
-<script src="2si-planeur/earcut.min.js"></script>
-<script src="2si-planeur/atelier3d.js"></script>
+<script src="2si-planeur/cao.js"></script>
 <script src="2si-planeur/atelier.js"></script>
 <!-- compte de l'élève : l'avancement est aussi gardé sur le site (ignoré si la page est ouverte seule) -->
 <script src="../config.js" onerror="void 0"></script>
