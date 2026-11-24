@@ -108,9 +108,9 @@
     return R;
   }
   function demi(d, k) { const e = k === "aile" ? 5 : 2.5, F = fonctions(d, k), M0 = moteur(F), c = coupe(M0, 0.2), rac = c.length ? [c[0][0], c[c.length - 1][1]] : null, FE = entier(F, e, rac, M0.zmax); return { M: moteur(FE), FE, ep: M0.zmax, rac }; }
-  let memo = ["", null];
+  const memo = new Map();                      // une étude par état de planeur : l'onglet « Créer » en demande plusieurs à chaque affichage
   function etude(d) {
-    const cle = JSON.stringify([d.cao, d.b, d.c0, d.k, d.fl, d.rond, d.sb, d.sc, d.sk, d.nez, d.der, d.ea, d.es]); if (memo[0] === cle) return memo[1];
+    const cle = JSON.stringify([d.cao, d.b, d.c0, d.k, d.fl, d.rond, d.sb, d.sc, d.sk, d.nez, d.der, d.ea, d.es]); if (memo.has(cle)) return memo.get(cle);
     const S = { aile: demi(d, "aile"), stab: demi(d, "stab") }, a = S.aile.rac, s = S.stab.rac, L = [];
     const G = { A: a && { l: [XA + a[0], YFA, XA + a[1] + JEU, YFA - (a[1] - a[0] + JEU) * T3], h: S.aile.ep + 0.2 }, S: s && { l: [XS + s[0], YFS, XS + s[1] + JEU, YFS], h: S.stab.ep + 0.2 } };
     const MF = moteur(fonctions(d, "fus", G)), bf = boite(MF), bw = boite(S.aile.M), bs = boite(S.stab.M);
@@ -137,7 +137,7 @@
     ok(couche(P.aile.ep) && couche(P.stab.ep), "L'aile et le stabilisateur ont une épaisseur multiple de 0,2 mm.", "L'aile et le stabilisateur doivent avoir une épaisseur multiple de 0,2 mm, entre 0,4 et 1,6 mm.");
     if (m) { L.push(lest < -0.5 ? ["ko", "Le planeur est trop lourd de l'avant : même sans lest, il piquera. Allège le nez."] : lest < 0.05 ? ["ok", "Pas besoin de lest : le planeur est déjà équilibré."] : lest > 8 ? ["ko", `Il faudrait ${fr(lest, 1)} g de lest : c'est trop. Allège l'arrière.`] : ["ok", `Lest à mettre dans le nez : ${fr(lest, 1)} g.`]);
       ok(m + Math.max(0, lest) <= 30, `Masse avec le lest : ${fr(m + Math.max(0, lest), 1)} g, pour 30 g maximum.`, `Masse avec le lest : ${fr(m + Math.max(0, lest), 1)} g. C'est plus de 30 g.`); }
-    const r = { S, G, MF, P, m, xg, cible, lest, env, envS, c0, L, bon: L.every((x) => x[0] !== "ko") }; memo = [cle, r]; return r;
+    const r = { S, G, MF, P, m, xg, cible, lest, env, envS, c0, L, bon: L.every((x) => x[0] !== "ko") }; if (memo.size > 40) memo.clear(); memo.set(cle, r); return r;
   }
   const maillages = (d) => { const e = etude(d); return { fuselage: maillage(e.MF), aile: maillage(e.S.aile.M), stabilisateur: maillage(e.S.stab.M) }; };
   function vues(d) { const e = etude(d), pleins = (F) => { const ids = {}; F.forEach((f) => { if (f.t === "ext" && f.op !== "cut") ids[f.e] = 1; }); return [].concat(...F.filter((f) => f.t === "esq" && ids[f.id]).map((f) => (f.c || []).filter(valable).map(anneau))); };
