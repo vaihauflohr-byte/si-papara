@@ -39,7 +39,7 @@
     const R = {}, P = ct.p, n = P.length, A = ct.a || {};
     for (const s in A) { const i = +s; if (!(i < n) || !(A[s] > 0) || (ct.b && (ct.b[i] || ct.b[(i - 1 + n) % n])) || (ct.l && (ct.l[i] || ct.l[(i - 1 + n) % n] || ct.l[(i + 1) % n]))) continue; const B = P[i], p0 = P[(i - 1 + n) % n], p1 = P[(i + 1) % n], la = Math.hypot(p0[0] - B[0], p0[1] - B[1]), ld = Math.hypot(p1[0] - B[0], p1[1] - B[1]); if (la < 0.4 || ld < 0.4) continue;
       const u = [(p0[0] - B[0]) / la, (p0[1] - B[1]) / la], v = [(p1[0] - B[0]) / ld, (p1[1] - B[1]) / ld], th = Math.acos(Math.max(-1, Math.min(1, u[0] * v[0] + u[1] * v[1]))); if (th < 0.1 || th > Math.PI - 0.1) continue;
-      const place = (l, j) => l * (A[j] > 0 ? 0.48 : 0.96); let r = +A[s], t = r / Math.tan(th / 2); const tm = Math.min(place(la, (i - 1 + n) % n), place(ld, (i + 1) % n)); if (t > tm) { t = tm; r = t * Math.tan(th / 2); }      // l'arrondi ne mange jamais tout un trait
+      const place = (l, j) => l * (A[j] > 0 ? 0.5 : 1); let r = +A[s], t = r / Math.tan(th / 2); const tm = Math.min(place(la, (i - 1 + n) % n), place(ld, (i + 1) % n)); if (t > tm + 1e-9) { t = tm; r = t * Math.tan(th / 2); }      // deux arrondis se partagent un trait moitié-moitié : deux rayons de 3 sur un trait de 6 font un bout tout rond, comme dans Onshape
       const bx = u[0] + v[0], by = u[1] + v[1], lb = Math.hypot(bx, by), q = r / Math.sin(th / 2), O = [B[0] + bx / lb * q, B[1] + by / lb * q], T1 = [B[0] + u[0] * t, B[1] + u[1] * t], T2 = [B[0] + v[0] * t, B[1] + v[1] * t];
       const a1 = Math.atan2(T1[1] - O[1], T1[0] - O[0]); let da = Math.atan2(T2[1] - O[1], T2[0] - O[0]) - a1; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
       R[i] = { T1, T2, O, r, a1, da }; }
@@ -64,7 +64,8 @@
       if (dz) { const N = Math.max(4, Math.min(16, Math.round((Math.hypot(p[0] - dz[0][0], p[1] - dz[0][1]) + Math.hypot(dz[1][0] - p[0], dz[1][1] - p[1])) / 2.5))); for (let t = Lz[(i - 1 + nb) % nb] ? 1 : 0; t <= N; t++) R.push(fin(qd(dz[0], p, dz[1], t / N))); }
       else if (!c) R.push(p); else { const N = Math.max(3, Math.min(12, Math.round(Math.abs(c.da) * c.r / 1.2))); arc(c.O, c.r, c.a1, c.da, N, 0, N); }
       if (a) { const N = Math.max(4, Math.min(28, Math.round(Math.abs(a.da) * a.r / 1.2))); arc(a.O, a.r, a.a1, a.da, N, 1, N - 1); } });
-    return R;
+    const D = R.filter((p, i) => !i || Math.abs(p[0] - R[i - 1][0]) > 1e-9 || Math.abs(p[1] - R[i - 1][1]) > 1e-9); if (D.length > 3 && Math.abs(D[0][0] - D[D.length - 1][0]) < 1e-9 && Math.abs(D[0][1] - D[D.length - 1][1]) < 1e-9) D.pop();          // deux arrondis qui se touchent : pas de point en double
+    return D;
   }
   const courbe = (ct) => (ct.a && Object.keys(ct.a).length) || (ct.b && Object.keys(ct.b).length) || (ct.l && Object.keys(ct.l).length);
   const anneau = (ct) => (ct.k === "cercle" ? cercle(ct.c, ct.r) : courbe(ct) ? arrondi(ct) : ct.p);
@@ -223,10 +224,22 @@
     const fx = new Array(m).fill(false); piv.forEach((c, r) => { let seul = true; for (let x = 0; x < m; x++) if (x !== c && Math.abs(L[r][x]) > 1e-6) { seul = false; break; } fx[c] = seul; });
     const pts = P.map((_, i) => fx[2 * i] && fx[2 * i + 1]); return { pts, tout: pts.every(Boolean) };
   }
+  function noteTuto(F) {                       // didacticiel noté : l'équerre percée (50 × 30 × 4 mm, congé de 6 au coin opposé à l'origine, trou de 8 en 15 ; 15). On note la pièce obtenue, pas le chemin suivi. Rend { n : note sur 20, C : [points, obtenus, critère] }.
+    F = Array.isArray(F) ? F : []; let M, pr; try { M = moteur(F); pr = props(M); } catch (x) { M = { B: [], zs: [], zmax: 0 }; pr = { v: 0 }; }
+    const b = pr.v > 0 ? boite(M) : null, pres = (x, y, t) => Math.abs(x - y) <= t, dans = (x, y) => coupe(M, y).some((s) => x > s[0] + 1e-9 && x < s[1] - 1e-9);
+    const L = b ? b.b[0] - b.a[0] : 0, Hh = b ? b.b[1] - b.a[1] : 0, X1 = b ? b.b[0] : 0, Y1 = b ? b.b[1] : 0, cx = b ? b.a[0] + 15 : 0, cy = b ? b.a[1] + 15 : 0;
+    const esqs = F.filter((f) => f.t === "esq" && (f.c || []).some(valable)), noir = esqs.length > 0 && esqs.every((f) => f.c.filter(valable).every((ct) => definis(ct).tout));
+    const C = [[3, !!b && pres(L, 50, 0.05) && pres(Hh, 30, 0.05), "Contour de 50 × 30 mm"], [1, !!b && pres(b.a[0], 0, 0.05) && pres(b.a[1], 0, 0.05), "Un coin de la plaque sur l'origine"], [2, pr.v > 0 && pres(M.zmax, 4, 0.01), "Épaisseur de 4 mm"],
+      [3, !!b && !dans(X1 - 1.62, Y1 - 1.62) && dans(X1 - 1.9, Y1 - 1.9), "Congé de 6 mm au coin opposé à l'origine"],
+      [4, !!b && !dans(cx, cy) && !dans(cx + 3.7, cy) && !dans(cx - 3.7, cy) && !dans(cx, cy + 3.7) && !dans(cx, cy - 3.7) && dans(cx + 4.3, cy) && dans(cx - 4.3, cy) && dans(cx, cy + 4.3) && dans(cx, cy - 4.3), "Trou de 8 mm de diamètre, à 15 mm et 15 mm de l'origine, à travers toute la plaque"],
+      [2, esqs.length >= 2 && F.some((f) => f.t === "ext" && f.op === "cut"), "Méthode : une esquisse pour la plaque, une autre pour le trou, enlevé avec « Supprimer »"],
+      [3, noir, "Toutes les esquisses entièrement définies (tous les traits en noir)"], [2, pres(pr.v, 5.77, 0.04), "Volume de 5,77 cm³"]];
+    return { n: C.reduce((t, c) => t + (c[1] ? c[0] : 0), 0), C, v: pr.v };
+  }
   function definition(d) {                     // pour chaque pièce : combien d'esquisses dessinées, et combien sont entièrement définies (tous leurs traits noirs)
     const G = etude(d).G, R = {}; ["fus", "aile", "stab"].forEach((k) => { const E1 = fonctions(d, k, G).filter((f) => f.t === "esq" && !f.auto && (f.c || []).some(valable)); R[k] = { n: E1.length, ok: E1.filter((f) => f.c.filter(valable).every((ct) => definis(ct).tout)).length }; }); return R;
   }
-  window.Planeur3D = { etude, maillages, stl, telecharger, vues, moteur, maillage, props, definition };
+  window.Planeur3D = { etude, maillages, stl, telecharger, vues, moteur, maillage, props, definition, noteTuto };
 
   /* ============================== L'ÉCRAN ============================== */
   document.addEventListener("DOMContentLoaded", () => {
@@ -411,7 +424,38 @@
   const voir = (a, b) => animer({ a, b, px: 0, py: 0, z: 1, k0: cadre(a, b) }, 320);
   function eclater() { const e0 = vue.e, e1 = e0 > 0.5 ? 0 : 1; vue.e = e1; const k = cadre(vue.a, vue.b); vue.e = e0; animer({ e: e1, k0: k, px: 0, py: 0, z: 1 }, 450); }
   /* ---------- le premier défi est guidé bouton par bouton ---------- */
+  function guideT() {                          // le didacticiel noté, pas à pas : la ligne sous le dessin dit quoi faire, le bouton clignote
+    const F = lib().f, E1 = F.filter((f) => f.t === "esq"), e1 = E1[0], e2 = E1[1], c1 = e1 && (e1.c || []).find((ct) => ct.k === "poly" && valable(ct)), c2 = e2 && (e2.c || []).find((ct) => ct.k === "cercle" && valable(ct));
+    const x1 = e1 && F.find((f) => f.t === "ext" && f.e === e1.id), x2 = e2 && F.find((f) => f.t === "ext" && f.e === e2.id), T = "Didacticiel · ", pres = (a, b) => Math.abs(a - b) < 0.02;
+    const bb = c1 && (() => { const xs = c1.p.map((q) => q[0]), ys = c1.p.map((q) => q[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; })(), rect = !!bb && c1.p.length === 4 && pres(bb[2] - bb[0], 50) && pres(bb[3] - bb[1], 30), coin = rect ? c1.p.findIndex((q) => pres(q[0], bb[2]) && pres(q[1], bb[3])) : -1, cg = coin >= 0 && pres((c1.a || {})[coin] || 0, 6);
+    const diam = !!c2 && pres(c2.r, 4), place = !!c2 && pres(c2.c[0], 15) && pres(c2.c[1], 15), tenu = !!c2 && (c2.q || []).filter((q) => q.b === -1).length >= 2;
+    if (dial) return ["ext-ok", T + (e2 && dial.e === e2.id ? "choisis Supprimer, puis la limite « À travers tout », et valide avec ✓." : "choisis Nouveau, tape 4 mm de profondeur, puis valide avec ✓.")];
+    if (mode === "piece") {
+      if (!e1) return choixPlan ? ["plan-face", T + "clique le plan « Face », dans l'arbre à gauche."] : ["esquisse", T + "étape 1. Clique sur Esquisse."];
+      if (!rect || !cg) return ["", T + "rouvre « Esquisse 1 » dans l'arbre : il manque " + (!rect ? "les cotes 50 et 30." : "le congé de 6 mm.")];
+      if (!x1) return ["extruder", T + "étape 3. Clique sur Extruder."];
+      if (!pres(+x1.prof, 4) || x1.tout || x1.op === "cut") return ["", T + "clique « Extrusion 1 » dans l'arbre : Nouveau, 4 mm de profondeur."];
+      if (!e2) return choixPlan ? [FP.length ? "face-0" : "", T + "clique la face de la pièce, en bleu : le trou se dessine dessus."] : ["esquisse", T + "étape 4. La plaque est faite. Clique sur Esquisse pour dessiner le trou."];
+      if (!diam || !place) return ["", T + "rouvre « Esquisse 2 » dans l'arbre : " + (!c2 ? "il manque le cercle." : !diam ? "le cercle doit faire 8 mm de diamètre." : "son centre doit être à 15 mm et 15 mm de l'origine.")];
+      if (!x2) return ["extruder", T + "étape 6. Clique sur Extruder : ce sera le trou."];
+      if (x2.op !== "cut" || !x2.tout) return ["", T + "clique « Extrusion 2 » dans l'arbre : choisis Supprimer et « À travers tout »."];
+      return null; }
+    if (e1 && esqId === e1.id) {
+      if (!c1) return outil === "rect" ? ["", T + (pt0 ? "clique maintenant le coin opposé, plus haut et plus à droite." : "clique le premier coin sur l'origine (le petit rond), puis le coin opposé.")] : ["rect", T + "choisis l'outil Rectangle."];
+      if (!rect && edit && edit.auto) return ["", T + "tape la largeur : 50, puis Entrée. Ensuite la hauteur : 30, Entrée."];
+      if (!rect) return outil === "cote" ? ["", T + (edit ? "tape la valeur, puis Entrée." : "clique le trait du bas, tape 50, Entrée. Puis un trait de côté, tape 30, Entrée.")] : ["cote", T + "choisis Cote pour fixer les dimensions : 50 et 30."];
+      if (!cg) return outil === "conge" ? ["", T + (edit ? "tape 6, puis Entrée." : "clique le coin en haut à droite, celui qui est à l'opposé de l'origine.")] : ["conge", T + "étape 2. Choisis Congé pour arrondir un coin."];
+      return ["valider", T + "50 × 30 avec son congé de 6 : valide l'esquisse."]; }
+    if (e2 && esqId === e2.id) {
+      if (!c2) return outil === "cercle" ? ["", T + (pt0 ? "clique un peu plus loin pour donner sa taille au cercle." : "clique le centre du trou, vers 15 mm à droite et 15 mm au-dessus de l'origine.")] : ["cercle", T + "choisis l'outil Cercle."];
+      if (!diam) return edit ? ["", T + "tape le diamètre : 8, puis Entrée."] : outil === "cote" ? ["", T + "clique le cercle, tape 8, Entrée."] : ["cote", T + "choisis Cote : le trou doit faire 8 mm de diamètre."];
+      if (!place || !tenu) { const sens = (c2.q || []).filter((q) => q.b === -1).map((q) => q.k), double = edit && edit.t === "q" && edit.qi < 0 && sens.includes(edit.k);
+        return outil === "cote" ? ["", T + (double ? "cette distance est déjà cotée. Déplace la souris " + (edit.k === 1 ? "au-dessus ou au-dessous" : "à gauche ou à droite") + " du trou : la cote mesure alors l'autre distance. Puis tape 15, Entrée." : edit ? "tape 15, puis Entrée. (Souris au-dessus ou au-dessous du trou : distance vers la droite. Souris à gauche ou à droite : distance vers le haut.)" : cot1 ? "clique maintenant l'origine (le petit rond), puis tape 15." : sens.length ? "une distance est cotée. Recommence pour l'autre : clique le centre du cercle, puis l'origine, tape 15, Entrée." : "étape 5. Clique le centre du cercle, puis l'origine, et tape 15, Entrée. Il faut deux cotes : la distance vers la droite et la distance vers le haut.")] : ["cote", T + "étape 5. Choisis Cote pour placer le trou à 15 mm et 15 mm de l'origine."]; }
+      return ["valider", T + "le trou est à sa place : valide l'esquisse."]; }
+    return null;
+  }
   function guide() {
+    if (piece === "essai" && lib().tu) return guideT();
     if (piece !== "essai" || lib().d1) return null; const F = lib().f, e1 = F.find((f) => f.t === "esq"), ct = e1 && (e1.c || []).find(valable), ext = F.some((f) => f.t === "ext"), D = "Défi 1 · ";
     const bon = ct && ct.k === "poly" && ct.p.length === 4 && (() => { const xs = ct.p.map((p) => p[0]), ys = ct.p.map((p) => p[1]); return Math.abs(Math.max(...xs) - Math.min(...xs) - 60) < 0.02 && Math.abs(Math.max(...ys) - Math.min(...ys) - 20) < 0.02; })();
     if (dial) return ["ext-ok", D + "choisis Nouveau, tape 5 mm de profondeur, puis valide avec ✓."];
@@ -422,7 +466,7 @@
     return ["valider", D + "60 × 20 mm : c'est bon. Clique sur Valider l'esquisse."];
   }
   function conseil() {                         // hors du défi 1 : le bouton du prochain geste évident, pour ne jamais rester bloqué
-    if (dial || piece === "essai" && !lib().d1) return null; const F = lireF(), E1 = F.filter((f) => f.t === "esq" && (f.c || []).some(valable));
+    if (dial || piece === "essai" && !lib().d1 && !lib().tu) return null; const F = lireF(), E1 = F.filter((f) => f.t === "esq" && (f.c || []).some(valable));
     if (mode === "piece") return choixPlan ? [FP.length ? "face-0" : "plan-" + C().pl] : !F.length ? ["esquisse"] : E1.some((f) => !F.some((x) => x.t === "ext" && x.e === f.id)) ? ["extruder"] : null;
     const k = K(), L = k ? (k.c || []).filter(valable) : []; return L.length && outil === "sel" && !sel && !edit && !trace && L.every((ct) => definis(ct).tout) ? ["valider"] : null;
   }
@@ -448,7 +492,8 @@
   }
   function arbre() {
     const c = C(), F = lireF(), M = matiere(), pr = M ? props(M) : { v: 0, m: 0 };
-    const res = (f) => (f.t === "esq" ? ((f.c || []).length ? (f.c.length > 1 ? f.c.length + " contours" : "1 contour") : "vide") + (HA[f.id] > 0 ? " · sur la pièce" : "") : { new: "Nouveau", add: "Ajouter", cut: "Supprimer" }[f.op] + " · " + (f.tout ? "à travers tout" : fr(f.prof, 1) + " mm"));
+    const res = (f) => (f.t === "esq" ? ((f.c || []).length ? (f.c.length > 1 ? f.c.length + " contours" : "1 contour") : "vide") + (HA[f.id] > 0 ? " · sur la pièce" : "") : { new: "Nouveau", add: "Ajouter", cut: "Supprimer" }[f.op] + " · " + (f.tout ? "à travers tout" : fr(f.prof, 1) + " mm") + (vide(f) ? ` <em class="cao-alerte" title="Cette extrusion ne change rien à la pièce : sa matière est déjà là, ou il n'y a rien à enlever à cet endroit.">· sans effet</em>` : ""));
+    const vT = F.length < 24 && F.some((f) => f.t === "ext") ? props(moteur(F)).v : -1, vide = (f) => vT >= 0 && Math.abs(props(moteur(F.filter((x) => x !== f))).v - vT) < 1e-6;          // comme un avertissement d'Onshape : l'extrusion qui ne fait rien est signalée dans l'arbre
     HT.arbre = `<h4>Fonctions</h4><div class="cao-l gris"><span>Origine</span></div>` + ["dessus", "face", "droite"].map((x) => `<div class="cao-l plan${choixPlan ? " choix" : ""}${planSel === x ? " actif" : ""}"><button type="button" class="cao-f" data-o="plan-${x}" title="Plan de départ « ${NOMPL[x]} »">${NOMPL[x]}</button></div>`).join("") + (choixPlan ? FP.map((f, i) => `<div class="cao-l plan choix"><button type="button" class="cao-f" data-o="face-${i}" title="Dessiner sur cette face de la pièce"><b>Face de la pièce</b><small>à ${val(f.h)} mm de hauteur</small></button></div>`).join("") : "")
       + F.map((f) => `<div class="cao-l${mode === "esquisse" && f.id === esqId ? " actif" : ""}"><button type="button" class="cao-f" data-f="${f.id}"><b>${nomF(F, f)}</b><small>${res(f)}</small></button><button type="button" class="cao-x" data-del="${f.id}" title="Supprimer cette fonction" aria-label="Supprimer ${nomF(F, f)}">✕</button></div>`).join("")
       + (c.demi ? `<div class="cao-l gris"><span>Symétrie 1<small>automatique</small></span></div>` : "") + (F.length ? "" : `<p class="cao-vide">Aucune fonction.</p>`)
@@ -579,11 +624,20 @@
   }
   function defis() {
     const D = $("a3-defis"); D.hidden = piece !== "essai"; $("a3-bilan").hidden = piece === "essai"; if (piece !== "essai") return;
+    const choix = `<div class="a3-choix"><button type="button" data-o="tu-0" class="${lib().tu ? "" : "on"}">Cinq défis pour apprendre</button><button type="button" data-o="tu-1" class="${lib().tu ? "on" : ""}">Didacticiel noté : l'équerre percée</button></div>`;
+    if (lib().tu) { const N = noteTuto(lib().f); lib().nt = N.n;
+      D.innerHTML = choix + `<div class="a3-tuto"><div><svg viewBox="0 0 350 232" role="img" aria-label="Plan de l'équerre percée : 50 par 30 millimètres, épaisseur 4, congé de 6 au coin en haut à droite, trou de 8 à 15 et 15 millimètres de l'origine" style="width:100%;height:auto;color:var(--ink)"><path d="M50 180H300V60A30 30 0 0 0 270 30H50Z" fill="rgba(240,140,0,.2)" stroke="currentColor" stroke-width="2"/><circle cx="125" cy="105" r="20" fill="var(--paper)" stroke="currentColor" stroke-width="2"/>
+          <g stroke="currentColor" stroke-width="1" fill="none"><path d="M50 196V212M300 196V212M50 204H300M316 180H332M316 30H332M324 180V30" /><path d="M125 105V180M125 105H50" stroke-dasharray="4 3"/><path d="M139 91L158 72M279 39L262 56"/></g><circle cx="50" cy="180" r="4" fill="var(--paper)" stroke="currentColor"/>
+          <g fill="currentColor" font-size="13" font-family="system-ui,sans-serif" text-anchor="middle"><text x="175" y="226">50</text><text x="338" y="110">30</text><text x="88" y="100">15</text><text x="138" y="150">15</text><text x="170" y="68">Ø 8</text><text x="250" y="72">R 6</text><text x="50" y="16" text-anchor="start">Épaisseur : 4 mm</text><text x="44" y="198" text-anchor="end" font-size="11">origine</text></g></svg></div>
+        <div><h3 style="margin-top:0">Didacticiel noté : l'équerre percée</h3><p>Reproduis la pièce du plan. <b>La ligne sous le dessin te dit quoi faire, et le bouton à cliquer clignote.</b> Le site note ta pièce sur 20 ; tu peux corriger autant de fois que tu veux.</p>
+        <ol style="margin:0 0 8px 18px;padding:0"><li>Esquisse → plan « Face » → Rectangle depuis l'origine → 50 et 30.</li><li>Congé → le coin opposé à l'origine → 6.</li><li>Valider → Extruder → Nouveau → 4 mm.</li><li>Esquisse → clique la face de la pièce, en bleu → Cercle.</li><li>Cote : le cercle → 8. Puis centre, origine → 15, deux fois.</li><li>Valider → Extruder → Supprimer → À travers tout.</li></ol></div></div>
+        <ul class="at-cons" style="margin-top:10px">${N.C.map((c) => `<li class="${c[1] ? "ok" : "av"}"><b>${c[1] ? c[0] : 0} / ${c[0]}</b> · ${c[2]}</li>`).join("")}</ul>
+        <p class="a3-note">Note : ${N.n} / 20 ${N.n === 20 ? "· pièce conforme au plan." : ""}</p><p class="no-print"><button type="button" class="btn sec" data-o="tu-raz">Recommencer le didacticiel</button> <span class="discret">Ta note est enregistrée avec ton travail ; ton professeur la voit.</span></p>`; return; }
     const o = lib(), M = moteur(o.f), pr = props(M), b = boite(M), l = pr.v ? b.b[0] - b.a[0] : 0, h = pr.v ? b.b[1] - b.a[1] : 0, pres = (x, y, t) => Math.abs(x - y) < t, plaque = pr.v > 0 && pres(l, 60, 0.02) && pres(h, 20, 0.02) && pres(M.zmax, 5, 0.01) && M.zs.length === 1;
     if (plaque && pres(b.s, 1200, 0.5)) o.d1 = true; if (plaque && pres(b.s, 1152, 0.5)) o.d2 = true; if (plaque && (pres(b.s, 1200 - 12.52, 0.6) || pres(b.s, 1152 - 12.52, 0.6))) o.d3 = true; if (pr.v > 0 && (o.f.some((f) => (f.c || []).some((ct) => ct.k === "poly" && (ct.p.length >= 7 || Object.keys(ct.a || {}).length || Object.keys(ct.b || {}).length))))) o.d4 = o.d4 || o.f.some((f) => f.conge);
     const esqs = o.f.filter((f) => f.t === "esq" && (f.c || []).some(valable)); if (o.d2 && o.d3 && pr.v > 0 && esqs.length && esqs.every((f) => f.c.filter(valable).every((ct) => definis(ct).tout))) o.d5 = true;          // défi 5 : après le biseau et le trou, toutes les esquisses en noir
     const li = (ok, t) => `<li class="${ok ? "ok" : "av"}">${t}</li>`;
-    D.innerHTML = `<h3 style="margin-top:0">Cinq défis pour apprendre</h3><div class="at-tuiles"><div><span>Largeur × hauteur</span><b>${fr(l, 1)} × ${fr(h, 1)} mm</b></div><div><span>Épaisseur</span><b>${fr(M.zmax, 1)} mm</b></div><div><span>Volume</span><b>${fr(pr.v, 2)} cm³</b></div><div><span>Masse en PLA</span><b>${fr(pr.m, 1)} g</b></div></div>
+    D.innerHTML = choix + `<h3 style="margin-top:0">Cinq défis pour apprendre</h3><div class="at-tuiles"><div><span>Largeur × hauteur</span><b>${fr(l, 1)} × ${fr(h, 1)} mm</b></div><div><span>Épaisseur</span><b>${fr(M.zmax, 1)} mm</b></div><div><span>Volume</span><b>${fr(pr.v, 2)} cm³</b></div><div><span>Masse en PLA</span><b>${fr(pr.m, 1)} g</b></div></div>
       <ul class="at-cons" style="margin-top:10px">${li(o.d1, "<b>Défi 1 : la plaque.</b> Esquisse → plan « Face » → Rectangle, en partant de l'origine → Cote : 60 mm et 20 mm, les traits deviennent noirs → Valider l'esquisse → Extruder, Nouveau, 5 mm. Volume attendu : 6,00 cm³. <span class=\"discret\">La ligne sous le dessin te dit quoi faire, et le bouton à cliquer clignote.</span>")}
       ${li(o.d2, "<b>Défi 2 : le nez en biseau.</b> Rouvre l'Esquisse 1, ajoute un point sur le trait du haut (double-clic) et coupe un coin : 12 mm d'un côté, 8 mm de l'autre, avec les cotes du point. Si un point refuse de bouger, une cote ou une contrainte le tient : touche le trait, puis « Retirer ». Volume attendu : 5,76 cm³.")}
       ${li(o.d3, "<b>Défi 3 : le trou.</b> Nouvelle esquisse → Cercle → Cote : clique le cercle, tape 4, Entrée → Valider → Extruder, Supprimer, À travers tout. Volume attendu : 5,70 cm³.")}
@@ -591,6 +645,7 @@
       ${li(o.d5, "<b>Défi 5 : tout en noir.</b> Rends tes deux esquisses entièrement définies, comme on le demande dans Onshape. Pour le biseau : une contrainte Horizontal sur le trait du haut, puis des cotes de longueur. Pour le trou : sa cote de diamètre, puis deux cotes de position (Cote, clic sur le centre, clic sur l'origine). La barre sous le dessin te dit quand tout est noir.")}</ul>
       ${o.d1 && o.d2 && o.d3 && o.d4 ? `<p><b>${o.d5 ? "Les cinq défis sont réussis." : "Les quatre premiers défis sont réussis."}</b> Passe à l'onglet « Fuselage », en bas de l'atelier${o.d5 ? "" : " ; le défi 5 peut attendre"}.</p>` : ""}`;
   }
+  function clignoter() { racine.querySelectorAll(".guide").forEach((x) => x.classList.remove("guide")); const g = guide() || conseil(), bg = g && g[0] && racine.querySelector(`[data-o="${g[0]}"]`); if (bg) bg.classList.add("guide"); }          // le bouton du prochain geste clignote
   function maj(leger) {
     try { const d0 = idee(), Fp = piece !== "essai" && mode === "piece" ? apercu() : null; E = etude(Fp ? Object.assign({}, d0, { cao: Object.assign({}, d0.cao, { [piece]: Fp }) }) : d0); } catch (x) { E = null; console.error("atelier 3D", x); }
     if (mode === "esquisse" && !K()) { mode = "piece"; quitter(); }
@@ -604,7 +659,7 @@
     peindre();
     if (leger) return;
     outils(); dialogue(); defis(); $("a3-qui").textContent = AT.titre();
-    racine.querySelectorAll(".guide").forEach((x) => x.classList.remove("guide")); const g = guide() || conseil(), bg = g && g[0] && racine.querySelector(`[data-o="${g[0]}"]`); if (bg) bg.classList.add("guide");
+    clignoter();
     if (!E) return;
     $("a3-tab").innerHTML = `<tr><th>Pièce</th><th class="n">Épaisseur</th><th class="n">Volume</th><th class="n">Masse</th></tr>` + Object.values(E.P).map((p) => `<tr><td>${p.nom}</td><td class="n">${fr(p.ep, 1)} mm</td><td class="n">${fr(p.v, 1)} cm³</td><td class="n">${fr(p.m, 1)} g</td></tr>`).join("") + `<tr><td><b>Total sans lest</b></td><td></td><td class="n"><b>${fr(E.P.fus.v + E.P.aile.v + E.P.stab.v, 1)} cm³</b></td><td class="n"><b>${fr(E.m, 1)} g</b></td></tr>`;
     $("a3-tuiles").innerHTML = [["Équilibre sans lest", fr(E.xg, 0) + " mm du nez"], ["Équilibre visé", fr(E.cible, 0) + " mm du nez"], ["Lest à ajouter", E.lest < -0.5 ? "impossible" : fr(Math.max(0, E.lest), 1) + " g"], ["Masse prête à voler", fr(E.m + Math.max(0, E.lest), 1) + " g"]].map((x) => `<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join("");
@@ -679,12 +734,13 @@
   function accroche(q, e, o) {                 // aimantation, comme dans Onshape : sur un point connu, sinon dans l'alignement d'un point, sinon sur la grille. Maj : grille seule.
     const r = { p: cale(aim(borne(q))), co: null, al: [], maj: !!(e && e.shiftKey) }; if (r.maj) return r;
     const k = K(), ech = pxmm() || 1, cand = [{ p: [0, 0], o: 1 }], seul = o && o.seulOrigine;
-    if (!seul) { ((k && k.c) || []).forEach((ct, ci) => { if (ct.k === "cercle") cand.push({ p: ct.c, c: ci, i: 0 }); else ct.p.forEach((p, i) => cand.push({ p, c: ci, i })); }); if (trace) trace.forEach((p, i) => { if (i < trace.length - 1) cand.push({ p, t: i }); }); }
+    if (!seul) { ((k && k.c) || []).forEach((ct, ci) => { if (ct.k === "cercle") cand.push({ p: ct.c, c: ci, i: 0 }); else ct.p.forEach((p, i) => cand.push({ p, c: ci, i })); }); if (trace) trace.forEach((p, i) => { if (i < trace.length - 1) cand.push({ p, t: i }); });
+      lireF().forEach((f) => { if (f.t === "esq" && f.id !== esqId) (f.c || []).filter(valable).forEach((ct) => { if (ct.k === "cercle") cand.push({ p: ct.c, x: 1 }); else ct.p.forEach((p) => cand.push({ p, x: 1 })); }); }); }          // on s'aimante aussi aux points des autres esquisses : le centre d'un bossage, un coin de la semelle
     const gros = e && e.pointerType === "touch"; let best = null, bd = (gros ? 20 : 11) / ech; cand.forEach((c) => { const dd = Math.hypot(q[0] - c.p[0], q[1] - c.p[1]); if (dd < bd) { bd = dd; best = c; } });
-    if (best) { r.p = best.p.slice(); r.co = best; return r; } if (seul) return r;
+    if (best) { r.p = best.p.slice(); r.co = best.x ? null : best; return r; } if (seul) return r;
     const tol = (gros ? 10 : 6) / ech, der = trace ? trace[trace.length - 1] : null; let bx = null, by = null, dxm = tol, dym = tol;
     if (der) { if (Math.abs(q[0] - der[0]) < tol) { bx = der; dxm = -1; } if (Math.abs(q[1] - der[1]) < tol) { by = der; dym = -1; } }      // d'abord : rester droit par rapport au dernier point posé
-    cand.forEach((c) => { const ax = Math.abs(q[0] - c.p[0]), ay = Math.abs(q[1] - c.p[1]); if (ax < dxm) { dxm = ax; bx = c.p; } if (ay < dym) { dym = ay; by = c.p; } });
+    cand.forEach((c) => { if (c.x) return; const ax = Math.abs(q[0] - c.p[0]), ay = Math.abs(q[1] - c.p[1]); if (ax < dxm) { dxm = ax; bx = c.p; } if (ay < dym) { dym = ay; by = c.p; } });
     if (bx) { r.p[0] = bx[0]; if (bx !== der) r.al.push(bx); } if (by) { r.p[1] = by[1]; if (by !== der) r.al.push(by); }
     return r;
   }
@@ -834,7 +890,7 @@
       if (ab) return ouvrirDim("b", +ab.dataset.c, +ab.dataset.b);
       if (cot1) { const c1 = cot1, ct = k.c[c1.c]; cot1 = null; const b = pt && +pt.dataset.c === c1.c && ct.k === "poly" && +pt.dataset.i !== c1.i ? +pt.dataset.i : og || (pt && zero(p)) ? -1 : null;
         if (b == null) { dire("Cote annulée : il fallait cliquer l'origine, ou un autre point du même contour."); return maj(); }
-        const P = ct.k === "cercle" ? [ct.c] : ct.p, Aa = P[c1.i], Bb = b < 0 ? [0, 0] : P[b], kk = Math.abs(Aa[0] - Bb[0]) >= Math.abs(Aa[1] - Bb[1]) ? 0 : 1; Km(); return ouvrir({ c: c1.c, t: "q", qi: -1, a: c1.i, b, k: kk, o: null, flot: true }, Math.abs(Aa[kk] - Bb[kk])); }
+        const P = ct.k === "cercle" ? [ct.c] : ct.p, Aa = P[c1.i], Bb = b < 0 ? [0, 0] : P[b], deja = (ct.q || []).filter((z) => z.a === c1.i && z.b === b).map((z) => z.k), k0 = Math.abs(Aa[0] - Bb[0]) >= Math.abs(Aa[1] - Bb[1]) ? 0 : 1, kk = deja.includes(k0) && !deja.includes(1 - k0) ? 1 - k0 : k0; Km(); return ouvrir({ c: c1.c, t: "q", qi: -1, a: c1.i, b, k: kk, o: null, flot: true }, Math.abs(Aa[kk] - Bb[kk])); }
       if (pt) { cot1 = { c: +pt.dataset.c, i: +pt.dataset.i }; sel = null; return maj(); }
       if (sg) { const ci = +sg.dataset.c, i = +sg.dataset.s, ct = k.c[ci], a = ct.p[i], b = ct.p[(i + 1) % ct.p.length]; Km(); return ouvrir({ c: ci, t: "d", i, off: null, flot: true }, (ct.d || {})[i] != null ? ct.d[i] : Math.hypot(b[0] - a[0], b[1] - a[1])); }
       if (ar) return ouvrirDim("a", +ar.dataset.c, +ar.dataset.a);
@@ -894,7 +950,7 @@
   esq.addEventListener("pointerup", lacher); esq.addEventListener("pointercancel", lacher);
   racine.addEventListener("input", (e) => { if (e.target.id === "a3-val" && edit) edit.tape = true; if (e.target.id === "cao-prof" && dial) { lireDial(); maj(1); } });
   racine.addEventListener("change", (e) => { const t = e.target, num = () => nombre(t.value) || 0; if (t.id === "a3-val") return;
-    if (t.id === "cao-lim") { lireDial(); dial.tout = t.value === "1" ? 1 : 0; dialogue(); return maj(1); } if (t.id === "cao-esq" || t.id === "cao-prof") { lireDial(); return maj(1); }
+    if (t.id === "cao-lim") { lireDial(); dial.tout = t.value === "1" ? 1 : 0; dialogue(); clignoter(); return maj(1); } if (t.id === "cao-esq" || t.id === "cao-prof") { lireDial(); return maj(1); }
     if (!sel || mode !== "esquisse") return; const k = Km(), ct = k && k.c[sel.c]; if (!ct) return;
     if (t.dataset.cote != null) { const i = +t.dataset.cote, v = Math.round(num() * 100) / 100, ip = ct.k === "cercle" ? 0 : sel.i, pin = (ct.q || []).find((c) => c.a === ip && c.b < 0 && c.k === i), avv = pin && pin.v;
       if (pin && pin.co) { dire("Ce point est attaché à l'origine. Pour le déplacer, retire d'abord la coïncidence : clique son symbole, près du point, puis Supprimer."); return complet(); }
@@ -963,6 +1019,8 @@
       else if (sel.t === "co") { ct.q = (ct.q || []).filter((c) => !((c.co || c.fx) && c.a === sel.i)); dire("Contrainte retirée : ce point peut de nouveau bouger."); }
       else if (ct.k === "poly" && sel.t === "p" && ct.p.length > 3) { const n = ct.p.length, i = sel.i; if (ct.an) { ct.an = Object.assign({}, ct.an); delete ct.an[(i - 1 + n) % n]; delete ct.an[(i + 1) % n]; } ct.p.splice(i, 1); renum(ct, (s) => (s === i || s === (i - 1 + n) % n ? null : s > i ? s - 1 : s), (s) => (s === i ? null : s > i ? s - 1 : s)); }
       else k.c.splice(sel.c, 1); sel = null; return complet(); }
+    if (o === "tu-0" || o === "tu-1" || o === "tu-raz") { const Lb = lib(); if (o === "tu-raz") { if (Lb.tu) Lb.f = []; } else if (!!Lb.tu !== (o === "tu-1")) { const autre = Array.isArray(Lb.g) ? Lb.g : []; Lb.g = Lb.f; Lb.f = autre; Lb.tu = o === "tu-1"; }          // la pièce d'essai a deux établis : les défis et le didacticiel ; on échange les deux listes de fonctions
+      piece = "essai"; quitter(); dial = null; vueMasse = false; mode = "piece"; choixPlan = false; planSel = null; hist = []; futur = []; aCadrer = true; maj(); courant = photo(); muet = true; AT.rafraichir(); muet = false; if (o !== "tu-raz") placer(); return; }
     if (o === "plus") { tous = !tous; try { localStorage.setItem("sip_cao_tous", tous ? "1" : "0"); } catch (x) { /* rien */ } dire(tous ? "Tous les outils sont affichés : arc, courbe libre, contraintes." : "Retour aux outils de base. Les autres restent accessibles par le clic droit et les raccourcis."); return maj(); }
     if (o === "conge") { const k = K(), ct = sel && k && k.c[sel.c]; trace = null; pt0 = null; curseur = null; cot1 = null; if (ct && ct.k === "poly" && sel.t === "p") { const ci = sel.c, i = sel.i; outil = "sel"; sel = null; return faireConge(ci, i); } outil = "conge"; sel = null; return maj(); }
     if (o === "poser") { const ct = kc(), i = racine.querySelector("[data-long]"); if (ct && ct.k === "poly" && sel.t === "s" && i) { poserCote(ct, sel.i, nombre(i.value) || 0); return complet(); } return; }

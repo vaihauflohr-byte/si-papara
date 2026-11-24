@@ -232,6 +232,12 @@ Atelier 3D, courbes et prise en main (24 novembre) :
 - **Hauteur de l'atelier constante** : l'arbre des fonctions défile dans sa colonne au lieu d'étirer l'atelier (il passait de 627 à 883 px sur le fuselage et poussait les onglets de pièces hors de l'écran) ; il défile tout seul jusqu'à la fonction ouverte.
 - **Arêtes** : plus de faux traits verticaux sur les cylindres et les congés (`vif()`, `aigu()` dans `aretes()`).
 - Pièce d'épreuve construite à la souris dans l'atelier (semelle en L cotée, deux congés, bossage rond, trou traversant, poche, relief en courbe libre), puis modifiée : c'est elle qui a fait apparaître les trois défauts ci-dessus.
+- **Didacticiel noté : l'équerre percée** (carte sous l'atelier, pièce d'essai, à côté des cinq défis). Plan coté en image (50 × 30 × 4, congé de 6, trou de 8 en 15 ; 15), six étapes, guidage pas à pas (`guideT()` : la ligne sous le dessin et le bouton qui clignote), et note sur 20 calculée par `Planeur3D.noteTuto(F)` d'après la pièce obtenue : contour 3, origine 1, épaisseur 2, congé 3, trou 4, méthode 2, esquisses définies 3, volume 2. La pièce du didacticiel a sa propre liste de fonctions (`essai.f` quand `essai.tu` est vrai, sinon `essai.g`), enregistrée avec le reste. Page du professeur : colonne « Didacticiel », note recalculée à partir de la pièce enregistrée.
+- **Accrochage aux autres esquisses** : en dessinant, on s'aimante aux points des autres esquisses (centre d'un bossage, coin de la semelle). Ils n'alignent pas à distance, pour ne pas déplacer un clic posé sur la grille.
+- **Cotes de position** : une deuxième cote entre les deux mêmes points propose d'office l'autre direction.
+- **Congés** : deux congés se partagent un trait moitié-moitié (deux rayons de 3 sur un trait de 6 : bout tout rond, lumière oblongue possible).
+- **Extrusion sans effet** signalée dans l'arbre (« · sans effet »).
+- Deuxième pièce d'épreuve construite à la souris (semelle à pan coupé cotée, deux bossages dans une esquisse, deux trous accrochés à leurs centres, lumière oblongue, poche avec îlot au fond, bossage à cheval sur le bord, puis modifications) : volumes conformes au calcul à chaque étape.
 - Vérifié sans navigateur : 2 000 contours au hasard (courbes, congés, arcs mélangés), volume du maillage égal au volume calculé, aucune courbe hors de la boîte de ses points.
 
 ## 5. Ajouter du contenu
