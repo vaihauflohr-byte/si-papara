@@ -192,6 +192,8 @@ Atelier 3D, l'esquisse se comporte comme celle d'Onshape (23 novembre, soir). Da
 - **Boîte de l'esquisse** en haut à gauche, avec ✓ (valider) et ✕ (fermer sans garder les changements, annulable).
 - **Raccourcis** : L ligne, G rectangle, C cercle, D cote, Maj+F congé, H / V contraintes, N normale à l'esquisse, F tout voir, Échap lâcher l'outil, Suppr ; hors esquisse : Maj+S esquisse, Maj+E extruder.
 - **Hauteur de la vue** : `ratio()` ne dépend plus de la hauteur de l'arbre (la vue grandissait à chaque affichage et le dessin glissait sous la souris pendant les premiers clics) ; elle tient dans la fenêtre.
+- **Plan de l'esquisse.** Comme dans Onshape, le bouton Esquisse demande d'abord le plan : l'arbre liste « Dessus », « Face », « Droite » ; la vue 3D montre les trois plans (toujours quand la pièce est vide), et un clic sur le bon plan, dans l'arbre ou dans la vue, ouvre l'esquisse. Un mauvais plan est refusé avec une explication (`choisirPlan`, `plans`).
+- **Vue 3D.** Une esquisse validée mais pas encore extrudée reste visible, en bleu. Quand la boîte d'extrusion est ouverte, la pièce montrée est un aperçu en jaune, qui suit la profondeur tapée (`apercu`), et l'esquisse utilisée est en orange. En fermant une esquisse, on retrouve l'angle de vue d'avant.
 
 ## 5. Ajouter du contenu
 
