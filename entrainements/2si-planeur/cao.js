@@ -151,23 +151,23 @@
   const racine = document.getElementById("atelier3d"), AT = window.PlaneurAtelier; if (!racine || !AT) return;
   const $ = (id) => document.getElementById(id), idee = () => AT.idee(), rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   /* hv : du point de la pièce vers l'écran (h vers la droite, v vers le haut) ; pt : l'inverse. demi : pièce dessinée par moitié. */
-  const PIECES = {
-    essai: { nom: "Pièce d'essai", plan: "Plan de dessus", K: 4, ox: 60, oy: 262, H: 285, h: [0, 140], v: [0, 60], hv: (p) => p, pt: (q) => q, ch: ["X", "Y"] },
-    fus: { nom: "Fuselage", plan: "Plan de face", K: 3, ox: 20, oy: 150, H: 192, h: [0, 210], v: [0, 45], hv: (p) => p, pt: (q) => q, ch: ["Depuis le nez", "Hauteur"] },
-    aile: { nom: "Aile", plan: "Plan de dessus", K: 4, ox: 150, oy: 62, H: 450, h: [0, 100], v: [-95, 10], hv: (p) => [p[1], -p[0]], pt: (q) => [-q[1], q[0]], ch: ["Vers l'arrière", "Depuis le fuselage"], demi: 5 },
-    stab: { nom: "Stabilisateur", plan: "Plan de dessus", K: 5, ox: 200, oy: 50, H: 215, h: [0, 47.5], v: [-30, 5], hv: (p) => [p[1], -p[0]], pt: (q) => [-q[1], q[0]], ch: ["Vers l'arrière", "Depuis le fuselage"], demi: 2.5 } };
+  const PIECES = {                             // lim : la zone où l'on dessine, en mm ; demi : pièce dessinée par moitié
+    essai: { nom: "Pièce d'essai", plan: "Plan de face", lim: [[0, 140], [0, 60]], ch: ["X", "Y"] },
+    fus: { nom: "Fuselage", plan: "Plan de face", lim: [[0, 210], [0, 45]], ch: ["Depuis le nez", "Hauteur"] },
+    aile: { nom: "Aile", plan: "Plan de dessus", lim: [[-5, 100], [0, 100]], ch: ["Vers l'arrière", "Depuis le fuselage"], demi: 5 },
+    stab: { nom: "Stabilisateur", plan: "Plan de dessus", lim: [[-5, 30], [0, 47.5]], ch: ["Vers l'arrière", "Depuis le fuselage"], demi: 2.5 } };
   const IC = { esq: '<path d="M3 17l2-6 8-8 4 4-8 8z M11 5l4 4"/>', ext: '<path d="M4 13h12v4H4z M10 11V3 M7 6l3-3 3 3"/>', masse: '<path d="M10 4v12 M4 7h12 M4 7l-2.5 6h5z M16 7l-2.5 6h5z M7 16h6"/>', sel: '<path d="M5 3l10 8-5 1-2 5z"/>', ligne: '<path d="M4 16L16 4"/><circle cx="4" cy="16" r="1.6"/><circle cx="16" cy="4" r="1.6"/>', rect: '<rect x="3.5" y="5.5" width="13" height="9"/>', cercle: '<circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r=".8"/>', cote: '<path d="M3 5v10 M17 5v10 M3 10h14 M6 7l-3 3 3 3 M14 7l3 3-3 3"/>', conge: '<path d="M4 17V10a6 6 0 0 1 6-6h7"/>', h: '<path d="M3 10h14"/>', v: '<path d="M10 3v14"/>', suppr: '<path d="M5 5l10 10 M15 5L5 15"/>', gomme: '<path d="M4 14l7-9 5 4-6 7H6z M3 17h14"/>', ok: '<path d="M4 10l4 4 8-9"/>' };
   const bt = (id, ic, txt, cl) => `<button type="button" data-o="${id}" class="${cl || ""}" title="${txt}"><svg viewBox="0 0 20 20" aria-hidden="true">${IC[ic]}</svg><span>${txt}</span></button>`;
   racine.innerHTML = `
     <div class="carte"><h2 style="margin-top:0">L'atelier 3D</h2>
-      <p style="margin:0">Il fonctionne comme Onshape, sans compte. <b>1.</b> Tu ouvres une <b>esquisse</b> et tu traces des contours fermés : <b>Ligne</b>, <b>Rectangle</b>, <b>Cercle</b>. <b>2.</b> Tu fixes leurs dimensions avec <b>Cote</b> : un trait <b>bleu</b> est libre, un trait <b>noir</b> est tenu par une cote ou une contrainte. <b>3.</b> Tu valides, puis tu cliques <b>Extruder</b> : <b>Nouveau</b> ou <b>Ajouter</b> pour mettre de la matière, <b>Supprimer</b> pour en enlever. Tu travailles sur <b id="a3-qui"></b>.</p></div>
+      <p style="margin:0">Il fonctionne comme Onshape, sans compte. <b>1.</b> Tu ouvres une <b>esquisse</b> : elle se dessine dans la vue 3D, sur le plan de la pièce. Tu traces des contours fermés : <b>Ligne</b>, <b>Rectangle</b>, <b>Cercle</b>. <b>2.</b> Tu fixes leurs dimensions avec <b>Cote</b> : un trait <b>bleu</b> est libre, un trait <b>noir</b> est tenu par une cote ou une contrainte. <b>3.</b> Tu valides, puis tu cliques <b>Extruder</b> : <b>Nouveau</b> ou <b>Ajouter</b> pour mettre de la matière, <b>Supprimer</b> pour en enlever. Tu travailles sur <b id="a3-qui"></b>.</p></div>
     <div class="cao" id="cao">
       <div class="cao-titre"><b>Atelier 3D</b><span id="cao-doc"></span><span class="cao-hist"><button type="button" data-o="annuler" title="Annuler (Ctrl+Z)" aria-label="Annuler">↶</button><button type="button" data-o="retablir" title="Rétablir (Ctrl+Y)" aria-label="Rétablir">↷</button></span></div>
       <div class="cao-outils" id="cao-outils"></div>
       <div class="cao-corps">
         <div class="cao-arbre" id="cao-arbre"></div>
-        <div class="cao-vue"><div id="cao-dialogue"></div><div id="a3-esq"></div><canvas id="a3-cv" width="760" height="460" aria-label="Vue 3D : fais glisser pour tourner"></canvas>
-          <div class="cao-vues"><svg id="cao-cube" viewBox="-50 -50 100 100" role="group" aria-label="Cube de vue : clique une face pour regarder la pièce de ce côté"></svg><span id="cao-vues"><button type="button" data-vue="iso" title="Vue en perspective cavalière">Iso</button><button type="button" data-o="eclate" id="cao-ecl" title="Écarter les trois pièces pour voir comment elles s'assemblent">Éclaté</button><button type="button" data-o="rendu" id="cao-rendu" title="Changer l'affichage">Arêtes</button></span><span class="cao-z"><button type="button" data-o="zplus" title="Zoom avant" aria-label="Zoom avant">+</button><button type="button" data-o="zmoins" title="Zoom arrière" aria-label="Zoom arrière">−</button><button type="button" data-o="zfit" title="Tout voir">Ajuster</button></span></div></div>
+        <div class="cao-vue"><div id="cao-dialogue"></div><div class="cao-scene"><canvas id="a3-cv" width="760" height="460" aria-label="Vue 3D : fais glisser pour tourner"></canvas><div id="a3-esq"></div></div><div class="cao-cotes" id="a3-cotes"></div>
+          <div class="cao-vues"><svg id="cao-cube" viewBox="-50 -50 100 100" role="group" aria-label="Cube de vue : clique une face pour regarder la pièce de ce côté"></svg><span id="cao-vues"><button type="button" data-vue="iso" title="Vue en perspective cavalière">Iso</button><button type="button" data-o="eclate" id="cao-ecl" title="Écarter les trois pièces pour voir comment elles s'assemblent">Éclaté</button><button type="button" data-o="rendu" id="cao-rendu" title="Changer l'affichage">Arêtes</button></span><span class="cao-z" id="cao-esqv"><button type="button" data-o="normale" title="Regarder l'esquisse bien en face">Normale à l'esquisse</button></span><span class="cao-z"><button type="button" data-o="zplus" title="Zoom avant" aria-label="Zoom avant">+</button><button type="button" data-o="zmoins" title="Zoom arrière" aria-label="Zoom arrière">−</button><button type="button" data-o="zfit" title="Tout voir">Ajuster</button></span></div></div>
       </div>
       <div class="cao-msg" id="cao-msg" aria-live="polite"></div>
       <div class="cao-onglets" role="tablist">${Object.keys(PIECES).map((k) => `<button type="button" role="tab" data-piece="${k}">${PIECES[k].nom}</button>`).join("")}</div>
@@ -179,7 +179,7 @@
       <p class="discret">Fichiers en millimètres, chaque pièce posée à plat : prêts pour l'imprimante. Si tu changes l'aile ou le stabilisateur, leurs fentes doivent suivre : le contrôle te donne leurs coordonnées, ou le bouton les replace pour toi.</p>
       <details class="a3-plan"><summary><b>Plan coté du planeur de départ</b>, pour le reconstruire toi-même, fonction par fonction</summary><div id="a3-plan"></div></details></div>`;
   const cv = $("a3-cv"), cx = cv.getContext("2d", { willReadFrequently: true }), esq = $("a3-esq");
-  let piece = "essai", mode = "piece", outil = "sel", esqId = 0, vue = { a: -0.6, b: 0.45, z: 1, px: 0, py: 0, e: 0, k0: 0 }, zoom = { k: 1, x: 0, y: 0 }, sel = null, trace = null, pt0 = null, curseur = null, dial = null, vueMasse = false, vueConge = false, E = null, TR = [], attente = 0, prise = null, pan = null, tire = null, muet = false, info = "", hist = [], futur = [], courant = null, dernier = null;
+  let piece = "essai", mode = "piece", outil = "sel", esqId = 0, vue = { a: -0.6, b: 0.45, z: 1, px: 0, py: 0, e: 0, k0: 0 }, sel = null, trace = null, pt0 = null, curseur = null, dial = null, vueMasse = false, vueConge = false, E = null, TR = [], attente = 0, prise = null, pan = null, tire = null, muet = false, info = "", hist = [], futur = [], courant = null, dernier = null, aNormal = true, tour = null, modeAvant = "piece", zEss = 0;
   const C = () => PIECES[piece], lib = () => { const o = AT.libre(); if (!Array.isArray(o.f)) o.f = []; return o; };
   const lireF = () => (piece === "essai" ? lib().f : fonctions(idee(), piece, E ? E.G : null));
   const ecrireF = () => { if (piece === "essai") return lib().f; const d = idee(); d.cao = d.cao || {}; if (!Array.isArray(d.cao[piece])) d.cao[piece] = JSON.parse(JSON.stringify(lireF())); return d.cao[piece]; };   // la pièce devient celle de l'élève
@@ -188,7 +188,7 @@
   const suivant = (F) => Math.max(0, ...F.map((f) => f.id)) + 1, copie = (L) => L.map((p) => p.slice());
   const matiere = () => (piece === "essai" ? moteur(lib().f) : !E ? null : piece === "fus" ? E.MF : E.S[piece].M);
   const dire = (t) => { info = t; }, quitter = () => { trace = null; pt0 = null; curseur = null; sel = null; outil = "sel"; vueConge = false; };
-  const axeH = () => (C().demi ? 0 : 1);       // un trait horizontal à l'écran a ses deux bouts à la même valeur de cette coordonnée
+  const axeH = () => 1;       // un trait horizontal à l'écran a ses deux bouts à la même valeur de cette coordonnée
 
   /* ---------- contraintes et cotes d'un contour : elles restent attachées au dessin ---------- */
   const decaler = (o, f) => { const r = {}; Object.keys(o || {}).forEach((s) => { const n = f(+s); if (n != null) r[n] = o[s]; }); return r; };
@@ -239,7 +239,7 @@
   }
   function charger() {                         // les triangles et les arêtes de ce qu'on regarde
     const d = idee(); TR = []; AR = []; const met = (M, f, c, g, terne) => { maillage(M).forEach((t) => TR.push({ p: t.map(f), c, g })); aretes(M).forEach((s) => AR.push({ p: s.map(f), g, terne })); };
-    if (piece === "essai") { const M = moteur(lib().f); met(M, (v) => [v[0], v[1], v[2] - M.zmax / 2], [240, 140, 0], "essai", 0); }
+    if (piece === "essai") { const M = moteur(lib().f); zEss = M.zmax; met(M, (v) => [v[0], v[1], v[2] - M.zmax / 2], [240, 140, 0], "essai", 0); }
     else if (E) { const cf = rgb(d.cf), ca = rgb(d.ca), terne = (c, k) => (piece === k ? c : c.map((x) => x * 0.74 + 52)), a = E.S.aile, s = E.S.stab;
       met(E.MF, (v) => [v[0], v[1], v[2] - 2.5], terne(cf, "fus"), "fus", piece !== "fus");
       met(a.M, (v) => [XA + JEU / 2 + v[0], YFA - (v[0] - (a.rac ? a.rac[0] : 0) + JEU / 2) * T3 - a.ep / 2 + v[2], v[1]], terne(ca, "aile"), "aile", piece !== "aile");
@@ -249,7 +249,9 @@
   const ratio = () => { const ar = $("cao-arbre"), w = cv.clientWidth || 760, cote = ar && ar.offsetWidth < racine.offsetWidth * 0.6; return Math.max(0.58, Math.min(0.95, cote ? ar.offsetHeight / w : 0.62)); };      // la vue prend toute la hauteur de l'arbre des fonctions
   const rot = (v, a, b) => { const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b), x1 = v[0] * ca + v[2] * sa, z1 = -v[0] * sa + v[2] * ca; return [x1, v[1] * cb - z1 * sb, v[1] * sb + z1 * cb]; };
   function cadre(a, b) {                       // l'échelle qui fait tenir toute la pièce dans la vue, sous cet angle
-    const w = cv.clientWidth || 760, h = w * ratio(); let mx = 1, my = 1; TR.forEach((t) => t.p.forEach((v) => { const r = rot([v[0] - ctr[0], v[1] - ctr[1] + DEC[t.g] * vue.e, v[2] - ctr[2]], a, b); mx = Math.max(mx, Math.abs(r[0])); my = Math.max(my, Math.abs(r[1])); }));
+    const w = cv.clientWidth || 760, h = w * ratio(); let mx = 1, my = 1;
+    if (mode === "esquisse") { const L = C().lim; [[L[0][0], L[1][0]], [L[0][1], L[1][0]], [L[0][1], L[1][1]], [L[0][0], L[1][1]]].forEach((p) => { const m = monde(p), r = rot([m[0] - ctr[0], m[1] - ctr[1], m[2] - ctr[2]], a, b); mx = Math.max(mx, Math.abs(r[0])); my = Math.max(my, Math.abs(r[1])); }); return Math.min(0.45 * w / mx, 0.41 * h / my, 16); }      // on dessine : c'est la zone de dessin qu'on cadre
+    TR.forEach((t) => t.p.forEach((v) => { const r = rot([v[0] - ctr[0], v[1] - ctr[1] + DEC[t.g] * vue.e, v[2] - ctr[2]], a, b); mx = Math.max(mx, Math.abs(r[0])); my = Math.max(my, Math.abs(r[1])); }));
     return Math.min(0.43 * w / mx, 0.4 * h / my, 16);
   }
   function cube() {
@@ -274,9 +276,9 @@
         for (let s = 0; s <= n; s++) { const u = s / n, xf = Math.round(a[0] + (b[0] - a[0]) * u), yf = Math.round(a[1] + (b[1] - a[1]) * u), z = a[2] + (b[2] - a[2]) * u + 0.3;        // 0,3 mm d'avance : l'arête passe devant sa propre face, pas devant les autres
           for (let dy = 0; dy < gros; dy++) for (let dx = 0; dx < gros; dx++) { const x = xf + dx, y = yf + dy; if (x < 0 || y < 0 || x >= W || y >= Hh) continue; const i = y * W + x; if (z < zb[i]) continue;
             if (px[4 * i + 3]) { px[4 * i] += (encre[0] - px[4 * i]) * al; px[4 * i + 1] += (encre[1] - px[4 * i + 1]) * al; px[4 * i + 2] += (encre[2] - px[4 * i + 2]) * al; } else { px[4 * i] = encre[0]; px[4 * i + 1] = encre[1]; px[4 * i + 2] = encre[2]; px[4 * i + 3] = 255 * al; } } } } }
-    cx.putImageData(img, 0, 0); cube();
+    cx.putImageData(img, 0, 0); cube(); if (mode === "esquisse") esquisse();
   }
-  const propre = () => { clearTimeout(net); net = setTimeout(() => { if (mode === "piece") peindre(); }, 150); };       // une fois le geste fini, on recalcule l'image fine
+  const propre = () => { clearTimeout(net); net = setTimeout(() => peindre(), 150); };       // une fois le geste fini, on recalcule l'image fine
   function animer(c, ms) {
     cancelAnimationFrame(anim3); const d0 = Object.assign({}, vue), cles = Object.keys(c); if (c.a != null) { let da = c.a - d0.a; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI; c = Object.assign({}, c, { a: d0.a + da }); }
     if (calme) { Object.assign(vue, c); return peindre(); }
@@ -300,7 +302,7 @@
     $("cao-outils").innerHTML = mode === "piece" ? bt("esquisse", "esq", "Esquisse") + bt("extruder", "ext", "Extruder", aE ? "" : "off") + `<i></i>` + bt("masse", "masse", "Propriétés de masse", vueMasse ? "on" : "")
       : bt("sel", "sel", "Sélection", on("sel")) + bt("ligne", "ligne", "Ligne", on("ligne")) + bt("rect", "rect", "Rectangle", on("rect")) + bt("cercle", "cercle", "Cercle", on("cercle")) + bt("conge", "conge", "Congé", vueConge ? "on" : "") + bt("cote", "cote", "Cote", on("cote")) + `<i></i>` + bt("horiz", "h", "Horizontal") + bt("vert", "v", "Vertical") + bt("suppr", "suppr", "Supprimer") + bt("effacer", "gomme", "Effacer l'esquisse") + `<i></i>` + bt("valider", "ok", "Valider l'esquisse", "vert");
     const M = matiere(), A = { piece: !F.length ? "Pièce vide. Clique sur Esquisse pour commencer." : M && M.zmax ? "Clique sur une fonction de l'arbre pour la modifier. Fais glisser la vue pour tourner la pièce ; la molette zoome ; Maj + glisser la déplace ; clique une face du cube pour la regarder de ce côté." : "Pas encore de volume. Clique sur Extruder pour donner une épaisseur à une esquisse.",
-      sel: "Sélection : fais glisser un point, ou le fond pour déplacer la vue. Touche un trait ou un cercle pour le choisir. Double-clique sur un trait pour y ajouter un point. La molette zoome.", ligne: trace ? "Ligne : clique pour poser chaque point. Ferme le contour en recliquant sur le premier point (en vert)." : "Ligne : clique dans la grille pour poser le premier point d'un contour.",
+      sel: "Sélection : fais glisser un point, ou le fond pour déplacer la vue. Touche un trait ou un cercle pour le choisir. Double-clique sur un trait pour y ajouter un point. Molette : zoom. Bouton droit : tourner.", ligne: trace ? "Ligne : clique pour poser chaque point. Ferme le contour en recliquant sur le premier point (en vert)." : "Ligne : clique dans la grille pour poser le premier point d'un contour.",
       rect: pt0 ? "Rectangle : clique le coin opposé." : "Rectangle : clique un premier coin.", cercle: pt0 ? "Cercle : clique un point du bord." : "Cercle : clique le centre.", cote: "Cote : touche un trait ou un cercle, puis tape sa dimension exacte en millimètres. La cote reste attachée au trait." };
     const g = guide(); $("cao-msg").textContent = g && !/impossible|bloqu|valable/.test(info) ? g[1] : info || A[mode === "piece" ? "piece" : outil]; info = "";
   }
@@ -328,36 +330,45 @@
       <div class="cao-bt"><button type="button" data-o="ext-ok" class="vert">✓</button><button type="button" data-o="ext-non">✕</button></div></div>`;
   }
   /* ---------- l'esquisse ---------- */
-  const borneZ = () => { const c = C(); zoom.x = Math.max(0, Math.min(670 - 670 / zoom.k, zoom.x)); zoom.y = Math.max(0, Math.min(c.H - c.H / zoom.k, zoom.y)); };
+  /* ---------- l'esquisse, dessinée dans la vue 3D, sur le plan de la pièce ---------- */
+  function monde(p) {                          // un point de l'esquisse, placé dans l'espace (là où charger() pose la pièce)
+    if (piece === "essai") return [p[0], p[1], -zEss / 2]; if (piece === "fus") return [p[0], p[1], -2.5];
+    const o = E && E.S[piece], r0 = o && o.rac ? o.rac[0] : 0, ep = o ? o.ep : 0;
+    return piece === "aile" ? [XA + JEU / 2 + p[0], YFA - (p[0] - r0 + JEU / 2) * T3 - ep / 2, p[1] + 5] : [XS + JEU / 2 + p[0], YFS - ep / 2, p[1] + 2.5];
+  }
+  const ecranDe = (w) => { const W = cv.clientWidth || 760, k = (vue.k0 || 3) * vue.z, r = rot([w[0] - ctr[0], w[1] - ctr[1], w[2] - ctr[2]], vue.a, vue.b); return [W / 2 + vue.px + r[0] * k, W * ratio() / 2 + vue.py - r[1] * k]; };
+  function matrice() { const O = ecranDe(monde([0, 0])), U = ecranDe(monde([1, 0])), V = ecranDe(monde([0, 1])); return [U[0] - O[0], U[1] - O[1], V[0] - O[0], V[1] - O[1], O[0], O[1]]; }      // du millimètre de l'esquisse au pixel de l'écran
+  const normale = () => (C().demi ? [0, 1.5708] : [0, 0]);          // l'angle de vue qui regarde l'esquisse bien en face
   function esquisse() {
-    const c = C(), k = K(); if (!k) { esq.innerHTML = ""; return; }
-    const Kk = c.K, u = 1 / zoom.k, X = (h) => c.ox + h * Kk, Y = (v) => c.oy - v * Kk, S = (p) => { const q = c.hv(p); return [X(q[0]), Y(q[1])]; }, pl = (L) => L.map((p) => { const s = S(p); return s[0].toFixed(2) + "," + s[1].toFixed(2); }).join(" ");
-    const tx = (x, y, s, t, a) => `<text x="${x.toFixed(2)}" y="${y.toFixed(2)}" font-size="${(s * u).toFixed(2)}" ${a || ""}>${t}</text>`;
-    const h0 = Math.max(c.h[0], (zoom.x - c.ox) / Kk), h1 = Math.min(c.h[1], (zoom.x + 670 * u - c.ox) / Kk), v1 = Math.min(c.v[1], (c.oy - zoom.y) / Kk), v0 = Math.max(c.v[0], (c.oy - zoom.y - c.H * u) / Kk); let g = "";
-    const grille = (pasG, cl) => { for (let h = Math.ceil(h0 / pasG) * pasG; h <= h1; h += pasG) g += `<line x1="${X(h)}" y1="${Y(v0)}" x2="${X(h)}" y2="${Y(v1)}" class="${cl}"/>`; for (let v = Math.ceil(v0 / pasG) * pasG; v <= v1; v += pasG) g += `<line x1="${X(h0)}" y1="${Y(v)}" x2="${X(h1)}" y2="${Y(v)}" class="${cl}"/>`; };
-    if (zoom.k >= 4) grille(1, "a3-g2"); grille(10, "a3-g");
-    const fond = lireF().filter((f) => f.t === "esq" && f.id !== esqId).map((f) => (f.c || []).filter(valable).map((ct) => `<polygon points="${pl(anneau(ct))}" class="a3-autre"/>`).join("")).join("");
-    let plus = `<circle cx="${X(0)}" cy="${Y(0)}" r="${3.5 * u}" fill="currentColor"/>` + tx(X(0) + 2 * u, Y(0) + 16 * u, 11, "origine", 'fill="currentColor"');
-    if (piece === "fus" && E) { [E.G.A, E.G.S].forEach((o) => { if (o) plus += `<polygon points="${pl(rr(o.l, o.h))}" class="a3-gab"/>`; }); plus += `<polygon points="${pl(cercle(TROU, TROU[2]))}" class="a3-gab"/>` + tx(X(60), Y(c.v[1]) + 12, 11.5, "en vert : la place des deux fentes et du trou du lest (zoome pour les dessiner)", 'fill="var(--good)" font-weight="600"')
-      + `<line x1="${X(E.cible)}" y1="${Y(-2)}" x2="${X(E.cible)}" y2="${Y(-6)}" class="a3-cib"/>` + tx(X(E.cible), Y(-6) + 12, 11.5, "équilibre visé", 'text-anchor="middle" fill="var(--good)" font-weight="700"'); }
-    if (c.demi) plus += `<rect x="${X(-c.demi * 2)}" y="${Y(8)}" width="${c.demi * 2 * Kk}" height="${(8 - c.v[0]) * Kk}" fill="currentColor" opacity=".13"/>` + tx(X(-c.demi), Y(8) - 5, 11.5, "fuselage", 'text-anchor="middle" fill="currentColor"') + tx(X(c.h[1]), Y(8) - 5, 11.5, "bout →", 'text-anchor="end" fill="currentColor"') + tx(X(c.h[1]), Y(c.v[0]) - 4, 11.5, "arrière ↓", 'text-anchor="end" fill="currentColor"');
-    const estS = (ci, t, i) => sel && sel.c === ci && sel.t === t && (i == null || sel.i === i);
-    const dess = (k.c || []).map((ct, ci) => {
-      if (ct.k === "cercle") { const o = S(ct.c), hd = S([ct.c[0] + ct.r, ct.c[1]]), on = sel && sel.c === ci; return `<circle class="a3-o${on ? " on" : ""}" data-c="${ci}" cx="${o[0]}" cy="${o[1]}" r="${ct.r * Kk}"/>` + tx(o[0], o[1] - ct.r * Kk - 6 * u, 11.5, "Ø " + fr(ct.r * 2, 1), `class="a3-ct${on ? " on" : ""}" text-anchor="middle"`) + `<circle class="a3-p${estS(ci, "p", 0) ? " on" : ""}" data-c="${ci}" data-i="0" cx="${o[0]}" cy="${o[1]}" r="${5 * u}"/><circle class="a3-p${estS(ci, "p", 1) ? " on" : ""}" data-c="${ci}" data-i="1" cx="${hd[0]}" cy="${hd[1]}" r="${5 * u}"/>`; }
-      const Q = ct.p.map(S), n = Q.length, G = ct.g || {}, Dm = ct.d || {}; let s = `<polygon points="${pl(ct.p)}" class="a3-f"/>`;
-      for (let i = 0; i < n; i++) { const a = Q[i], b = Q[(i + 1) % n], p = ct.p[i], q = ct.p[(i + 1) % n], lg = Math.hypot(q[0] - p[0], q[1] - p[1]), on = estS(ci, "s", i), fx = G[i] != null || Dm[i] != null, nx = -(b[1] - a[1]), ny = b[0] - a[0], ln = Math.hypot(nx, ny) || 1, mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
-        s += `<line class="a3-s${fx ? " fx" : ""}${on ? " on" : ""}" data-c="${ci}" data-s="${i}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`;
-        if (lg * Kk * zoom.k >= 26 || on || Dm[i] != null) { const kk = (Math.abs(nx) > Math.abs(ny) ? 22 : 12) * u / ln; s += tx(mx + nx * kk, my + ny * kk + 4 * u, 11.5, fr(lg, lg % 1 && zoom.k >= 4 ? 2 : 1), `class="a3-ct${on ? " on" : ""}${Dm[i] != null ? " dr" : ""}" text-anchor="middle"`); }
-        if (G[i] != null) { const kk = 11 * u / ln; s += tx(mx - nx * kk, my - ny * kk + 4 * u, 10.5, G[i] === axeH() ? "H" : "V", 'class="a3-cg" text-anchor="middle"'); } }
-      return s + Q.map((q, i) => `<circle class="a3-p${estS(ci, "p", i) ? " on" : ""}" data-c="${ci}" data-i="${i}" cx="${q[0]}" cy="${q[1]}" r="${6 * u}"/>`).join(""); }).join("");
-    let tr = ""; if (trace) tr = `<polyline points="${pl(curseur ? trace.concat([curseur]) : trace)}" class="a3-tr"/>` + trace.map((p, i) => { const q = S(p); return `<circle class="a3-p${i === 0 ? " dep" : ""}" cx="${q[0]}" cy="${q[1]}" r="${(i === 0 ? 8 : 4.5) * u}" style="pointer-events:none"/>`; }).join("");
-    if (pt0 && curseur) { if (outil === "rect") tr += `<polygon points="${pl([pt0, [curseur[0], pt0[1]], curseur, [pt0[0], curseur[1]]])}" class="a3-tr"/>`; else { const o = S(pt0); tr += `<circle cx="${o[0]}" cy="${o[1]}" r="${Math.hypot(curseur[0] - pt0[0], curseur[1] - pt0[1]) * Kk}" class="a3-tr"/>`; } }
-    esq.innerHTML = `<svg viewBox="${zoom.x.toFixed(2)} ${zoom.y.toFixed(2)} ${(670 * u).toFixed(2)} ${(c.H * u).toFixed(2)}" id="a3-svg" class="o-${outil}" role="img" aria-label="Esquisse : ${c.nom}">${g}${fond}${plus}${dess}${tr}</svg><div class="cao-cotes" id="a3-cotes"></div>`;
-    const B = $("a3-cotes"), ct = sel && (k.c || [])[sel.c]; if (!ct || trace) { B.innerHTML = zoom.k > 1 ? `<span class="discret">Zoom × ${fr(zoom.k, 1)}${zoom.k >= 6 ? " · la souris se pose tous les 0,1 mm" : ""}</span>` : ""; return; }
+    const c = C(), k = K(), B = $("a3-cotes"); if (!k) { esq.innerHTML = ""; B.innerHTML = ""; return; }
+    const W = cv.clientWidth || 760, Hh = W * ratio(), m = matrice(), ech = Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) || 1, L = c.lim;
+    const S = (p) => [m[4] + m[0] * p[0] + m[2] * p[1], m[5] + m[1] * p[0] + m[3] * p[1]], pl = (R) => R.map((p) => p[0].toFixed(3) + "," + p[1].toFixed(3)).join(" ");
+    const tx = (q, s, t, a) => `<text x="${q[0].toFixed(1)}" y="${q[1].toFixed(1)}" font-size="${s}" ${a || ""}>${t}</text>`, estS = (ci, t, i) => sel && sel.c === ci && sel.t === t && (i == null || sel.i === i);
+    const poignee = (ci, i, q, r) => `<circle class="a3-p${estS(ci, "p", i) ? " on" : ""}" data-c="${ci}" data-i="${i}" cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="${r}"/>`;
+    let g = ""; const grille = (pasG, cl) => { for (let u = Math.ceil(L[0][0] / pasG) * pasG; u <= L[0][1] + 1e-9; u += pasG) g += `<line x1="${u}" y1="${L[1][0]}" x2="${u}" y2="${L[1][1]}" class="${cl}"/>`; for (let v = Math.ceil(L[1][0] / pasG) * pasG; v <= L[1][1] + 1e-9; v += pasG) g += `<line x1="${L[0][0]}" y1="${v}" x2="${L[0][1]}" y2="${v}" class="${cl}"/>`; };
+    if (ech >= 12) grille(1, "a3-g2"); grille(10, "a3-g");
+    let dans = lireF().filter((f) => f.t === "esq" && f.id !== esqId).map((f) => (f.c || []).filter(valable).map((ct) => `<polygon points="${pl(anneau(ct))}" class="a3-autre"/>`).join("")).join(""), hors = "";      // dans : tracé dans le plan de l'esquisse ; hors : textes et poignées, droits à l'écran
+    const o0 = S([0, 0]); hors += `<circle cx="${o0[0].toFixed(1)}" cy="${o0[1].toFixed(1)}" r="3.5" fill="currentColor"/>` + tx([o0[0] + 5, o0[1] + 15], 11, "origine", 'fill="currentColor"');
+    if (piece === "fus" && E) { [E.G.A, E.G.S].forEach((o) => { if (o) dans += `<polygon points="${pl(rr(o.l, o.h))}" class="a3-gab"/>`; }); dans += `<polygon points="${pl(cercle(TROU, TROU[2]))}" class="a3-gab"/><line x1="${E.cible}" y1="-2" x2="${E.cible}" y2="-6" class="a3-cib"/>`;
+      hors += tx(S([60, L[1][1]]), 11.5, "en vert : la place des deux fentes et du trou du lest (zoome pour les dessiner)", 'fill="var(--good)" font-weight="600" dy="-5"') + tx(S([E.cible, -6]), 11.5, "équilibre visé", 'text-anchor="middle" fill="var(--good)" font-weight="700" dy="13"'); }
+    if (c.demi) { dans += `<polygon points="${pl([[L[0][0], 0], [L[0][1], 0], [L[0][1], -2 * c.demi], [L[0][0], -2 * c.demi]])}" class="a3-fus"/>`; hors += tx(S([(L[0][0] + L[0][1]) / 2, -c.demi]), 11.5, "fuselage", 'text-anchor="middle" fill="currentColor" dy="4"'); }
+    (k.c || []).forEach((ct, ci) => {
+      if (ct.k === "cercle") { const o = S(ct.c), on = sel && sel.c === ci; dans += `<circle class="a3-o${on ? " on" : ""}" data-c="${ci}" cx="${ct.c[0]}" cy="${ct.c[1]}" r="${ct.r}"/>`;
+        hors += tx([o[0], o[1] - ct.r * ech - 7], 11.5, "Ø " + fr(ct.r * 2, 1), `class="a3-ct${on ? " on" : ""}" text-anchor="middle"`) + poignee(ci, 0, o, 5) + poignee(ci, 1, S([ct.c[0] + ct.r, ct.c[1]]), 5); return; }
+      const Q = ct.p.map(S), n = Q.length, G = ct.g || {}, Dm = ct.d || {}; dans += `<polygon points="${pl(ct.p)}" class="a3-f"/>`;
+      for (let i = 0; i < n; i++) { const p = ct.p[i], q = ct.p[(i + 1) % n], a = Q[i], b = Q[(i + 1) % n], lg = Math.hypot(q[0] - p[0], q[1] - p[1]), on = estS(ci, "s", i), fx = G[i] != null || Dm[i] != null, nx = -(b[1] - a[1]), ny = b[0] - a[0], ln = Math.hypot(nx, ny) || 1, mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+        dans += `<line class="a3-s${fx ? " fx" : ""}${on ? " on" : ""}" data-c="${ci}" data-s="${i}" x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}"/>`;
+        if (ln >= 26 || on || Dm[i] != null) { const kk = (Math.abs(nx) > Math.abs(ny) ? 22 : 12) / ln; hors += tx([mx + nx * kk, my + ny * kk + 4], 11.5, fr(lg, lg % 1 && ech >= 12 ? 2 : 1), `class="a3-ct${on ? " on" : ""}${Dm[i] != null ? " dr" : ""}" text-anchor="middle"`); }
+        if (G[i] != null) { const kk = 11 / ln; hors += tx([mx - nx * kk, my - ny * kk + 4], 10.5, G[i] === 1 ? "H" : "V", 'class="a3-cg" text-anchor="middle"'); } }
+      Q.forEach((q, i) => (hors += poignee(ci, i, q, 6))); });
+    if (trace) { dans += `<polyline points="${pl(curseur ? trace.concat([curseur]) : trace)}" class="a3-tr"/>`; trace.forEach((p, i) => { const q = S(p); hors += `<circle class="a3-p${i === 0 ? " dep" : ""}" cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="${i === 0 ? 8 : 4.5}" style="pointer-events:none"/>`; }); }
+    if (pt0 && curseur) dans += outil === "rect" ? `<polygon points="${pl([pt0, [curseur[0], pt0[1]], curseur, [pt0[0], curseur[1]]])}" class="a3-tr"/>` : `<circle cx="${pt0[0]}" cy="${pt0[1]}" r="${Math.hypot(curseur[0] - pt0[0], curseur[1] - pt0[1])}" class="a3-tr"/>`;
+    esq.innerHTML = `<svg viewBox="0 0 ${W} ${Hh.toFixed(1)}" id="a3-svg" class="o-${outil}" role="img" aria-label="Esquisse : ${c.nom}"><g transform="matrix(${m.map((x) => x.toFixed(5)).join(" ")})">${g}${dans}</g>${hors}</svg>`;
+    const ct = sel && (k.c || [])[sel.c]; if (!ct || trace) { B.innerHTML = `<span class="discret">${ech >= 16 ? "Zoom fort : la souris se pose tous les 0,1 mm. " : ""}Molette : zoomer. Glisser le fond : déplacer. Bouton droit ou cube : tourner. « Normale à l'esquisse » : revenir bien en face.</span>`; return; }
     const champ = (i, v) => `<label>${c.ch[i]} <input type="number" step="0.5" data-cote="${i}" value="${v}"> mm</label>`;
     if (ct.k === "cercle") B.innerHTML = `<b>Cercle</b><label>Diamètre <input type="number" step="0.1" min="0.5" data-diam value="${Math.round(ct.r * 200) / 100}"> mm</label><span class="cao-sep">centre :</span>${champ(0, ct.c[0])}${champ(1, ct.c[1])}`;
     else if (sel.t === "p" && ct.p[sel.i]) B.innerHTML = vueConge ? `<b>Congé</b><label>Rayon <input type="number" id="cao-ray" step="0.5" min="0.5" value="5"> mm</label><button type="button" class="cao-pb vert" data-o="conge-ok">Appliquer</button><button type="button" class="cao-pb" data-o="conge">Annuler</button>` : `<b>Point</b>${champ(0, ct.p[sel.i][0])}${champ(1, ct.p[sel.i][1])}`;
-    else if (sel.t === "s" && ct.p[sel.i]) { const a = ct.p[sel.i], b = ct.p[(sel.i + 1) % ct.p.length], G = ct.g || {}, Dm = ct.d || {}; B.innerHTML = `<b>Trait</b><label>Longueur <input type="number" step="0.5" min="0.2" data-long value="${Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) * 100) / 100}"> mm</label>` + (Dm[sel.i] != null ? `<button type="button" class="cao-pb" data-o="sanscote">Retirer la cote</button>` : `<button type="button" class="cao-pb vert" data-o="poser">Poser la cote</button>`) + (G[sel.i] != null ? `<button type="button" class="cao-pb" data-o="sanscontr">Retirer la contrainte ${G[sel.i] === axeH() ? "horizontale" : "verticale"}</button>` : ""); }
+    else if (sel.t === "s" && ct.p[sel.i]) { const a = ct.p[sel.i], b = ct.p[(sel.i + 1) % ct.p.length], G = ct.g || {}, Dm = ct.d || {}; B.innerHTML = `<b>Trait</b><label>Longueur <input type="number" step="0.5" min="0.2" data-long value="${Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) * 100) / 100}"> mm</label>` + (Dm[sel.i] != null ? `<button type="button" class="cao-pb" data-o="sanscote">Retirer la cote</button>` : `<button type="button" class="cao-pb vert" data-o="poser">Poser la cote</button>`) + (G[sel.i] != null ? `<button type="button" class="cao-pb" data-o="sanscontr">Retirer la contrainte ${G[sel.i] === 1 ? "horizontale" : "verticale"}</button>` : ""); }
     if (outil === "cote" || vueConge) { const i = B.querySelector("[data-long],[data-diam],#cao-ray"); if (i) { i.focus(); i.select(); } }
   }
   function defis() {
@@ -376,8 +387,12 @@
     try { E = etude(idee()); } catch (x) { E = null; console.error("atelier 3D", x); }
     if (mode === "esquisse" && !K()) { mode = "piece"; quitter(); }
     if (!leger) arbre();                        // l'arbre d'abord : sa hauteur donne celle de la vue 3D
-    esq.hidden = mode !== "esquisse"; cv.hidden = $("cao-vues").hidden = mode !== "piece"; $("cao-cube").style.display = mode === "piece" ? "" : "none"; $("cao-ecl").hidden = piece === "essai";
-    if (mode === "piece") { const avant = TR.length; try { charger(); } catch (x) { TR = []; AR = []; console.error("vue 3D", x); } if (aCadrer || !vue.k0 || (!avant && TR.length)) { vue.px = vue.py = 0; vue.z = 1; vue.k0 = cadre(vue.a, vue.b); aCadrer = false; } peindre(); } else esquisse();
+    const des = mode === "esquisse", avant = TR.length; esq.hidden = !des; $("cao").classList.toggle("dessin", des); $("cao-vues").hidden = des; $("cao-esqv").hidden = !des; $("cao-ecl").hidden = piece === "essai"; if (!des) $("a3-cotes").innerHTML = "";
+    if (modeAvant === "esquisse" && !des) aCadrer = true; if (modeAvant !== "esquisse" && des) aNormal = true; modeAvant = mode;
+    try { charger(); } catch (x) { TR = []; AR = []; console.error("vue 3D", x); }
+    if (des) { const L = C().lim; vue.e = 0; ctr = monde([(L[0][0] + L[0][1]) / 2, (L[1][0] + L[1][1]) / 2]); if (aNormal || !vue.k0) { const n = normale(); Object.assign(vue, { a: n[0], b: n[1], px: 0, py: 0, z: 1 }); vue.k0 = cadre(n[0], n[1]); aNormal = false; } }      // on dessine : la vue se place en face de l'esquisse
+    else if (aCadrer || !vue.k0 || (!avant && TR.length)) { vue.px = vue.py = 0; vue.z = 1; vue.k0 = cadre(vue.a, vue.b); aCadrer = false; }
+    peindre();
     if (leger) return;
     outils(); dialogue(); defis(); $("a3-qui").textContent = AT.titre();
     const g = guide(), bg = g && g[0] && racine.querySelector(`[data-o="${g[0]}"]`); if (bg) bg.classList.add("guide");
@@ -405,27 +420,33 @@
   cv.addEventListener("contextmenu", (e) => e.preventDefault()); cv.addEventListener("dblclick", () => voir(vue.a, vue.b));
   cv.addEventListener("wheel", (e) => { e.preventDefault(); const r = cv.getBoundingClientRect(), mx = e.clientX - r.left - r.width / 2, my = e.clientY - r.top - r.height / 2, z2 = Math.max(0.3, Math.min(14, vue.z * (e.deltaY < 0 ? 1.2 : 1 / 1.2))), f = z2 / vue.z;
     vue.px = mx - (mx - vue.px) * f; vue.py = my - (my - vue.py) * f; vue.z = z2; peindre(1); propre(); }, { passive: false });      // la molette zoome vers le pointeur
-  if (window.ResizeObserver) { let lg = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (mode === "piece" && w && w !== lg) { lg = w; vue.k0 = cadre(vue.a, vue.b); peindre(); } }).observe(cv); }
-  const base = (e) => { const m = $("a3-svg").getScreenCTM(); return [(e.clientX - m.e) / m.a, (e.clientY - m.f) / m.d]; };          // la souris, dans les unités du dessin
-  const souris = (e) => { const c = C(), b = base(e); return [(b[0] - c.ox) / c.K, (c.oy - b[1]) / c.K]; };
-  const borne = (q) => [Math.max(C().h[0], Math.min(C().h[1], q[0])), Math.max(C().v[0], Math.min(C().v[1], q[1]))];
+  if (window.ResizeObserver) { let lg = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w && w !== lg) { lg = w; vue.k0 = cadre(vue.a, vue.b); peindre(); } }).observe(cv); }
+  const ecrP = (p) => { const m = matrice(); return [m[4] + m[0] * p[0] + m[2] * p[1], m[5] + m[1] * p[0] + m[3] * p[1]]; };            // un point de l'esquisse, en pixels
+  const pixel = (e) => { const r = $("a3-svg").getBoundingClientRect(), f = (cv.clientWidth || 760) / (r.width || 1); return [(e.clientX - r.left) * f, (e.clientY - r.top) * f]; };
+  const pxmm = () => { const m = matrice(); return Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])); };
+  const penche = () => pxmm() < 0.5 * (vue.k0 || 3) * vue.z;       // l'esquisse est vue trop de côté pour y dessiner
+  const souris = (e) => { const m = matrice(), det = m[0] * m[3] - m[1] * m[2], q = pixel(e), x = q[0] - m[4], y = q[1] - m[5]; return Math.abs(det) < 1e-6 ? null : [(x * m[3] - y * m[2]) / det, (-x * m[1] + y * m[0]) / det]; };
+  const borne = (q) => { const L = C().lim; return [Math.max(L[0][0], Math.min(L[0][1], q[0])), Math.max(L[1][0], Math.min(L[1][1], q[1]))]; };
   const cale = (p) => { if (C().demi && p[1] < 0.75) p[1] = 0; return p; };          // demi-pièce : rien de l'autre côté du fuselage
-  const aim = (p) => { const s = zoom.k >= 6 ? 0.1 : 0.5; return [Math.round(Math.round(p[0] / s) * s * 100) / 100, Math.round(Math.round(p[1] / s) * s * 100) / 100]; };
-  const point = (e) => cale(aim(C().pt(borne(souris(e)))));                           // point de la pièce sous la souris, aimanté sur la grille
-  const ecran = (a, b) => { const c = C(), A = c.hv(a), B = c.hv(b); return Math.hypot(A[0] - B[0], A[1] - B[1]) * c.K * zoom.k; };
-  function zoomer(f, b) { const c = C(), k2 = Math.max(1, Math.min(16, zoom.k * f)), x0 = b ? b[0] : zoom.x + 335 / zoom.k, y0 = b ? b[1] : zoom.y + c.H / 2 / zoom.k; zoom.x = x0 - (x0 - zoom.x) * zoom.k / k2; zoom.y = y0 - (y0 - zoom.y) * zoom.k / k2; zoom.k = k2; borneZ(); esquisse(); }
-  esq.addEventListener("wheel", (e) => { if (!$("a3-svg") || e.target.closest("#a3-cotes")) return; e.preventDefault(); zoomer(e.deltaY < 0 ? 1.25 : 0.8, base(e)); }, { passive: false });
+  const aim = (p) => { const s = pxmm() >= 16 ? 0.1 : 0.5; return [Math.round(Math.round(p[0] / s) * s * 100) / 100, Math.round(Math.round(p[1] / s) * s * 100) / 100]; };
+  const point = (e) => { const q = souris(e); return q ? cale(aim(borne(q))) : null; };          // point de l'esquisse sous la souris, aimanté sur la grille
+  const ecran = (a, b) => { const A = ecrP(a), B = ecrP(b); return Math.hypot(A[0] - B[0], A[1] - B[1]); };
+  esq.addEventListener("contextmenu", (e) => e.preventDefault());
+  esq.addEventListener("wheel", (e) => { if (!$("a3-svg")) return; e.preventDefault(); const r = cv.getBoundingClientRect(), mx = e.clientX - r.left - r.width / 2, my = e.clientY - r.top - r.height / 2, z2 = Math.max(0.3, Math.min(14, vue.z * (e.deltaY < 0 ? 1.2 : 1 / 1.2))), f = z2 / vue.z;
+    vue.px = mx - (mx - vue.px) * f; vue.py = my - (my - vue.py) * f; vue.z = z2; peindre(1); propre(); }, { passive: false });
   function ajouter(ct) {
     if (ct.k === "poly" && (!valable(ct) || croise(ct.p))) { dire("Ce contour n'est pas valable : il lui faut au moins trois points, et ses traits ne doivent pas se croiser."); return maj(); }
     const k = Km(); k.c = k.c || []; k.c.push(ct); sel = { c: k.c.length - 1, t: ct.k === "cercle" ? "o" : "s", i: 0 }; dire(ct.k === "cercle" ? "Cercle tracé. Fixe son diamètre avec Cote." : "Contour fermé. Fixe ses longueurs avec Cote, puis valide l'esquisse."); complet();
   }
   function inserer(e) {                       // double-clic : le trait le plus proche reçoit un point
-    const k = Km(); if (!k) return false; const c = C(), q = souris(e), z = c.K * zoom.k; let m = 1e9, bc = -1, bi = -1, pres = 1e9;
-    (k.c || []).forEach((ct, ci) => { if (ct.k !== "poly") return; const Q = ct.p.map(c.hv); Q.forEach((a, i) => { pres = Math.min(pres, Math.hypot(q[0] - a[0], q[1] - a[1])); const x = distSeg(q, a, Q[(i + 1) % Q.length]); if (x < m) { m = x; bc = ci; bi = i; } }); });
-    if (bc < 0 || m * z > 10 || pres * z < 9) return false; const ct = k.c[bc], f = (s) => (s < bi ? s : s === bi ? null : s + 1); ct.p.splice(bi + 1, 0, point(e)); ct.g = decaler(ct.g, f); ct.d = decaler(ct.d, f); sel = { c: bc, t: "p", i: bi + 1 }; complet(); return true;
+    const k = Km(); if (!k) return false; const q = pixel(e); let m = 1e9, bc = -1, bi = -1, pres = 1e9;
+    (k.c || []).forEach((ct, ci) => { if (ct.k !== "poly") return; const Q = ct.p.map(ecrP); Q.forEach((a, i) => { pres = Math.min(pres, Math.hypot(q[0] - a[0], q[1] - a[1])); const x = distSeg(q, a, Q[(i + 1) % Q.length]); if (x < m) { m = x; bc = ci; bi = i; } }); });
+    const p = point(e); if (bc < 0 || m > 10 || pres < 9 || !p) return false; const ct = k.c[bc], f = (s) => (s < bi ? s : s === bi ? null : s + 1); ct.p.splice(bi + 1, 0, p); ct.g = decaler(ct.g, f); ct.d = decaler(ct.d, f); sel = { c: bc, t: "p", i: bi + 1 }; complet(); return true;
   }
   esq.addEventListener("pointerdown", (e) => {
-    if (!e.target.closest("#a3-svg") || !K()) return; const p = point(e);
+    if (!e.target.closest("#a3-svg") || !K()) return;
+    if (e.button === 2 || e.button === 1) { cancelAnimationFrame(anim3); tour = [e.clientX, e.clientY, vue.a, vue.b]; esq.setPointerCapture(e.pointerId); e.preventDefault(); return; }      // bouton droit : on tourne la vue, comme dans Onshape
+    const p = point(e); if (!p || (penche() && (outil !== "sel" || e.target.closest("[data-i]")))) { $("cao-msg").textContent = "L'esquisse est vue trop de côté pour y dessiner. Clique sur « Normale à l'esquisse »."; return; }
     if (outil === "ligne") { e.preventDefault(); if (!trace) trace = [p]; else if (trace.length >= 3 && ecran(p, trace[0]) < 12) { const L = trace; trace = null; curseur = null; return ajouter({ k: "poly", p: L }); } else if (ecran(p, trace[trace.length - 1]) > 2) trace.push(p); return maj(); }
     if (outil === "rect" || outil === "cercle") { e.preventDefault(); if (!pt0) { pt0 = p; curseur = p; return maj(); } const a = pt0; pt0 = null; curseur = null;
       if (outil === "rect") { if (Math.abs(p[0] - a[0]) < 1 || Math.abs(p[1] - a[1]) < 1) return maj(); return ajouter({ k: "poly", p: [a, [p[0], a[1]], p, [a[0], p[1]]], g: { 0: 1, 1: 0, 2: 1, 3: 0 } }); }      // un rectangle garde ses côtés droits
@@ -435,16 +456,17 @@
     if (pt) { sel = { c: +pt.dataset.c, t: "p", i: +pt.dataset.i }; if (outil === "sel") { prise = sel; Km(); esq.setPointerCapture(e.pointerId); e.preventDefault(); } return esquisse(); }
     if (sg) { sel = { c: +sg.dataset.c, t: "s", i: +sg.dataset.s }; return esquisse(); }
     if (ce) { sel = { c: +ce.dataset.c, t: "o", i: 0 }; return esquisse(); }
-    if (outil === "sel") { const m = $("a3-svg").getScreenCTM(); pan = [e.clientX, e.clientY, zoom.x, zoom.y, m.a, m.d]; esq.setPointerCapture(e.pointerId); }
+    if (outil === "sel") { cancelAnimationFrame(anim3); pan = [e.clientX, e.clientY, vue.px, vue.py]; esq.setPointerCapture(e.pointerId); }
     if (sel) { sel = null; esquisse(); } });
   esq.addEventListener("pointermove", (e) => { if (!$("a3-svg")) return;
-    if (prise) { const k = Km(), ct = k && k.c[prise.c]; if (!ct) return; const p = point(e);
+    if (tour) { vue.a = tour[2] + (e.clientX - tour[0]) * 0.01; vue.b = Math.max(-1.5708, Math.min(1.5708, tour[3] + (e.clientY - tour[1]) * 0.01)); return peindre(1); }
+    if (prise) { const k = Km(), ct = k && k.c[prise.c]; if (!ct) return; const p = point(e); if (!p) return;
       if (ct.k === "cercle") { if (prise.i === 0) ct.c = p; else ct.r = Math.max(0.5, Math.round(Math.hypot(p[0] - ct.c[0], p[1] - ct.c[1]) * 2) / 2); }
       else { const av = copie(ct.p); ct.p[prise.i] = p; const bon = resoudre(ct, prise.i); if (!bon) ct.p = av; else if (C().demi) ct.p.forEach((q) => { if (q[1] < 0) q[1] = 0; }); $("cao-msg").textContent = bon ? "" : "Déplacement bloqué par une cote ou une contrainte de ce contour."; }
       return esquisse(); }
-    if (pan) { zoom.x = pan[2] - (e.clientX - pan[0]) / pan[4]; zoom.y = pan[3] - (e.clientY - pan[1]) / pan[5]; borneZ(); return esquisse(); }
-    if (trace || pt0) { curseur = point(e); esquisse(); } });
-  const lacher = () => { pan = null; if (!prise) return; prise = null; complet(); }; esq.addEventListener("pointerup", lacher); esq.addEventListener("pointercancel", lacher);
+    if (pan) { vue.px = pan[2] + e.clientX - pan[0]; vue.py = pan[3] + e.clientY - pan[1]; return peindre(1); }
+    if (trace || pt0) { const p = point(e); if (p) { curseur = p; esquisse(); } } });
+  const lacher = () => { if (tour || pan) { tour = null; pan = null; propre(); } if (!prise) return; prise = null; complet(); }; esq.addEventListener("pointerup", lacher); esq.addEventListener("pointercancel", lacher);
   racine.addEventListener("change", (e) => { const t = e.target, num = () => parseFloat(String(t.value).replace(",", ".")) || 0;
     if (t.id === "cao-lim") { lireDial(); dial.tout = t.value === "1" ? 1 : 0; return dialogue(); } if (t.id === "cao-esq" || t.id === "cao-prof") return lireDial();
     if (!sel || mode !== "esquisse") return; const k = Km(), ct = k && k.c[sel.c]; if (!ct) return;
@@ -464,20 +486,21 @@
     if (e.key === "Escape") { if (dial || vueMasse) { dial = null; vueMasse = false; return maj(); } if (trace || pt0) { trace = null; pt0 = null; curseur = null; dire("Tracé annulé."); maj(); } }
     if ((e.key === "Delete" || e.key === "Backspace") && mode === "esquisse" && sel) { e.preventDefault(); racine.querySelector('[data-o="suppr"]').click(); } });
   racine.addEventListener("click", (e) => { const d = idee(), t = e.target;
-    const pc = t.closest("[data-piece]"); if (pc) { piece = pc.dataset.piece; mode = "piece"; aCadrer = true; vue.e = 0; dial = null; vueMasse = false; zoom = { k: 1, x: 0, y: 0 }; quitter(); courant = photo(); return maj(); }
+    const pc = t.closest("[data-piece]"); if (pc) { piece = pc.dataset.piece; mode = "piece"; aCadrer = true; vue.e = 0; dial = null; vueMasse = false; aNormal = true; quitter(); courant = photo(); return maj(); }
     if (t.closest("[data-vue]")) return voir(-0.6, 0.45); const fc = t.closest("[data-face]"); if (fc) { const f = FACES[+fc.dataset.face]; return voir(f[2], f[3]); }
     if (t.id === "a3-stl" && E && E.bon) { telecharger(d, (d.nom || "planeur") + "_" + AT.lettre()); $("a3-msg").textContent = "Trois fichiers exportés : fuselage, aile, stabilisateur."; return; }
     const del = t.closest("[data-del]"); if (del) { const F = ecrireF(), id = +del.dataset.del, f = F.find((x) => x.id === id); if (!f) return; F.filter((x) => x.id === id || (f.t === "esq" && x.t === "ext" && x.e === id)).forEach((x) => F.splice(F.indexOf(x), 1)); mode = "piece"; quitter(); dial = null; dire("Fonction supprimée. Annuler (↶) la fait revenir."); return complet(); }
-    const ff = t.closest("[data-f]"); if (ff) { const f = lireF().find((x) => x.id === +ff.dataset.f); if (!f) return; quitter(); vueMasse = false; if (f.t === "esq") { esqId = f.id; mode = "esquisse"; dial = null; zoom = { k: 1, x: 0, y: 0 }; } else { mode = "piece"; dial = { id: f.id, e: f.e, op: f.op, tout: f.tout ? 1 : 0, prof: f.prof || 5 }; } return maj(); }
+    const ff = t.closest("[data-f]"); if (ff) { const f = lireF().find((x) => x.id === +ff.dataset.f); if (!f) return; quitter(); vueMasse = false; if (f.t === "esq") { esqId = f.id; mode = "esquisse"; dial = null; aNormal = true; } else { mode = "piece"; dial = { id: f.id, e: f.e, op: f.op, tout: f.tout ? 1 : 0, prof: f.prof || 5 }; } return maj(); }
     const op = t.closest("[data-op]"); if (op && dial) { lireDial(); dial.op = op.dataset.op; if (dial.op !== "cut") dial.tout = 0; dialogue(); const g = guide(), bg = g && g[0] && racine.querySelector(`[data-o="${g[0]}"]`); if (bg) bg.classList.add("guide"); return; }
     const b = t.closest("[data-o]"); if (!b) return; const o = b.dataset.o, kc = () => { const k = Km(); return sel && k && k.c[sel.c]; };
     if (o === "annuler") return reculer(hist, futur, "annuler"); if (o === "retablir") return reculer(futur, hist, "rétablir");
-    if (o === "zplus" || o === "zmoins") { if (mode === "piece") return animer({ z: Math.max(0.3, Math.min(14, vue.z * (o === "zplus" ? 1.4 : 1 / 1.4))) }, 180); return zoomer(o === "zplus" ? 1.5 : 1 / 1.5); }
-    if (o === "zfit") { if (mode === "piece") return voir(vue.a, vue.b); zoom = { k: 1, x: 0, y: 0 }; return esquisse(); }
+    if (o === "zplus" || o === "zmoins") return animer({ z: Math.max(0.3, Math.min(14, vue.z * (o === "zplus" ? 1.4 : 1 / 1.4))) }, 180);
+    if (o === "zfit") return voir(vue.a, vue.b);
+    if (o === "normale") { const n = normale(); return voir(n[0], n[1]); }
     if (o === "eclate") return eclater();
     if (o === "rendu") { rendu = (rendu + 1) % 3; b.textContent = ["Arêtes", "Ombré", "Traits"][rendu]; b.title = ["Ombré, avec les arêtes", "Ombré, sans les arêtes", "Dessin au trait, arêtes cachées effacées"][rendu] + " (clique pour changer)"; return peindre(); }
     if (o === "masse") { vueMasse = !vueMasse; dial = null; return maj(); }
-    if (o === "esquisse") { const F = ecrireF(), id = suivant(F); F.push({ t: "esq", id, c: [] }); esqId = id; mode = "esquisse"; dial = null; vueMasse = false; zoom = { k: 1, x: 0, y: 0 }; quitter(); outil = "ligne"; dire("Esquisse ouverte sur le " + C().plan.toLowerCase() + ". Choisis Ligne, Rectangle ou Cercle, puis clique dans la grille."); return complet(); }
+    if (o === "esquisse") { const F = ecrireF(), id = suivant(F); F.push({ t: "esq", id, c: [] }); esqId = id; mode = "esquisse"; dial = null; vueMasse = false; aNormal = true; quitter(); outil = "ligne"; dire("Esquisse ouverte sur le " + C().plan.toLowerCase() + ". Choisis Ligne, Rectangle ou Cercle, puis clique dans la grille."); return complet(); }
     if (o === "extruder") { const F = lireF(), Es = F.filter((f) => f.t === "esq" && (f.c || []).some(valable)); if (!Es.length) { dire("Il faut d'abord une esquisse avec un contour fermé."); return maj(); }
       const libre = Es.filter((f) => !F.some((x) => x.t === "ext" && x.e === f.id)).pop() || Es[Es.length - 1], deja = F.some((f) => f.t === "ext"); mode = "piece"; quitter(); vueMasse = false;
       dial = { id: 0, e: libre.id, op: deja ? "add" : "new", tout: 0, prof: piece === "aile" ? 0.8 : piece === "stab" ? 0.6 : 5 }; return maj(); }
@@ -494,7 +517,7 @@
     if (o === "poser") { const ct = kc(), i = racine.querySelector("[data-long]"); if (ct && ct.k === "poly" && sel.t === "s" && i) return poserCote(ct, parseFloat(String(i.value).replace(",", ".")) || 0); return; }
     if (o === "sanscote" || o === "sanscontr") { const ct = kc(); if (ct && sel.t === "s") { if (o === "sanscote") { ct.d = Object.assign({}, ct.d); delete ct.d[sel.i]; } else { ct.g = Object.assign({}, ct.g); delete ct.g[sel.i]; } dire(o === "sanscote" ? "Cote retirée : le trait est de nouveau libre." : "Contrainte retirée."); } return complet(); }
     if (o === "horiz" || o === "vert") { const ct = kc(); if (!ct || ct.k !== "poly" || sel.t !== "s") { dire("Touche d'abord un trait, puis clique sur " + (o === "horiz" ? "Horizontal" : "Vertical") + "."); return maj(); }
-      const kk = (o === "horiz") !== !!C().demi ? 1 : 0, av = copie(ct.p), avg = Object.assign({}, ct.g); ct.g = Object.assign({}, ct.g); ct.g[sel.i] = kk; if (!resoudre(ct, sel.i)) { ct.p = av; ct.g = avg; dire("Contrainte impossible ici : elle contredit une cote ou une autre contrainte."); } else dire("Contrainte posée : ce trait restera " + (o === "horiz" ? "horizontal" : "vertical") + "."); return complet(); }
+      const kk = o === "horiz" ? 1 : 0, av = copie(ct.p), avg = Object.assign({}, ct.g); ct.g = Object.assign({}, ct.g); ct.g[sel.i] = kk; if (!resoudre(ct, sel.i)) { ct.p = av; ct.g = avg; dire("Contrainte impossible ici : elle contredit une cote ou une autre contrainte."); } else dire("Contrainte posée : ce trait restera " + (o === "horiz" ? "horizontal" : "vertical") + "."); return complet(); }
     if (o === "origine" || o === "vider") { if (piece === "essai") { const l = lib(); l.f = []; } else if (o === "vider") { d.cao = d.cao || {}; d.cao[piece] = []; } else if (d.cao) delete d.cao[piece]; mode = "piece"; quitter(); dial = null; dire(o === "vider" || piece === "essai" ? "Pièce vide. Annuler (↶) la fait revenir." : "Pièce remise à son état de départ."); return complet(); }
     if (o === "fentes" && E) { d.cao = d.cao || {}; const F = (Array.isArray(d.cao.fus) ? d.cao.fus : JSON.parse(JSON.stringify(fonctions(d, "fus", E.G)))).filter((f) => !f.auto); d.cao.fus = F.concat(fentes(E.G, suivant(F))); if (piece === "fus") { mode = "piece"; quitter(); } $("a3-msg").textContent = "Fentes et trou du lest replacés."; return complet(); } });
   window.addEventListener("planeur-idee", () => { if (muet) return; quitter(); dial = null; hist = []; futur = []; if (piece !== "essai") mode = "piece"; maj(); courant = photo(); });
