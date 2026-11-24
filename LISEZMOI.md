@@ -196,6 +196,7 @@ Atelier 3D, l'esquisse se comporte comme celle d'Onshape (23 novembre, soir). Da
 - **Vue 3D.** Une esquisse validée mais pas encore extrudée reste visible, en bleu. Quand la boîte d'extrusion est ouverte, la pièce montrée est un aperçu en jaune, qui suit la profondeur tapée (`apercu`), et l'esquisse utilisée est en orange. En fermant une esquisse, on retrouve l'angle de vue d'avant.
 - **Deux ordres possibles**, comme dans Onshape : Esquisse puis le plan, ou le plan (dans l'arbre ou dans la vue) puis Esquisse (`selPlan`).
 - **Contrainte Fixe** (ancre) : le point ou le trait cliqué ne bouge plus (`fixer`, entrées `fx` de `ct.q`). Utile pour rendre noire une forme libre sans la coter partout.
+- **Arc** (touche A) : on clique un trait du contour, il se courbe pour passer sous la souris, on clique pour le poser. L'arc est gardé comme une flèche sur le trait (`ct.b`, ou un rayon coté `ct.br`) ; `arcs(ct)` en donne le centre et le rayon, `arrondi(ct)` le découpe en petits traits pour le moteur. Sa cote « R » se change par double-clic ; l'arc se tire à la souris ; Suppr remet le trait droit. Refusé s'il fait se croiser le contour ou sortir du plan (`arcBon`). Un congé ne se pose pas sur un coin qui touche un arc.
 
 ## 5. Ajouter du contenu
 
