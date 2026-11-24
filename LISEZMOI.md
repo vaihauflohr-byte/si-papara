@@ -243,6 +243,8 @@ Atelier 3D, courbes et prise en main (24 novembre) :
 - **Boîte d'extrusion** : elle s'ouvre avec le curseur dans la profondeur (on tape la valeur, Entrée valide, Échap annule). Avant, taper tout de suite ne faisait rien.
 - Didacticiel : à la fin, la ligne sous le dessin donne la note, ou le premier critère qui manque.
 - Essai au clavier réel de bout en bout (`/tmp/sh/t71.py`) : le didacticiel entier, puis une cote de l'aile changée par double-clic.
+- **Deux évaluations notées, sans guidage** (carte sous l'atelier, à côté des défis et du didacticiel) : « la platine » (60 × 40 × 5, deux congés de 8, deux trous de 6, poche de 20 × 16 profonde de 2) et « le support » (L de 60 × 45, épaisseur 4, congé rentrant de 10, bossage de 16 haut de 6, trou de 8 traversant). Plan coté en image dans la carte et dans un coin de la vue ; rien ne clignote. Note sur 20 par `Planeur3D.noteEval(F, m)` (m : 1 didacticiel, 2 platine, 3 support), d'après la matière réellement présente (`hz()` : hauteur de matière en un point). Chaque exercice a sa liste de fonctions : `essai.f` pour celui qui est ouvert (`essai.tu` : 0 défis, 1 didacticiel, 2 et 3 évaluations), `essai.L[m]` pour les autres ; l'ancien format (`tu` vrai/faux, `g`) est repris. Page du professeur : colonne « Atelier : notes / 20 » (D · É1 · É2), recalculée par `Planeur3D.notesEssai()`.
+- Fuselage rejoué à la souris et au clavier réel (tirer un point, ajouter un point, congé tapé, hauteur d'un point tapée, valider) : rien de cassé, contrôle vert.
 - Vérifié sans navigateur : 2 000 contours au hasard (courbes, congés, arcs mélangés), volume du maillage égal au volume calculé, aucune courbe hors de la boîte de ses points.
 
 ## 5. Ajouter du contenu
