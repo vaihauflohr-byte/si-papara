@@ -776,13 +776,13 @@
     if (prise && prise.seg) { const k = Km(), ct = k && k.c[prise.c], q = souris(e); if (!ct || !q) return; const s = pxmm() >= 16 ? 0.1 : 0.5, dx = Math.round((q[0] - prise.m0[0]) / s) * s, dy = Math.round((q[1] - prise.m0[1]) / s) * s; if (!dx && !dy && !prise.bouge) return;          // un trait tiré emmène ses deux bouts
       const i = prise.i, j = (i + 1) % ct.p.length, Lm = C().lim;
       const pose = (mou, axe) => { ct.p = copie(prise.av); ct.p[i] = [ct.p[i][0] + dx, ct.p[i][1] + dy]; ct.p[j] = [ct.p[j][0] + dx, ct.p[j][1] + dy]; return resoudre(ct, [i, j], mou, axe); };
-      const bon = (pose(false) || (Math.abs(dy) >= Math.abs(dx) ? pose(false, 1) || pose(false, 0) : pose(false, 0) || pose(false, 1))) && ct.p.every((x) => x[0] >= Lm[0][0] - 0.01 && x[0] <= Lm[0][1] + 0.01 && x[1] >= (C().demi ? 0 : Lm[1][0]) - 0.01 && x[1] <= Lm[1][1] + 0.01); if (!bon) ct.p = copie(prise.av);
+      const bon = (pose(false) || (Math.abs(dy) >= Math.abs(dx) ? pose(false, 1) || pose(false, 0) : pose(false, 0) || pose(false, 1))) && (!croise(ct.p) || croise(prise.av)) && ct.p.every((x) => x[0] >= Lm[0][0] - 0.01 && x[0] <= Lm[0][1] + 0.01 && x[1] >= (C().demi ? 0 : Lm[1][0]) - 0.01 && x[1] <= Lm[1][1] + 0.01); if (!bon) ct.p = copie(prise.av);
       $("cao-msg").textContent = bon ? "" : "Déplacement bloqué : ce trait est tenu par des cotes ou des contraintes, ou il sortirait du plan."; prise.bouge = true; return esquisse(); }
     if (prise) { const k = Km(), ct = k && k.c[prise.c], q = souris(e); if (!ct || !q) return; const p = accroche(q, e, { seulOrigine: true }).p.slice();
       if (ct.k === "cercle") { if (prise.i === 0) { const pin = {}; (ct.q || []).forEach((c) => (pin[c.k] = c.v)); ct.c = [pin[0] != null ? pin[0] : p[0], pin[1] != null ? pin[1] : p[1]]; }
         else if (ct.dd) $("cao-msg").textContent = "Le diamètre est tenu par sa cote : double-clique la cote pour le changer."; else ct.r = Math.max(0.5, Math.round(Math.hypot(p[0] - ct.c[0], p[1] - ct.c[1]) * 2) / 2); }
-      else { const av = copie(ct.p), essai = (mou, axe) => { ct.p = copie(av); ct.p[prise.i] = p.slice(); return resoudre(ct, prise.i, mou, axe); }, bon = essai(false) || essai(false, 1) || essai(false, 0);          // d'abord : le point suit exactement la souris ; si une cote l'en empêche, il la suit en hauteur seulement, ou en largeur seulement
-        if (!bon) ct.p = av; else if (C().demi) ct.p.forEach((x) => { if (x[1] < 0) x[1] = 0; }); $("cao-msg").textContent = bon ? "" : "Déplacement bloqué : ce point est tenu par des cotes ou des contraintes."; }
+      else { const av = copie(ct.p), essai = (mou, axe) => { ct.p = copie(av); ct.p[prise.i] = p.slice(); return resoudre(ct, prise.i, mou, axe); }, bon = (essai(false) || essai(false, 1) || essai(false, 0)) && (!croise(ct.p) || croise(av));          // d'abord : le point suit exactement la souris ; si une cote l'en empêche, il la suit en hauteur seulement, ou en largeur seulement
+        if (!bon) ct.p = av; else if (C().demi) ct.p.forEach((x) => { if (x[1] < 0) x[1] = 0; }); $("cao-msg").textContent = bon ? "" : "Déplacement bloqué : ce point est tenu par des cotes ou des contraintes, ou le contour se croiserait."; }
       prise.bouge = true; return esquisse(); }
     if (pan) { vue.px = pan[2] + e.clientX - pan[0]; vue.py = pan[3] + e.clientY - pan[1]; return peindre(1); }
     if (trace || pt0) { const q = souris(e); if (q) { infer = accroche(q, e); curseur = infer.p; esquisse(); } return; }
@@ -798,7 +798,7 @@
       if (pin && pin.co) { dire("Ce point est attaché à l'origine. Pour le déplacer, retire d'abord la coïncidence : clique son symbole, près du point, puis Supprimer."); return complet(); }
       if (pin) pin.v = v;
       if (ct.k === "cercle") { ct.c[i] = v; if (C().demi) ct.c[1] = Math.max(0, ct.c[1]); }
-      else { const av = copie(ct.p); ct.p[sel.i][i] = v; if (C().demi) ct.p[sel.i][1] = Math.max(0, ct.p[sel.i][1]); if (!resoudre(ct, sel.i)) { ct.p = av; if (pin) pin.v = avv; dire("Cette position est impossible : une cote ou une contrainte du contour la bloque."); } } return complet(); }
+      else { const av = copie(ct.p); ct.p[sel.i][i] = v; if (C().demi) ct.p[sel.i][1] = Math.max(0, ct.p[sel.i][1]); if (!resoudre(ct, sel.i) || (croise(ct.p) && !croise(av))) { ct.p = av; if (pin) pin.v = avv; dire("Cette position est impossible : une cote ou une contrainte la bloque, ou le contour se croiserait."); } } return complet(); }
     if (t.dataset.diam != null) { ct.r = Math.max(0.25, Math.round(num() * 50) / 100); ct.dd = 1; return complet(); }
     if (t.dataset.long != null && sel.t === "s") { poserCote(ct, sel.i, num()); return complet(); } });
   document.addEventListener("keydown", (e) => { const sec = $("s-cao"); if (!sec || sec.hidden) return;
