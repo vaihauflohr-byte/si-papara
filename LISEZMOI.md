@@ -238,6 +238,8 @@ Atelier 3D, courbes et prise en main (24 novembre) :
 - **Congés** : deux congés se partagent un trait moitié-moitié (deux rayons de 3 sur un trait de 6 : bout tout rond, lumière oblongue possible).
 - **Extrusion sans effet** signalée dans l'arbre (« · sans effet »).
 - Deuxième pièce d'épreuve construite à la souris (semelle à pan coupé cotée, deux bossages dans une esquisse, deux trous accrochés à leurs centres, lumière oblongue, poche avec îlot au fond, bossage à cheval sur le bord, puis modifications) : volumes conformes au calcul à chaque étape.
+- **Boîte de valeur d'une cote** : après le clic qui pose la cote, la valeur tapée s'ajoutait derrière celle proposée (« 10 » puis « 15 » donnait 1015 mm et le trou partait hors de la zone). La valeur tapée remplace maintenant toujours celle de la boîte, même si la boîte n'a plus le curseur. Une cote qui enverrait le dessin hors de la zone est refusée avec un message. Les essais de cotes se font désormais au clavier réel (`/tmp/sh/t70.py`), plus en remplissant la boîte par programme.
+- Didacticiel : le plan reste affiché dans un coin de la vue (`#a3-mini`) ; la barre d'outils reste collée sous les onglets quand on fait défiler la page (`overflow:clip` + `position:sticky`, `--nav-h`).
 - Vérifié sans navigateur : 2 000 contours au hasard (courbes, congés, arcs mélangés), volume du maillage égal au volume calculé, aucune courbe hors de la boîte de ses points.
 
 ## 5. Ajouter du contenu

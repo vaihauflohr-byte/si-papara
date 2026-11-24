@@ -285,7 +285,7 @@
       <div class="cao-outils" id="cao-outils"></div>
       <div class="cao-corps">
         <div class="cao-arbre" id="cao-arbre"></div>
-        <div class="cao-vue"><div id="cao-dialogue"></div><div class="cao-scene"><canvas id="a3-cv" width="760" height="460" aria-label="Vue 3D : fais glisser pour tourner"></canvas><div id="a3-esq"></div><div class="cao-menu" id="cao-menu" hidden role="menu"></div><div class="a3-boite" id="a3-boite" hidden><span id="a3-pre"></span><input id="a3-val" type="text" inputmode="decimal" autocomplete="off" aria-label="Valeur de la cote, en millimètres"><span id="a3-unite">mm</span><button type="button" data-o="val-ok" title="Valider la valeur (Entrée)" aria-label="Valider la valeur">✓</button></div></div><div class="cao-cotes" id="a3-cotes"></div>
+        <div class="cao-vue"><div id="cao-dialogue"></div><div class="cao-scene"><div class="a3-mini" id="a3-mini" hidden></div><canvas id="a3-cv" width="760" height="460" aria-label="Vue 3D : fais glisser pour tourner"></canvas><div id="a3-esq"></div><div class="cao-menu" id="cao-menu" hidden role="menu"></div><div class="a3-boite" id="a3-boite" hidden><span id="a3-pre"></span><input id="a3-val" type="text" inputmode="decimal" autocomplete="off" aria-label="Valeur de la cote, en millimètres"><span id="a3-unite">mm</span><button type="button" data-o="val-ok" title="Valider la valeur (Entrée)" aria-label="Valider la valeur">✓</button></div></div><div class="cao-cotes" id="a3-cotes"></div>
           <div class="cao-vues"><svg id="cao-cube" viewBox="-50 -50 100 100" role="group" aria-label="Cube de vue : clique une face pour regarder la pièce de ce côté"></svg><span id="cao-vues"><button type="button" data-vue="iso" title="Vue en perspective cavalière">Iso</button><button type="button" data-o="plans" id="cao-pl" title="Afficher ou masquer les trois plans de départ (touche P)">Plans</button><button type="button" data-o="eclate" id="cao-ecl" title="Écarter les trois pièces pour voir comment elles s'assemblent">Éclaté</button><button type="button" data-o="rendu" id="cao-rendu" title="Changer l'affichage">Arêtes</button></span><span class="cao-z" id="cao-esqv"><button type="button" data-o="longueurs" id="cao-lg" title="Afficher ou cacher la longueur de tous les traits, entre parenthèses">Longueurs</button><button type="button" data-o="normale" title="Regarder l'esquisse bien en face (touche N)">Normale à l'esquisse</button></span><span class="cao-z"><button type="button" data-o="zplus" title="Zoom avant" aria-label="Zoom avant">+</button><button type="button" data-o="zmoins" title="Zoom arrière" aria-label="Zoom arrière">−</button><button type="button" data-o="zfit" title="Tout voir">Ajuster</button></span></div></div>
       </div>
       <div class="cao-msg" id="cao-msg" aria-live="polite"></div>
@@ -424,6 +424,9 @@
   const voir = (a, b) => animer({ a, b, px: 0, py: 0, z: 1, k0: cadre(a, b) }, 320);
   function eclater() { const e0 = vue.e, e1 = e0 > 0.5 ? 0 : 1; vue.e = e1; const k = cadre(vue.a, vue.b); vue.e = e0; animer({ e: e1, k0: k, px: 0, py: 0, z: 1 }, 450); }
   /* ---------- le premier défi est guidé bouton par bouton ---------- */
+  const PLAN_T = `<svg viewBox="0 0 350 232" role="img" aria-label="Plan de l'équerre percée : 50 par 30 millimètres, épaisseur 4, congé de 6 au coin en haut à droite, trou de 8 à 15 et 15 millimètres de l'origine" style="width:100%;height:auto;color:var(--ink)"><path d="M50 180H300V60A30 30 0 0 0 270 30H50Z" fill="rgba(240,140,0,.2)" stroke="currentColor" stroke-width="2"/><circle cx="125" cy="105" r="20" fill="var(--paper)" stroke="currentColor" stroke-width="2"/>
+          <g stroke="currentColor" stroke-width="1" fill="none"><path d="M50 196V212M300 196V212M50 204H300M316 180H332M316 30H332M324 180V30" /><path d="M125 105V180M125 105H50" stroke-dasharray="4 3"/><path d="M139 91L158 72M279 39L262 56"/></g><circle cx="50" cy="180" r="4" fill="var(--paper)" stroke="currentColor"/>
+          <g fill="currentColor" font-size="13" font-family="system-ui,sans-serif" text-anchor="middle"><text x="175" y="226">50</text><text x="338" y="110">30</text><text x="88" y="100">15</text><text x="138" y="150">15</text><text x="170" y="68">Ø 8</text><text x="250" y="72">R 6</text><text x="50" y="16" text-anchor="start">Épaisseur : 4 mm</text><text x="44" y="198" text-anchor="end" font-size="11">origine</text></g></svg>`;
   function guideT() {                          // le didacticiel noté, pas à pas : la ligne sous le dessin dit quoi faire, le bouton clignote
     const F = lib().f, E1 = F.filter((f) => f.t === "esq"), e1 = E1[0], e2 = E1[1], c1 = e1 && (e1.c || []).find((ct) => ct.k === "poly" && valable(ct)), c2 = e2 && (e2.c || []).find((ct) => ct.k === "cercle" && valable(ct));
     const x1 = e1 && F.find((f) => f.t === "ext" && f.e === e1.id), x2 = e2 && F.find((f) => f.t === "ext" && f.e === e2.id), T = "Didacticiel · ", pres = (a, b) => Math.abs(a - b) < 0.02;
@@ -626,9 +629,7 @@
     const D = $("a3-defis"); D.hidden = piece !== "essai"; $("a3-bilan").hidden = piece === "essai"; if (piece !== "essai") return;
     const choix = `<div class="a3-choix"><button type="button" data-o="tu-0" class="${lib().tu ? "" : "on"}">Cinq défis pour apprendre</button><button type="button" data-o="tu-1" class="${lib().tu ? "on" : ""}">Didacticiel noté : l'équerre percée</button></div>`;
     if (lib().tu) { const N = noteTuto(lib().f); lib().nt = N.n;
-      D.innerHTML = choix + `<div class="a3-tuto"><div><svg viewBox="0 0 350 232" role="img" aria-label="Plan de l'équerre percée : 50 par 30 millimètres, épaisseur 4, congé de 6 au coin en haut à droite, trou de 8 à 15 et 15 millimètres de l'origine" style="width:100%;height:auto;color:var(--ink)"><path d="M50 180H300V60A30 30 0 0 0 270 30H50Z" fill="rgba(240,140,0,.2)" stroke="currentColor" stroke-width="2"/><circle cx="125" cy="105" r="20" fill="var(--paper)" stroke="currentColor" stroke-width="2"/>
-          <g stroke="currentColor" stroke-width="1" fill="none"><path d="M50 196V212M300 196V212M50 204H300M316 180H332M316 30H332M324 180V30" /><path d="M125 105V180M125 105H50" stroke-dasharray="4 3"/><path d="M139 91L158 72M279 39L262 56"/></g><circle cx="50" cy="180" r="4" fill="var(--paper)" stroke="currentColor"/>
-          <g fill="currentColor" font-size="13" font-family="system-ui,sans-serif" text-anchor="middle"><text x="175" y="226">50</text><text x="338" y="110">30</text><text x="88" y="100">15</text><text x="138" y="150">15</text><text x="170" y="68">Ø 8</text><text x="250" y="72">R 6</text><text x="50" y="16" text-anchor="start">Épaisseur : 4 mm</text><text x="44" y="198" text-anchor="end" font-size="11">origine</text></g></svg></div>
+      D.innerHTML = choix + `<div class="a3-tuto"><div>${PLAN_T}</div>
         <div><h3 style="margin-top:0">Didacticiel noté : l'équerre percée</h3><p>Reproduis la pièce du plan. <b>La ligne sous le dessin te dit quoi faire, et le bouton à cliquer clignote.</b> Le site note ta pièce sur 20 ; tu peux corriger autant de fois que tu veux.</p>
         <ol style="margin:0 0 8px 18px;padding:0"><li>Esquisse → plan « Face » → Rectangle depuis l'origine → 50 et 30.</li><li>Congé → le coin opposé à l'origine → 6.</li><li>Valider → Extruder → Nouveau → 4 mm.</li><li>Esquisse → clique la face de la pièce, en bleu → Cercle.</li><li>Cote : le cercle → 8. Puis centre, origine → 15, deux fois.</li><li>Valider → Extruder → Supprimer → À travers tout.</li></ol></div></div>
         <ul class="at-cons" style="margin-top:10px">${N.C.map((c) => `<li class="${c[1] ? "ok" : "av"}"><b>${c[1] ? c[0] : 0} / ${c[0]}</b> · ${c[2]}</li>`).join("")}</ul>
@@ -659,7 +660,7 @@
     peindre();
     if (leger) return;
     outils(); dialogue(); defis(); $("a3-qui").textContent = AT.titre();
-    clignoter();
+    clignoter(); { const mi = $("a3-mini"), voir = piece === "essai" && !!lib().tu; if (mi.hidden === voir) { mi.hidden = !voir; if (voir && !mi.firstChild) mi.innerHTML = PLAN_T; } }
     if (!E) return;
     $("a3-tab").innerHTML = `<tr><th>Pièce</th><th class="n">Épaisseur</th><th class="n">Volume</th><th class="n">Masse</th></tr>` + Object.values(E.P).map((p) => `<tr><td>${p.nom}</td><td class="n">${fr(p.ep, 1)} mm</td><td class="n">${fr(p.v, 1)} cm³</td><td class="n">${fr(p.m, 1)} g</td></tr>`).join("") + `<tr><td><b>Total sans lest</b></td><td></td><td class="n"><b>${fr(E.P.fus.v + E.P.aile.v + E.P.stab.v, 1)} cm³</b></td><td class="n"><b>${fr(E.m, 1)} g</b></td></tr>`;
     $("a3-tuiles").innerHTML = [["Équilibre sans lest", fr(E.xg, 0) + " mm du nez"], ["Équilibre visé", fr(E.cible, 0) + " mm du nez"], ["Lest à ajouter", E.lest < -0.5 ? "impossible" : fr(Math.max(0, E.lest), 1) + " g"], ["Masse prête à voler", fr(E.m + Math.max(0, E.lest), 1) + " g"]].map((x) => `<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join("");
@@ -692,7 +693,7 @@
   if (window.ResizeObserver) { let lg = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w && w !== lg) { lg = w; vue.k0 = cadre(vue.a, vue.b); peindre(); } }).observe(cv); }
   const secA = racine.closest(".pl-sec");
   function large() {                           // sur ordinateur et tablette, l'atelier sort de la colonne de texte et prend toute la largeur de la fenêtre
-    const el = $("cao"), st = el.style; st.width = st.marginLeft = ""; if (plein || window.innerWidth < 900 || (secA && secA.hidden)) return;
+    const el = $("cao"), st = el.style; { const nv = document.querySelector(".pl-nav"); el.style.setProperty("--nav-h", (nv ? Math.round(nv.getBoundingClientRect().height) : 0) + "px"); } st.width = st.marginLeft = ""; if (plein || window.innerWidth < 900 || (secA && secA.hidden)) return;
     const r = el.getBoundingClientRect(), W = document.documentElement.clientWidth - 16; if (r.width && W > r.width + 8) { st.width = W + "px"; st.marginLeft = (8 - r.left) + "px"; }
   }
   function placer() { const nav = document.querySelector(".pl-nav"), bas = nav ? nav.getBoundingClientRect().height : 0; window.scrollTo(0, Math.max(0, $("cao").getBoundingClientRect().top + window.scrollY - bas - 2)); }          // l'atelier vient se caler sous les onglets : il occupe tout l'écran
@@ -782,7 +783,7 @@
     dire("Cote posée : " + val(v) + " mm."); return true;
   }
   function appliquer() {                       // la valeur tapée dans la boîte devient la cote
-    const ed = edit, k = Km(), ct = k && k.c[ed.c], v = nombre($("a3-val").value); edit = null; $("a3-boite").hidden = true; $("a3-val").blur();
+    const ed = edit, k = Km(), ct = k && k.c[ed.c], v = nombre($("a3-val").value), avantC = ct ? JSON.stringify(ct) : "", Lz = C().lim, horsZ = (c) => (c.k === "cercle" ? [[c.c[0] - c.r, c.c[1] - c.r], [c.c[0] + c.r, c.c[1] + c.r]] : c.p).some((q) => q[0] < Lz[0][0] - 0.01 || q[0] > Lz[0][1] + 0.01 || q[1] < Lz[1][0] - 0.01 || q[1] > Lz[1][1] + 0.01), horsAvant = !!ct && horsZ(ct); edit = null; $("a3-boite").hidden = true; $("a3-val").blur();
     if (!ct || !(v >= 0) || (ed.t !== "q" && !(v > 0))) { dire("Valeur refusée : tape un nombre de millimètres plus grand que zéro."); return complet(); }
     if (ed.t === "d") poserCote(ct, ed.i, v, ed.off);
     else if (ed.t === "o") { ct.r = Math.max(0.25, Math.round(v * 50) / 100); ct.dd = 1; dire("Diamètre fixé : " + val(ct.r * 2) + " mm."); }
@@ -792,6 +793,7 @@
         if (!resoudre(ct, [ed.i, (ed.i - 1 + n) % n])) { ct.p = copie(av); if (!resoudre(ct, ed.i)) { ct.p = copie(av); if (!resoudre(ct, -1)) { ct.p = av; ct.an = ava; dire("Cet angle est impossible : il contredit une cote ou une contrainte."); } } } if (ct.an !== ava) dire("Angle fixé : " + val(v) + "°."); } }
     else if (ed.t === "b") { const ab = arcs(ct)[ed.i], av = Object.assign({}, ct.br); if (ab) { const r0 = Math.max(v, ab.c / 2); ct.br = Object.assign({}, ct.br); ct.br[ed.i] = Math.round(r0 * 100) / 100; if (!arcBon(ct)) { ct.br = av; dire("Rayon refusé : avec lui, le contour se croiserait ou sortirait du plan."); } else dire(v < ab.c / 2 - 0.01 ? "Rayon trop petit pour ce trait : il vaut au moins la moitié de sa longueur, soit " + val(ab.c / 2) + " mm." : "Rayon de l'arc fixé : " + val(r0) + " mm."); } }
     else poserPosition(ct, ed, v);
+    if (!horsAvant && horsZ(ct)) { Object.keys(ct).forEach((x) => delete ct[x]); Object.assign(ct, JSON.parse(avantC)); dire("Cote refusée : avec " + val(v) + (ed.t === "an" ? " °" : " mm") + ", le dessin sortirait de la zone. Vérifie la valeur tapée."); }
     complet();
     if (ed.suite && ct.k === "poly" && ct.p.length === 4) ouvrir({ c: ed.c, t: "d", i: 1, off: null, auto: 1 }, Math.hypot(ct.p[2][0] - ct.p[1][0], ct.p[2][1] - ct.p[1][1]));          // après la largeur d'un rectangle, sa hauteur
   }
@@ -865,7 +867,7 @@
       if (s2 && +s2.dataset.c === edit.c && +s2.dataset.s !== edit.i) { e.preventDefault(); const i = edit.i, j = +s2.dataset.s, coin = j === (i + 1) % n ? j : i === (j + 1) % n ? i : -1; edit = null;
         if (coin < 0) { $("a3-boite").hidden = true; dire("Cote d'angle : les deux traits doivent se toucher par un coin."); return maj(); } return ouvrirDim("an", +s2.dataset.c, coin); } }
     if (edit && edit.auto && !edit.tape) { edit = null; $("a3-boite").hidden = true; $("a3-val").blur(); }          // boîte ouverte toute seule et laissée vide : on continue à dessiner
-    else if (edit) { e.preventDefault(); if (edit.flot) { const q0 = souris(e); if (q0) majFlot(q0); edit.flot = false; esquisse(); return $("a3-val").focus(); } return appliquer(); }          // premier clic : la cote est posée là ; clic ailleurs : la valeur est validée
+    else if (edit) { e.preventDefault(); if (edit.flot) { const q0 = souris(e); if (q0) majFlot(q0); edit.flot = false; esquisse(); const bv = $("a3-val"); bv.focus(); bv.select(); return; } return appliquer(); }          // premier clic : la cote est posée là ; clic ailleurs : la valeur est validée
     }
     const brut = souris(e), T = e.target; if (!brut || (penche() && (outil !== "sel" || T.closest("[data-i]")))) { $("cao-msg").textContent = "L'esquisse est vue trop de côté pour y dessiner. Clique sur « Normale à l'esquisse » (touche N)."; return; }
     const A = accroche(brut, e), p = A.p.slice(), k = K(), zero = (x) => !e.shiftKey && x[0] === 0 && x[1] === 0;
@@ -960,6 +962,7 @@
     if (t.dataset.diam != null) { ct.r = Math.max(0.25, Math.round(num() * 50) / 100); ct.dd = 1; return complet(); }
     if (t.dataset.long != null && sel.t === "s") { poserCote(ct, sel.i, num()); return complet(); } });
   document.addEventListener("keydown", (e) => { const sec = $("s-cao"); if (!sec || sec.hidden) return;
+    if (edit && e.key.length === 1 && /[0-9.,]/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) { const bv = $("a3-val"); if (e.target === bv) { if (!edit.tape) bv.select(); } else if (!/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) { bv.focus(); bv.select(); } }          // tant qu'on n'a rien tapé, le premier chiffre remplace la valeur proposée ; et un chiffre tapé hors de la boîte y va quand même
     let boiteVide = false;
     if (e.target.id === "a3-val") { if ((e.key === "Enter" || e.key === "Tab") && edit) { e.preventDefault(); return appliquer(); } const vide = edit && edit.auto && !edit.tape;
       if (e.key === "Escape" && !vide) { e.preventDefault(); edit = null; $("a3-val").blur(); dire("Cote annulée."); return complet(); }
