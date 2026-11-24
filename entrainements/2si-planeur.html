@@ -167,6 +167,14 @@ table.pl th.pl-pg{background:var(--accent);color:var(--accent-ink);text-align:le
 .cao-dial label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0}.cao-dial select{font:inherit;padding:4px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);min-height:0}
 .cao-dial .cao-op{display:flex;gap:0;margin:0 0 8px}.cao-dial .cao-op button{flex:1;border-radius:0;justify-content:center;padding:5px 4px;font-size:.84rem}.cao-dial .cao-op button.on{background:#1b5fbf;color:#fff;border-color:#1b5fbf}
 .cao-sep{color:var(--ink-3)}
+.cao-vues{flex-direction:column;align-items:flex-end;pointer-events:none}.cao-vues>*{pointer-events:auto}.cao-z{display:flex;gap:4px}
+@media (max-width:760px){.cao .cao-vue .cao-vues{position:static;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;padding:6px 8px;background:var(--cao-barre);border-top:1px solid var(--cao-bord)}.cao .cao-vues #cao-cube{width:62px;height:62px;margin-right:auto}}
+#cao-cube{width:88px;height:88px;cursor:pointer;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))}
+#cao-cube polygon{fill:var(--paper);fill-opacity:.94;stroke:#7d8898;stroke-width:1.1;stroke-linejoin:round}#cao-cube polygon:hover{fill:#cfe0f7}
+#cao-cube text{font-size:9.5px;font-weight:600;fill:var(--ink-2);pointer-events:none}
+#a3-cv{background:linear-gradient(180deg,#fcfdff 0%,#eef2f7 55%,#d9e1ec 100%)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #a3-cv{background:linear-gradient(180deg,#2a3340 0%,#1c232d 60%,#12171e 100%)}}
+:root[data-theme="dark"] #a3-cv{background:linear-gradient(180deg,#2a3340 0%,#1c232d 60%,#12171e 100%)}
 .a3-plan{margin-top:10px}.a3-plan summary{cursor:pointer}.a3-plan td{font-size:.9rem;vertical-align:top}.a3-plan td:last-child{font-family:var(--f-mono);font-size:.82rem}
 .cao-hist{margin-left:auto;display:flex;gap:4px;opacity:1}.cao-hist button{font:inherit;font-size:1.15rem;line-height:1;width:34px;height:28px;border:1px solid rgba(255,255,255,.45);border-radius:5px;background:transparent;color:#fff;cursor:pointer;min-height:0;padding:0}.cao-hist button:hover{background:rgba(255,255,255,.18)}
 .cao-vues>span{display:flex;gap:4px}.cao-vues>span[hidden]{display:none}
