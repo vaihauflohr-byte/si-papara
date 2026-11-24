@@ -300,7 +300,7 @@
   const cv = $("a3-cv"), cx = cv.getContext("2d", { willReadFrequently: true }), esq = $("a3-esq");
   let piece = "essai", mode = "piece", outil = "sel", esqId = 0, vue = { a: -0.6, b: 0.45, z: 1, px: 0, py: 0, e: 0, k0: 0 }, sel = null, trace = null, pt0 = null, curseur = null, dial = null, vueMasse = false, E = null, TR = [], attente = 0, prise = null, pan = null, tire = null, muet = false, info = "", hist = [], futur = [], courant = null, dernier = null, aNormal = true, tour = null, modeAvant = "piece", zEss = 0, edit = null, cot1 = null, infer = null, traceG = {}, traceO = [], mesures = false, rayon = 5, esqAvant = null, survol = "", choixPlan = false, PL2 = [], vueAvant = null, planSel = null, arcE = null, voirPlans = false, cs1 = null, doigt = null, plein = false, long = null;
   const tactile = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches), DESSIN = ["ligne", "spline", "rect", "rectc", "cercle"], BASE = ["sel", "ligne", "rect", "cercle", "cote", "conge"], seCroise = (ct) => croise(courbe(ct) ? anneau(ct) : ct.p), avant = (ct, av) => seCroise(Object.assign({}, ct, { p: av }));
-  let gliss = null, tous = false; try { tous = localStorage.getItem("sip_cao_tous") === "1"; } catch (x) { /* rien */ }          // tous : la barre d'esquisse complète ; sinon les six outils de base      // doigt : sur un écran tactile, le point se pose quand on lève le doigt
+  let dialVu = null, gliss = null, tous = false; try { tous = localStorage.getItem("sip_cao_tous") === "1"; } catch (x) { /* rien */ }          // tous : la barre d'esquisse complète ; sinon les six outils de base      // doigt : sur un écran tactile, le point se pose quand on lève le doigt
   const NOMR = { par: ["Parallèle", "ces deux traits restent parallèles"], per: ["Perpendiculaire", "ces deux traits restent perpendiculaires"], eg: ["Égal", "ces deux traits gardent la même longueur"] };
   const NOMPL = { dessus: "Dessus", face: "Face", droite: "Droite" };
   const C = () => PIECES[piece], lib = () => { const o = AT.libre(); if (!Array.isArray(o.f)) o.f = []; return o; };
@@ -442,7 +442,7 @@
       if (!diam || !place) return ["", T + "rouvre « Esquisse 2 » dans l'arbre : " + (!c2 ? "il manque le cercle." : !diam ? "le cercle doit faire 8 mm de diamètre." : "son centre doit être à 15 mm et 15 mm de l'origine.")];
       if (!x2) return ["extruder", T + "étape 6. Clique sur Extruder : ce sera le trou."];
       if (x2.op !== "cut" || !x2.tout) return ["", T + "clique « Extrusion 2 » dans l'arbre : choisis Supprimer et « À travers tout »."];
-      return null; }
+      const Nt = noteTuto(F), manque = Nt.C.find((c) => !c[1]); return ["", T + (manque ? "pièce presque finie : " + Nt.n + " / 20. Il manque : " + manque[2].toLowerCase() + "." : "pièce conforme au plan, 20 / 20. Bravo ! Tu peux passer à l'onglet « Fuselage », en bas de l'atelier.")]; }
     if (e1 && esqId === e1.id) {
       if (!c1) return outil === "rect" ? ["", T + (pt0 ? "clique maintenant le coin opposé, plus haut et plus à droite." : "clique le premier coin sur l'origine (le petit rond), puis le coin opposé.")] : ["rect", T + "choisis l'outil Rectangle."];
       if (!rect && edit && edit.auto) return ["", T + "tape la largeur : 50, puis Entrée. Ensuite la hauteur : 30, Entrée."];
@@ -660,6 +660,7 @@
     peindre();
     if (leger) return;
     outils(); dialogue(); defis(); $("a3-qui").textContent = AT.titre();
+    if (!dial) dialVu = null; else if (dial !== dialVu) { dialVu = dial; const pf = $("cao-prof"); if (pf && !tactile) { pf.focus(); pf.select(); } }          // la boîte d'extrusion s'ouvre avec le curseur dans la profondeur : on tape la valeur, puis Entrée
     clignoter(); { const mi = $("a3-mini"), voir = piece === "essai" && !!lib().tu; if (mi.hidden === voir) { mi.hidden = !voir; if (voir && !mi.firstChild) mi.innerHTML = PLAN_T; } }
     if (!E) return;
     $("a3-tab").innerHTML = `<tr><th>Pièce</th><th class="n">Épaisseur</th><th class="n">Volume</th><th class="n">Masse</th></tr>` + Object.values(E.P).map((p) => `<tr><td>${p.nom}</td><td class="n">${fr(p.ep, 1)} mm</td><td class="n">${fr(p.v, 1)} cm³</td><td class="n">${fr(p.m, 1)} g</td></tr>`).join("") + `<tr><td><b>Total sans lest</b></td><td></td><td class="n"><b>${fr(E.P.fus.v + E.P.aile.v + E.P.stab.v, 1)} cm³</b></td><td class="n"><b>${fr(E.m, 1)} g</b></td></tr>`;
@@ -967,7 +968,7 @@
     if (e.target.id === "a3-val") { if ((e.key === "Enter" || e.key === "Tab") && edit) { e.preventDefault(); return appliquer(); } const vide = edit && edit.auto && !edit.tape;
       if (e.key === "Escape" && !vide) { e.preventDefault(); edit = null; $("a3-val").blur(); dire("Cote annulée."); return complet(); }
       if (vide && (e.key === "Escape" || (/^[a-zA-Z]$/.test(e.key) && !e.ctrlKey && !e.metaKey))) { e.preventDefault(); edit = null; $("a3-boite").hidden = true; $("a3-val").blur(); boiteVide = true; } else return; }          // boîte ouverte toute seule et laissée vide : Échap et les lettres gardent leur rôle habituel
-    if (!boiteVide && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) { if (e.key === "Enter" && e.target.id === "cao-prof") racine.querySelector('[data-o="ext-ok"]').click(); if (e.key === "Enter" && e.target.dataset.long != null) { const b = racine.querySelector('[data-o="poser"]'); if (b) { e.preventDefault(); b.click(); } } return; }
+    if (!boiteVide && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) { if (e.key === "Enter" && e.target.id === "cao-prof") racine.querySelector('[data-o="ext-ok"]').click(); if (e.key === "Escape" && dial && e.target.closest("#cao-dialogue")) { const bn = racine.querySelector('[data-o="ext-non"]'); e.target.blur(); if (bn) bn.click(); } if (e.key === "Enter" && e.target.dataset.long != null) { const b = racine.querySelector('[data-o="poser"]'); if (b) { e.preventDefault(); b.click(); } } return; }
     if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z")) { e.preventDefault(); return e.shiftKey ? reculer(futur, hist, "rétablir") : reculer(hist, futur, "annuler"); }
     if ((e.ctrlKey || e.metaKey) && (e.key === "y" || e.key === "Y")) { e.preventDefault(); return reculer(futur, hist, "rétablir"); }
     if (e.key === "Escape") { if (dial || vueMasse || choixPlan || planSel) { dial = null; vueMasse = false; choixPlan = false; planSel = null; return maj(); } if (arcE) return finArc(false); if (trace || pt0 || cot1 || cs1) { trace = null; pt0 = null; curseur = null; cot1 = null; cs1 = null; infer = null; dire("Annulé."); return maj(); }
