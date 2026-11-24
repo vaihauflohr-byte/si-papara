@@ -22,7 +22,7 @@ ma = BA * CA * EA * RHO; ms = BSt * CSt * ESt * RHO
 lt = (XSt + CSt/4) - (XA + CA/4); Vh = BSt * CSt * lt / (BA * CA * CA); xnp = XA + CA/4 + 0.9 * Vh * 0.75 * 0.6 * CA
 def bilan(LN=40, HN=14):
     F = tm(fus(LN, HN)); mf = F.volume * RHO
-    xg = (ma * (XA + CA/2) + ms * (XSt + CSt/2) + mf * F.centroid[0]) / (ma + ms + mf)
+    xg = (ma * (XA + CA/2) + ms * (XSt + CSt/2) + mf * F.center_mass[0]) / (ma + ms + mf)
     return F, mf, ma + ms + mf, xg
 if __name__ == '__main__':
     F, mf, mt, xg = bilan(); cible = XA + 0.27 * CA; lest = mt * (xg - cible) / (cible - TROU[0])

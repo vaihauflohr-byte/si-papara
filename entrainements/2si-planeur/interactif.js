@@ -10,7 +10,7 @@
   const CORPS = [[0, 0], [0, 10], [6, 14], [40, 14], [52, 10], [140, 10], [150, 5], [180, 5], [180, 8], [210, 8], [210, 0]];
   const DERIVE = [[190, 8], [210, 8], [210, 32], [202, 32]];
   const AILE = [[88, 8.1], [133.6, 5.7]], STAB = [[182, 4.4], [207.6, 4.4]], TROU = [12, 8];
-  const M0 = 23.0, G0 = 115, XA = 88, CA = 45;           // masse et équilibre sans lest, aile
+  const M0 = 23.0, G0 = 106.6, XA = 88, CA = 45;           // masse et équilibre sans lest, aile
   function cote(E, ox, oy, o) {
     o = o || {}; const P = (p) => (ox + p[0] * E).toFixed(1) + " " + (oy - p[1] * E).toFixed(1), poly = (L) => "M" + L.map(P).join(" L") + " Z";
     const l = (a, b, w, c) => `<line x1="${ox + a[0] * E}" y1="${oy - a[1] * E}" x2="${ox + b[0] * E}" y2="${oy - b[1] * E}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
@@ -72,7 +72,7 @@
 
   LABS.equilibre = {
     titre: "Trouve le point d'équilibre avec ton doigt, puis règle le lest",
-    c: [["d", "Position de ton doigt, depuis le nez", "mm", 80, 130, 0.5, 108, 1], ["l", "Lest dans le nez", "g", 0, 8, 0.1, 0, 1]],
+    c: [["d", "Position de ton doigt, depuis le nez", "mm", 80, 130, 0.5, 112, 1], ["l", "Lest dans le nez", "g", 0, 6, 0.1, 0, 1]],
     rendu(v) {
       const m = M0 + v.l, xg = (M0 * G0 + v.l * TROU[0]) / m, e = xg - v.d, eq = Math.abs(e) <= 0.75, pct = (xg - XA) / CA * 100;
       const E = 2.7, ox = 36, oy = 150, px = ox + v.d * E, ang = eq ? 0 : Math.max(-13, Math.min(13, e * 1.6)) + (e > 0 ? 2 : -2);

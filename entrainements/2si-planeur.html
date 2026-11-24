@@ -126,6 +126,18 @@ table.pl th.pl-pg{background:var(--accent);color:var(--accent-ink);text-align:le
 .gd-n{font-family:var(--f-mono);font-size:.82rem;font-weight:600;text-align:right;white-space:nowrap}
 [id^="mi"],[id^="n"],#vocab,#cout,#diag{scroll-margin-top:70px}
 @media (max-width:640px){.gd{grid-template-columns:1fr}.gd-b{justify-content:flex-start}.gd-n{text-align:left}}
+.a3-duo{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;align-items:start;margin-bottom:12px}
+.a3-duo>div>.carte{margin:0 0 12px}.a3-duo>.carte{margin:0}
+#a3-cv{display:block;width:100%;height:auto;touch-action:none;cursor:grab;border-radius:8px;background:var(--paper-2);border:1px solid var(--rule-2)}
+.pl-sec #a3-esq svg{width:100%;margin:0;touch-action:none;background:var(--paper);border:1px solid var(--rule-2);border-radius:8px}
+.a3-g{stroke:var(--at-grille,rgba(29,63,122,.12));stroke-width:1}
+#s-cao{--at-grille:rgba(29,63,122,.12)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #s-cao{--at-grille:rgba(143,176,238,.16)}}
+.a3-p{fill:var(--paper);stroke:var(--ink);stroke-width:2;cursor:grab}.a3-p:hover{fill:var(--accent-soft)}.a3-p.on{fill:var(--bad);stroke:var(--bad)}
+.a3-cotes{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;background:var(--paper-2);border:1px solid var(--rule-2);border-radius:var(--r);padding:8px 12px}
+.a3-cotes input{width:5.5em;font:inherit;font-family:var(--f-mono);padding:4px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);min-height:0}
+.a3-cotes p{margin:0}
+@media (max-width:900px){.a3-duo{grid-template-columns:1fr}}
 /* ----- simulateur ----- */
 #s-sim{--sim-ciel:#e6f1fb;--sim-ciel2:#f6fafe;--sim-sol:#dfe9d3;--sim-herbe:#7fa861;--sim-aile:#f08c00;--sim-aile-b:#b56a00;--sim-grille:rgba(29,63,122,.10)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #s-sim{--sim-ciel:#14222f;--sim-ciel2:#101a24;--sim-sol:#1b2a1d;--sim-herbe:#4f7a45;--sim-aile:#f5a033;--sim-aile-b:#f5a033;--sim-grille:rgba(143,176,238,.14)}}
@@ -239,7 +251,8 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   <button role="tab" data-s="comprendre">Comprendre</button>
   <button role="tab" data-s="creer">Créer</button>
   <button role="tab" data-s="etapes">Les étapes</button>
-  <button role="tab" data-s="onshape">Missions Onshape</button>
+  <button role="tab" data-s="cao">Atelier 3D</button>
+  <button role="tab" data-s="onshape">Onshape (option)</button>
   <button role="tab" data-s="sim">Simulateur</button>
   <button role="tab" data-s="essais">Mes essais</button>
   <button role="tab" data-s="eval">Évaluation</button>
@@ -460,6 +473,11 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   <div id="atelier"></div>
 </section>
 
+<!-- ============ ATELIER 3D ============ -->
+<section class="pl-sec" id="s-cao" hidden>
+  <div id="atelier3d"></div>
+</section>
+
 <!-- ============ LES ÉTAPES ============ -->
 <section class="pl-sec" id="s-etapes" hidden>
   <p><b>Suis les étapes dans l'ordre.</b> Le cadre bleu en haut de la page te dit toujours la prochaine chose à faire. Ouvre l'étape en cours, fais chaque ligne, coche-la. On passe à l'étape suivante quand tout est coché. <span class="discret">Connecté, tes réponses sont gardées sur ton compte.</span></p>
@@ -550,7 +568,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
       <tr><td>Stabilisateur</td><td class="n">1,2 cm³</td><td class="n">1,5 g</td></tr>
       <tr><th>Planeur de départ, sans lest</th><th class="n"></th><th class="n">23 g</th></tr>
     </table></div>
-    <p>Ce planeur a la queue trop lourde : sans lest, son point d'équilibre est à <b>115 mm</b> du nez, trop en arrière. Il lui faut environ <b>3,9 g</b> dans le trou du nez (une vis M4 avec son écrou, ou de la pâte à fixe) pour le ramener vers <b>100 mm</b>. Total : environ <b>27 g</b>.</p>
+    <p>Ce planeur a la queue un peu trop lourde : sans lest, son point d'équilibre est à <b>107 mm</b> du nez, un peu trop en arrière. Il lui faut environ <b>1,7 g</b> dans le trou du nez (une petite vis, ou de la pâte à fixe) pour le ramener vers <b>100 mm</b>. Total : environ <b>25 g</b>.</p>
     <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m6.png" alt="Planeur de départ monté, posé en équilibre sur une cale placée sous l'aile" loading="lazy"><figcaption>Le planeur de départ monté : il doit tenir en équilibre sur une cale placée à 100 mm du nez</figcaption></figure>
   <p class="astuce"><b>Mission réussie si</b> tes trois volumes sont ceux du tableau.</p></div>
 
@@ -743,34 +761,31 @@ const ETAPES = [
     B("obs"),
     C("1d", "Lis les notions 1, 2 et 3 de l'onglet « Comprendre » : les forces, la finesse, le centre de gravité."),
     C("1c", "Fais la série « Planeur 1 · Voler et rester stable » sur ton tableau de bord.") ] },
-  { t: "Former l'équipe et ouvrir Onshape", img: "pieces_nu", but: "Avoir une équipe, un compte et un document partagé.", items: [
+  { t: "Former l'équipe", img: "pieces_nu", but: "Avoir une équipe et parler le même langage.", items: [
     C("2e", "Écris ci-dessous le nom de ton équipe et de ses membres."),
     B("equipe"),
-    C("2a", "Chaque membre crée son compte Onshape (onglet « Missions Onshape », première partie)."),
-    C("2b", "Un membre crée le document « Planeur – équipe … » et le partage avec les autres et avec le professeur."),
-    C("2d", "Lis « Le vocabulaire de l'ingénieur » dans l'onglet « Le défi ». Tu dois pouvoir dire le besoin, deux fonctions et deux exigences du planeur."),
-    C("2c", "Chaque membre ouvre le document partagé sur son poste : tout le monde voit la même chose.") ] },
-  { t: "Apprendre Onshape", img: "m2", but: "Les trois gestes de base, sur deux petites pièces.", items: [
-    C("m1", "Mission 1 : la plaque de 60 × 20 × 5 mm (onglet « Missions Onshape »)."),
-    C("m2", "Mission 2 : le nez en biseau, sur la même plaque."),
+    C("2d", "Lis « Le vocabulaire de l'ingénieur » dans l'onglet « Le défi ». Tu dois pouvoir dire le besoin, deux fonctions et deux exigences du planeur.") ] },
+  { t: "Apprendre à dessiner en 3D", img: "m2", but: "Les trois gestes de base : l'esquisse, les cotes, l'extrusion.", items: [
+    C("a1", "Ouvre l'onglet « Atelier 3D », sur la pièce d'essai. Déplace un point, ajoute un point, supprime-le. Fais tourner la vue 3D."),
+    C("a2", "Défi 1 : la plaque de 60 × 20 mm, extrudée de 5 mm. Le site doit afficher 6,00 cm³."),
+    C("a3", "Défi 2 : le nez en biseau, sur la même plaque. Le site doit afficher 5,76 cm³."),
     C("3f", "Fais la série « Planeur 2 · Dessiner et imprimer ».") ] },
-  { t: "Construire le planeur de départ", img: "m6_nu", but: "Un planeur complet qui vole, le même pour toutes les équipes, construit cote par cote.", items: [
-    C("m3", "Mission 3 : le contour du fuselage."),
-    C("m4", "Mission 4 : les deux fentes, le trou de lest et la dérive."),
-    C("m5", "Mission 5 : l'aile et le stabilisateur."),
-    C("m6", "Mission 6 : mes trois volumes sont ceux du tableau."),
-    C("3g", "Montre ton planeur de départ au professeur.") ] },
+  { t: "Connaître le planeur de départ", img: "m6_nu", but: "Un planeur complet qui vole, le même pour toutes les équipes. Tu dois savoir comment il est fait.", items: [
+    C("a4", "Dans l'« Atelier 3D », regarde les trois esquisses du planeur de départ : fuselage, aile, stabilisateur. Repère les deux fentes et le trou du lest."),
+    C("a5", "Relève la masse des trois pièces, le point d'équilibre sans lest et le lest à ajouter."),
+    C("a6", "Épaissis l'aile à 1,2 mm : que deviennent la masse et le lest ? Reviens ensuite à 0,8 mm."),
+    C("3g", "Explique au professeur à quoi servent les deux fentes, le trou du nez et la dérive fine.") ] },
   { t: "Concevoir ma version 1", img: "m7a", but: "Transformer le planeur de départ pour qu'il aille plus loin, sans sortir du cahier des charges.", items: [
     C("5n", "Avant de modifier, lis les notions 4 à 7 de l'onglet « Comprendre » : charge alaire, stabilité, calage, forme de l'aile."),
     C("5i", "Dans l'onglet « Créer », dessine trois idées vraiment différentes. Compare-les, choisis-en une et écris pourquoi."),
     C("5j", "Donne un nom à ton planeur, et choisis ses couleurs."),
-    C("m7", "Mission 7 : je duplique le planeur de départ, puis je le change une cote à la fois."),
+    C("a7", "Dans l'« Atelier 3D », dessine le fuselage de ton idée, retouche l'aile si tu veux, choisis les épaisseurs. Change une chose à la fois et regarde la masse."),
     C("5s", "Entre les valeurs de ta version 1 dans l'onglet « Simulateur », règle le point d'équilibre, puis note la distance prévue dans ton carnet."),
     C("5k", "Avec la masse de tes pièces, calcule ce que coûte ton planeur (onglet « Le défi », « Ce que coûte ton planeur »)."),
-    C("4c", "Relève dans Onshape les dimensions et le volume de chaque pièce, puis remplis la fiche ci-dessous."),
+    C("4c", "Relève dans l'atelier 3D les dimensions et le volume de chaque pièce, puis remplis la fiche ci-dessous."),
     B("fiche"),
     C("4d", "Toutes les lignes de la fiche sont vertes."),
-    C("4e", "Mission 8 : les trois fichiers STL sont exportés (millimètres) et envoyés au professeur.") ] },
+    C("4e", "Dans l'atelier 3D, le contrôle avant impression est tout vert : télécharge tes trois fichiers STL et envoie-les au professeur.") ] },
   { t: "Essayer et mesurer", img: "mesure", but: "Savoir ce que vaut ta version 1, et décider quoi changer.", items: [
     C("5a", "Fais la série « Planeur 3 · Essayer, mesurer, améliorer »."),
     C("5p", "Écris ton protocole d'essai dans « Mes essais », avant le premier lancer."),
@@ -783,9 +798,9 @@ const ETAPES = [
     C("5g", "Remplis les trois lignes « Entre la version 1 et la version 2 » dans « Mes essais ».") ] },
   { t: "Concevoir la version 2", img: "m7c", but: "Améliorer en changeant une seule chose.", items: [
     C("6s", "Teste d'abord ta modification dans le « Simulateur », en gardant la version 1 en gris. Note la distance prévue pour la version 2."),
-    C("6a", "Modifie ton modèle Onshape en changeant une cote (pas en redessinant)."),
+    C("6a", "Modifie ton planeur dans l'« Atelier 3D » en changeant une seule cote (pas en redessinant tout)."),
     C("6b", "Vérifie de nouveau la fiche de conformité (étape 5) avec les nouvelles valeurs."),
-    C("6c", "Exporte les fichiers STL de la version 2 (nom : equipe_piece_v2.stl) et envoie-les."),
+    C("6c", "Télécharge les fichiers STL de la version 2 et envoie-les au professeur."),
     C("6d", "Trois lancers avec la version 2, même lanceur, même geste. Note-les dans « Mes essais »."),
     C("6e", "Lis l'écart calculé par le site : la version 2 est-elle vraiment meilleure ?") ] },
   { t: "Le concours", img: "hero", but: "Trois lancers devant tout le monde, puis deux minutes pour expliquer.", items: [
@@ -874,11 +889,11 @@ function verifier() {
 }
 /* ---------- Le guide : la prochaine chose à faire, visible dans tous les onglets ---------- */
 /* destination de chaque ligne : "onglet" ou "onglet#identifiant" ; "tab" = tableau de bord ; rien = à faire en vrai, dans la salle */
-const VA = { "0a": "defi", "1o": "etapes", "1d": "comprendre#n1", "1c": "tab", "2e": "etapes", "2a": "onshape", "2b": "onshape", "2d": "defi#vocab",
-  m1: "onshape#mi1", m2: "onshape#mi2", "3f": "tab", m3: "onshape#mi3", m4: "onshape#mi4", m5: "onshape#mi5", m6: "onshape#mi6",
-  "5n": "comprendre#n4", "5i": "creer", "5j": "creer", m7: "onshape#mi7", "5s": "sim", "5k": "defi#cout", "4c": "etapes", "4d": "etapes", "4e": "onshape#mi8",
+const VA = { "0a": "defi", "1o": "etapes", "1d": "comprendre#n1", "1c": "tab", "2e": "etapes", "2d": "defi#vocab",
+  a1: "cao", a2: "cao", a3: "cao", "3f": "tab", a4: "cao", a5: "cao", a6: "cao",
+  "5n": "comprendre#n4", "5i": "creer", "5j": "creer", a7: "cao", "5s": "sim", "5k": "defi#cout", "4c": "etapes", "4d": "etapes", "4e": "cao",
   "5a": "tab", "5p": "essais", "5c": "comprendre#n3", "5d": "essais#t-essais", "5e": "essais#t-essais", "5f": "essais#diag", "5q": "essais#g-essais", "5g": "essais#modif",
-  "6s": "sim", "6a": "onshape#mi7", "6b": "etapes", "6c": "onshape#mi8", "6d": "essais#t-essais", "6e": "essais#bilan", "7b": "essais#t-essais", "7o": "etapes", "7c": "essais#t-essais" };
+  "6s": "sim", "6a": "cao", "6b": "etapes", "6c": "cao", "6d": "essais#t-essais", "6e": "essais#bilan", "7b": "essais#t-essais", "7o": "etapes", "7c": "essais#t-essais" };
 document.querySelectorAll("#s-onshape .eyebrow").forEach((e) => { const m = /^Mission (\d)/.exec(e.textContent); if (m) e.parentElement.id = "mi" + m[1]; });
 function prochaine() { for (let i = 0; i < ETAPES.length; i++) for (const x of ETAPES[i].items) if (x.k === "c" && !D.c[x.id]) return { i, x }; return null; }
 window.PLANEUR_RESUME = () => { const tous = [].concat(...ETAPES.map((e) => e.items.filter((x) => x.k === "c"))), p = prochaine(), m = (i) => { const x = moyenne(i); return x == null ? null : Math.round(x * 100) / 100; };
@@ -966,12 +981,12 @@ document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Nive
   const M = window.PlaneurModele; if (!M) return;
   // [clé, nom, unité, mini, maxi, pas, valeur de départ]
   const PARAMS = [
-    ["Le planeur", "var(--accent)", [["m", "Masse totale, lest compris", "g", 10, 40, 0.1, 26.8], ["env", "Envergure de l'aile", "mm", 100, 210, 5, 200], ["corde", "Corde de l'aile", "mm", 25, 70, 1, 45], ["envS", "Envergure du stabilisateur", "mm", 40, 120, 5, 80], ["cordeS", "Corde du stabilisateur", "mm", 15, 40, 1, 25], ["L", "Longueur du fuselage", "mm", 150, 210, 5, 210]]],
+    ["Le planeur", "var(--accent)", [["m", "Masse totale, lest compris", "g", 10, 40, 0.1, 24.7], ["env", "Envergure de l'aile", "mm", 100, 210, 5, 200], ["corde", "Corde de l'aile", "mm", 25, 70, 1, 45], ["envS", "Envergure du stabilisateur", "mm", 40, 120, 5, 80], ["cordeS", "Corde du stabilisateur", "mm", 15, 40, 1, 25], ["L", "Longueur du fuselage", "mm", 150, 210, 5, 210]]],
     ["Les réglages", "var(--bad)", [["xG", "Point d'équilibre, depuis le nez", "mm", 60, 150, 1, 100], ["xAile", "Avant de l'aile, depuis le nez", "mm", 40, 130, 1, 88], ["xStab", "Avant du stabilisateur, depuis le nez", "mm", 130, 200, 1, 182], ["calage", "Inclinaison de la fente de l'aile", "°", 0, 6, 0.5, 3]]],
     ["Le lancer", "var(--good)", [["h0", "Hauteur de la main", "m", 1, 2, 0.1, 1.5], ["v0", "Vitesse du lancer", "m/s", 4, 14, 0.5, 9], ["g0", "Direction du lancer (0 = à plat)", "°", -10, 20, 1, 0]]]
   ];
   const TOUS = PARAMS.flatMap((g) => g[2]);
-  const EX = { depart: { m: 26.8, xG: 100 }, sanslest: { m: 23, xG: 115 }, trop: { m: 30, xG: 92 } };
+  const EX = { depart: { m: 24.7, xG: 100 }, sanslest: { m: 23, xG: 107 }, trop: { m: 30, xG: 85 } };
   const DEF = {}; TOUS.forEach((p) => DEF[p[0]] = p[6]);
   D.sim = Object.assign({}, DEF, D.sim || {});
   const fmt = (x, n) => (Math.round(x * Math.pow(10, n)) / Math.pow(10, n)).toFixed(n).replace(".", ",");
@@ -1095,6 +1110,8 @@ document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Nive
 })();
 </script>
 <script src="2si-planeur/interactif.js"></script>
+<script src="2si-planeur/earcut.min.js"></script>
+<script src="2si-planeur/atelier3d.js"></script>
 <script src="2si-planeur/atelier.js"></script>
 <!-- compte de l'élève : l'avancement est aussi gardé sur le site (ignoré si la page est ouverte seule) -->
 <script src="../config.js" onerror="void 0"></script>
