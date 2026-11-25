@@ -191,7 +191,7 @@
     if (!st || st.id !== id || st.fini) st = nouvelleSerie(id);
     if (st.devoir && st.rep.length >= st.qs.length) return terminer(app, false);   // dernière réponse donnée, bilan jamais affiché
     if (!st.qs.length) { app.innerHTML = `<p>Aucune question disponible.</p><p><a href="${retourDe(id)}">← Retour</a></p>`; return; }
-    const titre = titreDe(id) + (dev(id) ? (estNote(id) ? " · tes valeurs" : " · entraînement") : morc(id) || ann(id) ? (st.officiel ? " · valeurs du sujet" : " · tes valeurs") : "");
+    const titre = titreDe(id) + (dev(id) ? (estNote(id) ? " · tes valeurs" : enApercu() ? " · aperçu" : " · refait : nouvelle note") : morc(id) || ann(id) ? (st.officiel ? " · valeurs du sujet" : " · tes valeurs") : "");
     app.innerHTML = `
       <div class="bandeau-jeu">
         <a class="btn petit" href="${retourDe(id)}" id="s-quitter">← Quitter</a>
@@ -202,6 +202,8 @@
       </div>
       <div class="jouer" id="s-jouer"><div id="s-docs"></div><div id="s-travail"></div></div>`;
     document.getElementById("s-quitter").addEventListener("click", (e) => { if (st.devoir) { st = null; return; }   // devoir : réponses déjà gardées, on reprendra à la question en cours
+      if (dev(st.id) && !enApercu() && st.rep.length && !st.fini && !confirm("Quitter ce devoir refait ? Il ne sera pas noté (ta note reste celle de ton dernier essai rendu), et ton professeur verra qu'il n'est pas fini.")) { e.preventDefault(); return; }
+      if (dev(st.id)) { st = null; return; }
       if (st.rep.length && !st.fini && !confirm(morc(st.id) ? "Quitter la partie ? Elle ne sera pas comptée." : "Quitter la série ? Elle ne sera pas comptée.")) e.preventDefault(); else st = null; });
     const tic = () => {
       const el = document.getElementById("s-chrono"); if (!el || !st) return;
@@ -470,6 +472,7 @@
       ecrireDev(did, sauve);
       try { SIP.ecrire("enregistrer", { module: "e4-devoir-" + did, titre: `E4 · ${titreDe(id)} (début)`, type: "devoir_debut", score: 0, score_max: 20, duree_s: 0, details: null }).catch(() => {}); } catch (e) { /* pas de connexion : rien */ }
     }
+    if (!note && !enApercu()) try { SIP.ecrire("enregistrer", { module: "e4-devoir-" + did + "-entr", titre: `E4 · ${titreDe(id)} (refait, début)`, type: "devoir_debut", score: 0, score_max: 20, duree_s: 0, details: null }).catch(() => {}); } catch (e) { /* pas de connexion : rien */ }
     const rep = note ? (sauve.rep || []).slice(0, qs.length) : [];
     const pend = note && sauve.pend && sauve.pend.i === rep.length ? sauve.pend : null;
     return { id, qs, i: Math.min(rep.length, Math.max(0, qs.length - 1)), rep, debut: Date.now() - (note ? sauve.ecoule || 0 : 0), fini: false, indices: 0, repere: d.duree_min, officiel: false, limite: null, transmis: false, devoir: note, did, pend, depart };
@@ -488,18 +491,23 @@
     try {
       const e = await SIP.api.etat(), o = {};
       ((e && e.historique) || []).forEach((h) => {
-        const m = /^e4-devoir-(.+)$/.exec(h.module || ""); if (!m || /-entr$/.test(m[1])) return;
-        const x = o[m[1]] || (o[m[1]] = { rendu: null, debuts: 0 });
-        if (h.type === "devoir_debut") x.debuts++; else if (!x.rendu || String(h.fait_le) < String(x.rendu.fait_le)) x.rendu = h;
+        const m = /^e4-devoir-(.+?)(-entr)?$/.exec(h.module || ""); if (!m) return;
+        const x = o[m[1]] || (o[m[1]] = { rendu: null, debuts: 0, dernier: null });
+        if (h.type === "devoir_debut") { if (!m[2]) x.debuts++; return; }
+        if (!m[2] && (!x.rendu || String(h.fait_le) < String(x.rendu.fait_le))) x.rendu = h;
+        if (!x.dernier || String(h.fait_le) > String(x.dernier.fait_le)) x.dernier = h;   // note retenue : le dernier essai, devoir noté ou refait
       });
       return o;
     } catch (e) { return null; }
   }
   const noteServeur = (h) => Math.round(20 * Number(h.score) / (Number(h.score_max) || 20) * 2) / 2;
-  function rapprocher(did, S) {   // devoir rendu depuis un autre appareil : on le note ici aussi
-    const x = S && S[did], loc = lireDev(did);
-    if (x && x.rendu && !(loc && loc.fini)) ecrireDev(did, Object.assign(loc || { v: 1 }, { fini: true, note: noteServeur(x.rendu), rendu: x.rendu.fait_le, transmis: true, ailleurs: true }));
+  function rapprocher(did, S) {   // devoir rendu (ou refait) depuis un autre appareil : on le note ici aussi
+    const x = S && S[did]; let loc = lireDev(did);
+    if (x && x.rendu && !(loc && loc.fini)) { ecrireDev(did, Object.assign(loc || { v: 1 }, { fini: true, note: noteServeur(x.rendu), rendu: x.rendu.fait_le, transmis: true, ailleurs: true })); loc = lireDev(did); }
+    if (x && x.dernier && loc && loc.fini && x.dernier !== x.rendu && (!loc.dernier || String(x.dernier.fait_le) > String(loc.dernier.le))) majDevoir(did, { dernier: { note: noteServeur(x.dernier), le: x.dernier.fait_le } });
   }
+  /* note retenue d'un devoir rendu : celle du dernier essai (le devoir noté, ou le dernier devoir refait) */
+  const noteRetenue = (loc) => (loc && loc.dernier && (!loc.rendu || String(loc.dernier.le) > String(loc.rendu)) ? loc.dernier.note : loc ? loc.note : null);
   /* progression : un niveau s'ouvre quand le précédent (d.apres) est rendu ; l'aperçu du professeur ouvre tout */
   const renduLoc = (did) => { const o = lireDev(did); return !!(o && o.fini); };
   const ouvertDev = (d) => enApercu() || !d.apres || renduLoc(d.apres);
@@ -532,7 +540,7 @@
   const etudes = () => (E4.SERIES_DEVOIRS || []).filter((s) => (E4.DEVOIRS || []).some((d) => d.serie === s.id));
   const niveauxDe = (sid) => (E4.DEVOIRS || []).filter((d) => d.serie === sid).sort((a, b) => (a.niveau || 0) - (b.niveau || 0));
   const etatDe = (d) => { const loc = connecte() && !enApercu() ? lireDev(d.id) : null;
-    return { id: d.id, serie: d.serie, titre: d.titre, niveau: d.niveau, nomNiveau: d.nomNiveau, ouvert: ouvertDev(d), n: nbQ(d), fini: !!(loc && loc.fini), note: loc && loc.fini ? loc.note : null, faites: loc && !loc.fini ? (loc.rep || []).length : 0 }; };
+    return { id: d.id, serie: d.serie, titre: d.titre, niveau: d.niveau, nomNiveau: d.nomNiveau, ouvert: ouvertDev(d), n: nbQ(d), fini: !!(loc && loc.fini), note: loc && loc.fini ? noteRetenue(loc) : null, faites: loc && !loc.fini ? (loc.rep || []).length : 0 }; };
   /* état des devoirs gardé sur l'appareil (page d'accueil E4) ; par étude : niveaux, nombre rendus, niveau à faire ensuite */
   E4.etatDevoirs = () => (E4.DEVOIRS || []).map(etatDe);
   E4.etatEtudes = () => etudes().map((s, i) => { const L = niveauxDe(s.id).map(etatDe);
@@ -544,13 +552,13 @@
   const nomsNotions = (L) => L.map((id) => notion(id).nom).join(" · ");
   const REGLES = (nE) => `<ul style="margin:6px 0 0;padding-left:1.2em">
             <li>${nE > 1 ? `<b>${nE} études</b>, chacune en <b>4 niveaux</b>` : "<b>4 niveaux</b>"}, du plus guidé à celui de l'épreuve, puis au-delà. <b>Dans une étude, chaque niveau s'ouvre quand tu as rendu le précédent.</b></li>
-            <li>Chaque devoir se fait <b>une seule fois</b> : sa note, sur 20, est transmise au professeur.</li>
+            <li>Ta note, sur 20, est transmise au professeur.</li>
             <li><b>Tu pars de 20 ; chaque erreur retire 2 points.</b> Pour un calcul, tu as deux essais : si tu te trompes, tu perds 2 points et tu peux te corriger. Pour un choix, une seule réponse.</li>
             <li><b>Tes valeurs sont les tiennes</b> : chaque élève a son installation, ses documents et ses résultats. Recopier un voisin ne sert à rien.</li>
             <li>La correction s'affiche dès que la question est finie ; quand une question reprend un résultat, il est rappelé (« On prendra… ») : une erreur ne se reporte pas sur la suite.</li>
             <li>Travaille comme à l'épreuve : copie, calculatrice et documents (onglets à gauche sur ordinateur, bouton « Documents » sur téléphone). À partir du niveau 2, c'est le dossier complet : dossier technique (DTEC, ton installation) et dossier ressources (DRES). Pas de bouton « Où chercher ? » dans un devoir.</li>
             <li>Tu peux quitter et reprendre plus tard <b>sur le même appareil</b> : tes réponses sont gardées.</li>
-            <li>Une fois rendu, tu peux <b>le refaire pour t'entraîner</b>, avec d'autres valeurs : ta note ne change pas, mais <b>ton professeur voit aussi ces notes</b>. Là, le bouton « Où chercher ? » existe : <b>chaque usage retire ${PEN_OU_TXT}</b>.</li>
+            <li>Une fois rendu, tu peux <b>le refaire</b>, avec de nouvelles valeurs : <b>ta nouvelle note remplace la précédente, même si elle est plus basse</b> (ton professeur voit toutes tes notes). Dans un devoir refait, le bouton « Où chercher ? » existe : <b>chaque usage retire ${PEN_OU_TXT}</b>. Un devoir refait commencé puis abandonné n'est pas noté.</li>
           </ul>`;
   const CONNEXION = `<div class="carte" style="max-width:860px;margin-top:12px"><p style="margin:0"><b>Connecte-toi au site pour faire un devoir.</b></p><div class="actions"><a class="btn plein" href="../index.html#/connexion/BTS2-STI">Me connecter · BTS 2 STI</a><a class="btn" href="../index.html#/connexion/BTS2-ADM">BTS 2 ADM</a></div></div>`;
   function vueDevoirs(app, sid) {
@@ -565,7 +573,8 @@
       else if (loc && loc.fini) {
         const cls = loc.note >= 16 ? "n3" : loc.note >= 10 ? "n2" : "n1";
         etat = `<span class="chip dispo">Rendu${loc.rendu ? " le " + esc(jourDe(loc.rendu)) : ""}</span>`;
-        actions = `<span class="pastille ${cls}" style="font-size:1.05rem">${nf(loc.note, 1)} / 20</span>${loc.envoi && !loc.transmis ? `<button class="btn plein" data-envoyer="${d.id}">Transmettre ma note</button>` : ""}<a class="btn" href="#/devoir/${d.id}/entrainement">Le refaire pour m'entraîner</a><span class="discret">Autres valeurs ; ne change pas ta note, mais ton professeur voit ces notes. « Où chercher ? » y retire ${PEN_OU_TXT}.</span>`;
+        const nr = noteRetenue(loc), refait = nr !== loc.note || (loc.dernier && String(loc.dernier.le) > String(loc.rendu || ""));
+        actions = `<span class="pastille ${nr >= 16 ? "n3" : nr >= 10 ? "n2" : "n1"}" style="font-size:1.05rem">${nf(nr, 1)} / 20</span>${refait ? `<span class="discret">note de ton dernier essai (refait le ${esc(jourDe(loc.dernier.le))}) · devoir noté : ${nf(loc.note, 1)} / 20</span>` : ""}${loc.envoi && !loc.transmis ? `<button class="btn plein" data-envoyer="${d.id}">Transmettre ma note</button>` : ""}<a class="btn" href="#/devoir/${d.id}/entrainement">Le refaire (nouvelle note)</a><span class="discret">Nouvelles valeurs ; ta nouvelle note remplacera celle-ci, même plus basse. « Où chercher ? » y retire ${PEN_OU_TXT}.</span>`;
       } else if (!ouvert) { etat = `<span class="chip">🔒 Verrouillé</span>`; actions = `<span class="discret">S'ouvre quand tu as rendu le niveau ${prec.niveau} « ${esc(prec.nomNiveau || "")} ».</span>`; }
       else if (loc && (loc.rep || []).length) { etat = `<span class="chip attente">En cours · ${loc.rep.length} / ${n}</span>`; actions = `<a class="btn plein" href="#/devoir/${d.id}">Reprendre à la question ${Math.min(loc.rep.length + 1, n)}</a>`; }
       else {
@@ -622,12 +631,13 @@
     st.fini = true; st.fin = Date.now(); st.note = noteCourante(); st.tempsEcoule = !!tempsEcoule;
     if (st.devoir) sauverDevoir();
     garderMeilleur(st.id, st.note);
+    if (dev(st.id) && !estNote(st.id) && !enApercu()) { st.avant = noteRetenue(lireDev(st.did)); majDevoir(st.did, { dernier: { note: st.note, le: new Date(st.fin).toISOString() } }); }
     transmettre();
     location.hash = "#/bilan-serie";
   }
   function vueBilan(app) {
     const n = st.qs.length, ok = st.rep.filter((r) => fracDe(r) >= 1).length, note = st.note, cls = note >= 16 ? "n3" : note >= 10 ? "n2" : "n1";
-    const verdict = dev(st.id) ? (estNote(st.id) ? "Devoir rendu" : note >= 16 ? "Entraînement réussi" : "Relis les corrigés, puis recommence")
+    const verdict = dev(st.id) ? (estNote(st.id) ? "Devoir rendu" : enApercu() ? (note >= 16 ? "Entraînement réussi" : "Relis les corrigés, puis recommence") : "Devoir refait : nouvelle note")
       : morc(st.id) || ann(st.id) ? (note >= 16 ? (ann(st.id) ? "Notion maîtrisée sur les annales" : "Partie maîtrisée") : note >= 10 ? "À consolider : recommence avec de nouvelles valeurs" : ann(st.id) ? "Relis les corrigés, puis recommence" : "Relis les corrigés, puis recommence la partie")
       : note >= 16 ? (st.id === "express" ? "Très bonne gestion de l'épreuve" : "Notion validée") : note >= 10 ? "À consolider : recommence avec de nouvelles valeurs" : st.id === "express" ? "Travaille d'abord les notions fragiles en série" : "Relis la fiche, puis recommence";
     const duree = (st.limite ? Math.min(st.fin - st.debut, st.limite) : st.fin - st.debut) / 60e3, N = st.id === "express" ? null : B[ann(st.id) || st.id];
@@ -646,10 +656,11 @@
       <div class="bilan-grille">
         <div class="carte"><div class="score"><div class="grand ${cls}">${nf(note, 1)}<small> / 20</small></div>
           <div><div><b>${ok}</b> réponse${ok > 1 ? "s" : ""} entièrement juste${ok > 1 ? "s" : ""} sur ${n}${nbRed ? ` (dont ${nbRed} rédaction${nbRed > 1 ? "s" : ""})` : ""}</div>
+          ${dev(st.id) && !estNote(st.id) && !enApercu() ? `<div><b>C'est ta nouvelle note</b> pour ce niveau${st.avant != null ? ` : elle remplace ${nf(st.avant, 1)} / 20` : ""}.</div>` : ""}
           <div class="discret">Temps : <b>${minutes(duree)}</b> · repère de l'épreuve : ${minutes(st.repere)}${st.tempsEcoule ? " · <b>temps écoulé</b>" : ""}</div>
           ${st.indices ? `<div class="discret">« Où chercher ? » utilisé ${st.indices} fois${dev(st.id) ? ` : −${nf(PEN_OU * st.indices, 1)} point${PEN_OU * st.indices >= 2 ? "s" : ""}` : ""}</div>` : ""}</div></div>
           <p class="discret" style="margin-bottom:0">${duree > st.repere * 1.3 ? "Tu dépasses nettement le temps de référence : à l'épreuve, tu manquerais de temps. Repère plus vite le document et la ligne utiles, puis écris directement la relation." : duree < st.repere * 0.5 && note < 14 ? "Tu vas vite mais tu fais des erreurs : prends le temps de relire l'unité et la ligne du tableau avant de valider." : "Ton rythme est compatible avec la durée de l'épreuve."}</p>
-          <div class="actions"><button class="btn plein" id="b-encore">${estNote(st.id) ? "Le refaire pour m'entraîner (autres valeurs, ne change pas ta note)" : "Recommencer (nouvelles valeurs)"}</button><a class="btn" href="${retourDe(st.id)}">${dev(st.id) ? "Les devoirs notés" : morc(st.id) ? "Autre partie" : ann(st.id) ? "Autre notion" : "Autre série"}</a>${ann(st.id) && B[ann(st.id)] ? `<a class="btn" href="#/serie/${ann(st.id)}">Série de la notion</a>` : ""}${N && !ann(st.id) && (E4.SUJETS || []).some((s) => s.questions.some((qq) => qq.notion === st.id)) ? `<a class="btn" href="#/notion/${st.id}">Questions d'annales de la notion</a>` : ""}</div></div>
+          <div class="actions"><button class="btn plein" id="b-encore">${dev(st.id) && !enApercu() ? "Le refaire (nouvelles valeurs, nouvelle note)" : "Recommencer (nouvelles valeurs)"}</button><a class="btn" href="${retourDe(st.id)}">${dev(st.id) ? "Les devoirs notés" : morc(st.id) ? "Autre partie" : ann(st.id) ? "Autre notion" : "Autre série"}</a>${ann(st.id) && B[ann(st.id)] ? `<a class="btn" href="#/serie/${ann(st.id)}">Série de la notion</a>` : ""}${N && !ann(st.id) && (E4.SUJETS || []).some((s) => s.questions.some((qq) => qq.notion === st.id)) ? `<a class="btn" href="#/notion/${st.id}">Questions d'annales de la notion</a>` : ""}</div></div>
         ${N ? `<div class="carte"><h3>Fiche · ${esc(N.fiche.t)}</h3><ul class="fiche-serie">${N.fiche.l.map((l) => `<li>${l}</li>`).join("")}</ul></div>`
             : `<div class="carte"><h3>Par notion</h3><table><tbody>${Object.entries(parNotion).map(([id, p]) => `<tr><td>${esc(notion(id).nom)}</td><td class="num" style="white-space:nowrap">${nf(p.ok, 1)} / ${p.n}</td><td>${p.ok < p.n - 1e-9 ? `<a class="btn petit" href="#/serie/${id}">Série</a>` : "✓"}</td></tr>`).join("")}</tbody></table></div>`}
       </div>
@@ -663,7 +674,7 @@
       const rep = q.type === "redac" && !r.horsTemps ? `✎ ${r.mode || "auto"} ${nf(f * q.el.length, 1)}/${q.el.length} · ${String(r.rep || "").replace(/\s+/g, " ")}` : String(r.rep || "");
       return { q: txt((q.ctx ? q.ctx + " · " : "") + q.q).slice(0, 400), rep: rep.slice(0, q.type === "redac" ? 300 : 80) + (r.indice ? " · indice" : ""), attendu: (q.type === "redac" ? attenduDe(q) : txt(r.attendu)).slice(0, q.type === "redac" ? 400 : 120),
         pts: dev(st.id) ? -2 * errDe(r) - (r.indice ? PEN_OU : 0) : Math.round(f * 100) / 100, erreurs: dev(st.id) ? errDe(r) : f >= 1 ? 0 : 1, indice: dev(st.id) && r.indice ? true : undefined, essais: dev(st.id) ? r.essais || 1 : undefined, notion: q.nid, niveau: q.lv, g: q.g, ref: dev(st.id) ? q.ref : undefined, type: q.type === "redac" ? "redaction" : undefined }; });
-    const titre = dev(st.id) ? "E4 · " + titreDe(st.id) + (estNote(st.id) ? "" : " (entraînement, ne compte pas)") : st.id === "express" ? "E4 · Épreuve express (" + st.qs.length + " q.)" : morc(st.id) ? "E4 · " + titreDe(st.id) + (st.officiel ? " (valeurs du sujet)" : "") : ann(st.id) ? "E4 · Annales — " + notion(ann(st.id)).nom + " (" + st.qs.length + " q.)" : "E4 · Série — " + notion(st.id).nom;
+    const titre = dev(st.id) ? "E4 · " + titreDe(st.id) + (estNote(st.id) ? "" : " (refait : nouvelle note)") : st.id === "express" ? "E4 · Épreuve express (" + st.qs.length + " q.)" : morc(st.id) ? "E4 · " + titreDe(st.id) + (st.officiel ? " (valeurs du sujet)" : "") : ann(st.id) ? "E4 · Annales — " + notion(ann(st.id)).nom + " (" + st.qs.length + " q.)" : "E4 · Série — " + notion(st.id).nom;
     const envoi = { module: moduleDe(st.id), titre, type: "externe", score: st.note, score_max: 20, duree_s: Math.round((st.fin - st.debut) / 1000), details };
     const moi = st, did = st.devoir ? st.did : null;
     if (did) majDevoir(did, { envoi: Object.assign({ fait_le: new Date(st.fin).toISOString() }, envoi), transmis: false });   // gardé pour « Transmettre ma note » si l'envoi échoue
