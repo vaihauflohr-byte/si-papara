@@ -24,9 +24,11 @@
    essai, dès le premier : deux élèves n'ont pas les mêmes données) ; module e4-morceau-<id>.
    Annales par notion : #/annales/<notion> (≈ 10 questions des sujets en morceaux qui portent
    sur la notion, plusieurs sujets mélangés, valeurs tirées au hasard) ; module e4-annales-<notion>.
-   Devoirs notés (e4/devoirs.js) : #/devoirs (liste), #/devoir/<id> (le devoir), #/devoir/<id>/entrainement.
+   Devoirs notés (e4/devoirs.js et e4/devoirs-<étude>.js) : #/devoirs (les études), #/devoirs/<étude> (ses
+   quatre niveaux), #/devoir/<id> (le devoir), #/devoir/<id>/entrainement.
    Le devoir se fait une seule fois, élève connecté : ses valeurs sont tirées à partir de son nom (les mêmes
-   à chaque ouverture, différentes de celles des autres élèves), ses réponses sont gardées sur l'appareil
+   quand il reprend sur le même appareil, différentes de celles des autres élèves ; un devoir recommencé à zéro
+   ailleurs a de nouvelles valeurs : la graine compte les départs déjà enregistrés), ses réponses sont gardées sur l'appareil
    question après question (il peut quitter et reprendre), pas de bouton « Où chercher ? ». Notation des
    devoirs, comme sur le site des Terminales : on part de 20, chaque erreur retire 2 points ; un calcul a
    deux essais (l'élève se corrige : une erreur au 1er essai coûte 2 points, une 2e encore 2), un choix
@@ -69,9 +71,9 @@
   const dev = (id) => (typeof id === "string" && /^[de]:/.test(id) && E4.devoir ? E4.devoir(id.slice(2)) : null);
   const estNote = (id) => typeof id === "string" && id.startsWith("d:");
   const moduleDe = (id) => (dev(id) ? "e4-devoir-" + id.slice(2) + (estNote(id) ? "" : "-entr") : id === "express" ? "e4-express" : morc(id) ? "e4-morceau-" + id.slice(2) : ann(id) ? "e4-annales-" + ann(id) : "e4-serie-" + id);
-  const titreDe = (id) => { const m = morc(id), d = dev(id); return d ? `${d.court} · ${d.titre}` : id === "express" ? "Épreuve express" : m ? `${m.court} · ${m.titre}` : ann(id) ? "Annales · " + notion(ann(id)).nom : "Série · " + notion(id).nom; };
+  const titreDe = (id) => { const m = morc(id), d = dev(id); return d ? `Devoir noté · ${d.titre} · niveau ${d.niveau}` : id === "express" ? "Épreuve express" : m ? `${m.court} · ${m.titre}` : ann(id) ? "Annales · " + notion(ann(id)).nom : "Série · " + notion(id).nom; };
   const lienDe = (id) => (dev(id) ? "#/devoir/" + id.slice(2) + "/entrainement" : id === "express" ? "#/express" : morc(id) ? "#/morceau/" + id.slice(2) : ann(id) ? "#/annales/" + ann(id) : "#/serie/" + id);
-  const retourDe = (id) => (dev(id) ? "#/devoirs" : morc(id) ? "#/morceaux" : ann(id) ? "#/" : "#/series");
+  const retourDe = (id) => (dev(id) ? "#/devoirs" + (dev(id).serie ? "/" + dev(id).serie : "") : morc(id) ? "#/morceaux" : ann(id) ? "#/" : "#/series");
   const melange = (L) => { const a = L.slice(); for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
   /* nombre de questions des sujets en morceaux sur une notion (valeurs du sujet, calculé une fois) */
   let nbAnn = null;
@@ -113,7 +115,7 @@
     if (p[0] === "morceaux") return vueMorceaux(app);
     if (p[0] === "morceau" && p[1] && E4.morceau && E4.morceau(p[1])) return vueJeu(app, "m:" + p[1]);
     if (p[0] === "annales" && p[1] && E4.nbAnnalesNotion(p[1])) return vueJeu(app, "a:" + p[1]);
-    if (p[0] === "devoirs") return vueDevoirs(app);
+    if (p[0] === "devoirs") return vueDevoirs(app, p[1]);
     if (p[0] === "devoir" && p[1] && E4.devoir && E4.devoir(p[1])) return ouvrirDevoir(app, p[1], p[2] === "entrainement");
     if (p[0] === "bilan-serie" && st && st.fini) return vueBilan(app);
     location.hash = "#/series";
@@ -441,6 +443,7 @@
   const lireDev = (did) => { try { return JSON.parse(localStorage.getItem(cleDev(did)) || "null"); } catch (e) { return null; } };
   const ecrireDev = (did, o) => { try { localStorage.setItem(cleDev(did), JSON.stringify(o)); } catch (e) { /* stockage indisponible */ } };
   const majDevoir = (did, champs) => { const o = lireDev(did); if (o) ecrireDev(did, Object.assign(o, champs)); };
+  const departsVus = {};   // nombre de départs déjà enregistrés dans la base pour un devoir (ouvrirDevoir), quand l'appareil n'a rien gardé
   /* tirage reproductible : pendant f(), Math.random suit une suite fixée par la graine (le nom de l'élève) */
   const graineDe = (t) => { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
   function avecGraine(graine, f) {
@@ -453,22 +456,25 @@
     const did = id.slice(2), note = estNote(id) && !enApercu();   // aperçu du professeur : rien n'est gardé, autres valeurs à chaque essai
     const s = (window.SIP && SIP.session && SIP.session.get()) || {};
     const tir = () => { const qs = E4.tirerDevoir(did); qs.forEach(melangerChoix); return qs; };
-    const qs = note ? avecGraine(graineDe([did, s.niveau || "", s.nom || ""].join("|")), tir) : tir();
     let sauve = note ? lireDev(did) : null;
+    /* graine : le devoir, la classe, le nom, et le numéro du départ (un devoir recommencé à zéro, sur un autre appareil
+       ou après effacement du navigateur, a d'autres valeurs que le premier départ ; repris sur le même appareil, les mêmes) */
+    const depart = sauve ? sauve.depart || 0 : departsVus[did] || 0;
+    const qs = note ? avecGraine(graineDe([did, s.niveau || "", s.nom || ""].concat(depart ? ["départ " + (depart + 1)] : []).join("|")), tir) : tir();
     if (note && !sauve) {
-      sauve = { v: 1, debut: new Date().toISOString(), ecoule: 0, rep: [], fini: false };
+      sauve = { v: 1, debut: new Date().toISOString(), ecoule: 0, rep: [], fini: false, depart };
       ecrireDev(did, sauve);
-      try { SIP.ecrire("enregistrer", { module: "e4-devoir-" + did, titre: `E4 · ${d.court} · ${d.titre} (début)`, type: "devoir_debut", score: 0, score_max: 20, duree_s: 0, details: null }).catch(() => {}); } catch (e) { /* pas de connexion : rien */ }
+      try { SIP.ecrire("enregistrer", { module: "e4-devoir-" + did, titre: `E4 · ${titreDe(id)} (début)`, type: "devoir_debut", score: 0, score_max: 20, duree_s: 0, details: null }).catch(() => {}); } catch (e) { /* pas de connexion : rien */ }
     }
     const rep = note ? (sauve.rep || []).slice(0, qs.length) : [];
     const pend = note && sauve.pend && sauve.pend.i === rep.length ? sauve.pend : null;
-    return { id, qs, i: Math.min(rep.length, Math.max(0, qs.length - 1)), rep, debut: Date.now() - (note ? sauve.ecoule || 0 : 0), fini: false, indices: 0, repere: d.duree_min, officiel: false, limite: null, transmis: false, devoir: note, did, pend };
+    return { id, qs, i: Math.min(rep.length, Math.max(0, qs.length - 1)), rep, debut: Date.now() - (note ? sauve.ecoule || 0 : 0), fini: false, indices: 0, repere: d.duree_min, officiel: false, limite: null, transmis: false, devoir: note, did, pend, depart };
   }
   /* après chaque réponse : les réponses et le temps passé restent sur l'appareil */
   function sauverDevoir() {
     if (!st || !st.devoir) return;
     const o = lireDev(st.did) || { v: 1, debut: new Date().toISOString() };
-    o.rep = st.rep; o.pend = st.pend || null; o.ecoule = (st.fini ? st.fin : Date.now()) - st.debut; o.fini = !!st.fini;
+    o.rep = st.rep; o.pend = st.pend || null; o.ecoule = (st.fini ? st.fin : Date.now()) - st.debut; o.fini = !!st.fini; o.depart = st.depart || 0;
     if (st.fini) { o.note = st.note; o.rendu = new Date(st.fin).toISOString(); }
     ecrireDev(st.did, o);
   }
@@ -495,7 +501,7 @@
   const ouvertDev = (d) => enApercu() || !d.apres || renduLoc(d.apres);
   async function ouvrirDevoir(app, did, libre) {
     const hash = location.hash, id = (libre ? "e:" : "d:") + did, d = E4.devoir(did);
-    if (!connecte()) { location.hash = "#/devoirs"; return; }
+    if (!connecte()) { location.hash = retourDe(id); return; }
     if (enApercu() || (st && st.id === id && !st.fini)) return vueJeu(app, id);
     let loc = lireDev(did);
     if (!loc || (d.apres && !renduLoc(d.apres))) {   // rien sur cet appareil : le devoir (ou le niveau précédent) a peut-être été rendu ailleurs
@@ -503,9 +509,10 @@
       const S = await devoirsServeur();
       if (location.hash !== hash) return;
       rapprocher(did, S); if (d.apres) rapprocher(d.apres, S); loc = lireDev(did);
+      if (!loc && S && S[did] && S[did].debuts) departsVus[did] = S[did].debuts;   // déjà commencé ailleurs : nouveau départ, nouvelles valeurs
     }
     const rendu = !!(loc && loc.fini);
-    if ((libre ? !rendu : rendu) || !ouvertDev(d)) { location.hash = "#/devoirs"; return; }
+    if ((libre ? !rendu : rendu) || !ouvertDev(d)) { location.hash = retourDe(id); return; }
     vueJeu(app, id);
   }
   async function transmettreDevoir(did) {
@@ -516,53 +523,91 @@
     catch (e) { toast(e.message === "SESSION_EXPIREE" ? "Ta connexion a expiré : reconnecte-toi sur le site." : "Transmission impossible : " + e.message); }
   }
   const jourDe = (iso) => { try { return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "Pacific/Tahiti" }); } catch (e) { return ""; } };
-  function vueDevoirs(app) {
-    const L = E4.DEVOIRS || [], hash = location.hash;
-    const dessiner = (S) => {
-      L.forEach((d) => rapprocher(d.id, S));
-      const carte = (d) => {
-        const loc = lireDev(d.id), n = d.parties.reduce((a, p) => a + p[2], 0), x = S && S[d.id], ouvert = ouvertDev(d), prec = d.apres ? E4.devoir(d.apres) : null;
-        const parties = `<ul class="discret" style="margin:8px 0 0;padding-left:1.2em">${d.parties.map((p) => `<li><b>Partie ${esc(p[0])}</b> · ${esc(p[1])} (${p[2]} question${p[2] > 1 ? "s" : ""})</li>`).join("")}</ul>`;
-        let etat, actions;
-        if (enApercu()) { etat = `<span class="chip">Aperçu professeur</span>`; actions = `<a class="btn plein" href="#/devoir/${d.id}">Essayer le devoir</a><span class="discret">Autres valeurs à chaque essai, rien n'est gardé ni transmis.</span>`; }
-        else if (!connecte()) { etat = `<span class="chip attente">${ouvert ? "À faire" : "🔒 Après le niveau " + (prec.niveau || "précédent")}</span>`; actions = `<span class="discret">Connecte-toi pour commencer.</span>`; }
-        else if (loc && loc.fini) {
-          const cls = loc.note >= 16 ? "n3" : loc.note >= 10 ? "n2" : "n1";
-          etat = `<span class="chip dispo">Rendu${loc.rendu ? " le " + esc(jourDe(loc.rendu)) : ""}</span>`;
-          actions = `<span class="pastille ${cls}" style="font-size:1.05rem">${nf(loc.note, 1)} / 20</span>${loc.envoi && !loc.transmis ? `<button class="btn plein" data-envoyer="${d.id}">Transmettre ma note</button>` : ""}<a class="btn" href="#/devoir/${d.id}/entrainement">Le refaire pour m'entraîner</a><span class="discret">Autres valeurs ; ne change pas ta note.</span>`;
-        } else if (!ouvert) { etat = `<span class="chip">🔒 Verrouillé</span>`; actions = `<span class="discret">S'ouvre quand tu as rendu le ${esc(prec.court.replace(/^D/, "d"))} (niveau ${prec.niveau} « ${esc(prec.nomNiveau || "")} »).</span>`; }
-        else if (loc && (loc.rep || []).length) { etat = `<span class="chip attente">En cours · ${loc.rep.length} / ${n}</span>`; actions = `<a class="btn plein" href="#/devoir/${d.id}">Reprendre à la question ${Math.min(loc.rep.length + 1, n)}</a>`; }
-        else {
-          etat = `<span class="chip attente">À faire</span>`;
-          actions = `<a class="btn plein" href="#/devoir/${d.id}">Commencer le devoir</a>${!loc && x && x.debuts ? `<p class="discret" style="flex-basis:100%;margin:6px 0 0">Tu as déjà commencé ce devoir sur un autre appareil : tes réponses y sont restées. Reprends-le de préférence là-bas ; si tu recommences ici, ton professeur le verra.</p>` : ""}`;
-        }
-        return `<div class="carte"${ouvert || enApercu() ? "" : ' style="opacity:.75"'}><div class="eyebrow">${d.niveau ? `Niveau ${d.niveau} · ${esc(d.nomNiveau || "")} · ` : ""}${esc(d.court)} · ${n} questions · ≈ ${d.duree_min} min</div>
-          <h3 style="margin-top:4px">${esc(d.titre)} ${etat}</h3><p class="discret">${esc(d.resume)}</p>${parties}<div class="actions">${actions}</div></div>`;
-      };
-      app.innerHTML = `
-        <p><a href="#/">← Accueil E4</a></p>
-        <h1>Devoirs notés</h1>
-        <div class="carte" style="max-width:860px"><div class="eyebrow">Règles du devoir</div>
-          <ul style="margin:6px 0 0;padding-left:1.2em">
-            <li><b>${L.length} niveaux</b>, du plus guidé à celui de l'épreuve, puis au-delà. <b>Chaque niveau s'ouvre quand tu as rendu le précédent.</b></li>
+  /* ---------- page des devoirs : #/devoirs (les études) et #/devoirs/<étude> (ses quatre niveaux) ---------- */
+  const nbQ = (d) => d.parties.reduce((a, p) => a + p[2], 0);
+  const etudes = () => (E4.SERIES_DEVOIRS || []).filter((s) => (E4.DEVOIRS || []).some((d) => d.serie === s.id));
+  const niveauxDe = (sid) => (E4.DEVOIRS || []).filter((d) => d.serie === sid).sort((a, b) => (a.niveau || 0) - (b.niveau || 0));
+  const etatDe = (d) => { const loc = connecte() && !enApercu() ? lireDev(d.id) : null;
+    return { id: d.id, serie: d.serie, titre: d.titre, niveau: d.niveau, nomNiveau: d.nomNiveau, ouvert: ouvertDev(d), n: nbQ(d), fini: !!(loc && loc.fini), note: loc && loc.fini ? loc.note : null, faites: loc && !loc.fini ? (loc.rep || []).length : 0 }; };
+  /* état des devoirs gardé sur l'appareil (page d'accueil E4) ; par étude : niveaux, nombre rendus, niveau à faire ensuite */
+  E4.etatDevoirs = () => (E4.DEVOIRS || []).map(etatDe);
+  E4.etatEtudes = () => etudes().map((s, i) => { const L = niveauxDe(s.id).map(etatDe);
+    return { id: s.id, num: i + 1, titre: s.titre, desc: s.desc || "", notions: s.notions || [], niveaux: L, rendus: L.filter((x) => x.fini).length, suiv: L.find((x) => x.ouvert && !x.fini) || null, enCours: L.some((x) => x.faites > 0) }; });
+  /* l'étude à continuer : un niveau en cours, sinon une étude commencée, sinon la première étude pas commencée */
+  E4.etudeSuivante = (EE) => EE.find((e) => e.enCours) || EE.find((e) => e.rendus && e.suiv) || EE.find((e) => !e.rendus && e.suiv) || null;
+  const puceNiv = (x) => (x.fini ? `<span class="chip dispo">N${x.niveau} · ${nf(x.note, 1)} / 20</span>` : enApercu() ? `<span class="chip">N${x.niveau}</span>`
+    : x.ouvert ? `<span class="chip attente">N${x.niveau} · ${x.faites ? `en cours ${x.faites} / ${x.n}` : "à faire"}</span>` : `<span class="chip">N${x.niveau} · 🔒</span>`);
+  const nomsNotions = (L) => L.map((id) => notion(id).nom).join(" · ");
+  const REGLES = (nE) => `<ul style="margin:6px 0 0;padding-left:1.2em">
+            <li>${nE > 1 ? `<b>${nE} études</b>, chacune en <b>4 niveaux</b>` : "<b>4 niveaux</b>"}, du plus guidé à celui de l'épreuve, puis au-delà. <b>Dans une étude, chaque niveau s'ouvre quand tu as rendu le précédent.</b></li>
             <li>Chaque devoir se fait <b>une seule fois</b> : sa note, sur 20, est transmise au professeur.</li>
             <li><b>Tu pars de 20 ; chaque erreur retire 2 points.</b> Pour un calcul, tu as deux essais : si tu te trompes, tu perds 2 points et tu peux te corriger. Pour un choix, une seule réponse.</li>
             <li><b>Tes valeurs sont les tiennes</b> : chaque élève a son installation, ses documents et ses résultats. Recopier un voisin ne sert à rien.</li>
             <li>La correction s'affiche dès que la question est finie ; quand une question reprend un résultat, il est rappelé (« On prendra… ») : une erreur ne se reporte pas sur la suite.</li>
             <li>Travaille comme à l'épreuve : copie, calculatrice et documents (onglets à gauche sur ordinateur, bouton « Documents » sur téléphone). À partir du niveau 2, c'est le dossier complet : dossier technique (DTEC, ton installation) et dossier ressources (DRES). Pas de bouton « Où chercher ? » dans un devoir.</li>
             <li>Tu peux quitter et reprendre plus tard <b>sur le même appareil</b> : tes réponses sont gardées.</li>
-          </ul></div>
-        ${connecte() ? "" : `<div class="carte" style="max-width:860px;margin-top:12px"><p style="margin:0"><b>Connecte-toi au site pour faire un devoir.</b></p><div class="actions"><a class="btn plein" href="../index.html#/connexion/BTS2-STI">Me connecter · BTS 2 STI</a><a class="btn" href="../index.html#/connexion/BTS2-ADM">BTS 2 ADM</a></div></div>`}
-        <div class="grille2" style="margin-top:14px">${L.map(carte).join("")}</div>
+          </ul>`;
+  const CONNEXION = `<div class="carte" style="max-width:860px;margin-top:12px"><p style="margin:0"><b>Connecte-toi au site pour faire un devoir.</b></p><div class="actions"><a class="btn plein" href="../index.html#/connexion/BTS2-STI">Me connecter · BTS 2 STI</a><a class="btn" href="../index.html#/connexion/BTS2-ADM">BTS 2 ADM</a></div></div>`;
+  function vueDevoirs(app, sid) {
+    const hash = location.hash, ET = etudes(), etude = sid ? ET.find((s) => s.id === sid) : null;
+    if (sid && !etude) { location.hash = "#/devoirs"; return; }
+    const carte = (d, S) => {   // un niveau d'une étude
+      const loc = lireDev(d.id), n = nbQ(d), x = S && S[d.id], ouvert = ouvertDev(d), prec = d.apres ? E4.devoir(d.apres) : null;
+      const parties = `<ul class="discret" style="margin:8px 0 0;padding-left:1.2em">${d.parties.map((p) => `<li><b>Partie ${esc(p[0])}</b> · ${esc(p[1])} (${p[2]} question${p[2] > 1 ? "s" : ""})</li>`).join("")}</ul>`;
+      let etat, actions;
+      if (enApercu()) { etat = `<span class="chip">Aperçu professeur</span>`; actions = `<a class="btn plein" href="#/devoir/${d.id}">Essayer le devoir</a><span class="discret">Autres valeurs à chaque essai, rien n'est gardé ni transmis.</span>`; }
+      else if (!connecte()) { etat = `<span class="chip attente">${ouvert ? "À faire" : "🔒 Après le niveau " + (prec.niveau || "précédent")}</span>`; actions = `<span class="discret">Connecte-toi pour commencer.</span>`; }
+      else if (loc && loc.fini) {
+        const cls = loc.note >= 16 ? "n3" : loc.note >= 10 ? "n2" : "n1";
+        etat = `<span class="chip dispo">Rendu${loc.rendu ? " le " + esc(jourDe(loc.rendu)) : ""}</span>`;
+        actions = `<span class="pastille ${cls}" style="font-size:1.05rem">${nf(loc.note, 1)} / 20</span>${loc.envoi && !loc.transmis ? `<button class="btn plein" data-envoyer="${d.id}">Transmettre ma note</button>` : ""}<a class="btn" href="#/devoir/${d.id}/entrainement">Le refaire pour m'entraîner</a><span class="discret">Autres valeurs ; ne change pas ta note.</span>`;
+      } else if (!ouvert) { etat = `<span class="chip">🔒 Verrouillé</span>`; actions = `<span class="discret">S'ouvre quand tu as rendu le niveau ${prec.niveau} « ${esc(prec.nomNiveau || "")} ».</span>`; }
+      else if (loc && (loc.rep || []).length) { etat = `<span class="chip attente">En cours · ${loc.rep.length} / ${n}</span>`; actions = `<a class="btn plein" href="#/devoir/${d.id}">Reprendre à la question ${Math.min(loc.rep.length + 1, n)}</a>`; }
+      else {
+        etat = `<span class="chip attente">À faire</span>`;
+        actions = `<a class="btn plein" href="#/devoir/${d.id}">Commencer le devoir</a>${!loc && x && x.debuts ? `<p class="discret" style="flex-basis:100%;margin:6px 0 0">Tu as déjà commencé ce devoir sur un autre appareil : tes réponses y sont restées. Reprends-le de préférence là-bas ; si tu recommences ici, ton professeur le verra.</p>` : ""}`;
+      }
+      return `<div class="carte"${ouvert || enApercu() ? "" : ' style="opacity:.75"'}><div class="eyebrow">${n} questions · ≈ ${d.duree_min} min</div>
+          <h3 style="margin-top:4px">Niveau ${d.niveau} · ${esc(d.nomNiveau || "")} ${etat}</h3><p class="discret">${esc(d.resume)}</p>${parties}<div class="actions">${actions}</div></div>`;
+    };
+    const carteEtude = (e, suiv) => {   // une étude, sur la page des études
+      const tout = e.rendus === e.niveaux.length, lib = enApercu() || !connecte() ? "Voir les niveaux" : tout ? "Voir mes notes"
+        : e.suiv ? (e.suiv.faites ? `Reprendre le niveau ${e.suiv.niveau}` : e.rendus ? `Continuer : niveau ${e.suiv.niveau}` : "Commencer : niveau 1") : "Voir les niveaux";
+      const manque = 4 - e.niveaux.length;
+      return `<div class="carte"><div class="eyebrow">Étude ${e.num} · ${e.niveaux.length} niveau${e.niveaux.length > 1 ? "x" : ""}${manque > 0 ? " pour l'instant" : ""}</div>
+          <h3 style="margin-top:4px">${esc(e.titre)}</h3><p class="discret">${esc(e.desc)}</p>
+          ${e.notions.length ? `<p class="discret" style="font-size:.85rem;margin:6px 0 0"><b>Notions :</b> ${esc(nomsNotions(e.notions))}</p>` : ""}
+          <div class="actions" style="align-items:center">${e.niveaux.map(puceNiv).join("")}${manque > 0 ? `<span class="chip">N${e.niveaux.length + 1}${manque > 1 ? " à N4" : ""} · bientôt</span>` : ""}<a class="btn${suiv === e ? " plein" : ""}" href="#/devoirs/${e.id}">${lib}</a></div></div>`;
+    };
+    const dessiner = (S) => {
+      (E4.DEVOIRS || []).forEach((d) => rapprocher(d.id, S));
+      if (etude) {
+        const L = niveauxDe(etude.id), num = ET.indexOf(etude) + 1;
+        app.innerHTML = `
+        <p><a href="#/devoirs">← Toutes les études</a></p>
+        <div class="eyebrow">Devoir noté · étude ${num}${ET.length > 1 ? " sur " + ET.length : ""}</div>
+        <h1 style="margin-top:4px">${esc(etude.titre)}</h1>
+        <p class="discret" style="max-width:860px">${esc(etude.desc || "")}${(etude.notions || []).length ? ` <b>Notions :</b> ${esc(nomsNotions(etude.notions))}.` : ""}</p>
+        ${connecte() ? "" : CONNEXION}
+        <div class="grille2" style="margin-top:14px">${L.map((d) => carte(d, S)).join("")}</div>
+        ${L.length < 4 ? `<p class="discret" style="margin-top:10px">${L.length === 3 ? "Le niveau 4 arrive" : `Les niveaux ${L.length + 1} à 4 arrivent`} bientôt : chacun s'ouvrira quand tu auras rendu le précédent.</p>` : ""}
+        <details class="carte" style="max-width:860px;margin-top:14px"><summary><b>Règles du devoir</b></summary>${REGLES(ET.length)}</details>
         <p class="pied">Devoirs écrits pour le site dans la forme de l'épreuve E4 (dossier technique, dossier ressources, questions liées). Les installations étudiées sont inventées.</p>`;
+      } else {
+        const EE = E4.etatEtudes(), suiv = connecte() && !enApercu() ? E4.etudeSuivante(EE) : null;
+        app.innerHTML = `
+        <p><a href="#/">← Accueil E4</a></p>
+        <h1>Devoirs notés</h1>
+        <div class="carte" style="max-width:860px"><div class="eyebrow">Règles du devoir</div>${REGLES(ET.length)}</div>
+        ${connecte() ? "" : CONNEXION}
+        <div class="grille2" style="margin-top:14px">${EE.map((e) => carteEtude(e, suiv)).join("")}</div>
+        <p class="pied">Devoirs écrits pour le site dans la forme de l'épreuve E4 (dossier technique, dossier ressources, questions liées). Les installations étudiées sont inventées.</p>`;
+      }
       app.querySelectorAll("[data-envoyer]").forEach((b) => b.addEventListener("click", async () => { b.disabled = true; await transmettreDevoir(b.dataset.envoyer); if (location.hash === hash) dessiner(S); }));
     };
     dessiner(null);
     devoirsServeur().then((S) => { if (S && location.hash === hash) dessiner(S); });
   }
-  /* état des devoirs gardé sur l'appareil, pour la page d'accueil E4 */
-  E4.etatDevoirs = () => (E4.DEVOIRS || []).map((d) => { const loc = connecte() && !enApercu() ? lireDev(d.id) : null;
-    return { id: d.id, court: d.court, titre: d.titre, niveau: d.niveau, nomNiveau: d.nomNiveau, ouvert: ouvertDev(d), n: d.parties.reduce((a, p) => a + p[2], 0), fini: !!(loc && loc.fini), note: loc && loc.fini ? loc.note : null, faites: loc && !loc.fini ? (loc.rep || []).length : 0 }; });
 
   /* ---------- fin et bilan ---------- */
   function terminer(app, tempsEcoule) {

@@ -22,14 +22,20 @@
    Le devoir se fait une seule fois ; ensuite il peut être refait pour
    s'entraîner, avec d'autres valeurs (module e4-devoir-<id>-entr).
 
-   Ajouter un devoir : DV.push({ id, court, titre, resume, duree_min,
+   Les devoirs sont groupés en ÉTUDES de quatre niveaux, du plus guidé à
+   l'épreuve puis au-delà (E4.SERIES_DEVOIRS : { id, titre, notions, desc },
+   dans l'ordre de la page #/devoirs). L'étude « Dimensionner une
+   installation » est dans ce fichier (niveau 1 ci-dessous, niveaux 2 à 4 plus
+   bas) ; chaque autre étude a son fichier e4/devoirs-<id>.js, chargé après
+   celui-ci par bts-e4.html, qui prend ses outils dans E4.DEVOIRS_KIT.
+   Ajouter un devoir : DV.push({ id, serie, court, titre, resume, duree_min,
    parties: [[lettre, titre, nb de questions]], gen, niveau, nomNiveau, apres }) ;
    gen() renvoie la liste des questions (format de e4/banque.js, plus ref : « A.3 ») ;
    apres : id du devoir du niveau précédent (le devoir ne s'ouvre qu'une fois
-   celui-ci rendu). Quatre niveaux pour « Dimensionner une installation » :
-   n° 1 ci-dessous, n° 2 à 4 plus bas (même étude, de moins en moins guidée).
-   Puis ajouter son id dans SIP.DEVOIRS_E4 (contenu/bts2.js) : c'est la
-   liste que lisent le tableau de bord de l'élève et la page du professeur.
+   celui-ci rendu).
+   Puis ajouter le devoir dans SIP.DEVOIRS_E4 et l'étude dans SIP.SERIES_E4
+   (contenu/bts2.js) : ce sont les listes que lisent le tableau de bord de
+   l'élève et la page du professeur.
    Règles du professeur : les données se lisent sur une figure ou dans un
    document, jamais dans une liste de l'énoncé ; fractions écrites en
    entier ; une question liée rappelle le résultat attendu de la précédente
@@ -52,6 +58,9 @@ E4.tirerDevoir = function (id) {
   qs.forEach((q, k) => { q.g = "d-" + id; q.gj = k; q.gl = qs.length; q.lv = q.lv || 2; });
   return qs;
 };
+/* les études, dans l'ordre de la page ; chaque fichier d'étude ajoute la sienne */
+E4.SERIES_DEVOIRS = [{ id: "dim", titre: "Dimensionner une installation", notions: ["bilan-puissances", "cables", "protections", "transformateur", "compensation"],
+  desc: "Le nouveau tableau d'un site industriel : bilan de puissance, transformateur, câble et disjoncteur, chute de tension, courts-circuits, protection des personnes, compensation de l'énergie réactive." }];
 
 const melanger = (L) => { const a = L.slice(); for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
 const tri = (o) => Object.keys(o).map(Number).sort((a, b) => a - b);
@@ -233,7 +242,7 @@ function gen1() {
   const ctxC = "Avec l'extension, le facteur de puissance du site est trop faible : une batterie de condensateurs sera installée au TGBT.";
   const tanK = tanDe(d.c), ksLib = nb <= 3 ? "2 et 3 circuits" : nb <= 5 ? "4 et 5 circuits" : nb <= 9 ? "6 à 9 circuits" : "10 circuits ou plus";
   const KS = [0.6, 0.7, 0.8, 0.9];
-  const calCh = D.CAL.slice(v.iC - 2, v.iC + 2), sectCh = v.SECT.slice(v.iS - 2, v.iS + 2), battCh = BATT.slice(v.iB - 2, v.iB + 2);
+  const calCh = fenetre(D.CAL, v.iC, rang(v, "cal")), sectCh = fenetre(v.SECT, v.iS, rang(v, "sect")), battCh = fenetre(BATT, v.iB, rang(v, "batt"));
   const colLib = `${v.iso}3 (isolant ${v.iso}, 3 conducteurs chargés)`, matLib = v.mat === "aluminium" ? "aluminium" : "cuivre";
   const surcharge = v.taux > 100;
   const q8 = v.q8 === "reserve"
@@ -348,7 +357,7 @@ function gen1() {
   return qs;
 }
 
-DV.push({ id: "dim1", court: "Devoir noté n° 1", titre: "Dimensionner une installation", niveau: 1, nomNiveau: "Pas à pas",
+DV.push({ id: "dim1", serie: "dim", court: "Niveau 1", titre: "Dimensionner une installation", niveau: 1, nomNiveau: "Pas à pas",
   resume: "Bilan de puissance d'un nouveau tableau, courant d'emploi, taux de charge du transformateur, calibre du disjoncteur, section du câble avec les facteurs de correction, chute de tension, compensation de l'énergie réactive.",
   duree_min: 60, parties: [["A", "Bilan de puissance du nouveau tableau", 8], ["B", "Canalisation C2 et protection", 10], ["C", "Compensation de l'énergie réactive", 2]],
   gen: gen1, valeurs: valeurs1 });
@@ -414,6 +423,9 @@ const inTr = (sn) => sn * 1000 / (R3 * U20);
 const iccDe = (r, x) => U20 / (R3 * Math.hypot(r, x));   // r, x en mΩ → kA
 const pdcDe = (icc) => D.PDC.find((p) => p >= icc - 1e-9);
 const fenetre = (liste, i, avant, n) => { n = n || 4; const a = Math.max(0, Math.min(i - (avant == null ? 2 : avant), liste.length - n)); return liste.slice(a, a + n); };
+/* rang de la bonne réponse dans une liste rangée de valeurs normalisées : tiré une fois par question et par élève, après toutes
+   les valeurs (il ne les change pas), pour que la bonne réponse ne soit pas toujours à la même place */
+const rang = (v, cle, n) => { v.rangs = v.rangs || {}; if (v.rangs[cle] == null) v.rangs[cle] = Math.floor(Math.random() * (n || 4)); return v.rangs[cle]; };
 const dUde = (v, s, x) => R3 * v.IB * v.L / 1000 * (RHO1[v.mat] / s * v.cos + (x === false ? 0 : 0.08 * v.sin));
 const pctDe = (v, s, x) => (v.am + r2(dUde(v, s, x)) + v.av) / 4;
 
@@ -693,11 +705,11 @@ const explIcc2 = (v) => { const z = v.z;
     `le câble C2 (${v.mat}, ${nf(v.Sf, 1)} mm², ${v.L} m) : R = ${FRAC(`${nf(RHO20[v.mat], 2)} × ${v.L}`, nf(v.Sf, 1))} = ${l3(z.rc)} mΩ ; X = 0,08 × ${v.L} = ${l3(z.xc)} mΩ.`])
     + `Au jeu de barres du ${v.st.td} : ΣR = ${l3(z.R2)} mΩ ; ΣX = ${l3(z.X2)} mΩ ; ${F(`I<sub>cc</sub> = ${FRAC("410", "√3 × √((ΣR)² + (ΣX)²)")}`)} = ${R(`${nf(z.Icc2, 2)} kA`)}. Le câble limite fortement le courant de court-circuit.`; };
 const explPdc = (icc, pdc, ou) => `Le disjoncteur doit pouvoir couper le plus fort courant de court-circuit à l'endroit où il est installé (${ou}) : ${F("I<sub>cu</sub> ≥ I<sub>cc max</sub>")} = ${nf(icc, 2)} kA. Première valeur standard qui convient : ${R(`${nf(pdc, 1)} kA`)}.`;
-const pdcCh = (pdc) => fenetre(D.PDC, D.PDC.indexOf(pdc), 2).map((p) => `${nf(p, 1)} kA`);
-const peCh = (v) => fenetre(SECT_STD, SECT_STD.indexOf(v.Spe), 1).map((s) => `${nf(s, 1)} mm²`);
-const sectCh = (v, i) => fenetre(v.SECT, i, 2).map((s) => `${nf(s, 1)} mm²`);
-const calCh = (v) => fenetre(D.CAL, v.iC, 2).map((c) => `${c} A`);
-const battCh = (v) => fenetre(BATT_N, v.iB, 2).map((x) => `${x} kvar`);
+const pdcCh = (pdc, v, cle) => fenetre(D.PDC, D.PDC.indexOf(pdc), v ? rang(v, cle) : 2).map((p) => `${nf(p, 1)} kA`);
+const peCh = (v) => fenetre(SECT_STD, SECT_STD.indexOf(v.Spe), rang(v, "pe")).map((s) => `${nf(s, 1)} mm²`);
+const sectCh = (v, i) => fenetre(v.SECT, i, rang(v, "sect" + i)).map((s) => `${nf(s, 1)} mm²`);
+const calCh = (v) => fenetre(D.CAL, v.iC, rang(v, "cal")).map((c) => `${c} A`);
+const battCh = (v) => fenetre(BATT_N, v.iB, rang(v, "batt")).map((x) => `${x} kvar`);
 /* « conserver TR1 » est toujours proposé, avec trois puissances autour de la bonne réponse */
 const trCh = (v) => (v.garde ? v.trCand.slice(0, 4) : [v.Sn0].concat(fenetre(v.trCand.slice(1), v.trCand.indexOf(v.Sn) - 1, 1, 3))).map((s) => trLib(v, s));
 const lim6 = (v) => (v.lim === 6 ? 8 : 6);
@@ -763,7 +775,7 @@ function gen2() {
       ou: `${D2("Transformateurs")} : u<sub>cc</sub> de TR1 ; ${D2("Icc transformateur")} : I<sub>n</sub>, puis I<sub>cc</sub> = 100 × I<sub>n</sub> / u<sub>cc</sub>.`,
       expl: `${F(`I<sub>n</sub> = ${FRAC("S<sub>n</sub>", "√3 × U<sub>20</sub>")}`)} = ${FRAC(`${nf(v.Sn0)} × 10³`, "√3 × 410")} = ${nf(v.InT, 1)} A ; u<sub>cc</sub> = ${v.ucc} % (EN 50588-1, ${nf(v.Sn0)} kVA). ${F(`I<sub>cc</sub> = ${FRAC("100 × I<sub>n</sub>", "u<sub>cc</sub>")}`)} = ${FRAC(`100 × ${nf(v.InT, 1)}`, String(v.ucc))} = ${nf(v.Icc * 1000, 0)} A, soit ${R(`${nf(v.Icc, 2)} kA`)}.` }),
     q({ ref: "B.8", nid: "protections", lv: 1, fig: figs.uni, rappel: `On prendra I<sub>cc</sub> = ${nf(v.Icc, 2)} kA au jeu de barres du TGBT.`,
-      q: `Choisir le pouvoir de coupure standard minimal du disjoncteur Q2 (${D2("Calibres, PdC")}).`, type: "ch", ch: pdcCh(v.pdc), ok: pdcCh(v.pdc).indexOf(`${nf(v.pdc, 1)} kA`),
+      q: `Choisir le pouvoir de coupure standard minimal du disjoncteur Q2 (${D2("Calibres, PdC")}).`, type: "ch", ch: pdcCh(v.pdc, v, "pdc"), ok: pdcCh(v.pdc, v, "pdc").indexOf(`${nf(v.pdc, 1)} kA`),
       ou: `Q2 est fixé au TGBT ; ${D2("Calibres, PdC")} : liste des pouvoirs de coupure.`, expl: explPdc(v.Icc, v.pdc, "au jeu de barres du TGBT") }),
     q({ ref: "C.1", nid: "compensation", lv: 2, fig: figs.comp, ctx: "Le facteur de puissance du site est trop faible : une batterie de condensateurs sera installée au TGBT.",
       q: `Calculer la puissance réactive Q<sub>c</sub> que la batterie doit fournir (DTEC 5, ${D2("Compensation")}).`, type: "num", ans: v.Qc, unit: "kvar", tolR: 0.02,
@@ -789,7 +801,7 @@ function gen3() {
   const t2 = v.type === 1 ? (v.ratioG < 20 ? 0 : 2) : 1;
   const batLib = (b) => `${b[0]} kvar · ${TYPES_C[b[1]]}`;
   /* propositions rangées par puissance puis par type (le moteur garde l'ordre d'une liste qui commence par des nombres) */
-  const bat = [[v.batt, v.type], [v.batt, t2], [BATT_N[v.iB - 1], v.type], [BATT_N[v.iB + 1], v.type]].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const bat = fenetre(BATT_N, v.iB, rang(v, "bat", 3), 3).map((p) => [p, v.type]).concat([[v.batt, t2]]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   const batOk = bat.findIndex((b) => b[0] === v.batt && b[1] === v.type);
   return [
     q({ ref: "A.1", nid: "bilan-puissances", lv: 3, fig: figs.bilan, ctx: ctxA,
@@ -825,13 +837,13 @@ function gen3() {
       q: "Calculer le courant de court-circuit maximal I<sub>cc</sub> au jeu de barres du TGBT, en kA.", type: "num", ans: z.Icc1, unit: "kA", tolR: 0.03,
       ou: "DTEC 1 : S<sub>cc</sub> du réseau, classe de pertes ; DRES transformateurs (u<sub>cc</sub>, P<sub>k</sub>) ; DRES méthode des impédances.", expl: explIcc1(v) }),
     q({ ref: "C.2", nid: "protections", lv: 1, fig: figs.uni, rappel: `On prendra I<sub>cc</sub> = ${nf(z.Icc1, 2)} kA au TGBT.`,
-      q: "Choisir le pouvoir de coupure standard minimal du disjoncteur Q2.", type: "ch", ch: pdcCh(z.pdc1), ok: pdcCh(z.pdc1).indexOf(`${nf(z.pdc1, 1)} kA`),
+      q: "Choisir le pouvoir de coupure standard minimal du disjoncteur Q2.", type: "ch", ch: pdcCh(z.pdc1, v, "pdc1"), ok: pdcCh(z.pdc1, v, "pdc1").indexOf(`${nf(z.pdc1, 1)} kA`),
       ou: "Q2 est fixé au jeu de barres du TGBT.", expl: explPdc(z.Icc1, z.pdc1, "jeu de barres du TGBT") }),
     q({ ref: "C.3", nid: "protections", lv: 3, fig: figs.coupe, rappel: `On prendra, du réseau au jeu de barres du TGBT : ΣR = ${nf(z.R1, 2)} mΩ et ΣX = ${nf(z.X1, 2)} mΩ ; section de C2 : ${nf(v.Sf, 1)} mm².`,
       q: `Calculer le courant de court-circuit maximal I<sub>cc</sub> au jeu de barres du ${td}, en kA.`, type: "num", ans: z.Icc2, unit: "kA", tolR: 0.03,
       ou: "DRES méthode des impédances : on ajoute Q2 et le câble C2 (ρ à 20 °C).", expl: explIcc2(v) }),
     q({ ref: "C.4", nid: "protections", lv: 1, fig: figs.bilan, rappel: `On prendra I<sub>cc</sub> = ${nf(z.Icc2, 2)} kA au ${td}.`,
-      q: `Choisir le pouvoir de coupure standard minimal du disjoncteur Q21 (départ « ${v.q21} » du ${td}).`, type: "ch", ch: pdcCh(z.pdc2), ok: pdcCh(z.pdc2).indexOf(`${nf(z.pdc2, 1)} kA`),
+      q: `Choisir le pouvoir de coupure standard minimal du disjoncteur Q21 (départ « ${v.q21} » du ${td}).`, type: "ch", ch: pdcCh(z.pdc2, v, "pdc2"), ok: pdcCh(z.pdc2, v, "pdc2").indexOf(`${nf(z.pdc2, 1)} kA`),
       ou: `Q21 est dans le ${td} : c'est l'I<sub>cc</sub> de ce tableau qui compte.`, expl: explPdc(z.Icc2, z.pdc2, `jeu de barres du ${td}`) + ` Au TGBT, Q2 devait couper ${nf(z.Icc1, 2)} kA : un disjoncteur placé loin du transformateur peut avoir un pouvoir de coupure plus faible.` }),
     q({ ref: "D.1", nid: "compensation", lv: 2, fig: figs.comp, ctx: "Le facteur de puissance du site est trop faible : une batterie de condensateurs sera installée au TGBT.",
       q: "Calculer la puissance réactive Q<sub>c</sub> de la batterie de condensateurs.", type: "num", ans: v.Qc, unit: "kvar", tolR: 0.02,
@@ -857,7 +869,7 @@ function gen4() {
   const rb = v.r === 1 ? [0.95, 0.9] : [v.r - 0.05, 1];
   const irCh = [irLib(v.In, v.r), irLib(v.In, rb[0]), irLib(v.In, rb[1]), irLib(D.CAL[v.iC - 1], 1)];
   /* réglage magnétique */
-  const imCh = fenetre(IM_K, IM_K.indexOf(tn.k), 2).map((k) => `I<sub>m</sub> = ${k} × I<sub>n</sub> = ${nf(k * v.In)} A`);
+  const imCh = fenetre(IM_K, IM_K.indexOf(tn.k), rang(v, "im")).map((k) => `I<sub>m</sub> = ${k} × I<sub>n</sub> = ${nf(k * v.In)} A`);
   /* type et mode de compensation */
   const t2 = v.type === 1 ? (v.ratioG < 20 ? 0 : 2) : 1;
   const tm = [[v.type, v.mode], [v.type, 1 - v.mode], [t2, v.mode], [t2, 1 - v.mode]];
@@ -887,11 +899,11 @@ function gen4() {
       q: `Calculer le courant de court-circuit maximal I<sub>cc</sub> au jeu de barres du ${td}, en kA.`, type: "num", ans: z.Icc2, unit: "kA", tolR: 0.03,
       ou: "DTEC 1 (réseau, classe de pertes), DTEC 3 ; DRES transformateurs ; DRES méthode des impédances (ρ à 20 °C).", expl: `${explIcc1(v)} ${explIcc2(v)}` }),
     q({ ref: "C.2", nid: "protections", lv: 2, fig: figs.uni,
-      q: "Choisir le pouvoir de coupure standard minimal du disjoncteur Q2.", type: "ch", ch: pdcCh(z.pdc1), ok: pdcCh(z.pdc1).indexOf(`${nf(z.pdc1, 1)} kA`),
+      q: "Choisir le pouvoir de coupure standard minimal du disjoncteur Q2.", type: "ch", ch: pdcCh(z.pdc1, v, "pdc1"), ok: pdcCh(z.pdc1, v, "pdc1").indexOf(`${nf(z.pdc1, 1)} kA`),
       ou: "Q2 est au TGBT : courant de court-circuit au jeu de barres du TGBT (étape intermédiaire de la question précédente).",
       expl: `Q2 est fixé au TGBT : il faut l'I<sub>cc</sub> du jeu de barres du TGBT, ${nf(z.Icc1, 2)} kA (ΣR = ${nf(z.R1, 2)} mΩ, ΣX = ${nf(z.X1, 2)} mΩ, voir la question précédente), et non celui du ${td}. ` + explPdc(z.Icc1, z.pdc1, "jeu de barres du TGBT") }),
     q({ ref: "C.3", nid: "protections", lv: 1, fig: figs.bilan, rappel: `On prendra I<sub>cc</sub> = ${nf(z.Icc2, 2)} kA au ${td}.`,
-      q: `Choisir le pouvoir de coupure standard minimal du disjoncteur Q21 (départ « ${v.q21} » du ${td}).`, type: "ch", ch: pdcCh(z.pdc2), ok: pdcCh(z.pdc2).indexOf(`${nf(z.pdc2, 1)} kA`),
+      q: `Choisir le pouvoir de coupure standard minimal du disjoncteur Q21 (départ « ${v.q21} » du ${td}).`, type: "ch", ch: pdcCh(z.pdc2, v, "pdc2"), ok: pdcCh(z.pdc2, v, "pdc2").indexOf(`${nf(z.pdc2, 1)} kA`),
       ou: `Q21 est dans le ${td}.`, expl: explPdc(z.Icc2, z.pdc2, `jeu de barres du ${td}`) }),
     q({ ref: "D.1", nid: "protections", lv: 3, fig: figs.defaut, ctx: `Protection des personnes : en cas de défaut d'isolement franc entre une phase et la masse du ${td}, Q2 doit déclencher par son seuil magnétique.`,
       rappel: `On prendra S<sub>ph</sub> = ${nf(v.Sf, 1)} mm² et S<sub>PE</sub> = ${nf(v.Spe, 1)} mm².`,
@@ -912,13 +924,17 @@ function gen4() {
   ];
 }
 
-DV.push({ id: "dim2", court: "Devoir noté n° 2", titre: "Dimensionner une installation", niveau: 2, nomNiveau: "Par étapes", apres: "dim1",
+DV.push({ id: "dim2", serie: "dim", court: "Niveau 2", titre: "Dimensionner une installation", niveau: 2, nomNiveau: "Par étapes", apres: "dim1",
   resume: "Les mêmes étapes, regroupées : bilan complet du tableau, facteur K, section, chute de tension. En plus : conducteur de protection, courant de court-circuit au secondaire et pouvoir de coupure, type de condensateurs. La question indique les documents à utiliser.",
   duree_min: 75, parties: [["A", "Bilan de puissance", 5], ["B", "Canalisation C2 et protection", 8], ["C", "Compensation", 3]], gen: gen2, valeurs: () => situation(2) });
-DV.push({ id: "dim3", court: "Devoir noté n° 3", titre: "Dimensionner une installation", niveau: 3, nomNiveau: "Comme à l'épreuve", apres: "dim2",
+DV.push({ id: "dim3", serie: "dim", court: "Niveau 3", titre: "Dimensionner une installation", niveau: 3, nomNiveau: "Comme à l'épreuve", apres: "dim2",
   resume: "Les questions de l'épreuve, sans indication de document : choix du transformateur, section imposée par l'échauffement puis par la chute de tension, courants de court-circuit par la méthode des impédances, pouvoirs de coupure, batterie de condensateurs.",
   duree_min: 90, parties: [["A", "Bilan et transformateur", 3], ["B", "Canalisation C2", 5], ["C", "Courts-circuits", 4], ["D", "Compensation", 2]], gen: gen3, valeurs: () => situation(3) });
-DV.push({ id: "dim4", court: "Devoir noté n° 4", titre: "Dimensionner une installation", niveau: 4, nomNiveau: "Au-delà de l'épreuve", apres: "dim3",
+DV.push({ id: "dim4", serie: "dim", court: "Niveau 4", titre: "Dimensionner une installation", niveau: 4, nomNiveau: "Au-delà de l'épreuve", apres: "dim3",
   resume: "Des questions qui enchaînent plusieurs étapes et décisions : réglages du disjoncteur (seuils Ir et Im), câble dimensionné sur Ir, courant de court-circuit au tableau, protection des personnes en schéma TN-S, type et mode de compensation.",
   duree_min: 90, parties: [["A", "Bilan et transformateur", 2], ["B", "Q2 et canalisation C2", 3], ["C", "Courts-circuits", 3], ["D", "Protection des personnes", 2], ["E", "Compensation", 2]], gen: gen4, valeurs: () => situation(4) });
+
+/* outils partagés avec les autres études (e4/devoirs-<id>.js) */
+E4.DEVOIRS_KIT = { DV, melanger, tri, essai, loin, fenetre, dres, dtec, h4, ul, sansTitre, U20, RHO1, RHO20, RHOD, SN_LIST, SECT_STD, IR_K, IM_K, BATT_N, TYPES_C, MODES_C,
+  sectionPE, uccDe, pkDe, inTr, iccDe, pdcDe, htmlCables, htmlPE, htmlIccTr, htmlImpedances, htmlCompens, htmlTN, htmlReglages, explPdc, pdcCh, rang };
 })(window.E4);
