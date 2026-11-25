@@ -61,7 +61,7 @@
     return n;
   }
   async function chargerEtat() {
-    try { ETAT = await SIP.api.etat(); }
+    try { ETAT = await SIP.api.etat(); if (ETAT && Array.isArray(ETAT.historique)) ETAT.historique = ETAT.historique.filter((h) => h.type !== "devoir_debut"); }   // « devoir_debut » : simple témoin de départ d'un devoir noté
     catch (e) {
       if (e.message === "SESSION_EXPIREE") { SIP.session.clear(); location.hash = "#/"; throw e; }
       if (!ETAT) ETAT = { fiches: [], historique: [], jours_lecture: [], hebdo_fait: false, aujourdhui: SIP.aujourdhui(), horsLigne: true };
@@ -199,7 +199,7 @@
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
       <div id="appli-bandeau"></div>
       ${SIP.flash ? SIP.flash.tuile(s.niveau, hist) : ""}
-      ${/^BTS2/.test(s.niveau) ? tuileProjet() + tuileE4(hist) : ""}
+      ${/^BTS2/.test(s.niveau) ? tuileDevoirs(hist) + tuileProjet() + tuileE4(hist) : ""}
       ${s.niveau === "2SI" ? tuilePlaneur(hist) : ""}
       ${grille}
       ${blocsModules(modules, hist)}
@@ -249,6 +249,16 @@
   }
 
   // BTS 2 : l'entraînement à l'épreuve E4 (sujets d'annales, auto-évaluation N0–N3) en tête du tableau de bord
+  // BTS 2 : devoirs notés de l'entraînement E4 (liste SIP.DEVOIRS_E4, contenu/bts2.js). La note est celle du premier rendu.
+  function tuileDevoirs(hist) {
+    return (SIP.DEVOIRS_E4 || []).map((d) => {
+      const T = hist.filter((h) => h.type === "externe" && h.module === "e4-devoir-" + d.id), rendu = T.length ? T[T.length - 1] : null;   // l'historique va du plus récent au plus ancien
+      return `<a class="carte bac-hero ${rendu ? "fait" : "a-faire"}" href="entrainements/bts-e4.html#/devoirs">
+        <div><div class="eyebrow">BTS Électrotechnique · travail noté</div><div class="bac-titre">${esc(d.court)} <span>${esc(d.titre)}</span></div>
+        <p class="discret" style="margin:0">Une étude de cas dans la forme de l'épreuve E4, à faire une seule fois. Tes valeurs sont les tiennes : chaque élève a les siennes.</p></div>
+        <div class="bac-d">${rendu ? `<div><div class="grand">${SIP.nb(sur20(rendu.score, rendu.score_max), 3)}<small> / 20</small></div><div class="discret">rendu le ${SIP.fmtDate(rendu.fait_le)}</div></div>` : ""}<span class="btn">${rendu ? "Voir →" : "Faire le devoir →"}</span></div>
+      </a>`; }).join("");
+  }
   function tuileE4(hist) {
     const e4 = hist.filter((h) => h.type === "externe" && /^e4-/.test(h.module || ""));
     const meilleur = e4.length ? Math.max(...e4.map((h) => sur20(h.score, h.score_max))) : null;
