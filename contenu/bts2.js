@@ -77,5 +77,8 @@ SIP.definirModule({
    Cette liste sert au tableau de bord des BTS 2 (tuile « travail noté ») et à l'onglet « Devoirs BTS 2 » du professeur.
    La note d'un devoir est le premier résultat transmis dans le module e4-devoir-<id>. */
 SIP.DEVOIRS_E4 = [
-  { id: "dim1", court: "Devoir noté n° 1", titre: "Dimensionner une installation", parties: [["A", "Bilan de puissance", 8], ["B", "Câble et protection", 10], ["C", "Compensation", 2]] }
+  { id: "dim1", court: "Devoir noté n° 1", titre: "Dimensionner une installation", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Bilan de puissance", 8], ["B", "Câble et protection", 10], ["C", "Compensation", 2]] },
+  { id: "dim2", court: "Devoir noté n° 2", titre: "Dimensionner une installation", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Bilan de puissance", 5], ["B", "Câble et protection", 8], ["C", "Compensation", 3]] },
+  { id: "dim3", court: "Devoir noté n° 3", titre: "Dimensionner une installation", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Bilan et transformateur", 3], ["B", "Câble C2", 5], ["C", "Courts-circuits", 4], ["D", "Compensation", 2]] },
+  { id: "dim4", court: "Devoir noté n° 4", titre: "Dimensionner une installation", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Bilan et transformateur", 2], ["B", "Q2 et câble C2", 3], ["C", "Courts-circuits", 3], ["D", "Protection des personnes", 2], ["E", "Compensation", 2]] }
 ];
