@@ -338,6 +338,10 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 #a3-svg.o-cote .a3-xp:hover{fill:rgba(240,140,0,.45)}
 #a3-svg .a3-xsel{stroke:#f08c00;stroke-width:4;stroke-linecap:round}
 @media (pointer:coarse){.a3-xe{stroke-width:28}}
+#a3-svg .a3-xe.guide{stroke:rgba(240,140,0,.6);animation:a3-clig 1.1s ease-in-out infinite}
+#a3-svg .a3-ph.guide{fill:rgba(240,140,0,.45);stroke:#f08c00;stroke-width:2;animation:a3-clig 1.1s ease-in-out infinite}
+@keyframes a3-clig{0%,100%{opacity:.3}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){#a3-svg .guide{animation:none}}
 /* Aide-mémoire dans l'atelier (bouton « ? » de la ligne de consigne) */
 .cao{position:relative}
 .cao-aidep{position:absolute;inset:0;z-index:30;background:var(--paper);color:var(--ink);overflow:auto;padding:0 14px 16px;line-height:1.45;font-size:.92rem}
