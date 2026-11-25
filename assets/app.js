@@ -249,19 +249,24 @@
   }
 
   // BTS 2 : l'entraînement à l'épreuve E4 (sujets d'annales, auto-évaluation N0–N3) en tête du tableau de bord
-  // BTS 2 : devoirs notés de l'entraînement E4, en niveaux (liste SIP.DEVOIRS_E4, contenu/bts2.js) ; une seule tuile :
-  // le premier niveau non rendu, et les notes des niveaux rendus (note d'un niveau = son premier rendu).
+  // BTS 2 : devoirs notés de l'entraînement E4, en études de quatre niveaux (listes SIP.DEVOIRS_E4 et SIP.SERIES_E4, contenu/bts2.js) ;
+  // une seule tuile : niveaux rendus, étude à continuer (commencée, sinon la première pas commencée), dernières notes
   function tuileDevoirs(hist) {
     const L = SIP.DEVOIRS_E4 || [];
     if (!L.length) return "";
-    const R = L.map((d) => { const T = hist.filter((h) => h.type === "externe" && h.module === "e4-devoir-" + d.id); return T.length ? T[T.length - 1] : null; });   // l'historique va du plus récent au plus ancien
-    const k = R.findIndex((r) => !r), fini = k < 0, d = fini ? L[L.length - 1] : L[k];
-    const notes = L.map((x, i) => (R[i] ? `niveau ${x.niveau || i + 1} : <b>${SIP.nb(sur20(R[i].score, R[i].score_max), 3)}</b>` : "")).filter(Boolean);
-    return `<a class="carte bac-hero ${fini ? "fait" : "a-faire"}" href="entrainements/bts-e4.html#/devoirs">
-      <div><div class="eyebrow">BTS Électrotechnique · travail noté · ${L.length} niveaux</div><div class="bac-titre">${fini ? "Devoirs notés" : esc(d.court)} <span>${esc(d.titre)}${fini ? "" : ` · niveau ${d.niveau || k + 1}${d.nomNiveau ? " « " + esc(d.nomNiveau) + " »" : ""}`}</span></div>
-      <p class="discret" style="margin:0">${fini ? "Tous les niveaux sont rendus." : "Du plus guidé à l'épreuve, puis au-delà : chaque niveau s'ouvre quand le précédent est rendu."} Tes valeurs sont les tiennes : chaque élève a les siennes.</p>
-      ${notes.length ? `<p class="discret" style="margin:4px 0 0">Notes sur 20 · ${notes.join(" · ")}</p>` : ""}</div>
-      <div class="bac-d"><span class="btn">${fini ? "Voir →" : k > 0 || (d.niveau || 1) > 1 ? "Niveau suivant →" : "Faire le devoir →"}</span></div>
+    const SE = (SIP.SERIES_E4 || []).filter((s) => L.some((d) => d.serie === s.id));
+    const premier = (d) => { const T = hist.filter((h) => h.type === "externe" && h.module === "e4-devoir-" + d.id); return T.length ? T[T.length - 1] : null; };   // l'historique va du plus récent au plus ancien
+    const E = SE.map((s) => { const N = L.filter((d) => d.serie === s.id).sort((a, b) => a.niveau - b.niveau).map((d) => ({ d, r: premier(d) })), k = N.findIndex((x) => !x.r);
+      return { s, N, nR: N.filter((x) => x.r).length, suiv: k < 0 ? null : N[k].d }; });
+    const nT = E.reduce((a, e) => a + e.N.length, 0), nR = E.reduce((a, e) => a + e.nR, 0), e = E.find((x) => x.nR && x.suiv) || E.find((x) => x.suiv) || null;
+    const titreDe = (id) => { const d = L.find((x) => x.id === id), s = d && SE.find((x) => x.id === d.serie); return d ? `${s ? s.titre : d.titre} N${d.niveau}` : id; };
+    const der = hist.filter((h) => h.type === "externe" && /^e4-devoir-/.test(h.module || "") && !/-entr$/.test(h.module)).slice(0, 3)
+      .map((h) => `${esc(titreDe(h.module.slice(10)))} : <b>${SIP.nb(sur20(h.score, h.score_max), 3)}</b>`);
+    return `<a class="carte bac-hero ${e ? "a-faire" : "fait"}" href="entrainements/bts-e4.html#/devoirs${e ? "/" + e.s.id : ""}">
+      <div><div class="eyebrow">BTS Électrotechnique · travail noté · ${SE.length} étude${SE.length > 1 ? "s" : ""} en 4 niveaux · ${nR} / ${nT} niveaux rendus</div><div class="bac-titre">${e ? esc(e.s.titre) : "Devoirs notés"} <span>${e ? `niveau ${e.suiv.niveau}${e.suiv.nomNiveau ? " « " + esc(e.suiv.nomNiveau) + " »" : ""}` : "tous les niveaux sont rendus"}</span></div>
+      <p class="discret" style="margin:0">Chaque étude va du plus guidé à l'épreuve, puis au-delà : un niveau s'ouvre quand le précédent est rendu. Tes valeurs sont les tiennes : chaque élève a les siennes.</p>
+      ${der.length ? `<p class="discret" style="margin:4px 0 0">Dernières notes sur 20 · ${der.join(" · ")}</p>` : ""}</div>
+      <div class="bac-d"><span class="btn">${!e ? "Voir →" : e.nR ? "Niveau suivant →" : nR ? "Étude suivante →" : "Faire le devoir →"}</span></div>
     </a>`;
   }
   function tuileE4(hist) {

@@ -621,11 +621,12 @@
     }));
   }
 
-  // ---------------- Devoirs notés BTS 2 (entrainements/bts-e4.html#/devoirs ; liste SIP.DEVOIRS_E4, contenu/bts2.js) ----------------
+  // ---------------- Devoirs notés BTS 2 (entrainements/bts-e4.html#/devoirs ; listes SIP.DEVOIRS_E4 et SIP.SERIES_E4, contenu/bts2.js) ----------------
+  // Les devoirs sont groupés en études de quatre niveaux. Vue d'ensemble (devoirVu = "tout") : une ligne par élève, une colonne par étude.
   // Notation : on part de 20, chaque erreur retire 2 points ; un calcul a deux essais (détail : erreurs = 0, 1 ou 2).
   // Note du devoir = premier résultat du module e4-devoir-<id>. D.debuts (lignes « devoir_debut ») : chaque départ du devoir ;
   // plus d'un départ = devoir recommencé sur un autre appareil. Module e4-devoir-<id>-entr : refait pour s'entraîner, ne compte pas.
-  let devoirVu = null;
+  let devoirVu = "tout";
   function copiesDevoir(d) {
     const mod = "e4-devoir-" + d.id;
     return D.eleves.filter((e) => /^BTS2/.test(e.niveau) && (!niveau || e.niveau === niveau) && e.actif !== false)
@@ -637,14 +638,19 @@
         return { e, copie, det, parties, debuts, autres: rendus.length - (copie ? 1 : 0), entr: E.filter((t) => t.type === "externe" && t.module === mod + "-entr") };
       });
   }
+  const etudesDevoirs = (LD) => (SIP.SERIES_E4 || []).filter((s) => LD.some((d) => d.serie === s.id));
+  const niveauxEtude = (LD, sid) => LD.filter((d) => d.serie === sid).sort((a, b) => a.niveau - b.niveau);
+  function choixDevoir(LD) {
+    return `<div class="rang no-print"><select id="dv-choix" style="width:auto"><option value="tout" ${devoirVu === "tout" ? "selected" : ""}>Vue d'ensemble · toutes les études</option>${etudesDevoirs(LD).map((s) =>
+      `<optgroup label="${esc(s.titre)}">${niveauxEtude(LD, s.id).map((x) => `<option value="${x.id}" ${x.id === devoirVu ? "selected" : ""}>${esc(s.titre)} · niveau ${x.niveau} « ${esc(x.nomNiveau || "")} »</option>`).join("")}</optgroup>`).join("")}</select></div>`;
+  }
   function vueDevoirs() {
     const LD = SIP.DEVOIRS_E4 || [];
     if (!LD.length) return cadre(`<div class="carte"><p>Aucun devoir noté pour l'instant.</p></div>`);
-    if (!LD.some((d) => d.id === devoirVu)) {   // par défaut : le niveau le plus avancé qui a déjà des copies ou des départs
-      const actifs = LD.filter((x) => D.entrainements.some((t) => t.module === "e4-devoir-" + x.id) || (D.debuts || []).some((t) => t.module === "e4-devoir-" + x.id));
-      devoirVu = (actifs.length ? actifs[actifs.length - 1] : LD[0]).id;
-    }
+    if (devoirVu !== "tout" && !LD.some((d) => d.id === devoirVu)) devoirVu = "tout";
+    if (devoirVu === "tout") return vueDevoirsTout(LD);
     const d = LD.find((x) => x.id === devoirVu), C = copiesDevoir(d), R = C.filter((x) => x.copie), P = d.parties || [];
+    const etude = etudesDevoirs(LD).find((s) => s.id === d.serie), titreE = etude ? etude.titre : d.titre;
     const notes = R.map((x) => note20(x.copie.score, x.copie.score_max)), moy = notes.length ? notes.reduce((a, b) => a + b, 0) / notes.length : null;
     const enCours = C.filter((x) => !x.copie && x.debuts.length).length;
     // réussite par question (les copies ont les mêmes questions, avec d'autres valeurs)
@@ -664,10 +670,10 @@
         ${x.det.length ? `<div class="table-defil"><table><thead><tr><th>Question</th><th>Énoncé (avec les valeurs de l'élève, lues sur ses documents)</th><th>Réponse de l'élève</th><th>Attendu</th><th class="num"></th></tr></thead><tbody>${x.det.map((q, k) =>
           `<tr><td>${esc(q.ref || k + 1)}</td><td>${esc(q.q)}</td><td>${esc(q.rep)}</td><td>${esc(q.attendu)}</td><td class="num" style="white-space:nowrap">${nbErreurs(q) ? "✗ −" + SIP.PENALITE * nbErreurs(q) : "✓"}</td></tr>`).join("")}</tbody></table></div>` : `<p class="discret">Pas de détail.</p>`}</details>`;
     cadre(`
-      ${LD.length > 1 ? `<div class="rang no-print"><select id="dv-choix" style="width:auto">${LD.map((x) => `<option value="${x.id}" ${x.id === devoirVu ? "selected" : ""}>${esc(x.court + " · " + x.titre + (x.niveau ? " · niveau " + x.niveau + " « " + (x.nomNiveau || "") + " »" : ""))}</option>`).join("")}</select></div>` : ""}
-      <h2 style="margin-top:8px">${esc(d.court)} · ${esc(d.titre)}${d.niveau ? ` · niveau ${d.niveau} « ${esc(d.nomNiveau || "")} »` : ""}</h2>
-      <p class="discret" style="max-width:900px">Étude de cas notée sur 20 (${P.reduce((a, p) => a + p[2], 0)} questions), dans la forme de l'épreuve E4${LD.length > 1 ? ` ; ${LD.length} niveaux, du plus guidé à celui de l'épreuve puis au-delà, chacun s'ouvrant quand l'élève a rendu le précédent` : ""}. Comme pour les Terminales, l'élève part de 20 et <b>chaque erreur retire 2 points</b> ; pour un calcul il a deux essais et peut se corriger (« 12 puis 15 » dans sa copie). <b>Chaque élève a ses propres valeurs</b>, tirées à partir de son nom : site, départs, puissances, mode de pose, section, chute de tension et conclusion changent d'une copie à l'autre. Le devoir se fait une seule fois ; la note est celle du premier rendu. Ensuite l'élève peut le refaire pour s'entraîner, avec d'autres valeurs (colonne « Refait », ne compte pas).</p>
-      <div class="rang no-print"><a class="btn sec" href="entrainements/bts-e4.html#/devoirs" target="_blank" rel="noopener">Ouvrir la page du devoir</a><button class="btn sec" id="dv-csv">Notes du devoir (CSV)</button>
+      ${choixDevoir(LD)}
+      <h2 style="margin-top:8px">${esc(titreE)} · niveau ${d.niveau} « ${esc(d.nomNiveau || "")} »</h2>
+      <p class="discret" style="max-width:900px">Étude de cas notée sur 20 (${P.reduce((a, p) => a + p[2], 0)} questions), dans la forme de l'épreuve E4 ; l'étude a quatre niveaux, du plus guidé à celui de l'épreuve puis au-delà, chacun s'ouvrant quand l'élève a rendu le précédent. Comme pour les Terminales, l'élève part de 20 et <b>chaque erreur retire 2 points</b> ; pour un calcul il a deux essais et peut se corriger (« 12 puis 15 » dans sa copie). <b>Chaque élève a ses propres valeurs</b>, tirées à partir de son nom : installation, documents, résultats et conclusions changent d'une copie à l'autre. Le devoir se fait une seule fois ; la note est celle du premier rendu. Ensuite l'élève peut le refaire pour s'entraîner, avec d'autres valeurs (colonne « Refait », ne compte pas).</p>
+      <div class="rang no-print"><a class="btn sec" href="entrainements/bts-e4.html#/devoirs/${esc(d.serie || "")}" target="_blank" rel="noopener">Ouvrir la page de l'étude</a><button class="btn sec" id="dv-csv">Notes du devoir (CSV)</button>
         <span class="discret">Pour l'essayer : onglet « Aperçu élève », classe BTS 2, puis la tuile du devoir (autres valeurs à chaque essai, rien n'est transmis).</span></div>
       <div class="carte" style="margin-top:12px"><b>${R.length}</b> devoir${R.length > 1 ? "s" : ""} rendu${R.length > 1 ? "s" : ""} sur ${C.length} élève${C.length > 1 ? "s" : ""}${enCours ? ` · <b>${enCours}</b> en cours` : ""}${moy != null ? ` · moyenne <b>${SIP.nb(moy, 3)} / 20</b> · de ${SIP.nb(Math.min(...notes), 3)} à ${SIP.nb(Math.max(...notes), 3)}` : ""}</div>
       ${C.length ? `<div class="table-defil" style="margin-top:12px"><table><thead><tr><th>Élève</th><th>Classe</th><th class="num">Note</th>${P.map((p) => `<th class="num" title="Points perdus dans la partie ${esc(p[0])} (${p[2]} questions)">Partie ${esc(p[0])}<br><span class="discret">${esc(p[1])} · ${p[2]} q.</span></th>`).join("")}<th>Rendu le</th><th class="num">Temps passé</th><th class="num" title="Nombre de fois où le devoir a été démarré">Départs</th><th class="num" title="Devoir refait pour s'entraîner, avec d'autres valeurs : ne compte pas">Refait</th></tr></thead><tbody>${C.map(ligne).join("")}</tbody></table></div>`
@@ -682,6 +688,37 @@
         x.copie ? SIP.fmtDate(x.copie.fait_le, true) : "", x.copie && x.copie.duree_s ? Math.round(x.copie.duree_s / 60) : "", x.debuts.length, x.entr.length].map(q).join(";")));
       const blob = new Blob(["\ufeff" + lignes.join("\r\n")], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `si-papara_${d.id}_notes_${SIP.aujourdhui()}.csv`; a.click();
+    };
+  }
+
+  // vue d'ensemble : une ligne par élève, une colonne par étude (note de chaque niveau : premier rendu ; « … » commencé, pas rendu)
+  function vueDevoirsTout(LD) {
+    const SE = etudesDevoirs(LD), E = D.eleves.filter((e) => /^BTS2/.test(e.niveau) && (!niveau || e.niveau === niveau) && e.actif !== false)
+      .sort((a, b) => a.niveau.localeCompare(b.niveau) || a.nom.localeCompare(b.nom));
+    const etat = (e, d) => { const mod = "e4-devoir-" + d.id, R = D.parEleve[e.id].E.filter((t) => t.type === "externe" && t.module === mod);
+      return R.length ? { note: note20(R[R.length - 1].score, R[R.length - 1].score_max) } : (D.debuts || []).some((t) => t.eleve_id === e.id && t.module === mod) ? { enCours: true } : {}; };
+    const M = E.map((e) => ({ e, X: SE.map((s) => niveauxEtude(LD, s.id).map((d) => etat(e, d))) }));
+    const badge = (x, k) => (x.note != null ? `<span class="etiquette ${SIP.appreciation(x.note).cls}" title="Niveau ${k + 1} : ${SIP.nb(x.note, 3)} / 20">${SIP.nb(x.note, 3)}</span>`
+      : x.enCours ? `<span class="etiquette alerte" title="Niveau ${k + 1} commencé, pas rendu">…</span>` : `<span class="etiquette off" title="Niveau ${k + 1} pas commencé">–</span>`);
+    const bilan = SE.map((s, j) => { const N = niveauxEtude(LD, s.id);
+      return N.map((d, k) => { const notes = M.map((m) => m.X[j][k].note).filter((n) => n != null); return notes.length ? `N${d.niveau} : ${notes.length} copie${notes.length > 1 ? "s" : ""}, moy. ${SIP.nb(notes.reduce((a, b) => a + b, 0) / notes.length, 3)}` : `N${d.niveau} : —`; }).join(" · "); });
+    cadre(`
+      ${choixDevoir(LD)}
+      <h2 style="margin-top:8px">Devoirs notés · vue d'ensemble</h2>
+      <p class="discret" style="max-width:900px">${SE.length} étude${SE.length > 1 ? "s" : ""} de cas, chacune en quatre niveaux (du plus guidé à l'épreuve, puis au-delà) ; dans une étude, un niveau s'ouvre quand l'élève a rendu le précédent. Note de chaque niveau : celle du premier rendu, sur 20 (on part de 20, −2 points par erreur). « … » : commencé, pas encore rendu. Pour le détail d'un niveau (parties, questions les moins réussies, copies), choisis-le dans la liste.</p>
+      <div class="rang no-print"><a class="btn sec" href="entrainements/bts-e4.html#/devoirs" target="_blank" rel="noopener">Ouvrir la page des devoirs</a><button class="btn sec" id="dv-csv">Toutes les notes (CSV)</button></div>
+      ${E.length ? `<div class="table-defil" style="margin-top:12px"><table><thead><tr><th>Élève</th><th>Classe</th>${SE.map((s, j) => `<th title="${esc(bilan[j])}">${esc(s.titre)}<br><span class="discret">${niveauxEtude(LD, s.id).map((d) => "N" + d.niveau).join(" · ")}</span></th>`).join("")}</tr></thead><tbody>${M.map((m) =>
+        `<tr><td><b>${esc(m.e.nom)}</b></td><td>${esc((SIP.niveau(m.e.niveau) || {}).court || m.e.niveau)}</td>${m.X.map((L) => `<td style="white-space:nowrap">${L.map(badge).join(" ")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`
+        : `<div class="carte" style="margin-top:12px"><p>Aucun élève de BTS 2${niveau ? " dans cette classe" : ""}. Choisis « Toutes les classes » ou une classe de BTS 2.</p></div>`}
+      <div class="carte" style="margin-top:12px">${SE.map((s, j) => `<p style="margin:2px 0"><b>${esc(s.titre)}</b> · <span class="discret">${esc(bilan[j])}</span></p>`).join("")}</div>`);
+    const ch = document.getElementById("dv-choix"); if (ch) ch.onchange = () => { devoirVu = ch.value; afficher(); };
+    document.getElementById("dv-csv").onclick = () => {
+      const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const cols = SE.flatMap((s) => niveauxEtude(LD, s.id).map((d) => s.id + "_n" + d.niveau));
+      const lignes = [["eleve", "classe", ...cols].join(";")];
+      M.forEach((m) => lignes.push([m.e.nom, m.e.niveau, ...m.X.flatMap((L) => L.map((x) => (x.note != null ? SIP.nb(x.note, 3) : x.enCours ? "en cours" : "")))].map(q).join(";")));
+      const blob = new Blob(["\ufeff" + lignes.join("\r\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `si-papara_devoirs_e4_notes_${SIP.aujourdhui()}.csv`; a.click();
     };
   }
 
