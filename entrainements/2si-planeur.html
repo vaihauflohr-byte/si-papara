@@ -328,6 +328,27 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 .pl-pts{font-family:var(--f-mono);font-weight:600;white-space:nowrap}
 @media print{.pl-nav,.haut,.no-print{display:none!important}.pl-sec[hidden]{display:block!important}.pl-et>.pl-et-in{display:block}}
 
+/* Cote vers la pièce : bords et coins des esquisses précédentes, visés avec l'outil Cote */
+.a3-xe{stroke:transparent;stroke-width:16;fill:none;vector-effect:non-scaling-stroke;pointer-events:none}
+.a3-xp{fill:transparent;pointer-events:none}
+.a3-xd{fill:#7d8ca6;pointer-events:none}
+#a3-svg.o-cote .a3-xe{pointer-events:stroke;cursor:pointer}
+#a3-svg.o-cote .a3-xp{pointer-events:all;cursor:pointer}
+#a3-svg.o-cote .a3-xe:hover{stroke:rgba(240,140,0,.38)}
+#a3-svg.o-cote .a3-xp:hover{fill:rgba(240,140,0,.45)}
+#a3-svg .a3-xsel{stroke:#f08c00;stroke-width:4;stroke-linecap:round}
+@media (pointer:coarse){.a3-xe{stroke-width:28}}
+/* Aide-mémoire dans l'atelier (bouton « ? » de la ligne de consigne) */
+.cao{position:relative}
+.cao-aidep{position:absolute;inset:0;z-index:30;background:var(--paper);color:var(--ink);overflow:auto;padding:0 14px 16px;line-height:1.45;font-size:.92rem}
+.cao-aidep[hidden]{display:none}
+.cao-aidet{display:flex;align-items:center;justify-content:space-between;gap:8px;position:sticky;top:0;background:var(--paper);padding:10px 0 8px;border-bottom:1px solid var(--rule);margin-bottom:10px;z-index:1;font-size:1.05rem}
+.cao-doigts{background:var(--accent-soft);border-radius:8px;padding:8px 10px;margin:0 0 10px}
+@media (pointer:coarse){.cao-aidep td:nth-child(3),.cao-aidep th:nth-child(3){display:none}}
+.cao-msgz{position:relative;flex:none}
+.cao-msgz .cao-msg{padding-right:50px}
+.cao-aideb{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;min-height:0;padding:0;border-radius:50%;border:1px solid var(--cao-bord);background:var(--paper);color:var(--ink);font:inherit;font-weight:700;line-height:1;cursor:pointer}
+@media (pointer:coarse){.cao-aideb{width:36px;height:36px}}
 /* Atelier 3D sur téléphone, en plein écran : la vue d'abord (bandeau sur une ligne, arbre en bande qui défile, commandes de vue sur une ligne) */
 .cao-titre #cao-doc span{opacity:1}
 @media (max-width:700px){
