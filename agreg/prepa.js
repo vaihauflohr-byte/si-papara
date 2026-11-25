@@ -69,7 +69,8 @@
   const long = (s) => jour(s).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   const court = (s) => jour(s).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
   const seances = () => P().s.filter((s) => ISO.test(s)).sort();
-  const prochaine = (now) => seances().find((s) => heure(s, H1) > (now || Date.now())) || null;
+  // prochaine séance : parmi les mercredis ajoutés et ceux prévus par défaut pour chaque cycle (agreg/prepa-cibles.js)
+  const prochaine = (now) => [...new Set(seances().concat(Object.values((window.PREPA_CIBLES || {}).seances || {}).filter((s) => ISO.test(s))))].sort().find((s) => heure(s, H1) > (now || Date.now())) || null;
   function mercrediSuivant() {
     const S = seances(), d = S.length ? jour(S[S.length - 1]) : new Date();
     d.setHours(0, 0, 0, 0);
@@ -261,7 +262,7 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
   /* ---------- vue principale : prochaine séance, mercredis, devoirs par cycle */
   function carteSeance(now) {
     const S = seances(), nx = prochaine(now);
-    if (!S.length) return '';
+    if (!S.length && !nx) return '';
     if (!nx) {
       // séance passée : l'entraînement reste accessible, on ne laisse pas la page sans exercice
       const der = S[S.length - 1];
@@ -273,7 +274,8 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
     if (devs.length) {
       const fait = devs.filter((d) => avance(d).etat === 2).length;
       h += `<div class="pp-mini"><p class="muted" style="margin:0 0 8px">${devs.length} devoir${devs.length > 1 ? 's' : ''} pour cette séance · ${fait} ${fait > 1 ? 'faits' : 'fait'}</p>${devs.map((d) => ligne(d, true)).join('')}</div>`;
-    } else h += `<p class="muted" style="margin:12px 0 0">Aucun devoir rangé pour ce mercredi : tu peux les choisir plus bas avec « Pour le ».</p><div class="btns" style="margin-top:14px"><a class="b" href="#prepa-parcours">Préparer cette séance</a><span class="muted" style="align-self:center">Dans l’ordre du formateur : le cours, puis les TD, chacun précédé de ses gestes, puis les extraits de sujets.</span></div>`;
+    } else { const cyD = (PROG.cycles || []).find((c) => seanceDefaut(c) === nx);
+      h += `<p class="muted" style="margin:12px 0 0">${cyD ? `Au programme : <b>cycle ${esc(cyD.n)} · ${esc(cyD.titre)}</b>.` : 'Aucun devoir rangé pour ce mercredi : tu peux les choisir plus bas avec « Pour le ».'}</p><div class="btns" style="margin-top:14px"><a class="b" href="#prepa-parcours">Préparer cette séance</a><span class="muted" style="align-self:center">Dans l’ordre du formateur : le cours, puis les TD, chacun précédé de ses gestes, puis les extraits de sujets.</span></div>`; }
     if (devs.length) {
       h += `<div class="btns" style="margin-top:14px"><a class="b" href="#prepa-parcours">Préparer cette séance</a><span class="muted" style="align-self:center">Dans l’ordre du formateur : le cours (fiche, puis chapitre), puis les TD, chacun précédé de ses gestes, puis les extraits de sujets.</span></div>`;
     }
@@ -662,7 +664,8 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
   /* ---------- les gestes d'un TD (agreg/prepa-cibles.js) : exercices du site qui entraînent, dans l'ordre, à ce que ses questions demandent */
   const CI = () => window.PREPA_CIBLES || {};
   const seanceDefaut = (c) => { const s = (CI().seances || {})[c.n]; return s && ISO.test(s) ? s : null; };
-  const seanceCycle = (c) => seanceDe(c) || seanceDefaut(c);
+  // séance d'un cycle : celle à venir d'abord (devoirs rangés « Pour le », sinon la date par défaut du cycle), sinon la dernière passée
+  const seanceCycle = (c) => { const s = seanceDe(c), d = seanceDefaut(c), now = Date.now(); return s && heure(s, H1) > now ? s : d && heure(d, H1) > now ? d : s || d; };
   const NIVG = ['rappel de base', 'brique', 'calcul', 'étude complète'];
   function gestesDe(doc) {
     const c = CI()[doc.id];
@@ -819,7 +822,7 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
     const nx = prochaine(), now = Date.now(), docs = nx ? LISTE.filter((d) => dOf(d.id).pour === nx) : [];
     // cycles affichés : ceux des devoirs rangés pour la prochaine séance ; sinon le cycle de la séance du jour ou à venir ; sinon tous
     let cy = cyclesDe(docs);
-    if (!cy.length) { const C = (PROG.cycles || []).filter((c) => { const s = seanceDefaut(c); return s && heure(s, H1) > now; }).sort((a, b) => seanceDefaut(a).localeCompare(seanceDefaut(b))); cy = C.length ? [C[0]] : (PROG.cycles || []).slice().reverse(); }
+    if (!cy.length) { const C = (PROG.cycles || []).filter((c) => { const s = seanceDefaut(c); return s && heure(s, H1) > now; }).sort((a, b) => seanceDefaut(a).localeCompare(seanceDefaut(b))); cy = C.length ? [C.find((c) => seanceDefaut(c) === nx) || C[0]] : (PROG.cycles || []).slice().reverse(); }
     const autres = (PROG.cycles || []).filter((c) => !cy.includes(c)), s0 = cy.length === 1 ? seanceCycle(cy[0]) : null;
     app().innerHTML = `<a class="back" href="#prepa">← Prépa du mercredi</a><div class="eyebrow pp-eb">Préparer la séance</div><h1>${s0 ? `Séance du ${esc(long(s0))} · ${esc(cy[0].titre)}` : 'Parcours de la prépa'}</h1>
       <div class="keep" style="margin:6px 0 4px"><p style="margin:0"><b>Le conseil du formateur :</b> lire et travailler le cours avant de venir, puis, si possible, un ou plusieurs TD. Le parcours suit cet ordre : <b>1.</b> le cours (une fiche simple, puis le chapitre) ; <b>2.</b> les TD, chacun précédé de ses « gestes » ; <b>3.</b> les extraits de sujets de concours. Rien n’est verrouillé : choisis tes TD.</p></div>
