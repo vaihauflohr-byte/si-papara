@@ -4490,6 +4490,8 @@ const meR = [
 ];
 B["mecanique"].redac = meR;
 B["mecanique"].count = Object.assign({}, B["mecanique"].count, { r: 2 });
+/* figures reprises par les devoirs notés (e4/devoirs-moteur.js) */
+E4.FIG_MEC = { fleche, cote, plaqueL, arbre, moteurD, accouplD, reducteurD, tambourD, palierD, chargeD, ajoutFig, repere, figCaract, figRampe, figTreuil, figFrein, uCouple };
 }
 
 /* =====================================================================
@@ -5551,6 +5553,8 @@ const vaR = [
 ];
 B["variateurs"].redac = vaR;
 B["variateurs"].count = Object.assign({}, B["variateurs"].count, { r: 1 });
+/* figures reprises par les devoirs notés (e4/devoirs-moteur.js) */
+E4.FIG_VAR = { figVariateur, courbeAvec, avecNote };
 }
 
 /* =====================================================================
