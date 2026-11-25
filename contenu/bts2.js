@@ -84,7 +84,8 @@ SIP.SERIES_E4 = [
   { id: "eco", titre: "Énergie, coûts et environnement" },
   { id: "reg", titre: "Mesurer, réguler, communiquer" },
   { id: "poste", titre: "Poste de livraison et transformateur" },
-  { id: "secours", titre: "Alimentation de secours" }
+  { id: "secours", titre: "Alimentation de secours" },
+  { id: "moteur", titre: "Motorisation" }
 ];
 SIP.DEVOIRS_E4 = [
   { id: "dim1", serie: "dim", court: "Niveau 1", titre: "Dimensionner une installation", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Bilan de puissance", 8], ["B", "Câble et protection", 10], ["C", "Compensation", 2]] },
@@ -114,5 +115,9 @@ SIP.DEVOIRS_E4 = [
   { id: "secours1", serie: "secours", court: "Niveau 1", titre: "Alimentation de secours", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "L'ASI", 3], ["B", "La batterie", 5], ["C", "Le groupe électrogène", 3]] },
   { id: "secours2", serie: "secours", court: "Niveau 2", titre: "Alimentation de secours", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Le bilan", 3], ["B", "Le groupe", 3], ["C", "Le gazole", 3], ["D", "Inverseur et courant", 2]] },
   { id: "secours3", serie: "secours", court: "Niveau 3", titre: "Alimentation de secours", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Redondance", 2], ["B", "L'ASI à volant", 4], ["C", "La cuve", 3], ["D", "Le disjoncteur", 2]] },
-  { id: "secours4", serie: "secours", court: "Niveau 4", titre: "Alimentation de secours", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "La batterie lithium", 4], ["B", "La recharge", 2], ["C", "Les essais du groupe", 2], ["D", "Le volant d'inertie", 2]] }
+  { id: "secours4", serie: "secours", court: "Niveau 4", titre: "Alimentation de secours", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "La batterie lithium", 4], ["B", "La recharge", 2], ["C", "Les essais du groupe", 2], ["D", "Le volant d'inertie", 2]] },
+  { id: "moteur1", serie: "moteur", court: "Niveau 1", titre: "Motorisation", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "La charge", 2], ["B", "Tambour et réducteur", 4], ["C", "Le moteur", 5]] },
+  { id: "moteur2", serie: "moteur", court: "Niveau 2", titre: "Motorisation", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Régler le variateur", 4], ["B", "Couples et puissance", 3], ["C", "Variateur et frein", 3]] },
+  { id: "moteur3", serie: "moteur", court: "Niveau 3", titre: "Motorisation", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Le couple", 3], ["B", "Le point de fonctionnement", 3], ["C", "Le démarrage", 3], ["D", "Le moteur", 2]] },
+  { id: "moteur4", serie: "moteur", court: "Niveau 4", titre: "Motorisation", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Le démarrage", 4], ["B", "La descente", 3], ["C", "La rentabilité", 2]] }
 ];
