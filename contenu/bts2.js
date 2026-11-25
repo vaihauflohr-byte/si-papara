@@ -85,7 +85,8 @@ SIP.SERIES_E4 = [
   { id: "reg", titre: "Mesurer, réguler, communiquer" },
   { id: "poste", titre: "Poste de livraison et transformateur" },
   { id: "secours", titre: "Alimentation de secours" },
-  { id: "moteur", titre: "Motorisation" }
+  { id: "moteur", titre: "Motorisation" },
+  { id: "qualite", titre: "Qualité de l'énergie" }
 ];
 SIP.DEVOIRS_E4 = [
   { id: "dim1", serie: "dim", court: "Niveau 1", titre: "Dimensionner une installation", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Bilan de puissance", 8], ["B", "Câble et protection", 10], ["C", "Compensation", 2]] },
@@ -119,5 +120,9 @@ SIP.DEVOIRS_E4 = [
   { id: "moteur1", serie: "moteur", court: "Niveau 1", titre: "Motorisation", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "La charge", 2], ["B", "Tambour et réducteur", 4], ["C", "Le moteur", 5]] },
   { id: "moteur2", serie: "moteur", court: "Niveau 2", titre: "Motorisation", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Régler le variateur", 4], ["B", "Couples et puissance", 3], ["C", "Variateur et frein", 3]] },
   { id: "moteur3", serie: "moteur", court: "Niveau 3", titre: "Motorisation", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Le couple", 3], ["B", "Le point de fonctionnement", 3], ["C", "Le démarrage", 3], ["D", "Le moteur", 2]] },
-  { id: "moteur4", serie: "moteur", court: "Niveau 4", titre: "Motorisation", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Le démarrage", 4], ["B", "La descente", 3], ["C", "La rentabilité", 2]] }
+  { id: "moteur4", serie: "moteur", court: "Niveau 4", titre: "Motorisation", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Le démarrage", 4], ["B", "La descente", 3], ["C", "La rentabilité", 2]] },
+  { id: "qualite1", serie: "qualite", court: "Niveau 1", titre: "Qualité de l'énergie", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Lire le spectre", 4], ["B", "Les effets sur l'installation", 4], ["C", "Le neutre des bureaux", 3]] },
+  { id: "qualite2", serie: "qualite", court: "Niveau 2", titre: "Qualité de l'énergie", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Les puissances", 4], ["B", "La compensation en gradins", 4], ["C", "Le risque de résonance", 3]] },
+  { id: "qualite3", serie: "qualite", court: "Niveau 3", titre: "Qualité de l'énergie", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "La distorsion de la tension", 5], ["B", "Le filtre accordé", 4], ["C", "Avec le filtre", 2]] },
+  { id: "qualite4", serie: "qualite", court: "Niveau 4", titre: "Qualité de l'énergie", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Le filtre actif", 4], ["B", "Le transformateur", 3], ["C", "Les pertes", 2]] }
 ];
