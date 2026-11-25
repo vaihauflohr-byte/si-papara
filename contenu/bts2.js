@@ -72,3 +72,10 @@ SIP.definirModule({
     }
   ]
 });
+
+/* Devoirs notés de l'entraînement E4 (entrainements/e4/devoirs.js, page entrainements/bts-e4.html#/devoirs).
+   Cette liste sert au tableau de bord des BTS 2 (tuile « travail noté ») et à l'onglet « Devoirs BTS 2 » du professeur.
+   La note d'un devoir est le premier résultat transmis dans le module e4-devoir-<id>. */
+SIP.DEVOIRS_E4 = [
+  { id: "dim1", court: "Devoir noté n° 1", titre: "Dimensionner une installation", parties: [["A", "Bilan de puissance", 8], ["B", "Câble et protection", 10], ["C", "Compensation", 2]] }
+];
