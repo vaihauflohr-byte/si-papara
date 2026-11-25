@@ -4088,6 +4088,8 @@ const seR = [
 ];
 B["secours-asi"].redac = seR;
 B["secours-asi"].count = Object.assign({}, B["secours-asi"].count, { r: 2 });
+/* figures et données reprises par les devoirs notés (e4/devoirs-secours.js) */
+E4.FIG_SEC = { plaqueEn, tableauFig, schemaSecours, figASI, chronoCoupure, GE, GE2 };
 }
 
 /* =====================================================================
