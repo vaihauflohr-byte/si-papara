@@ -8,12 +8,16 @@
   const el = document.getElementById("sync-etat");
   const MSG = { hors: `Tu n'es pas connecté : ton avancement reste sur cet appareil. <a href="../index.html">Me connecter</a> pour le retrouver partout.`,
     ok: (n) => `✓ Avancement enregistré sur ton compte${n ? " (" + n + ")" : ""} : tu le retrouves sur n'importe quel poste.`,
+    prof: "Tu es connecté en professeur : ce travail reste sur cet appareil. Pour vérifier l'enregistrement, connecte-toi avec un compte d'élève de Seconde SI.", apercu: "Aperçu professeur : le travail reste dans ce navigateur, rien n'est transmis.",
     attente: "Enregistrement…", erreur: "Enregistrement impossible pour le moment : ton avancement reste sur cet appareil." };
   let nom = "", pret = false, minuterie = 0, distant = {};
   const dire = (k) => { if (el) el.innerHTML = typeof MSG[k] === "function" ? MSG[k](nom) : MSG[k] || ""; window.PLANEUR_SYNC_ETAT = k; try { document.dispatchEvent(new CustomEvent("planeur-sync", { detail: k })); } catch (e) { /* rien */ } };          // l'atelier 3D affiche le même état dans son bandeau
   const s = window.SIP && SIP.session && SIP.session.get();
   window.PLANEUR_SYNC = () => { try { localStorage.setItem(KT, String(Date.now())); } catch (e) { /* rien */ } if (!pret) return; clearTimeout(minuterie); dire("attente"); minuterie = setTimeout(pousser, 1500); };
-  if (!s || s.apercu || !SIP.api || !SIP.api.projetEtat) { dire("hors"); return; }
+  if (!s || s.apercu || !SIP.api || !SIP.api.projetEtat) {
+    dire(s && s.apercu ? "apercu" : "hors");
+    if (!s && window.SIP && SIP.api && SIP.api.profSession) Promise.resolve().then(() => SIP.api.profSession()).then((p) => { if (p) dire("prof"); }, () => {});          // le professeur, connecté en professeur, n'est pas « non connecté »
+    return; }
   if (s.niveau !== "2SI") return;                     // un autre niveau a son propre projet dans la même table : on n'y touche pas
   nom = String(s.nom || "").replace(/[&<>"]/g, "");
   async function pousser() {
