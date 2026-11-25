@@ -397,6 +397,18 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 .cao:not(.plein) .cao-scene::after{content:"Touche la vue pour travailler en plein écran";position:absolute;left:50%;top:8px;transform:translateX(-50%);background:rgba(27,63,122,.9);color:#fff;font-size:.78rem;font-weight:600;line-height:1.2;padding:5px 11px;border-radius:999px;pointer-events:none;white-space:nowrap;z-index:2}
 }
 @media (pointer: coarse){.pl-sec input:not([type=range]):not([type=checkbox]):not([type=radio]),.pl-sec select,.pl-sec textarea{font-size:16px}}          /* sur iPhone, un champ écrit en moins de 16 px fait zoomer toute la page quand on le touche (et elle reste zoomée) */
+@media (max-width:600px){.pl-sec .lab-fig svg{min-width:0}}          /* téléphone : la figure entière, sans glisser (avant, la moitié droite restait cachée) ; interactif.js grossit ses textes */
+@media (max-width:600px){.pl-niv,.pl-niv tbody,.pl-niv tr,.pl-niv td,.pl-prog,.pl-prog tbody,.pl-prog tr,.pl-prog td,.pl-prog th{display:block;width:auto!important}.pl-niv tr:first-child,.pl-prog tr:first-child{display:none}
+.pl-niv tr,.pl-prog tr{border:1px solid var(--rule);border-radius:8px;margin:0 0 10px;overflow:hidden}table.pl.pl-niv td,table.pl.pl-prog td,table.pl.pl-prog th{border:0;border-top:1px solid var(--rule-2);white-space:normal}
+.pl-niv td:first-child,.pl-prog td:first-child{border-top:0;font-weight:600;background:var(--paper-2)}.pl-niv tr.pl-pied td{font-weight:400;background:none}
+.pl-niv td[data-n]::before{content:attr(data-n);display:block;font-family:var(--f-disp);font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-3)}
+.pl-niv td[data-n^="Niveau 4"]{background:color-mix(in srgb,var(--good) 12%,var(--paper))}}          /* téléphone : les grands tableaux de l'évaluation deviennent des cartes (avant, la colonne « à viser » était cachée à droite) */
+.pl-coche{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer;margin:-8px 0}          /* une case à cocher : toute la zone autour se touche au doigt */
+@media (max-width:600px){table.pl-pile,table.pl-pile tbody,table.pl-pile tr,table.pl-pile td{display:block;width:auto!important}table.pl-pile tr:first-child{display:none}table.pl-pile tr{border:1px solid var(--rule);border-radius:8px;margin:0 0 10px;overflow:hidden}
+table.pl.pl-pile td{border:0;border-top:1px solid var(--rule-2);text-align:left;white-space:normal}table.pl.pl-pile td:first-child{border-top:0;font-weight:600;background:var(--paper-2)}
+table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:block;font-family:var(--f-disp);font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-3)}}          /* téléphone : les tableaux à lire deviennent des cartes, chaque case avec le nom de sa colonne (avant, les colonnes de droite étaient cachées) */
+.sim-glisse{display:none;margin:4px 0 0;text-align:center;font-size:.85rem}@media (max-width:680px){.sim-glisse{display:block}}
+.pl-note{display:block;margin-top:3px;font-weight:600;color:var(--accent)}.pl-note:empty{display:none}
 </style>
 </head>
 <body>
@@ -449,7 +461,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <h2 style="margin-top:0">Le cahier des charges</h2>
     <p><b>Le besoin</b> : un planeur lancé à la main, qui parcourt la plus grande distance possible. <b>Les contraintes</b> : un planeur qui ne respecte pas une de ces lignes n'est pas imprimé.</p>
     <img class="pl-img" src="2si-planeur/img/cotes_max.png" alt="Planeur vu de dessus avec ses deux dimensions maximales : envergure 210 mm et longueur 210 mm" loading="lazy">
-    <div class="pl-scroll"><table class="pl">
+    <div class="pl-scroll"><table class="pl pl-pile">
       <tr><th class="n">N°</th><th>Ce qu'on demande</th><th>Limite</th><th>Pourquoi</th></tr>
       <tr><td class="n"><b>C1</b></td><td>Envergure (largeur totale de l'aile)</td><td class="n"><b>210 mm</b> maximum</td><td>Taille du plateau de l'imprimante</td></tr>
       <tr><td class="n"><b>C2</b></td><td>Longueur du fuselage</td><td class="n"><b>210 mm</b> maximum</td><td>Taille du plateau de l'imprimante</td></tr>
@@ -465,7 +477,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   <div class="carte" id="vocab">
     <h2 style="margin-top:0">Le vocabulaire de l'ingénieur</h2>
     <p>Dix mots que tu vas utiliser pendant tout le projet, et le jour de la présentation.</p>
-    <div class="pl-scroll"><table class="pl">
+    <div class="pl-scroll"><table class="pl pl-pile">
       <tr><th>Mot</th><th>Ce que ça veut dire</th><th>Dans notre projet</th></tr>
       <tr><td><b>Besoin</b></td><td>Ce à quoi le produit doit servir</td><td>Un planeur lancé à la main, qui va le plus loin possible</td></tr>
       <tr><td><b>Fonction</b></td><td>Ce que le produit doit faire</td><td>Planer, rester stable, résister au lancer</td></tr>
@@ -531,7 +543,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <div data-lab="finesse"></div>
     <div class="formule">finesse = <span class="frac"><span class="nu">distance parcourue</span><span class="sr"> sur </span><span class="de">hauteur perdue</span></span></div>
     <p>Une finesse de 6 veut dire : <b>6 m en avant pour 1 m de descente</b>. C'est la note de ton planeur : plus elle est grande, plus il va loin en partant de la même hauteur.</p>
-    <div class="pl-scroll"><table class="pl">
+    <div class="pl-scroll"><table class="pl pl-pile">
       <tr><th>Objet</th><th class="n">Finesse</th><th>Lâché à 1,5 m, il se pose à…</th></tr>
       <tr><td>Une feuille de papier froissée</td><td class="n">presque 0</td><td>tes pieds</td></tr>
       <tr><td>Un petit planeur imprimé</td><td class="n">3 à 6</td><td>4,5 m à 9 m</td></tr>
@@ -619,7 +631,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 
   <div class="carte">
     <h2 style="margin-top:0">En résumé : sur quoi jouer</h2>
-    <div class="pl-scroll"><table class="pl">
+    <div class="pl-scroll"><table class="pl pl-pile">
       <tr><th>Je veux…</th><th>Je joue sur…</th><th>Notion</th></tr>
       <tr><td>Qu'il vole à plat, sans cabrer ni piquer</td><td>Le lest du nez, pour placer le centre de gravité entre 25 % et 40 % de la corde</td><td class="n">3</td></tr>
       <tr><td>Qu'il aille plus loin</td><td>La traînée (fuselage fin, pièces propres) et l'allongement de l'aile</td><td class="n">2 et 7</td></tr>
@@ -724,7 +736,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
       <li>Dans chaque atelier, clique sur la pièce dans la liste, puis sur l'icône de la balance en bas à droite (« Propriétés de masse »). Relève le <b>volume</b> en cm³.</li>
       <li>Compare avec ce tableau. Un écart de plus de 0,3 cm³ veut dire qu'une cote est fausse : retourne dans l'esquisse.</li>
     </ol>
-    <div class="pl-scroll"><table class="pl">
+    <div class="pl-scroll"><table class="pl pl-pile">
       <tr><th>Pièce</th><th class="n">Volume attendu</th><th class="n">Masse en PLA (× 1,24)</th></tr>
       <tr><td>Fuselage</td><td class="n">10,1 cm³</td><td class="n">12,6 g</td></tr>
       <tr><td>Aile</td><td class="n">7,2 cm³</td><td class="n">8,9 g</td></tr>
@@ -736,7 +748,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   <p class="astuce"><b>Mission réussie si</b> tes trois volumes sont ceux du tableau.</p></div>
 
   <div class="carte"><div class="eyebrow">Mission 7</div><h2 style="margin-top:.1em">À toi : rends-le meilleur</h2><p class="discret" style="margin-top:0">Le planeur de départ vole, mais il est lourd : plus léger, il volera plus lentement et pardonnera mieux le lancer. Voici ce que tu peux changer, et les notions de l'onglet « Comprendre » t'expliquent pourquoi.</p>
-    <div class="pl-scroll"><table class="pl">
+    <div class="pl-scroll"><table class="pl pl-pile">
       <tr><th>Ce que je change</th><th>Ce que j'y gagne</th><th>Le risque</th></tr>
       <tr><td>Aile plus fine : 0,6 mm au lieu de 0,8</td><td>2 g de moins</td><td>L'aile se plie au lancer</td></tr>
       <tr><td>Bouts d'aile effilés ou arrondis</td><td>Moins de masse, et c'est plus beau</td><td>Moins de surface : il porte un peu moins</td></tr>
@@ -778,7 +790,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
       <div class="sim-score"><div class="eyebrow">Distance prévue</div><div class="sim-dist"><span id="sim-d">–</span><small> m</small></div><div class="sim-delta" id="sim-delta"></div></div>
       <div id="sim-verdict" class="sim-verdict"></div>
     </div>
-    <div id="sim-svg" class="sim-ecran"></div>
+    <div id="sim-svg" class="sim-ecran"></div><p class="sim-glisse discret">← Fais glisser le dessin pour voir tout le vol →</p>
     <div class="sim-tuiles" id="sim-res"></div>
     <div class="sim-actions no-print">
       <div><button class="btn" id="sim-jouer">▶ Voir le vol</button> <button class="btn sec" id="sim-ref">Garder ce vol en gris pour comparer</button> <button class="btn sec" id="sim-ref0">Effacer le vol gris</button></div>
@@ -845,7 +857,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
     <h2 style="margin-top:0">Lire le vol de ton planeur</h2>
     <div data-lab="diag" id="diag"></div>
     <details><summary>Voir tous les cas dans un tableau</summary>
-    <div class="pl-scroll"><table class="pl">
+    <div class="pl-scroll"><table class="pl pl-pile">
       <tr><th></th><th>Ce que tu vois</th><th>Cause probable</th><th>Modification à essayer</th></tr>
       <tr><td class="pl-vol"><svg viewBox="0 0 150 62" role="img" aria-label="Trajectoire qui monte puis retombe à pic"><line x1="4" y1="54" x2="146" y2="54" stroke="currentColor" stroke-width="1.5"/><path d="M6 40 Q40 2 74 12 Q88 18 84 30 L96 54" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="5 4"/></svg></td><td><b>Il lève le nez, ralentit, puis tombe</b></td><td>Centre de gravité trop en arrière</td><td>Ajouter un peu de lest dans le nez (1 à 3 g), puis relancer</td></tr>
       <tr><td class="pl-vol"><svg viewBox="0 0 150 62" role="img" aria-label="Trajectoire qui plonge vers le sol"><line x1="4" y1="54" x2="146" y2="54" stroke="currentColor" stroke-width="1.5"/><path d="M6 16 Q34 18 52 54" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="5 4"/></svg></td><td><b>Il pique et touche le sol tout de suite</b></td><td>Centre de gravité trop en avant</td><td>Enlever du lest du nez, par petites quantités</td></tr>
@@ -866,7 +878,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
   </div>
   <div class="carte">
     <h2 style="margin-top:0">Les critères, niveau par niveau</h2>
-    <p>Pour chaque critère, le professeur te place sur un des quatre niveaux. Lis la colonne de droite : c'est ce qu'il faut viser.</p>
+    <p>Pour chaque critère, le professeur te place sur un des quatre niveaux. Vise le niveau 4 : la colonne de droite (en vert sur un téléphone).</p>
     <div class="pl-scroll"><table class="pl pl-niv" id="t-criteres"></table></div>
   </div>
   <div class="carte" id="programme">
@@ -928,12 +940,16 @@ const ETAPES = [
     C("2e", "Écris ci-dessous le nom de ton équipe et de ses membres."),
     B("equipe"),
     C("2d", "Lis « Le vocabulaire de l'ingénieur » dans l'onglet « Le défi ». Tu dois pouvoir dire le besoin, deux fonctions et deux exigences du planeur.") ] },
-  { t: "Apprendre à dessiner en 3D", img: "m2", but: "Les trois gestes de base : l'esquisse, les cotes, l'extrusion.", items: [
+  { t: "Apprendre à dessiner en 3D", img: "m2", but: "Les trois gestes de base : l'esquisse, les cotes, l'extrusion. Puis un didacticiel et deux évaluations notés.", items: [
     C("a1", "Ouvre l'onglet « Atelier 3D », sur la pièce d'essai. Clique Esquisse, choisis le plan « Face », trace un rectangle, valide, puis clique Extruder. Fais tourner la pièce."),
     C("a2", "Défi 1 : la plaque. Suis le bouton qui clignote : Rectangle en partant de l'origine, puis Cote (60 mm et 20 mm) : les traits passent du bleu au noir. Valider, Extruder de 5 mm. Le site doit afficher 6,00 cm³."),
     C("a3", "Défi 2 : le nez en biseau, sur la même plaque. Le site doit afficher 5,76 cm³."),
     C("a8", "Défi 3 : le trou. Nouvelle esquisse, un cercle de 4 mm de diamètre, puis Extruder, Supprimer, À travers tout. Le site doit afficher 5,70 cm³."),
-    C("a9", "Défi 4 : le coin arrondi, avec l'outil Congé. Essaie aussi Annuler (↶) et le zoom (la molette)."),
+    C("a9", "Défi 4 : le coin arrondi, avec l'outil Congé. Essaie aussi Annuler (↶) et le zoom (la molette, ou deux doigts sur un téléphone)."),
+    C("a13", "Défi 5 : tout en noir. Rends tes deux esquisses entièrement définies : plus aucun trait bleu."),
+    C("a10", "Didacticiel noté : l'équerre percée. Dans l'atelier 3D, pièce d'essai, bouton « Didacticiel noté ». Suis le bouton qui clignote jusqu'à 20 / 20. <span class=\"pl-note\" data-note=\"1\"></span>"),
+    C("a11", "Évaluation 1 : la platine. Même endroit, bouton « Évaluation 1 ». Cette fois, rien ne clignote : ouvre « Voir le plan », dessine la pièce, puis « Rendre ma pièce ». <span class=\"pl-note\" data-note=\"2\"></span>"),
+    C("a12", "Évaluation 2 : le support, de la même façon. <span class=\"pl-note\" data-note=\"3\"></span>"),
     C("3f", "Fais la série « Planeur 2 · Dessiner et imprimer ».") ] },
   { t: "Connaître le planeur de départ", img: "m6_nu", but: "Un planeur complet qui vole, le même pour toutes les équipes. Tu dois savoir comment il est fait.", items: [
     C("a4", "Dans l'« Atelier 3D », onglet « Fuselage » : lis l'arbre des fonctions du planeur de départ. Quelle extrusion fait le corps, laquelle fait la dérive, laquelle perce les fentes et le trou du lest ?"),
@@ -1028,7 +1044,7 @@ const BLOCS = {
     <tr><td>Volume de l'aile (cm³)</td><td class="n">${champ("va", "cm³", "number", "width:6em")}</td></tr>
     <tr><td>Volume du stabilisateur (cm³)</td><td class="n">${champ("vs", "cm³", "number", "width:6em")}</td></tr>
     <tr><td>Lest prévu dans le nez (g)</td><td class="n">${champ("lest", "g", "number", "width:6em")}</td></tr>
-    <tr><td>Chaque pièce se pose à plat, sans rien dans le vide</td><td class="n"><input type="checkbox" data-c="plat" ${D.c.plat ? "checked" : ""} style="width:20px;height:20px"></td><td id="v-plat"></td></tr>
+    <tr><td>Chaque pièce se pose à plat, sans rien dans le vide</td><td class="n"><label class="pl-coche"><input type="checkbox" data-c="plat" ${D.c.plat ? "checked" : ""} style="width:22px;height:22px" aria-label="Chaque pièce se pose à plat"></label></td><td id="v-plat"></td></tr>
   </table></div>`,
   oral: () => `<p><b>Tes deux minutes devant la classe</b> : complète ces trois phrases, puis lis-les.</p>
     <p><label>« Notre version 1… » (ce qu'elle faisait en vol)<br>${champ("o1", "exemple : levait le nez et tombait à 3 m")}</label></p>
@@ -1037,7 +1053,18 @@ const BLOCS = {
 };
 const OKT = (ok, t) => `<span class="etiquette ${ok ? "ok" : "alerte"}">${ok ? "✓ conforme" : "✗ à corriger"}</span> ${t}`;
 const nv = (k) => { const x = parseFloat(D.f[k]); return isFinite(x) ? x : null; };
-function verifier() {
+let nAtelier = { cle: "", N: [null, null, null] };
+function depuisAtelier() {          // les cases que l'atelier 3D sait vérifier se cochent toutes seules : défis réussis, didacticiel à 20 / 20, évaluations rendues
+  const A3 = window.PlaneurAtelier, P3 = window.Planeur3D; let es = null; try { es = A3 && A3.libre(); } catch (e) { es = null; } if (!es || !P3 || !P3.notesEssai) return null;
+  let cle = ""; try { cle = JSON.stringify([es.f, es.L, es.R]); } catch (e) { /* rien */ }
+  if (cle !== nAtelier.cle) { let N = [null, null, null]; try { N = P3.notesEssai(es); } catch (e) { /* rien */ } nAtelier = { cle, N }; }          // on ne recalcule les notes que si la pièce a changé
+  const N = nAtelier.N, R = es.R || {}, faits = { a2: es.d1, a3: es.d2, a8: es.d3, a9: es.d4, a13: es.d5, a10: N[0] === 20, a11: !!R[2], a12: !!R[3] };
+  Object.keys(faits).forEach((id) => { if (faits[id] && !D.c[id]) { D.c[id] = true; const c = document.querySelector(`[data-c="${id}"]`); if (c) c.checked = true; garder(); } });
+  return { N, R };
+}
+function notesAtelier(x) { if (!x) return; document.querySelectorAll("[data-note]").forEach((e) => { const m = +e.dataset.note, n = x.N[m - 1];          // la note du moment, à côté de la ligne
+  e.textContent = n == null ? "" : m === 1 ? `Ta note : ${n} / 20.` : `Ta note : ${n} / 20${x.R[m] ? ", pièce rendue." : ", pas encore rendue."}`; }); }
+function verifier() { const xA = depuisAtelier();
   const set = (id, h) => { const el = document.getElementById(id); if (el) el.innerHTML = h; };
   const env = nv("env"), corde = nv("corde"), ep = nv("ep"), lon = nv("lon");
   set("v-env", env == null ? "" : OKT(env <= LIMITES.envergure, `maximum ${LIMITES.envergure} mm`));
@@ -1051,12 +1078,13 @@ function verifier() {
   set("v-plat", D.c.plat ? OKT(true, "") : "");
   ETAPES.forEach((e, i) => { const L = e.items.filter((x) => x.k === "c"); const n = L.filter((x) => D.c[x.id]).length; const el = document.getElementById("av" + i);
     if (el) { el.textContent = `${n} / ${L.length}`; el.className = "etiquette" + (n === L.length ? " ok" : ""); } });
-  guide();
+  guide(); notesAtelier(xA);
 }
+{ let tA = 0; const suivre = () => { clearTimeout(tA); tA = setTimeout(verifier, 1200); }; window.addEventListener("planeur-idee", suivre); window.addEventListener("load", suivre); }          // l'atelier a changé (ou vient de se charger) : les cases et les notes suivent
 /* ---------- Le guide : la prochaine chose à faire, visible dans tous les onglets ---------- */
 /* destination de chaque ligne : "onglet" ou "onglet#identifiant" ; "tab" = tableau de bord ; rien = à faire en vrai, dans la salle */
 const VA = { "0a": "defi", "1o": "etapes", "1d": "comprendre#n1", "1c": "tab", "2e": "etapes", "2d": "defi#vocab",
-  a1: "cao", a2: "cao", a3: "cao", a8: "cao", a9: "cao", "3f": "tab", a4: "cao", a5: "cao", a6: "cao",
+  a1: "cao", a2: "cao#tu-0", a3: "cao#tu-0", a8: "cao#tu-0", a9: "cao#tu-0", a13: "cao#tu-0", a10: "cao#tu-1", a11: "cao#tu-2", a12: "cao#tu-3", "3f": "tab", a4: "cao", a5: "cao", a6: "cao",
   "5n": "comprendre#n4", "5i": "creer", "5j": "creer", a7: "cao", "5s": "sim", "5k": "defi#cout", "4c": "etapes", "4d": "etapes", "4e": "cao",
   "5a": "tab", "5p": "essais", "5c": "comprendre#n3", "5d": "essais#t-essais", "5e": "essais#t-essais", "5f": "essais#diag", "5q": "essais#g-essais", "5g": "essais#modif",
   "6s": "sim", "6a": "cao", "6b": "etapes", "6c": "cao", "6d": "essais#t-essais", "6e": "essais#bilan", "7b": "essais#t-essais", "7o": "etapes", "7c": "essais#t-essais" };
@@ -1077,6 +1105,7 @@ document.getElementById("guide").addEventListener("click", (ev) => {
   const f = ev.target.closest("[data-gfait]"); if (f) { const id = f.dataset.gfait; D.c[id] = true; const c = document.querySelector(`[data-c="${id}"]`); if (c) c.checked = true; garder(); verifier(); return; }
   const g = ev.target.closest("[data-gva]"); if (!g) return; const [s, id] = g.dataset.gva.split("#"); ouvrir(s); history.replaceState(null, "", "#" + s);
   let cible = id && document.getElementById(id);
+  if (s === "cao" && /^tu-[0-3]$/.test(id || "")) { const pe = document.querySelector('#cao [data-piece="essai"]'); if (pe) pe.click(); const bt = document.querySelector(`#atelier3d [data-o="${id}"]`); if (bt) bt.click(); cible = document.getElementById("cao"); }          // les défis, le didacticiel ou une évaluation : l'atelier s'ouvre directement au bon endroit
   if (s === "etapes") { cible = document.getElementById("c-" + g.dataset.gid); const d = cible && cible.closest("details"); if (d) d.open = true; }
   if (cible) setTimeout(() => cible.scrollIntoView({ behavior: "smooth", block: s === "etapes" ? "center" : "start" }), 60); else window.scrollTo(0, 0);
 });
@@ -1139,8 +1168,10 @@ document.getElementById("t-bareme").innerHTML = `<tr><th></th><th>Partie</th><th
   `<tr><th colspan="3">Total</th><th class="n pl-pts">${BAREME.reduce((s, b) => s + b[3], 0)}</th></tr>`;
 const COULEURS = ["#1d3f7a", "#2f6fbf", "#1b7f4b", "#b8860b", "#b5477a", "#5b6770"];
 document.getElementById("bar-bareme").innerHTML = `<div class="pl-bar" role="img" aria-label="Répartition des 20 points">${BAREME.map((b, i) => `<span style="flex:${b[3]};background:${COULEURS[i]}">${b[3]}</span>`).join("")}</div><div class="pl-leg">${BAREME.map((b, i) => `<span><i style="background:${COULEURS[i]}"></i>${b[1]}</span>`).join("")}</div>`;
-document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Niveau 1 · insuffisant</th><th>Niveau 2 · fragile</th><th>Niveau 3 · attendu</th><th>Niveau 4 · très bien</th></tr>` +
-  CRITERES.map((c) => `<tr><td><b>${c[0]}</b></td>${c.slice(1).map((x) => `<td>${x}</td>`).join("")}</tr>`).join("") + `<tr><td colspan="5">${PERF}</td></tr><tr><td colspan="5">${POINTS_NIVEAU}</td></tr>`;
+document.querySelectorAll("table.pl-pile").forEach((t) => { const H = [...t.rows[0].cells].map((c) => c.textContent.trim()); [...t.rows].slice(1).forEach((r) => { let k = 0; [...r.cells].forEach((c) => { if (H[k] && c.colSpan === 1) c.dataset.l = H[k]; k += c.colSpan; }); }); });          // le nom de la colonne, pour l'affichage en cartes
+const NIVEAUX = ["Niveau 1 · insuffisant", "Niveau 2 · fragile", "Niveau 3 · attendu", "Niveau 4 · très bien"];
+document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th>${NIVEAUX.map((n) => `<th>${n}</th>`).join("")}</tr>` +
+  CRITERES.map((c) => `<tr><td><b>${c[0]}</b></td>${c.slice(1).map((x, i) => `<td data-n="${NIVEAUX[i]}">${x}</td>`).join("")}</tr>`).join("") + `<tr class="pl-pied"><td colspan="5">${PERF}</td></tr><tr class="pl-pied"><td colspan="5">${POINTS_NIVEAU}</td></tr>`;          // data-n : sur téléphone, chaque critère devient une carte, ses quatre niveaux l'un sous l'autre
 
 /* ---------- Simulateur de vol ---------- */
 (function () {

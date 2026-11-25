@@ -267,4 +267,23 @@
   }
 
   document.querySelectorAll("[data-lab]").forEach((el) => { const k = el.dataset.lab; try { k === "pieces" ? pieces(el) : k === "diag" ? diag(el) : monter(el); } catch (e) { el.hidden = true; console.error("labo " + k, e); } });
+
+  /* ---------- téléphone : la figure se voit en entier ; ses textes sont grossis (jusqu'à 1,65 fois), sans sortir du cadre ---------- */
+  const etroit = () => !!window.matchMedia && window.matchMedia("(max-width: 600px)").matches, GROS = 1.65;
+  const ajuster = (svg) => { const vb = svg.viewBox && svg.viewBox.baseVal, T = [...svg.querySelectorAll("text")];
+    T.forEach((t) => (t.style.transform = "")); if (!etroit() || !vb || !vb.width || !svg.getScreenCTM) return;
+    const C = svg.getScreenCTM(); if (!C) return; const Mi = C.inverse(), x0 = vb.x + 3, x1 = vb.x + vb.width - 3;
+    const B = T.map((t) => { let bb, M; try { bb = t.getBBox(); M = Mi.multiply(t.getScreenCTM()); } catch (e) { return null; }
+      if (!bb || !bb.width || Math.abs(M.b) > 1e-6 || Math.abs(M.c) > 1e-6) return null;          // un texte penché : on n'y touche pas
+      const a = getComputedStyle(t).textAnchor || t.getAttribute("text-anchor") || "start", l = M.a * bb.x + M.e, w = M.a * bb.width, h = M.d * bb.height, cy = M.d * bb.y + M.f + h / 2;
+      const ox = a === "end" ? l + w : a === "middle" ? l + w / 2 : l, m = a === "end" ? (ox - x0) / w : a === "middle" ? Math.min(ox - x0, x1 - ox) * 2 / w : (x1 - ox) / w;          // grossi depuis son ancre, sans sortir du cadre
+      return { t, a, ox, w, h, cy, s: Math.max(1, Math.min(GROS, m)) }; }).filter(Boolean);
+    const ext = (o) => (o.a === "end" ? [o.ox - o.w * o.s, o.ox] : o.a === "middle" ? [o.ox - o.w * o.s / 2, o.ox + o.w * o.s / 2] : [o.ox, o.ox + o.w * o.s]);
+    for (let k = 0; k < 8; k++) { let chg = false;          // deux textes qui se marchent dessus : on les grossit moins
+      for (let i = 0; i < B.length; i++) for (let j = i + 1; j < B.length; j++) { const p = B[i], q = B[j]; if (Math.abs(p.cy - q.cy) >= (p.h * p.s + q.h * q.s) / 2) continue;
+        const e1 = ext(p), e2 = ext(q); if (e1[1] + 10 <= e2[0] || e2[1] + 10 <= e1[0] || (p.s === 1 && q.s === 1)) continue; p.s = Math.max(1, p.s - 0.1); q.s = Math.max(1, q.s - 0.1); chg = true; }          // 10 : un petit espace entre deux mots voisins
+      if (!chg) break; }
+    B.forEach((o) => { if (o.s < 1.001) return; Object.assign(o.t.style, { transformBox: "fill-box", transformOrigin: o.a === "end" ? "right center" : o.a === "middle" ? "center" : "left center", transform: `scale(${o.s.toFixed(3)})` }); }); };
+  document.querySelectorAll(".lab-fig").forEach((fig) => { const go = () => { const s = fig.querySelector("svg"); if (s && fig.clientWidth) ajuster(s); };
+    new MutationObserver(go).observe(fig, { childList: true }); if (window.ResizeObserver) new ResizeObserver(go).observe(fig); go(); });          // à chaque nouveau dessin, quand l'onglet s'ouvre, quand le téléphone tourne
 })();

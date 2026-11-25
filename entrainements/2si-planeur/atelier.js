@@ -54,16 +54,19 @@
       <circle cx="12" cy="8" r="2.1" fill="var(--paper)"/><line x1="${XA}" y1="${5.7 + d.c0 * 0.0523}" x2="${XA + d.c0}" y2="5.7" stroke="${d.ca}" stroke-width="1.6" stroke-linecap="round"/>
       <line x1="${XS}" y1="4.4" x2="${XS + d.sc}" y2="4.4" stroke="${d.ca}" stroke-width="1.3" stroke-linecap="round"/></g>`;
   }
+  let dessinEtroit = false;
+  const estEtroit = () => { const el = document.getElementById("at-dessin"), w = el ? el.clientWidth : 0; return w > 0 && w < 520 && !!window.matchMedia && window.matchMedia("(max-width: 820px)").matches; };          // téléphone (une seule colonne) ; sur ordinateur, le dessin reste en largeur car sa carte reste collée en haut de l'écran
   function dessin(d) {
-    const E = 1.5, ox = 22, yc = 215, F = 1.55, fx = 372, fy = 300, c = calc(d);
-    return `<svg viewBox="0 0 720 390" role="img" aria-label="Ton planeur vu de dessus et vu de côté : envergure ${d.b} millimètres, aile de ${fr(c.S, 0)} centimètres carrés">
+    const etroit = dessinEtroit = estEtroit();          // écran étroit : la vue de côté passe sous la vue de dessus, et le texte reste lisible
+    const E = 1.5, ox = 22, yc = 215, F = 1.55, fx = etroit ? 22 : 372, fy = etroit ? 520 : 300, c = calc(d), xn = etroit ? 190 : fx + 105 * F;
+    return `<svg viewBox="0 0 ${etroit ? "380 640" : "720 390"}" role="img" aria-label="Ton planeur vu de dessus et vu de côté : envergure ${d.b} millimètres, aile de ${fr(c.S, 0)} centimètres carrés">
       <defs><pattern id="at-car" width="${10 * E}" height="${10 * E}" patternUnits="userSpaceOnUse" x="${ox}" y="${yc}"><path d="M${10 * E} 0 H0 V${10 * E}" fill="none" stroke="var(--at-grille)" stroke-width="1"/></pattern></defs>
       <rect x="${ox - 15}" y="${yc - 165}" width="${225 * E + 8}" height="330" fill="url(#at-car)"/>
       <text class="at-t" x="${ox - 15}" y="32">VU DE DESSUS · 1 carreau = 1 cm</text><text class="at-t" x="${fx}" y="${fy - 78}">VU DE CÔTÉ</text>
       ${dessus(d, E, ox, yc)}${cote(d, F, fx, fy)}
-      <text class="at-nom" x="${fx + 105 * F}" y="92" text-anchor="middle">${esc(d.nom) || "Planeur sans nom"}</text>
-      <text class="at-dev" x="${fx + 105 * F}" y="118" text-anchor="middle">${esc(d.devise)}</text>
-      <g class="at-cote"><line x1="${ox + (XA + d.fl + c.ct / 2) * E + 26}" y1="${yc - d.b / 2 * E}" x2="${ox + (XA + d.fl + c.ct / 2) * E + 26}" y2="${yc + d.b / 2 * E}"/><text x="${fx}" y="${fy + 44}">envergure ${d.b} mm · corde au centre ${d.c0} mm · au bout ${fr(c.ct, 0)} mm</text></g>
+      <text class="at-nom" x="${xn}" y="${etroit ? fy + 54 : 92}" text-anchor="middle">${esc(d.nom) || "Planeur sans nom"}</text>
+      <text class="at-dev" x="${xn}" y="${etroit ? fy + 80 : 118}" text-anchor="middle">${esc(d.devise)}</text>
+      <g class="at-cote"><line x1="${ox + (XA + d.fl + c.ct / 2) * E + 26}" y1="${yc - d.b / 2 * E}" x2="${ox + (XA + d.fl + c.ct / 2) * E + 26}" y2="${yc + d.b / 2 * E}"/><text x="${etroit ? 8 : fx}" y="${etroit ? fy + 108 : fy + 44}">envergure ${d.b} mm · corde au centre ${d.c0} mm · au bout ${fr(c.ct, 0)} mm</text></g>
     </svg>`;
   }
 
@@ -90,7 +93,7 @@
   racine.innerHTML = `
     <div class="carte"><h2 style="margin-top:0">Ton planeur ne doit ressembler à aucun autre</h2>
       <p>Le planeur de départ est le même pour tout le monde. <b>Le tien doit porter ta marque</b> : une forme, des couleurs, un nom. Les ingénieurs travaillent comme ça :</p>
-      <ol class="at-dem"><li><b>Cherche trois idées vraiment différentes.</b> Pas trois fois la même avec 5 mm d'écart.</li><li><b>Compare-les</b> : laquelle va loin, laquelle est solide, laquelle te plaît.</li><li><b>Choisis-en une et explique pourquoi.</b> Puis dessine-la dans Onshape.</li></ol>
+      <ol class="at-dem"><li><b>Cherche trois idées vraiment différentes.</b> Pas trois fois la même avec 5 mm d'écart.</li><li><b>Compare-les</b> : laquelle va loin, laquelle est solide, laquelle te plaît.</li><li><b>Choisis-en une et explique pourquoi.</b> Puis dessine-la dans l'atelier 3D.</li></ol>
     </div>
     <div class="carte"><h2 style="margin-top:0">Pour trouver des idées : regarde ce qui vole déjà</h2>
       <p class="discret" style="margin-top:0">Touche une carte pour partir de cette forme dans l'idée en cours. Puis transforme-la : une copie exacte n'est pas une création.</p>
@@ -111,7 +114,7 @@
         <div class="carte at-bloc"><h3>Couleurs du fil</h3><p>Fuselage</p><div class="at-puces" id="at-cf"></div><p>Aile et stabilisateur</p><div class="at-puces" id="at-ca"></div></div>
       </div></div>
     <div class="carte"><h2 style="margin-top:0">Ce que le dessin te dit</h2><ul class="at-cons" id="at-cons"></ul>
-      <p class="discret">Les masses sont des estimations pour une aile de 0,8 mm et un stabilisateur de 0,6 mm, avec le fuselage de départ. La vraie valeur, c'est Onshape qui la donne.</p></div>
+      <p class="discret">Les masses sont des estimations pour une aile de 0,8 mm et un stabilisateur de 0,6 mm, avec le fuselage de départ. La vraie valeur, c'est l'atelier 3D qui la donne (bouton « Propriétés de masse »).</p></div>
     <div class="carte"><h2 style="margin-top:0">Compare tes trois idées, puis choisis</h2><div class="pl-scroll"><table class="pl" id="at-comp"></table></div>
       <p><label>Pourquoi je choisis cette idée :<br><input type="text" id="at-pourquoi" style="width:100%" placeholder="exemple : elle va presque aussi loin que l'idée A, et son aile ne se pliera pas"></label></p>
       <p class="no-print"><button type="button" class="btn" id="at-sim">Tester l'idée en cours dans le simulateur →</button> <button type="button" class="btn sec" id="at-impr">Imprimer la fiche de mon planeur</button></p>
@@ -135,7 +138,7 @@
       + `<tr><td>Dessin</td>${A.idees.map((x) => `<td class="n"><svg viewBox="0 0 230 190" style="width:120px;margin:0 auto" aria-hidden="true">${dessus(x, 1, 10, 95)}</svg></td>`).join("")}</tr>`
       + li("Surface de l'aile", (x, k) => fr(k.S, 0) + " cm²") + li("Allongement (plus grand = va plus loin)", (x, k) => fr(k.al, 1)) + li("Masse estimée, sans lest", (x, k) => fr(k.m, 1) + " g")
       + li("Points à corriger", (x) => { const n = conseils(x).filter((y) => y[0] === "ko").length; return n ? `<b style="color:var(--bad)">${n}</b>` : `<b style="color:var(--good)">aucun</b>`; })
-      + li("Je choisis", (x, k, i) => `<input type="radio" name="at-choix" data-choix="${i}" ${A.choisi === i ? "checked" : ""} aria-label="Je choisis l'idée ${"ABC"[i]}">`);
+      + li("Je choisis", (x, k, i) => `<label class="pl-coche"><input type="radio" name="at-choix" data-choix="${i}" ${A.choisi === i ? "checked" : ""} aria-label="Je choisis l'idée ${"ABC"[i]}"></label>`);
     garder(); if (pret) window.dispatchEvent(new Event("planeur-idee"));
   }
   if (!A.essai || !Array.isArray(A.essai.f)) A.essai = { f: [] };   // pièce d'essai de l'atelier 3D : vide au départ
@@ -157,4 +160,5 @@
       Object.keys(env).forEach((k) => { const s = document.querySelector(`#sim-entrees [data-s="${k}"]`); if (s) { s.value = env[k]; s.dispatchEvent(new Event("input", { bubbles: true })); } });
       const b = document.querySelector('.pl-nav [data-s="sim"]'); if (b) b.click(); } });
   maj(true); pret = true;
+  if (window.ResizeObserver) new ResizeObserver(() => { if ($("at-dessin").clientWidth && estEtroit() !== dessinEtroit) $("at-dessin").innerHTML = dessin(A.idees[A.n]); }).observe($("at-dessin"));          // l'onglet s'ouvre, ou le téléphone tourne : le dessin change de disposition (sans toucher au reste)
 })();
