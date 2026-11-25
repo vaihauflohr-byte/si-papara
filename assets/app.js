@@ -260,8 +260,8 @@
       return { s, N, nR: N.filter((x) => x.r).length, suiv: k < 0 ? null : N[k].d }; });
     const nT = E.reduce((a, e) => a + e.N.length, 0), nR = E.reduce((a, e) => a + e.nR, 0), e = E.find((x) => x.nR && x.suiv) || E.find((x) => x.suiv) || null;
     const titreDe = (id) => { const d = L.find((x) => x.id === id), s = d && SE.find((x) => x.id === d.serie); return d ? `${s ? s.titre : d.titre} N${d.niveau}` : id; };
-    const der = hist.filter((h) => h.type === "externe" && /^e4-devoir-/.test(h.module || "") && !/-entr$/.test(h.module)).slice(0, 3)
-      .map((h) => `${esc(titreDe(h.module.slice(10)))} : <b>${SIP.nb(sur20(h.score, h.score_max), 3)}</b>`);
+    const der = hist.filter((h) => h.type === "externe" && /^e4-devoir-/.test(h.module || "")).slice(0, 3)   // devoirs notés et devoirs refaits (la dernière note compte)
+      .map((h) => `${esc(titreDe(h.module.slice(10).replace(/-entr$/, "")))}${/-entr$/.test(h.module) ? " (refait)" : ""} : <b>${SIP.nb(sur20(h.score, h.score_max), 3)}</b>`);
     return `<a class="carte bac-hero ${e ? "a-faire" : "fait"}" href="entrainements/bts-e4.html#/devoirs${e ? "/" + e.s.id : ""}">
       <div><div class="eyebrow">BTS Électrotechnique · travail noté · ${SE.length} étude${SE.length > 1 ? "s" : ""} en 4 niveaux · ${nR} / ${nT} niveaux rendus</div><div class="bac-titre">${e ? esc(e.s.titre) : "Devoirs notés"} <span>${e ? `niveau ${e.suiv.niveau}${e.suiv.nomNiveau ? " « " + esc(e.suiv.nomNiveau) + " »" : ""}` : "tous les niveaux sont rendus"}</span></div>
       <p class="discret" style="margin:0">Chaque étude va du plus guidé à l'épreuve, puis au-delà : un niveau s'ouvre quand le précédent est rendu. Tes valeurs sont les tiennes : chaque élève a les siennes.</p>
