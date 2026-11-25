@@ -640,7 +640,10 @@
   function vueDevoirs() {
     const LD = SIP.DEVOIRS_E4 || [];
     if (!LD.length) return cadre(`<div class="carte"><p>Aucun devoir noté pour l'instant.</p></div>`);
-    if (!LD.some((d) => d.id === devoirVu)) devoirVu = LD[LD.length - 1].id;
+    if (!LD.some((d) => d.id === devoirVu)) {   // par défaut : le niveau le plus avancé qui a déjà des copies ou des départs
+      const actifs = LD.filter((x) => D.entrainements.some((t) => t.module === "e4-devoir-" + x.id) || (D.debuts || []).some((t) => t.module === "e4-devoir-" + x.id));
+      devoirVu = (actifs.length ? actifs[actifs.length - 1] : LD[0]).id;
+    }
     const d = LD.find((x) => x.id === devoirVu), C = copiesDevoir(d), R = C.filter((x) => x.copie), P = d.parties || [];
     const notes = R.map((x) => note20(x.copie.score, x.copie.score_max)), moy = notes.length ? notes.reduce((a, b) => a + b, 0) / notes.length : null;
     const enCours = C.filter((x) => !x.copie && x.debuts.length).length;
@@ -661,9 +664,9 @@
         ${x.det.length ? `<div class="table-defil"><table><thead><tr><th>Question</th><th>Énoncé (avec les valeurs de l'élève, lues sur ses documents)</th><th>Réponse de l'élève</th><th>Attendu</th><th class="num"></th></tr></thead><tbody>${x.det.map((q, k) =>
           `<tr><td>${esc(q.ref || k + 1)}</td><td>${esc(q.q)}</td><td>${esc(q.rep)}</td><td>${esc(q.attendu)}</td><td class="num" style="white-space:nowrap">${nbErreurs(q) ? "✗ −" + SIP.PENALITE * nbErreurs(q) : "✓"}</td></tr>`).join("")}</tbody></table></div>` : `<p class="discret">Pas de détail.</p>`}</details>`;
     cadre(`
-      ${LD.length > 1 ? `<div class="rang no-print"><select id="dv-choix" style="width:auto">${LD.map((x) => `<option value="${x.id}" ${x.id === devoirVu ? "selected" : ""}>${esc(x.court + " · " + x.titre)}</option>`).join("")}</select></div>` : ""}
-      <h2 style="margin-top:8px">${esc(d.court)} · ${esc(d.titre)}</h2>
-      <p class="discret" style="max-width:900px">Étude de cas notée sur 20 (${P.reduce((a, p) => a + p[2], 0)} questions), dans la forme de l'épreuve E4. Comme pour les Terminales, l'élève part de 20 et <b>chaque erreur retire 2 points</b> ; pour un calcul il a deux essais et peut se corriger (« 12 puis 15 » dans sa copie). <b>Chaque élève a ses propres valeurs</b>, tirées à partir de son nom : site, départs, puissances, mode de pose, section, chute de tension et conclusion changent d'une copie à l'autre. Le devoir se fait une seule fois ; la note est celle du premier rendu. Ensuite l'élève peut le refaire pour s'entraîner, avec d'autres valeurs (colonne « Refait », ne compte pas).</p>
+      ${LD.length > 1 ? `<div class="rang no-print"><select id="dv-choix" style="width:auto">${LD.map((x) => `<option value="${x.id}" ${x.id === devoirVu ? "selected" : ""}>${esc(x.court + " · " + x.titre + (x.niveau ? " · niveau " + x.niveau + " « " + (x.nomNiveau || "") + " »" : ""))}</option>`).join("")}</select></div>` : ""}
+      <h2 style="margin-top:8px">${esc(d.court)} · ${esc(d.titre)}${d.niveau ? ` · niveau ${d.niveau} « ${esc(d.nomNiveau || "")} »` : ""}</h2>
+      <p class="discret" style="max-width:900px">Étude de cas notée sur 20 (${P.reduce((a, p) => a + p[2], 0)} questions), dans la forme de l'épreuve E4${LD.length > 1 ? ` ; ${LD.length} niveaux, du plus guidé à celui de l'épreuve puis au-delà, chacun s'ouvrant quand l'élève a rendu le précédent` : ""}. Comme pour les Terminales, l'élève part de 20 et <b>chaque erreur retire 2 points</b> ; pour un calcul il a deux essais et peut se corriger (« 12 puis 15 » dans sa copie). <b>Chaque élève a ses propres valeurs</b>, tirées à partir de son nom : site, départs, puissances, mode de pose, section, chute de tension et conclusion changent d'une copie à l'autre. Le devoir se fait une seule fois ; la note est celle du premier rendu. Ensuite l'élève peut le refaire pour s'entraîner, avec d'autres valeurs (colonne « Refait », ne compte pas).</p>
       <div class="rang no-print"><a class="btn sec" href="entrainements/bts-e4.html#/devoirs" target="_blank" rel="noopener">Ouvrir la page du devoir</a><button class="btn sec" id="dv-csv">Notes du devoir (CSV)</button>
         <span class="discret">Pour l'essayer : onglet « Aperçu élève », classe BTS 2, puis la tuile du devoir (autres valeurs à chaque essai, rien n'est transmis).</span></div>
       <div class="carte" style="margin-top:12px"><b>${R.length}</b> devoir${R.length > 1 ? "s" : ""} rendu${R.length > 1 ? "s" : ""} sur ${C.length} élève${C.length > 1 ? "s" : ""}${enCours ? ` · <b>${enCours}</b> en cours` : ""}${moy != null ? ` · moyenne <b>${SIP.nb(moy, 3)} / 20</b> · de ${SIP.nb(Math.min(...notes), 3)} à ${SIP.nb(Math.max(...notes), 3)}` : ""}</div>

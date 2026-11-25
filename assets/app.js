@@ -249,15 +249,20 @@
   }
 
   // BTS 2 : l'entraînement à l'épreuve E4 (sujets d'annales, auto-évaluation N0–N3) en tête du tableau de bord
-  // BTS 2 : devoirs notés de l'entraînement E4 (liste SIP.DEVOIRS_E4, contenu/bts2.js). La note est celle du premier rendu.
+  // BTS 2 : devoirs notés de l'entraînement E4, en niveaux (liste SIP.DEVOIRS_E4, contenu/bts2.js) ; une seule tuile :
+  // le premier niveau non rendu, et les notes des niveaux rendus (note d'un niveau = son premier rendu).
   function tuileDevoirs(hist) {
-    return (SIP.DEVOIRS_E4 || []).map((d) => {
-      const T = hist.filter((h) => h.type === "externe" && h.module === "e4-devoir-" + d.id), rendu = T.length ? T[T.length - 1] : null;   // l'historique va du plus récent au plus ancien
-      return `<a class="carte bac-hero ${rendu ? "fait" : "a-faire"}" href="entrainements/bts-e4.html#/devoirs">
-        <div><div class="eyebrow">BTS Électrotechnique · travail noté</div><div class="bac-titre">${esc(d.court)} <span>${esc(d.titre)}</span></div>
-        <p class="discret" style="margin:0">Une étude de cas dans la forme de l'épreuve E4, à faire une seule fois. Tes valeurs sont les tiennes : chaque élève a les siennes.</p></div>
-        <div class="bac-d">${rendu ? `<div><div class="grand">${SIP.nb(sur20(rendu.score, rendu.score_max), 3)}<small> / 20</small></div><div class="discret">rendu le ${SIP.fmtDate(rendu.fait_le)}</div></div>` : ""}<span class="btn">${rendu ? "Voir →" : "Faire le devoir →"}</span></div>
-      </a>`; }).join("");
+    const L = SIP.DEVOIRS_E4 || [];
+    if (!L.length) return "";
+    const R = L.map((d) => { const T = hist.filter((h) => h.type === "externe" && h.module === "e4-devoir-" + d.id); return T.length ? T[T.length - 1] : null; });   // l'historique va du plus récent au plus ancien
+    const k = R.findIndex((r) => !r), fini = k < 0, d = fini ? L[L.length - 1] : L[k];
+    const notes = L.map((x, i) => (R[i] ? `niveau ${x.niveau || i + 1} : <b>${SIP.nb(sur20(R[i].score, R[i].score_max), 3)}</b>` : "")).filter(Boolean);
+    return `<a class="carte bac-hero ${fini ? "fait" : "a-faire"}" href="entrainements/bts-e4.html#/devoirs">
+      <div><div class="eyebrow">BTS Électrotechnique · travail noté · ${L.length} niveaux</div><div class="bac-titre">${fini ? "Devoirs notés" : esc(d.court)} <span>${esc(d.titre)}${fini ? "" : ` · niveau ${d.niveau || k + 1}${d.nomNiveau ? " « " + esc(d.nomNiveau) + " »" : ""}`}</span></div>
+      <p class="discret" style="margin:0">${fini ? "Tous les niveaux sont rendus." : "Du plus guidé à l'épreuve, puis au-delà : chaque niveau s'ouvre quand le précédent est rendu."} Tes valeurs sont les tiennes : chaque élève a les siennes.</p>
+      ${notes.length ? `<p class="discret" style="margin:4px 0 0">Notes sur 20 · ${notes.join(" · ")}</p>` : ""}</div>
+      <div class="bac-d"><span class="btn">${fini ? "Voir →" : k > 0 || (d.niveau || 1) > 1 ? "Niveau suivant →" : "Faire le devoir →"}</span></div>
+    </a>`;
   }
   function tuileE4(hist) {
     const e4 = hist.filter((h) => h.type === "externe" && /^e4-/.test(h.module || ""));
