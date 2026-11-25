@@ -625,8 +625,19 @@
   // Les devoirs sont groupés en études de quatre niveaux. Vue d'ensemble (devoirVu = "tout") : une ligne par élève, une colonne par étude.
   // Notation : on part de 20, chaque erreur retire 2 points ; un calcul a deux essais (détail : erreurs = 0, 1 ou 2).
   // Note du devoir = premier résultat du module e4-devoir-<id>. D.debuts (lignes « devoir_debut ») : chaque départ du devoir ;
-  // plus d'un départ = devoir recommencé sur un autre appareil. Module e4-devoir-<id>-entr : refait pour s'entraîner, ne compte pas.
+  // plus d'un départ = devoir recommencé sur un autre appareil. Module e4-devoir-<id>-entr : refait pour s'entraîner (autres valeurs),
+  // ne change pas la note ; ses notes sont affichées (↻), et chaque « Où chercher ? » y retire 1,5 point (détail : indice, pts).
   let devoirVu = "tout";
+  const PEN_OU_TXT = "1,5 point";
+  /* devoirs refaits d'un élève pour un niveau, du plus ancien au plus récent */
+  const refaits = (e, mod) => D.parEleve[e.id].E.filter((t) => t.type === "externe" && t.module === mod + "-entr").slice().sort((a, b) => String(a.fait_le).localeCompare(String(b.fait_le)));
+  const nbOu = (t) => (Array.isArray(t.details) ? t.details.filter((q) => q.indice || / · indice$/.test(String(q.rep || ""))).length : 0);
+  const titreRefait = (L) => "Refait pour s'entraîner (autres valeurs, ne compte pas) : " + L.map((t) => `${SIP.nb(note20(t.score, t.score_max), 3)}/20 le ${SIP.fmtDate(t.fait_le, true)}${nbOu(t) ? ` (« Où chercher ? » × ${nbOu(t)})` : ""}`).join(" ; ");
+  const notesRefaits = (L, max) => { const N = L.map((t) => SIP.nb(note20(t.score, t.score_max), 3)); return (max && N.length > max ? "… " + N.slice(-max).join(" · ") : N.join(" · ")); };
+  /* points perdus sur une question (détail d'une copie) : erreurs × 2, plus 1,5 par « Où chercher ? » dans un devoir refait */
+  const perdus = (q) => (q.pts != null && q.pts < 0 ? -q.pts : SIP.PENALITE * nbErreurs(q));
+  const tableCopie = (det) => `<div class="table-defil"><table><thead><tr><th>Question</th><th>Énoncé (avec les valeurs de l'élève, lues sur ses documents)</th><th>Réponse de l'élève</th><th>Attendu</th><th class="num"></th></tr></thead><tbody>${det.map((q, k) =>
+    `<tr><td>${esc(q.ref || k + 1)}</td><td>${esc(q.q)}</td><td>${esc(q.rep)}</td><td>${esc(q.attendu)}</td><td class="num" style="white-space:nowrap">${perdus(q) ? (nbErreurs(q) ? "✗ " : "💡 ") + "−" + SIP.nb(perdus(q), 2) : "✓"}</td></tr>`).join("")}</tbody></table></div>`;
   function copiesDevoir(d) {
     const mod = "e4-devoir-" + d.id;
     return D.eleves.filter((e) => /^BTS2/.test(e.niveau) && (!niveau || e.niveau === niveau) && e.actif !== false)
@@ -635,7 +646,7 @@
         const debuts = (D.debuts || []).filter((t) => t.eleve_id === e.id && t.module === mod).sort((a, b) => a.fait_le.localeCompare(b.fait_le));
         const det = copie && Array.isArray(copie.details) ? copie.details : [], parties = {};
         det.forEach((x) => { const l = String(x.ref || "").charAt(0); if (l) parties[l] = (parties[l] || 0) + nbErreurs(x); });   // erreurs par partie
-        return { e, copie, det, parties, debuts, autres: rendus.length - (copie ? 1 : 0), entr: E.filter((t) => t.type === "externe" && t.module === mod + "-entr") };
+        return { e, copie, det, parties, debuts, autres: rendus.length - (copie ? 1 : 0), entr: refaits(e, mod) };
       });
   }
   const etudesDevoirs = (LD) => (SIP.SERIES_E4 || []).filter((s) => LD.some((d) => d.serie === s.id));
@@ -659,33 +670,34 @@
     const faibles = parQ.slice().sort((a, b) => a.taux - b.taux).filter((x) => x.taux < 0.75).slice(0, 6);
     const ligne = (x) => {
       const t = x.copie;
-      if (!t) return `<tr><td><b>${esc(x.e.nom)}</b></td><td>${esc((SIP.niveau(x.e.niveau) || {}).court || x.e.niveau)}</td><td class="num">—</td>${P.map(() => `<td class="num">—</td>`).join("")}<td colspan="2">${x.debuts.length ? `<span class="etiquette alerte">en cours</span> <span class="discret">commencé le ${SIP.fmtDate(x.debuts[0].fait_le, true)}</span>` : `<span class="discret">pas commencé</span>`}</td><td class="num">${x.debuts.length || ""}</td><td class="num">${x.entr.length || ""}</td></tr>`;
+      if (!t) return `<tr><td><b>${esc(x.e.nom)}</b></td><td>${esc((SIP.niveau(x.e.niveau) || {}).court || x.e.niveau)}</td><td class="num">—</td><td></td>${P.map(() => `<td class="num">—</td>`).join("")}<td colspan="2">${x.debuts.length ? `<span class="etiquette alerte">en cours</span> <span class="discret">commencé le ${SIP.fmtDate(x.debuts[0].fait_le, true)}</span>` : `<span class="discret">pas commencé</span>`}</td><td class="num">${x.debuts.length || ""}</td></tr>`;
       return `<tr><td><b>${esc(x.e.nom)}</b></td><td>${esc((SIP.niveau(x.e.niveau) || {}).court || x.e.niveau)}</td><td class="num">${tagNote(note20(t.score, t.score_max))}</td>
+        <td style="white-space:nowrap" title="${esc(x.entr.length ? titreRefait(x.entr) : "")}">${x.entr.length ? `↻ <b>${notesRefaits(x.entr, 6)}</b>${x.entr.some(nbOu) ? ` <span class="discret">💡 ${x.entr.reduce((a, t) => a + nbOu(t), 0)}</span>` : ""}` : ""}</td>
         ${P.map((p) => `<td class="num">${x.parties[p[0]] == null ? "—" : x.parties[p[0]] ? "−" + SIP.PENALITE * x.parties[p[0]] : "✓"}</td>`).join("")}
         <td>${SIP.fmtDate(t.fait_le, true)}${x.autres ? ` <span class="etiquette alerte" title="Le devoir a été rendu ${x.autres + 1} fois : la note est celle du premier rendu">rendu ${x.autres + 1} fois</span>` : ""}</td><td class="num">${t.duree_s ? Math.round(t.duree_s / 60) + " min" : "—"}</td>
-        <td class="num">${x.debuts.length > 1 ? `<span class="etiquette alerte" title="Devoir démarré ${x.debuts.length} fois : recommencé sur un autre appareil ou après effacement des données du navigateur">${x.debuts.length}</span>` : x.debuts.length || ""}</td>
-        <td class="num">${x.entr.length ? `${x.entr.length} <span class="discret">(meilleur ${SIP.nb(Math.max(...x.entr.map((u) => note20(u.score, u.score_max))), 3)})</span>` : ""}</td></tr>`;
+        <td class="num">${x.debuts.length > 1 ? `<span class="etiquette alerte" title="Devoir démarré ${x.debuts.length} fois : recommencé sur un autre appareil ou après effacement des données du navigateur">${x.debuts.length}</span>` : x.debuts.length || ""}</td></tr>`;
     };
-    const copie = (x) => `<details class="seance"><summary><b>${esc(x.e.nom)}</b> ${tagNote(note20(x.copie.score, x.copie.score_max))} <span class="discret">${x.det.reduce((a, q) => a + nbErreurs(q), 0)} erreur(s) · rendu le ${SIP.fmtDate(x.copie.fait_le, true)}</span></summary>
-        ${x.det.length ? `<div class="table-defil"><table><thead><tr><th>Question</th><th>Énoncé (avec les valeurs de l'élève, lues sur ses documents)</th><th>Réponse de l'élève</th><th>Attendu</th><th class="num"></th></tr></thead><tbody>${x.det.map((q, k) =>
-          `<tr><td>${esc(q.ref || k + 1)}</td><td>${esc(q.q)}</td><td>${esc(q.rep)}</td><td>${esc(q.attendu)}</td><td class="num" style="white-space:nowrap">${nbErreurs(q) ? "✗ −" + SIP.PENALITE * nbErreurs(q) : "✓"}</td></tr>`).join("")}</tbody></table></div>` : `<p class="discret">Pas de détail.</p>`}</details>`;
+    const refait = (t, i) => { const det = Array.isArray(t.details) ? t.details : [], o = nbOu(t);
+      return `<details class="seance" style="margin-left:18px"><summary>↻ Refait n° ${i + 1} ${tagNote(note20(t.score, t.score_max))} <span class="discret">${det.reduce((a, q) => a + nbErreurs(q), 0)} erreur(s)${o ? ` · « Où chercher ? » × ${o} (−${SIP.nb(1.5 * o, 2)})` : ""} · le ${SIP.fmtDate(t.fait_le, true)}${t.duree_s ? ` · ${Math.round(t.duree_s / 60)} min` : ""}</span></summary>${det.length ? tableCopie(det) : `<p class="discret">Pas de détail.</p>`}</details>`; };
+    const copie = (x) => `<details class="seance"><summary><b>${esc(x.e.nom)}</b> ${tagNote(note20(x.copie.score, x.copie.score_max))} <span class="discret">${x.det.reduce((a, q) => a + nbErreurs(q), 0)} erreur(s) · rendu le ${SIP.fmtDate(x.copie.fait_le, true)}${x.entr.length ? ` · refait ${x.entr.length} fois : ${notesRefaits(x.entr)}` : ""}</span></summary>
+        ${x.det.length ? tableCopie(x.det) : `<p class="discret">Pas de détail.</p>`}${x.entr.map(refait).join("")}</details>`;
     cadre(`
       ${choixDevoir(LD)}
       <h2 style="margin-top:8px">${esc(titreE)} · niveau ${d.niveau} « ${esc(d.nomNiveau || "")} »</h2>
-      <p class="discret" style="max-width:900px">Étude de cas notée sur 20 (${P.reduce((a, p) => a + p[2], 0)} questions), dans la forme de l'épreuve E4 ; l'étude a quatre niveaux, du plus guidé à celui de l'épreuve puis au-delà, chacun s'ouvrant quand l'élève a rendu le précédent. Comme pour les Terminales, l'élève part de 20 et <b>chaque erreur retire 2 points</b> ; pour un calcul il a deux essais et peut se corriger (« 12 puis 15 » dans sa copie). <b>Chaque élève a ses propres valeurs</b>, tirées à partir de son nom : installation, documents, résultats et conclusions changent d'une copie à l'autre. Le devoir se fait une seule fois ; la note est celle du premier rendu. Ensuite l'élève peut le refaire pour s'entraîner, avec d'autres valeurs (colonne « Refait », ne compte pas).</p>
+      <p class="discret" style="max-width:900px">Étude de cas notée sur 20 (${P.reduce((a, p) => a + p[2], 0)} questions), dans la forme de l'épreuve E4 ; l'étude a quatre niveaux, du plus guidé à celui de l'épreuve puis au-delà, chacun s'ouvrant quand l'élève a rendu le précédent. Comme pour les Terminales, l'élève part de 20 et <b>chaque erreur retire 2 points</b> ; pour un calcul il a deux essais et peut se corriger (« 12 puis 15 » dans sa copie). <b>Chaque élève a ses propres valeurs</b>, tirées à partir de son nom : installation, documents, résultats et conclusions changent d'une copie à l'autre. Le devoir se fait une seule fois ; la note est celle du premier rendu. Ensuite l'élève peut le refaire pour s'entraîner, avec d'autres valeurs : colonne « Refait » (↻), ses notes dans l'ordre (survol : dates) ; elles ne changent pas la note du devoir. Dans un devoir refait, le bouton « Où chercher ? » existe et <b>chaque usage retire ${PEN_OU_TXT}</b> (💡 : nombre d'usages). Le détail de chaque essai est sous la copie.</p>
       <div class="rang no-print"><a class="btn sec" href="entrainements/bts-e4.html#/devoirs/${esc(d.serie || "")}" target="_blank" rel="noopener">Ouvrir la page de l'étude</a><button class="btn sec" id="dv-csv">Notes du devoir (CSV)</button>
         <span class="discret">Pour l'essayer : onglet « Aperçu élève », classe BTS 2, puis la tuile du devoir (autres valeurs à chaque essai, rien n'est transmis).</span></div>
       <div class="carte" style="margin-top:12px"><b>${R.length}</b> devoir${R.length > 1 ? "s" : ""} rendu${R.length > 1 ? "s" : ""} sur ${C.length} élève${C.length > 1 ? "s" : ""}${enCours ? ` · <b>${enCours}</b> en cours` : ""}${moy != null ? ` · moyenne <b>${SIP.nb(moy, 3)} / 20</b> · de ${SIP.nb(Math.min(...notes), 3)} à ${SIP.nb(Math.max(...notes), 3)}` : ""}</div>
-      ${C.length ? `<div class="table-defil" style="margin-top:12px"><table><thead><tr><th>Élève</th><th>Classe</th><th class="num">Note</th>${P.map((p) => `<th class="num" title="Points perdus dans la partie ${esc(p[0])} (${p[2]} questions)">Partie ${esc(p[0])}<br><span class="discret">${esc(p[1])} · ${p[2]} q.</span></th>`).join("")}<th>Rendu le</th><th class="num">Temps passé</th><th class="num" title="Nombre de fois où le devoir a été démarré">Départs</th><th class="num" title="Devoir refait pour s'entraîner, avec d'autres valeurs : ne compte pas">Refait</th></tr></thead><tbody>${C.map(ligne).join("")}</tbody></table></div>`
+      ${C.length ? `<div class="table-defil" style="margin-top:12px"><table><thead><tr><th>Élève</th><th>Classe</th><th class="num">Note</th><th title="Devoir refait pour s'entraîner, avec d'autres valeurs : notes dans l'ordre, ne comptent pas">Refait ↻</th>${P.map((p) => `<th class="num" title="Points perdus dans la partie ${esc(p[0])} (${p[2]} questions)">Partie ${esc(p[0])}<br><span class="discret">${esc(p[1])} · ${p[2]} q.</span></th>`).join("")}<th>Rendu le</th><th class="num">Temps passé</th><th class="num" title="Nombre de fois où le devoir a été démarré">Départs</th></tr></thead><tbody>${C.map(ligne).join("")}</tbody></table></div>`
         : `<div class="carte" style="margin-top:12px"><p>Aucun élève de BTS 2${niveau ? " dans cette classe" : ""}. Choisis « Toutes les classes » ou une classe de BTS 2.</p></div>`}
       ${faibles.length ? `<h3 style="margin-top:22px">Questions les moins réussies</h3><div class="table-defil"><table><thead><tr><th>Question</th><th>Énoncé (exemple d'une copie)</th><th class="num" title="Part des copies sans erreur sur cette question">Juste du premier coup</th></tr></thead><tbody>${faibles.map((f) => `<tr><td>${esc(f.ref)}</td><td>${esc(f.q.length > 220 ? f.q.slice(0, 220) + "…" : f.q)}</td><td class="num">${tagPct(Math.round(100 * f.taux))}</td></tr>`).join("")}</tbody></table></div>` : ""}
       ${R.length ? `<h3 style="margin-top:22px">Les copies</h3>${R.map(copie).join("")}` : ""}`);
     const ch = document.getElementById("dv-choix"); if (ch) ch.onchange = () => { devoirVu = ch.value; afficher(); };
     document.getElementById("dv-csv").onclick = () => {
       const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-      const lignes = [["eleve", "classe", "note_sur_20", ...P.map((p) => "points_perdus_partie_" + p[0]), "rendu_le", "temps_min", "departs", "refait"].join(";")];
+      const lignes = [["eleve", "classe", "note_sur_20", ...P.map((p) => "points_perdus_partie_" + p[0]), "rendu_le", "temps_min", "departs", "refait_nombre", "refait_notes", "refait_ou_chercher"].join(";")];
       C.forEach((x) => lignes.push([x.e.nom, x.e.niveau, x.copie ? SIP.nb(note20(x.copie.score, x.copie.score_max), 3) : "", ...P.map((p) => (x.copie && x.parties[p[0]] != null ? SIP.PENALITE * x.parties[p[0]] : "")),
-        x.copie ? SIP.fmtDate(x.copie.fait_le, true) : "", x.copie && x.copie.duree_s ? Math.round(x.copie.duree_s / 60) : "", x.debuts.length, x.entr.length].map(q).join(";")));
+        x.copie ? SIP.fmtDate(x.copie.fait_le, true) : "", x.copie && x.copie.duree_s ? Math.round(x.copie.duree_s / 60) : "", x.debuts.length, x.entr.length, x.entr.map((t) => SIP.nb(note20(t.score, t.score_max), 3)).join(" | "), x.entr.reduce((a, t) => a + nbOu(t), 0) || ""].map(q).join(";")));
       const blob = new Blob(["\ufeff" + lignes.join("\r\n")], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `si-papara_${d.id}_notes_${SIP.aujourdhui()}.csv`; a.click();
     };
@@ -696,16 +708,17 @@
     const SE = etudesDevoirs(LD), E = D.eleves.filter((e) => /^BTS2/.test(e.niveau) && (!niveau || e.niveau === niveau) && e.actif !== false)
       .sort((a, b) => a.niveau.localeCompare(b.niveau) || a.nom.localeCompare(b.nom));
     const etat = (e, d) => { const mod = "e4-devoir-" + d.id, R = D.parEleve[e.id].E.filter((t) => t.type === "externe" && t.module === mod);
-      return R.length ? { note: note20(R[R.length - 1].score, R[R.length - 1].score_max) } : (D.debuts || []).some((t) => t.eleve_id === e.id && t.module === mod) ? { enCours: true } : {}; };
+      const F = refaits(e, mod);
+      return R.length ? { note: note20(R[R.length - 1].score, R[R.length - 1].score_max), F } : (D.debuts || []).some((t) => t.eleve_id === e.id && t.module === mod) ? { enCours: true } : {}; };
     const M = E.map((e) => ({ e, X: SE.map((s) => niveauxEtude(LD, s.id).map((d) => etat(e, d))) }));
-    const badge = (x, k) => (x.note != null ? `<span class="etiquette ${SIP.appreciation(x.note).cls}" title="Niveau ${k + 1} : ${SIP.nb(x.note, 3)} / 20">${SIP.nb(x.note, 3)}</span>`
+    const badge = (x, k) => (x.note != null ? `<span class="etiquette ${SIP.appreciation(x.note).cls}" title="Niveau ${k + 1} : ${SIP.nb(x.note, 3)} / 20">${SIP.nb(x.note, 3)}</span>${x.F && x.F.length ? `<span class="discret" style="font-size:.85em;margin-left:3px" title="${esc("Niveau " + (k + 1) + " · " + titreRefait(x.F))}">↻ ${notesRefaits(x.F, 3)}</span>` : ""}`
       : x.enCours ? `<span class="etiquette alerte" title="Niveau ${k + 1} commencé, pas rendu">…</span>` : `<span class="etiquette off" title="Niveau ${k + 1} pas commencé">–</span>`);
     const bilan = SE.map((s, j) => { const N = niveauxEtude(LD, s.id);
       return N.map((d, k) => { const notes = M.map((m) => m.X[j][k].note).filter((n) => n != null); return notes.length ? `N${d.niveau} : ${notes.length} copie${notes.length > 1 ? "s" : ""}, moy. ${SIP.nb(notes.reduce((a, b) => a + b, 0) / notes.length, 3)}` : `N${d.niveau} : —`; }).join(" · "); });
     cadre(`
       ${choixDevoir(LD)}
       <h2 style="margin-top:8px">Devoirs notés · vue d'ensemble</h2>
-      <p class="discret" style="max-width:900px">${SE.length} étude${SE.length > 1 ? "s" : ""} de cas, chacune en quatre niveaux (du plus guidé à l'épreuve, puis au-delà) ; dans une étude, un niveau s'ouvre quand l'élève a rendu le précédent. Note de chaque niveau : celle du premier rendu, sur 20 (on part de 20, −2 points par erreur). « … » : commencé, pas encore rendu. Pour le détail d'un niveau (parties, questions les moins réussies, copies), choisis-le dans la liste.</p>
+      <p class="discret" style="max-width:900px">${SE.length} étude${SE.length > 1 ? "s" : ""} de cas, chacune en quatre niveaux (du plus guidé à l'épreuve, puis au-delà) ; dans une étude, un niveau s'ouvre quand l'élève a rendu le précédent. Note de chaque niveau : celle du premier rendu, sur 20 (on part de 20, −2 points par erreur). <b>↻</b> : notes des devoirs refaits pour s'entraîner, dans l'ordre (autres valeurs, ne changent pas la note ; chaque « Où chercher ? » y retire ${PEN_OU_TXT} ; survol : dates). « … » : commencé, pas encore rendu. Pour le détail d'un niveau (parties, questions les moins réussies, copies), choisis-le dans la liste.</p>
       <div class="rang no-print"><a class="btn sec" href="entrainements/bts-e4.html#/devoirs" target="_blank" rel="noopener">Ouvrir la page des devoirs</a><button class="btn sec" id="dv-csv">Toutes les notes (CSV)</button></div>
       ${E.length ? `<div class="table-defil" style="margin-top:12px"><table><thead><tr><th>Élève</th><th>Classe</th>${SE.map((s, j) => `<th title="${esc(bilan[j])}">${esc(s.titre)}<br><span class="discret">${niveauxEtude(LD, s.id).map((d) => "N" + d.niveau).join(" · ")}</span></th>`).join("")}</tr></thead><tbody>${M.map((m) =>
         `<tr><td><b>${esc(m.e.nom)}</b></td><td>${esc((SIP.niveau(m.e.niveau) || {}).court || m.e.niveau)}</td>${m.X.map((L) => `<td style="white-space:nowrap">${L.map(badge).join(" ")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`
@@ -714,9 +727,9 @@
     const ch = document.getElementById("dv-choix"); if (ch) ch.onchange = () => { devoirVu = ch.value; afficher(); };
     document.getElementById("dv-csv").onclick = () => {
       const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-      const cols = SE.flatMap((s) => niveauxEtude(LD, s.id).map((d) => s.id + "_n" + d.niveau));
+      const cols = SE.flatMap((s) => niveauxEtude(LD, s.id).flatMap((d) => [s.id + "_n" + d.niveau, s.id + "_n" + d.niveau + "_refait"]));
       const lignes = [["eleve", "classe", ...cols].join(";")];
-      M.forEach((m) => lignes.push([m.e.nom, m.e.niveau, ...m.X.flatMap((L) => L.map((x) => (x.note != null ? SIP.nb(x.note, 3) : x.enCours ? "en cours" : "")))].map(q).join(";")));
+      M.forEach((m) => lignes.push([m.e.nom, m.e.niveau, ...m.X.flatMap((L) => L.flatMap((x) => [x.note != null ? SIP.nb(x.note, 3) : x.enCours ? "en cours" : "", x.F && x.F.length ? x.F.map((t) => SIP.nb(note20(t.score, t.score_max), 3)).join(" | ") : ""]))].map(q).join(";")));
       const blob = new Blob(["\ufeff" + lignes.join("\r\n")], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `si-papara_devoirs_e4_notes_${SIP.aujourdhui()}.csv`; a.click();
     };
