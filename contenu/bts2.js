@@ -79,7 +79,8 @@ SIP.definirModule({
    La note d'un devoir est le premier résultat transmis dans le module e4-devoir-<id>. */
 SIP.SERIES_E4 = [
   { id: "dim", titre: "Dimensionner une installation" },
-  { id: "pompe", titre: "Station de pompage" }
+  { id: "pompe", titre: "Station de pompage" },
+  { id: "prot", titre: "Protéger les personnes et les biens" }
 ];
 SIP.DEVOIRS_E4 = [
   { id: "dim1", serie: "dim", court: "Niveau 1", titre: "Dimensionner une installation", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Bilan de puissance", 8], ["B", "Câble et protection", 10], ["C", "Compensation", 2]] },
@@ -89,5 +90,9 @@ SIP.DEVOIRS_E4 = [
   { id: "pompe1", serie: "pompe", court: "Niveau 1", titre: "Station de pompage", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Débit et hauteur géométrique", 4], ["B", "Pertes de charge et HMT", 5], ["C", "Pompe et moteur", 5], ["D", "Énergie et coût", 3]] },
   { id: "pompe2", serie: "pompe", court: "Niveau 2", titre: "Station de pompage", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Besoin et conduite", 4], ["B", "Choix de la pompe", 4], ["C", "Moteur", 3], ["D", "Énergie", 3]] },
   { id: "pompe3", serie: "pompe", court: "Niveau 3", titre: "Station de pompage", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Le réseau", 4], ["B", "Point de fonctionnement", 4], ["C", "Moteur et énergie", 4]] },
-  { id: "pompe4", serie: "pompe", court: "Niveau 4", titre: "Station de pompage", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Point de fonctionnement", 3], ["B", "Débit réduit : vanne ou variateur", 5], ["C", "Moteur à vitesse réduite", 2]] }
+  { id: "pompe4", serie: "pompe", court: "Niveau 4", titre: "Station de pompage", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Point de fonctionnement", 3], ["B", "Débit réduit : vanne ou variateur", 5], ["C", "Moteur à vitesse réduite", 2]] },
+  { id: "prot1", serie: "prot", court: "Niveau 1", titre: "Protéger les personnes et les biens", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Le défaut en schéma TT", 5], ["B", "Le disjoncteur et le DDR", 4], ["C", "Temps de coupure et prise de terre", 4]] },
+  { id: "prot2", serie: "prot", court: "Niveau 2", titre: "Protéger les personnes et les biens", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Le défaut en schéma TN-S", 4], ["B", "Le disjoncteur protège-t-il ?", 4], ["C", "Solutions", 3], ["D", "Section du câble", 2]] },
+  { id: "prot3", serie: "prot", court: "Niveau 3", titre: "Protéger les personnes et les biens", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Les schémas", 2], ["B", "L'atelier en TN-S", 4], ["C", "Le bâtiment annexe en TT", 3], ["D", "La ligne en IT", 3]] },
+  { id: "prot4", serie: "prot", court: "Niveau 4", titre: "Protéger les personnes et les biens", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Réglage du magnétique", 3], ["B", "Sélectivité", 2], ["C", "La ligne en IT", 3], ["D", "Types de DDR", 2]] }
 ];
