@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="../assets/style.css">
 <style>
 .pl-nav{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 20px;position:sticky;top:0;background:var(--ground);padding:8px 0;z-index:5;border-bottom:1px solid var(--rule)}
-.pl-nav button{font:inherit;font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:7px 13px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper);color:var(--ink);cursor:pointer}
+@media (max-width:700px){.pl-nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:8px 0 12px;padding:6px 0}.pl-nav::-webkit-scrollbar{display:none}.pl-nav button{flex:0 0 auto;padding:7px 11px}}.pl-nav button{font:inherit;font-family:var(--f-disp);font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:7px 13px;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper);color:var(--ink);cursor:pointer}
 .pl-nav button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .pl-sec[hidden]{display:none}
 .pl-sec .carte{margin:0 0 14px}
@@ -929,7 +929,7 @@ const PERF = "Performance (2 points) : 2 points pour le premier tiers du classem
 
 /* ---------- Onglets ---------- */
 const boutons = [...document.querySelectorAll(".pl-nav button")];
-function ouvrir(s) { boutons.forEach((b) => b.setAttribute("aria-selected", b.dataset.s === s)); document.querySelectorAll(".pl-sec").forEach((x) => x.hidden = x.id !== "s-" + s); }
+function ouvrir(s) { boutons.forEach((b) => b.setAttribute("aria-selected", b.dataset.s === s)); { const act = boutons.find((b) => b.dataset.s === s), nv = act && act.parentElement; if (nv && nv.scrollWidth > nv.clientWidth) nv.scrollLeft = Math.max(0, act.offsetLeft - (nv.clientWidth - act.offsetWidth) / 2); } document.querySelectorAll(".pl-sec").forEach((x) => x.hidden = x.id !== "s-" + s); }
 boutons.forEach((b) => b.onclick = () => { ouvrir(b.dataset.s); history.replaceState(null, "", "#" + b.dataset.s); window.scrollTo(0, 0); });
 if (boutons.some((b) => b.dataset.s === location.hash.slice(1))) ouvrir(location.hash.slice(1));
 

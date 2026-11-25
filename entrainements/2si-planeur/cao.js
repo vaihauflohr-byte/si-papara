@@ -485,7 +485,7 @@
     return null;
   }
   function guide() {
-    if (piece === "essai" && lib().tu) { const gT = modeE() === 1 ? guideT() : null; if (gT && tactile) gT[1] = gT[1].replace(/Entrée/g, "le bouton ✓"); return gT; }          // les évaluations se font sans guidage ; au doigt, on valide avec le bouton ✓ de la boîte
+    if (piece === "essai" && lib().tu) { const gT = modeE() === 1 ? guideT() : null; if (gT && tactile) gT[1] = gT[1].replace(/ \(Souris[^)]*\)/, "").replace(/Déplace la souris[^:]*: la cote mesure alors l'autre distance\. Puis tape/, "Annule (✕) et recommence : la cote proposera l'autre distance. Tape").replace(/Entrée/g, "le bouton ✓"); return gT; }          // les évaluations se font sans guidage ; au doigt, on valide avec le bouton ✓ de la boîte
     if (piece !== "essai" || lib().d1) return null; const F = lib().f, e1 = F.find((f) => f.t === "esq"), ct = e1 && (e1.c || []).find(valable), ext = F.some((f) => f.t === "ext"), D = "Défi 1 · ";
     const bon = ct && ct.k === "poly" && ct.p.length === 4 && (() => { const xs = ct.p.map((p) => p[0]), ys = ct.p.map((p) => p[1]); return Math.abs(Math.max(...xs) - Math.min(...xs) - 60) < 0.02 && Math.abs(Math.max(...ys) - Math.min(...ys) - 20) < 0.02; })();
     if (dial) return ["ext-ok", D + "choisis Nouveau, tape 5 mm de profondeur, puis valide avec ✓."];
@@ -785,7 +785,7 @@
     const p = point(e); if (bc < 0 || m > 10 || pres < 9 || !p) return false; const ct = k.c[bc]; if (ct.an) { ct.an = Object.assign({}, ct.an); delete ct.an[bi]; delete ct.an[(bi + 1) % ct.p.length]; } const etaitCourbe = (ct.l || {})[bi] || (ct.l || {})[(bi + 1) % ct.p.length]; ct.p.splice(bi + 1, 0, p); renum(ct, (s) => (s < bi ? s : s === bi ? null : s + 1), (s) => (s <= bi ? s : s + 1)); if (etaitCourbe) { ct.l = Object.assign({}, ct.l); ct.l[bi + 1] = 1; } sel = { c: bc, t: "p", i: bi + 1 }; complet(); return true;
   }
   /* ---------- les cotes : la valeur se tape sur le dessin, à l'endroit de la cote ---------- */
-  function ouvrir(ed, v) { edit = ed; cot1 = null; sel = null; esquisse(); const i = $("a3-val"); i.value = String(Math.round(v * 100) / 100).replace(".", ","); if (ed.auto && tactile) return; i.focus(); i.select(); setTimeout(() => { if (edit === ed && document.activeElement !== i) { i.focus(); i.select(); } }, 40); }
+  function ouvrir(ed, v) { edit = ed; cot1 = null; sel = null; esquisse(); outils(); clignoter(); const i = $("a3-val"); i.value = String(Math.round(v * 100) / 100).replace(".", ","); if (ed.auto && tactile) return; i.focus(); i.select(); setTimeout(() => { if (edit === ed && document.activeElement !== i) { i.focus(); i.select(); } }, 40); }
   function ouvrirDim(t, ci, i) { const k = K(), ct = k && k.c[ci]; if (!ct) return; Km();
     if (t === "d" && (ct.d || {})[i] != null) return ouvrir({ c: ci, t: "d", i, off: null }, ct.d[i]);
     if (t === "q" && (ct.q || [])[i]) { const q = ct.q[i]; return ouvrir({ c: ci, t: "q", qi: i, a: q.a, b: q.b, k: q.k, o: q.o }, Math.abs(q.v)); }
