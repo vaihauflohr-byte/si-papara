@@ -47,6 +47,18 @@
     // « devoir_debut » : témoin de départ d'un devoir noté (pas une note) ; rangé à part, hors du suivi et des moyennes
     D.debuts = D.entrainements.filter((t) => t.type === "devoir_debut");
     D.entrainements = D.entrainements.filter((t) => t.type !== "devoir_debut");
+    // « Où chercher ? » : −1,5 point par usage dans l'entraînement E4 (règle du 25 nov. 2026, 8 h 42). Une page restée ouverte depuis plus tôt
+    // envoie encore des notes sans ce malus : leurs questions portent « · indice » sans le drapeau indice. On retire alors le malus ici.
+    const REGLE_OU = "2026-11-25T18:42:00Z";
+    D.entrainements.forEach((t) => {
+      if (t.type !== "externe" || !/^e4-/.test(t.module || "") || String(t.fait_le) < REGLE_OU || !Array.isArray(t.details)) return;
+      const n = t.details.filter((q) => !q.indice && / · indice$/.test(String(q.rep || ""))).length;
+      if (!n) return;
+      const m = Number(t.score_max) || 20;
+      t.malusOu = n; t.score = Math.max(0, Number(t.score) - 1.5 * n * m / 20);
+      const devoir = /^e4-devoir-/.test(t.module);   // devoirs : pts = points perdus (négatifs) ; ailleurs : part de la question réussie (0 à 1)
+      t.details = t.details.map((q) => (!q.indice && / · indice$/.test(String(q.rep || "")) ? Object.assign({}, q, { indice: true }, devoir ? { pts: Math.min(0, Number(q.pts) || 0) - 1.5 } : {}) : q));
+    });
     D.parEleve = {};
     D.eleves.forEach((e) => (D.parEleve[e.id] = { e, E: [], F: [], L: [] }));
     D.entrainements.forEach((t) => D.parEleve[t.eleve_id] && D.parEleve[t.eleve_id].E.push(t));
