@@ -47,11 +47,11 @@
     // « devoir_debut » : témoin de départ d'un devoir noté (pas une note) ; rangé à part, hors du suivi et des moyennes
     D.debuts = D.entrainements.filter((t) => t.type === "devoir_debut");
     D.entrainements = D.entrainements.filter((t) => t.type !== "devoir_debut");
-    // « Où chercher ? » : −1,5 point par usage dans l'entraînement E4 (règle du 25 nov. 2026, 8 h 42). Une page restée ouverte depuis plus tôt
-    // envoie encore des notes sans ce malus : leurs questions portent « · indice » sans le drapeau indice. On retire alors le malus ici.
-    const REGLE_OU = "2026-11-25T18:42:00Z";
+    // « Où chercher ? » : −1,5 point par usage dans l'entraînement E4, appliqué aussi aux notes envoyées avant la règle (25 nov. 2026)
+    // ou par une page restée ouverte : leurs questions portent « · indice » sans le drapeau indice. assets/backend.js le fait déjà
+    // à la lecture (SIP.malusOu) ; ce filet sert si un ancien backend.js est encore en cache. Le drapeau posé évite tout double malus.
     D.entrainements.forEach((t) => {
-      if (t.type !== "externe" || !/^e4-/.test(t.module || "") || String(t.fait_le) < REGLE_OU || !Array.isArray(t.details)) return;
+      if (t.type !== "externe" || !/^e4-/.test(t.module || "") || !Array.isArray(t.details)) return;
       const n = t.details.filter((q) => !q.indice && / · indice$/.test(String(q.rep || ""))).length;
       if (!n) return;
       const m = Number(t.score_max) || 20;

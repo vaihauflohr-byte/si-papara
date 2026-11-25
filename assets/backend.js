@@ -595,6 +595,28 @@ window.SIP = window.SIP || {};
     flashRallonger: async (n, s) => { const r = await principal.flashRallonger(n, s); if (principal !== locale && r && r.lance) await locale.flashCaler(n, r.fin).catch(() => null); return r; },
     flashMontrer: async (n, j, m) => { const r = await principal.flashMontrer(n, j, m); if (principal !== locale && m !== null) await locale.flashMontrer(n, j, m).catch(() => null); return r; } });
 
+  /* « Où chercher ? » : −1,5 point (sur 20) par usage dans l'entraînement E4. Les notes envoyées sans ce malus (avant la règle du
+     25 nov. 2026, ou par une page restée ouverte) portent « · indice » sans le drapeau indice : le malus est appliqué ici, à la lecture,
+     une seule fois (le drapeau est alors posé). L'élève et le professeur voient ainsi la même note. */
+  SIP.malusOu = (rows) => {
+    (rows || []).forEach((t) => {
+      try {
+        if (!t || t.type !== "externe" || !/^e4-/.test(t.module || "") || !Array.isArray(t.details)) return;
+        const marque = (q) => !!q && !q.indice && / · indice$/.test(String(q.rep || ""));
+        const n = t.details.filter(marque).length;
+        if (!n) return;
+        const m = Number(t.score_max) || 20, devoir = /^e4-devoir-/.test(t.module);   // devoirs : pts = points perdus (négatifs)
+        t.malusOu = n; t.score = Math.max(0, Number(t.score) - 1.5 * n * m / 20);
+        t.details = t.details.map((q) => (marque(q) ? Object.assign({}, q, { indice: true }, devoir ? { pts: Math.min(0, Number(q.pts) || 0) - 1.5 } : {}) : q));
+      } catch (e) { /* une ligne illisible reste telle quelle */ }
+    });
+    return rows;
+  };
+  ["etat", "profDonnees"].forEach((f) => {
+    const g = SIP.api[f];
+    if (typeof g === "function") SIP.api[f] = async (...a) => { const r = await g(...a); try { SIP.malusOu(r && (f === "etat" ? r.historique : r.entrainements)); } catch (e) {} return r; };
+  });
+
   // ---------- Écritures élève avec file d'attente hors-ligne ----------
   async function envoyer(op) {
     if (op.f === "enregistrer") return SIP.api.enregistrer(op.a);
