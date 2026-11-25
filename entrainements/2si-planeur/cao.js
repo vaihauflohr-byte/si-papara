@@ -31,7 +31,19 @@
     if (k === "stab") return [{ t: "esq", id: 1, c: [cote4(poly(demiStab(d)))] }, { t: "ext", id: 2, e: 1, op: "new", prof: d.es || 0.6 }];
     return [{ t: "esq", id: 1, c: [poly(corps(d))] }, { t: "ext", id: 2, e: 1, op: "new", prof: 5 }, { t: "esq", id: 3, c: [poly(derive(d))] }, { t: "ext", id: 4, e: 3, op: "add", prof: 1 }].concat(fentes(G, 5));
   }
-  const fonctions = (d, k, G) => (d.cao && Array.isArray(d.cao[k]) ? d.cao[k] : defauts(d, k, G));
+  const sains = new WeakSet(), estNb = (x) => typeof x === "number" && isFinite(x), pt2 = (q) => (Array.isArray(q) && estNb(q[0]) && estNb(q[1]) ? q : Array.isArray(q) ? [+q[0] || 0, +q[1] || 0] : [0, 0]);
+  const saine = (F) => {                       // une sauvegarde abîmée (fonction vide, cercle sans centre, point écrit en texte…) est réparée à la lecture : l'atelier s'ouvre toujours, l'élève n'est jamais bloqué
+    if (!Array.isArray(F) || sains.has(F)) return F;
+    for (let i = F.length - 1; i >= 0; i--) { const f = F[i]; if (!f || typeof f !== "object" || (f.t !== "esq" && f.t !== "ext")) F.splice(i, 1); }
+    let mx = Math.max(0, ...F.map((f) => (estNb(f.id) ? f.id : 0)));
+    F.forEach((f) => { if (!estNb(f.id)) f.id = ++mx;
+      if (f.t === "ext") { if (!estNb(f.prof)) f.prof = +f.prof || 0; return; }
+      f.c = (Array.isArray(f.c) ? f.c : []).filter((ct) => ct && typeof ct === "object");
+      f.c.forEach((ct) => { if (ct.k === "cercle") { ct.c = pt2(ct.c); if (!(estNb(ct.r) && ct.r > 0)) ct.r = Math.abs(+ct.r) || 1; } else { ct.k = "poly"; ct.p = (Array.isArray(ct.p) ? ct.p : []).map(pt2); }
+        if (!Array.isArray(ct.q)) ct.q = []; else if (ct.q.some((c) => !c || typeof c !== "object")) ct.q = ct.q.filter((c) => c && typeof c === "object"); }); });
+    sains.add(F); return F;
+  };
+  const fonctions = (d, k, G) => (d.cao && Array.isArray(d.cao[k]) ? saine(d.cao[k]) : defauts(d, k, G));
 
   /* ---------- le moteur ---------- */
   const cercle = (c, r, n = 40) => Array.from({ length: n }, (_, i) => [c[0] + r * Math.cos(2 * Math.PI * (i + 0.5) / n), c[1] + r * Math.sin(2 * Math.PI * (i + 0.5) / n)]);
@@ -337,7 +349,7 @@
   let zoneE = null, infoFort = false, miniVu = false, rendConf = false, dialVu = null, gliss = null, tous = false; try { tous = localStorage.getItem("sip_cao_tous") === "1"; } catch (x) { /* rien */ }          // tous : la barre d'esquisse complète ; sinon les six outils de base      // doigt : sur un écran tactile, le point se pose quand on lève le doigt
   const NOMR = { par: ["Parallèle", "ces deux traits restent parallèles"], per: ["Perpendiculaire", "ces deux traits restent perpendiculaires"], eg: ["Égal", "ces deux traits gardent la même longueur"] };
   const NOMPL = { dessus: "Dessus", face: "Face", droite: "Droite" };
-  const C = () => PIECES[piece], lib = () => { const o = AT.libre(); if (!Array.isArray(o.f)) o.f = []; return o; };
+  const C = () => PIECES[piece], lib = () => { const o = AT.libre(); if (!Array.isArray(o.f)) o.f = []; saine(o.f); return o; };
   const lireF = () => (piece === "essai" ? lib().f : fonctions(idee(), piece, E ? E.G : null));
   const ecrireF = () => { if (piece === "essai") return lib().f; const d = idee(); d.cao = d.cao || {}; if (!Array.isArray(d.cao[piece])) d.cao[piece] = JSON.parse(JSON.stringify(lireF())); return d.cao[piece]; };   // la pièce devient celle de l'élève
   const nomF = (F, f) => (f.t === "esq" ? "Esquisse " : "Extrusion ") + (F.filter((g) => g.t === f.t).indexOf(f) + 1);
@@ -571,6 +583,7 @@
     { const A = $("cao-arbre"), act = A.querySelector(".cao-l.actif:not(.plan)") || (choixPlan ? A.querySelector('[data-o^="face-"]') : null); if (act) { const ra = A.getBoundingClientRect(), rb = act.getBoundingClientRect(); if (A.scrollHeight > A.clientHeight + 2 && (rb.top < ra.top || rb.bottom > ra.bottom)) A.scrollTop += rb.top - ra.top - 40; if (A.scrollWidth > A.clientWidth + 2 && (rb.left < ra.left || rb.right > ra.right)) A.scrollLeft += rb.left - ra.left - 16; } }          // la fonction ouverte reste visible dans l'arbre (en colonne sur ordinateur, en bande sur téléphone)
     racine.querySelectorAll("[data-piece]").forEach((b) => b.setAttribute("aria-selected", b.dataset.piece === piece));
   }
+  const vz = (x) => String(Math.round((+x || 0) * 100) / 100).replace(".", ",");          // un nombre dans un champ : arrondi au centième, avec la virgule comme sur le plan (le champ lit « 4,2 » comme « 4.2 »)
   const lireDial = () => { if (!dial) return; const i = $("cao-prof"), s = $("cao-esq"); if (i) dial.prof = parseFloat(String(i.value).replace(",", ".")) || 0; if (s) dial.e = +s.value; };
   function dialogue() {
     const D = $("cao-dialogue"), c = C();
@@ -584,7 +597,7 @@
       <div class="cao-op">${[["new", "Nouveau"], ["add", "Ajouter"], ["cut", "Supprimer"]].map((o) => `<button type="button" data-op="${o[0]}" class="${dial.op === o[0] ? "on" : ""}">${o[1]}</button>`).join("")}</div>
       <label>Esquisse <select id="cao-esq">${E1.map((f) => `<option value="${f.id}" ${f.id === dial.e ? "selected" : ""}>${nomF(F, f)}</option>`).join("")}</select></label>
       <label>Limite <select id="cao-lim"><option value="0">Borgne</option><option value="1" ${dial.tout ? "selected" : ""}>À travers tout</option></select></label>
-      ${dial.tout ? "" : `<label>Profondeur <input type="number" id="cao-prof" value="${dial.prof}" step="0.2" min="0.2"> mm</label>`}
+      ${dial.tout ? "" : `<label>Profondeur <input type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" id="cao-prof" data-pas="0.2" value="${vz(dial.prof)}"> mm</label>`}
       <p class="discret">${note}</p>
       <div class="cao-bt"><button type="button" data-o="ext-ok" class="vert">✓</button><button type="button" data-o="ext-non">✕</button></div></div>`;
   }
@@ -684,13 +697,13 @@
     if (piece === "essai" && modeE() === 1) { const gT = guideT(), el = gT && /^(xe|pt):/.test(gT[0]) ? cibleG(gT[0]) : null; if (el) el.classList.add("guide"); }          // le didacticiel : le bord ou le point à viser clignote, même après un redessin
     if (edit && ancre) { boite.hidden = false; boite.style.left = n1(Math.max(46, Math.min(W - 46, ancre[0]))) + "px"; boite.style.top = n1(Math.max(18, Math.min(Hh - 18, ancre[1]))) + "px"; $("a3-pre").textContent = edit.t === "o" ? "Ø" : edit.t === "a" || edit.t === "b" ? "R" : ""; $("a3-unite").textContent = edit.t === "an" ? "°" : "mm"; } else { boite.hidden = true; if (edit) edit = null; }
     /* la barre sous le dessin : l'état de l'esquisse, ou ce qui est sélectionné */
-    const ct = sel && (k.c || [])[sel.c], champ = (i, v) => `<label>${c.ch[i]} <input type="number" step="0.5" data-cote="${i}" value="${v}"> mm</label>`, ret = (t) => `<button type="button" class="cao-pb" data-o="suppr">${t}</button>`;
+    const ct = sel && (k.c || [])[sel.c], champ = (i, v) => `<label>${c.ch[i]} <input type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" data-pas="0.5" data-cote="${i}" value="${vz(v)}"> mm</label>`, ret = (t) => `<button type="button" class="cao-pb" data-o="suppr">${t}</button>`;
     if (edit) B.innerHTML = `<b>Cote</b><span>${edit.flot ? "Tape la valeur puis Entrée. Tu peux d'abord cliquer pour poser la cote où tu veux." : "Tape la valeur en millimètres, puis Entrée. Échap : annuler."}</span>`;
     else if (!ct || trace) B.innerHTML = (!nb ? `<span class="discret">Esquisse vide : choisis un outil de tracé (Ligne, Rectangle ou Cercle).</span>` : libres ? `<span class="a3-et bl">● Pas encore entièrement définie</span><span class="discret">Un trait bleu peut encore bouger : fixe-le avec Cote.</span>` : `<span class="a3-et ok">● Esquisse entièrement définie</span><span class="discret">Tout est noir : plus rien ne peut bouger.</span>`)
       + (ech >= 16 ? `<span class="discret">Zoom fort : la souris se pose tous les 0,1 mm.</span>` : "") + (piece === "fus" && E ? `<span class="discret">En vert : la place des deux fentes et du trou du lest.</span>` : "");
-    else if (ct.k === "cercle" && (sel.t === "o" || sel.t === "p")) B.innerHTML = `<b>Cercle</b><label>Diamètre <input type="number" step="0.1" min="0.5" data-diam value="${Math.round(ct.r * 200) / 100}"> mm</label><span class="cao-sep">centre :</span>${champ(0, ct.c[0])}${champ(1, ct.c[1])}`;
+    else if (ct.k === "cercle" && (sel.t === "o" || sel.t === "p")) B.innerHTML = `<b>Cercle</b><label>Diamètre <input type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" data-pas="0.1" data-diam value="${vz(ct.r * 2)}"> mm</label><span class="cao-sep">centre :</span>${champ(0, ct.c[0])}${champ(1, ct.c[1])}`;
     else if (sel.t === "p" && ct.k === "poly" && ct.p[sel.i]) B.innerHTML = `<b>Point</b>${champ(0, ct.p[sel.i][0])}${champ(1, ct.p[sel.i][1])}` + ((ct.l || {})[sel.i] ? `<button type="button" class="cao-pb" data-o="lisse" title="Le contour repasse par ce point, en angle">Coin vif</button>` : `<button type="button" class="cao-pb" data-o="conge" title="Congé d'esquisse : tu tapes le rayon de l'arrondi">${coins(ct)[sel.i] ? "Rayon du congé" : "Arrondir ce coin"}</button>` + (tous ? `<button type="button" class="cao-pb" data-o="lisse" title="Courbe libre, sans rayon : le contour s'arrondit autour de ce point">Courbe ici</button>` : ""));
-    else if (sel.t === "s" && ct.k === "poly" && ct.p[sel.i]) { const a = ct.p[sel.i], b = ct.p[(sel.i + 1) % ct.p.length], G = ct.g || {}, Dm = ct.d || {}; B.innerHTML = `<b>Trait</b><label>Longueur <input type="number" step="0.5" min="0.2" data-long value="${Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) * 100) / 100}"> mm</label>` + (Dm[sel.i] != null ? `<button type="button" class="cao-pb" data-o="sanscote">Retirer la cote</button>` : `<button type="button" class="cao-pb vert" data-o="poser">Poser la cote</button>`) + (G[sel.i] != null ? `<button type="button" class="cao-pb" data-o="sanscontr">Retirer la contrainte ${G[sel.i] === 1 ? "horizontale" : "verticale"}</button>` : ""); }
+    else if (sel.t === "s" && ct.k === "poly" && ct.p[sel.i]) { const a = ct.p[sel.i], b = ct.p[(sel.i + 1) % ct.p.length], G = ct.g || {}, Dm = ct.d || {}; B.innerHTML = `<b>Trait</b><label>Longueur <input type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" data-pas="0.5" data-long value="${vz(Math.hypot(b[0] - a[0], b[1] - a[1]))}"> mm</label>` + (Dm[sel.i] != null ? `<button type="button" class="cao-pb" data-o="sanscote">Retirer la cote</button>` : `<button type="button" class="cao-pb vert" data-o="poser">Poser la cote</button>`) + (G[sel.i] != null ? `<button type="button" class="cao-pb" data-o="sanscontr">Retirer la contrainte ${G[sel.i] === 1 ? "horizontale" : "verticale"}</button>` : ""); }
     else if (["d", "q", "a", "dd", "b", "an"].includes(sel.t)) B.innerHTML = `<b>${sel.t === "a" ? "Arrondi" : sel.t === "b" ? "Arc" : "Cote"}</b><span class="discret">Double-clique la valeur pour la changer${sel.t === "d" || sel.t === "q" ? " ; fais glisser la cote pour la déplacer" : ""}.</span><button type="button" class="cao-pb vert" data-o="cote-mod">Modifier la valeur</button>` + ret(sel.t === "a" ? "Retirer l'arrondi" : sel.t === "b" ? "Remettre le trait droit" : "Retirer la cote");
     else if (sel.t === "r" && (ct.r2 || [])[sel.i]) B.innerHTML = `<b>Contrainte</b><span>${NOMR[ct.r2[sel.i].t][0]} : ${NOMR[ct.r2[sel.i].t][1]}.</span>` + ret("Retirer la contrainte");
     else if (sel.t === "g" || sel.t === "co") B.innerHTML = `<b>Contrainte</b><span>${sel.t === "co" ? ((ct.q || []).some((x) => x.fx && x.a === sel.i) ? "Fixer : ce point ne bouge plus." : "Coïncident : ce point est attaché à l'origine.") : (ct.g || {})[sel.i] === 1 ? "Ce trait reste horizontal." : "Ce trait reste vertical."}</span>` + ret("Retirer la contrainte");
@@ -1071,7 +1084,11 @@
     if (e.target.id === "a3-val") { if ((e.key === "Enter" || e.key === "Tab") && edit) { e.preventDefault(); return appliquer(); } const vide = edit && edit.auto && !edit.tape;
       if (e.key === "Escape" && !vide) { e.preventDefault(); edit = null; $("a3-val").blur(); dire("Cote annulée."); return complet(); }
       if (vide && (e.key === "Escape" || (/^[a-zA-Z]$/.test(e.key) && !e.ctrlKey && !e.metaKey))) { e.preventDefault(); edit = null; $("a3-boite").hidden = true; $("a3-val").blur(); boiteVide = true; } else return; }          // boîte ouverte toute seule et laissée vide : Échap et les lettres gardent leur rôle habituel
-    if (!boiteVide && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) { if (e.key === "Enter" && e.target.id === "cao-prof") racine.querySelector('[data-o="ext-ok"]').click(); if (e.key === "Escape" && dial && e.target.closest("#cao-dialogue")) { const bn = racine.querySelector('[data-o="ext-non"]'); e.target.blur(); if (bn) bn.click(); } if (e.key === "Enter" && e.target.dataset.long != null) { const b = racine.querySelector('[data-o="poser"]'); if (b) { e.preventDefault(); b.click(); } } return; }
+    if (!boiteVide && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) { if (e.key === "Enter" && e.target.id === "cao-prof") racine.querySelector('[data-o="ext-ok"]').click(); if (e.key === "Escape" && dial && e.target.closest("#cao-dialogue")) { const bn = racine.querySelector('[data-o="ext-non"]'); e.target.blur(); if (bn) bn.click(); } if (e.key === "Enter" && e.target.dataset.long != null) { const b = racine.querySelector('[data-o="poser"]'); if (b) { e.preventDefault(); b.click(); } }
+      if ((e.key === "ArrowUp" || e.key === "ArrowDown") && e.target.dataset.pas) { e.preventDefault(); const t = e.target, p = +t.dataset.pas, bas = t.dataset.cote != null ? -Infinity : p, qui = t.id ? "#" + t.id : t.dataset.cote != null ? `[data-cote="${t.dataset.cote}"]` : t.dataset.diam != null ? "[data-diam]" : "[data-long]";          // flèches haut et bas : la valeur monte ou descend d'un pas, comme dans un champ de nombre
+        t.value = vz(Math.max(bas, (nombre(t.value) || 0) + (e.key === "ArrowUp" ? p : -p))); t.dispatchEvent(new Event(t.id === "cao-prof" ? "input" : "change", { bubbles: true }));
+        [200, 500].forEach((ms) => setTimeout(() => { const n = racine.querySelector(qui); if (n && document.activeElement !== n) { n.focus(); n.select(); } }, ms)); }
+      return; }
     if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z")) { e.preventDefault(); return e.shiftKey ? reculer(futur, hist, "rétablir") : reculer(hist, futur, "annuler"); }
     if ((e.ctrlKey || e.metaKey) && (e.key === "y" || e.key === "Y")) { e.preventDefault(); return reculer(futur, hist, "rétablir"); }
     if (e.key === "Escape") { if (dial || vueMasse || choixPlan || planSel) { dial = null; vueMasse = false; choixPlan = false; planSel = null; return maj(); } if (arcE) return finArc(false); if (trace || pt0 || cot1 || cs1) { trace = null; pt0 = null; curseur = null; cot1 = null; cs1 = null; infer = null; dire("Annulé."); return maj(); }

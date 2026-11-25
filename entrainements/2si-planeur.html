@@ -316,12 +316,12 @@ table.pl td.n,table.pl th.n{text-align:center;white-space:nowrap}
 .pl-et-in{padding:4px 18px 14px;border-top:1px solid var(--rule)}
 .pl-bloc{margin:12px 0;padding:10px 12px;background:var(--paper-2);border-radius:var(--r)}
 .pl-bloc input[type=text]{width:100%;font:inherit;padding:6px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
-.pl-bloc input[type=number],.pl-bloc select{font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
+.pl-bloc input[inputmode=decimal],.pl-bloc select{font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
 .pl-pas{counter-reset:pas;list-style:none;padding:0;margin:0}
 .pl-pas>li{counter-increment:pas;position:relative;padding:0 0 14px 40px}
 .pl-pas>li::before{content:counter(pas);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:600;display:flex;align-items:center;justify-content:center;font-size:.9rem}
 kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--paper-2)}
-.pl-essais input[type=number]{width:5.2em;font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
+.pl-essais input[type=text][inputmode=decimal]{width:5.2em;min-width:0;font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
 .pl-essais input[type=text]{width:100%;min-width:12em;font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
 .pl-moy{font-family:var(--f-mono);font-weight:600}
 .pl-niv td:nth-child(n+2){font-size:.9rem}
@@ -396,6 +396,7 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 .cao:not(.plein) #a3-cv,.cao:not(.plein) .cao-scene #a3-esq{touch-action:pan-y}
 .cao:not(.plein) .cao-scene::after{content:"Touche la vue pour travailler en plein écran";position:absolute;left:50%;top:8px;transform:translateX(-50%);background:rgba(27,63,122,.9);color:#fff;font-size:.78rem;font-weight:600;line-height:1.2;padding:5px 11px;border-radius:999px;pointer-events:none;white-space:nowrap;z-index:2}
 }
+@media (pointer: coarse){.pl-sec input:not([type=range]):not([type=checkbox]):not([type=radio]),.pl-sec select,.pl-sec textarea{font-size:16px}}          /* sur iPhone, un champ écrit en moins de 16 px fait zoomer toute la page quand on le touche (et elle reste zoomée) */
 </style>
 </head>
 <body>
@@ -1008,10 +1009,11 @@ let D = {}; try { D = JSON.parse(localStorage.getItem(CLE)) || {}; } catch (e) {
 const garder = () => { try { localStorage.setItem(CLE, JSON.stringify(D)); } catch (e) { /* stockage indisponible : on continue sans */ } if (window.PLANEUR_SYNC) window.PLANEUR_SYNC(); };
 const nbfr = (x, n = 2) => x.toFixed(n).replace(".", ",");
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pt = (s) => String(s == null ? "" : s).trim().replace(/\s+/g, "").replace(",", "."), virg = (s) => String(s == null ? "" : s).replace(".", ",");          // les nombres tapés : « 4,2 » ou « 4.2 », gardés avec le point, réaffichés avec la virgule (un champ type="number" perd la virgule sur un navigateur en anglais : 4,2 devenait 42)
 
 /* ---------- Étapes : parcours guidé ---------- */
 D.c = D.c || {}; D.f = D.f || {};
-const champ = (k, ph, type = "text", st = "") => `<input type="${type}" ${type === "number" ? 'step="0.1" min="0"' : ""} data-f="${k}" value="${esc(D.f[k])}" placeholder="${ph}" style="${st}">`;
+const champ = (k, ph, type = "text", st = "") => type === "number" ? `<input type="text" inputmode="decimal" autocomplete="off" data-nb data-f="${k}" value="${esc(virg(D.f[k]))}" placeholder="${ph}" style="${st}">` : `<input type="${type}" data-f="${k}" value="${esc(D.f[k])}" placeholder="${ph}" style="${st}">`;
 const BLOCS = {
   obs: () => `<div class="pl-scroll"><table class="pl"><tr><th>Planeur</th><th>Ce qu'il fait en vol</th><th class="n">Équilibre : distance nez → doigt (mm)</th></tr>` +
     ["A", "B", "C"].map((x) => `<tr><td><b>${x}</b></td><td><select data-f="obs${x}"><option value="">choisis…</option>${["Il vole droit et se pose loin", "Il lève le nez, ralentit, puis tombe", "Il pique et touche le sol tout de suite", "Il part sur le côté"].map((o) => `<option ${D.f["obs" + x] === o ? "selected" : ""}>${o}</option>`).join("")}</select></td><td class="n">${champ("eq" + x, "mm", "number", "width:6em")}</td></tr>`).join("") +
@@ -1082,7 +1084,7 @@ const premiere = Math.max(0, ETAPES.findIndex((e) => e.items.some((x) => x.k ===
 document.getElementById("etapes").innerHTML = ETAPES.map((e, i) => `<details class="carte pl-et" ${i === premiere ? "open" : ""}><summary><span class="pl-num">${i + 1}</span><span class="pl-et-t"><b>${e.t}</b><span class="discret">${e.but}</span></span><img class="pl-et-thumb" src="2si-planeur/img/${e.img}.png" alt="" loading="lazy"><span class="etiquette" id="av${i}"></span></summary>
   <div class="pl-et-in">${e.items.map((x) => x.k === "c" ? `<label class="pl-fait" id="c-${x.id}"><input type="checkbox" data-c="${x.id}" ${D.c[x.id] ? "checked" : ""}><span>${x.t}</span></label>` : `<div class="pl-bloc">${BLOCS[x.id]()}</div>`).join("")}</div></details>`).join("");
 const $et = document.getElementById("etapes");
-const saisie = (ev) => { const el = ev.target; if (el.dataset.c != null) D.c[el.dataset.c] = el.checked; else if (el.dataset.f != null) D.f[el.dataset.f] = el.value; else return; garder(); verifier(); };
+const saisie = (ev) => { const el = ev.target; if (el.dataset.c != null) D.c[el.dataset.c] = el.checked; else if (el.dataset.f != null) D.f[el.dataset.f] = el.dataset.nb != null ? pt(el.value) : el.value; else return; garder(); verifier(); };
 $et.addEventListener("input", saisie); $et.addEventListener("change", saisie);
 
 /* ---------- Carnet d'essais ---------- */
@@ -1090,9 +1092,9 @@ D.essais = D.essais || {};
 const VERSIONS = ["Version 1", "Version 2", "Concours"];
 const T = document.getElementById("t-essais");
 VERSIONS.forEach((v, i) => { const e = D.essais[i] || {}; const tr = document.createElement("tr");
-  tr.innerHTML = `<td><b>${v}</b></td><td class="n"><input type="number" step="0.1" min="0" data-v="${i}" data-k="m" value="${esc(e.m)}" aria-label="masse ${v}"></td>` +
-    [1, 2, 3].map((k) => `<td class="n"><input type="number" step="0.01" min="0" data-v="${i}" data-k="d${k}" value="${esc(e["d" + k])}" aria-label="lancer ${k} ${v}"></td>`).join("") +
-    `<td class="n pl-moy" id="moy${i}">—</td><td class="n"><input type="number" step="0.1" min="0" data-v="${i}" data-k="prev" value="${esc(e.prev)}" aria-label="distance prévue ${v}"></td><td class="n pl-moy" id="ec${i}">—</td><td><input type="text" data-v="${i}" data-k="obs" value="${esc(e.obs)}" aria-label="observation ${v}"></td>`; T.appendChild(tr); });
+  tr.innerHTML = `<td><b>${v}</b></td><td class="n"><input type="text" inputmode="decimal" autocomplete="off" data-nb data-v="${i}" data-k="m" value="${esc(virg(e.m))}" aria-label="masse ${v}"></td>` +
+    [1, 2, 3].map((k) => `<td class="n"><input type="text" inputmode="decimal" autocomplete="off" data-nb data-v="${i}" data-k="d${k}" value="${esc(virg(e["d" + k]))}" aria-label="lancer ${k} ${v}"></td>`).join("") +
+    `<td class="n pl-moy" id="moy${i}">—</td><td class="n"><input type="text" inputmode="decimal" autocomplete="off" data-nb data-v="${i}" data-k="prev" value="${esc(virg(e.prev))}" aria-label="distance prévue ${v}"></td><td class="n pl-moy" id="ec${i}">—</td><td><input type="text" data-v="${i}" data-k="obs" value="${esc(e.obs)}" aria-label="observation ${v}"></td>`; T.appendChild(tr); });
 function moyenne(i) { const e = D.essais[i] || {}; const L = [e.d1, e.d2, e.d3].map(parseFloat).filter((x) => isFinite(x) && x >= 0); return L.length === 3 ? (L[0] + L[1] + L[2]) / 3 : null; }
 function calcul() {
   const M = VERSIONS.map((v, i) => moyenne(i));
@@ -1126,7 +1128,7 @@ document.getElementById("csv").onclick = () => {
     return [v, f(e.m), f(e.d1), f(e.d2), f(e.d3), m == null ? "" : nbfr(m), f(e.prev), f(e.obs)].join(";"); }));
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + L.join("\r\n")], { type: "text/csv;charset=utf-8" })); a.download = "essais-planeur.csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
-T.addEventListener("input", (ev) => { const el = ev.target; if (!el.dataset.k) return; (D.essais[el.dataset.v] = D.essais[el.dataset.v] || {})[el.dataset.k] = el.value; garder(); calcul(); });
+T.addEventListener("input", (ev) => { const el = ev.target; if (!el.dataset.k) return; (D.essais[el.dataset.v] = D.essais[el.dataset.v] || {})[el.dataset.k] = el.dataset.nb != null ? pt(el.value) : el.value; garder(); calcul(); });
 ["equipe", "cran", "modif", "pourquoi", "attendu", "p1", "p2", "p3", "p4"].forEach((id) => { const el = document.getElementById(id); el.value = D[id] || ""; el.oninput = () => { D[id] = el.value; garder(); }; });
 document.getElementById("raz").onclick = () => { if (confirm("Effacer tout le carnet d'essais et les étapes cochées sur cet appareil ?")) { try { localStorage.setItem(CLE, "{}"); localStorage.setItem("sip_2si_planeur_t", String(Date.now())); } catch (e) { /* rien */ } location.reload(); } };
 calcul(); verifier();
@@ -1155,8 +1157,8 @@ document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Nive
   D.sim = Object.assign({}, DEF, D.sim || {});
   const fmt = (x, n) => (Math.round(x * Math.pow(10, n)) / Math.pow(10, n)).toFixed(n).replace(".", ",");
   const n1 = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
-  document.getElementById("sim-entrees").innerHTML = PARAMS.map((g) => `<div class="carte" style="--c:${g[1]}"><h3>${g[0]}</h3>${g[2].map((p) => `<label class="sim-ligne" data-l="${p[0]}"><span><span>${p[1]}</span><span class="sim-val"><input type="number" min="${p[3]}" max="${p[4]}" step="${p[5]}" data-n="${p[0]}" aria-label="${p[1]}"> ${p[2]}</span></span><input type="range" min="${p[3]}" max="${p[4]}" step="${p[5]}" data-s="${p[0]}" aria-label="${p[1]}"></label>`).join("")}</div>`).join("");
-  const ecrire = () => Object.keys(DEF).forEach((k) => { document.querySelector(`[data-s="${k}"]`).value = D.sim[k]; document.querySelector(`[data-n="${k}"]`).value = D.sim[k]; });
+  document.getElementById("sim-entrees").innerHTML = PARAMS.map((g) => `<div class="carte" style="--c:${g[1]}"><h3>${g[0]}</h3>${g[2].map((p) => `<label class="sim-ligne" data-l="${p[0]}"><span><span>${p[1]}</span><span class="sim-val"><input type="text" inputmode="decimal" autocomplete="off" data-n="${p[0]}" aria-label="${p[1]}"> ${p[2]}</span></span><input type="range" min="${p[3]}" max="${p[4]}" step="${p[5]}" data-s="${p[0]}" aria-label="${p[1]}"></label>`).join("")}</div>`).join("");
+  const ecrire = () => Object.keys(DEF).forEach((k) => { document.querySelector(`[data-s="${k}"]`).value = D.sim[k]; document.querySelector(`[data-n="${k}"]`).value = virg(D.sim[k]); });
   const enSI = (s) => ({ m: s.m / 1000, env: s.env / 1000, corde: s.corde / 1000, xAile: s.xAile / 1000, xG: s.xG / 1000, envS: s.envS / 1000, cordeS: s.cordeS / 1000, xStab: s.xStab / 1000, calage: s.calage * Math.PI / 180, L: s.L / 1000, h0: s.h0, v0: s.v0, g0: s.g0 * Math.PI / 180 });
   let ref = null, dernier = null, actif = null;
 
@@ -1258,17 +1260,20 @@ document.getElementById("t-criteres").innerHTML = `<tr><th>Critère</th><th>Nive
     document.querySelectorAll(".sim-ligne").forEach((l) => l.classList.toggle("actif", l.dataset.l === actif));
   }
   const $in = document.getElementById("sim-entrees"), cle = (el) => el && el.dataset && (el.dataset.s || el.dataset.n);
-  $in.addEventListener("input", (ev) => { const el = ev.target, k = cle(el); if (!k) return; const x = parseFloat(el.value); if (!isFinite(x)) return;
+  $in.addEventListener("input", (ev) => { const el = ev.target, k = cle(el); if (!k) return; const x = parseFloat(pt(el.value)); if (!isFinite(x)) return;
     actif = k; const p = TOUS.find((q) => q[0] === k); D.sim[k] = Math.min(p[4], Math.max(p[3], x));
-    document.querySelector(`[data-s="${k}"]`).value = D.sim[k]; if (el.dataset.s) document.querySelector(`[data-n="${k}"]`).value = D.sim[k]; garder(); calculer(); });
-  $in.addEventListener("change", (ev) => { const k = cle(ev.target); if (k && ev.target.dataset.n) ev.target.value = D.sim[k]; });
+    document.querySelector(`[data-s="${k}"]`).value = D.sim[k]; if (el.dataset.s) document.querySelector(`[data-n="${k}"]`).value = virg(D.sim[k]); garder(); calculer(); });
+  $in.addEventListener("change", (ev) => { const k = cle(ev.target); if (k && ev.target.dataset.n) ev.target.value = virg(D.sim[k]); });
+  $in.addEventListener("keydown", (ev) => { const el = ev.target, k = el.dataset && el.dataset.n; if (!k || (ev.key !== "ArrowUp" && ev.key !== "ArrowDown")) return; ev.preventDefault();          // flèches haut et bas : un pas de plus ou de moins, comme avant
+    const p = TOUS.find((q) => q[0] === k), pas = +p[5] || 1, x = parseFloat(pt(el.value)), v = Math.min(p[4], Math.max(p[3], Math.round(((isFinite(x) ? x : D.sim[k]) + (ev.key === "ArrowUp" ? pas : -pas)) / pas) * pas));
+    el.value = virg(+v.toFixed(6)); el.dispatchEvent(new Event("input", { bubbles: true })); });
   ["focusin", "pointerdown"].forEach((t) => $in.addEventListener(t, (ev) => { const k = cle(ev.target); if (k && k !== actif) { actif = k; calculer(); } }));
   document.querySelectorAll("[data-ex]").forEach((b) => b.onclick = () => { D.sim = Object.assign({}, DEF, EX[b.dataset.ex]); actif = null; ecrire(); garder(); calculer(); });
   document.getElementById("sim-jouer").onclick = jouer;
   document.getElementById("sim-ref").onclick = () => { ref = dernier; calculer(); };
   document.getElementById("sim-ref0").onclick = () => { ref = null; calculer(); };
   document.querySelectorAll("[data-carnet]").forEach((b) => b.onclick = () => { const i = b.dataset.carnet, v = (Math.round(Math.max(0, dernier.distance) * 10) / 10).toString();
-    (D.essais[i] = D.essais[i] || {}).prev = v; const el = document.querySelector(`#t-essais [data-v="${i}"][data-k="prev"]`); if (el) el.value = v; garder(); calcul();
+    (D.essais[i] = D.essais[i] || {}).prev = v; const el = document.querySelector(`#t-essais [data-v="${i}"][data-k="prev"]`); if (el) el.value = virg(v); garder(); calcul();
     document.getElementById("sim-ok").textContent = `Noté : ${v.replace(".", ",")} m prévus pour la version ${+i + 1}.`; });
   ecrire(); calculer();
 })();

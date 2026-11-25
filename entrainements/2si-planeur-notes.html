@@ -14,7 +14,7 @@ table.pl td.g{text-align:left}
 .pl-scroll{overflow-x:auto}
 .nt input[type=text]{font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);width:11em}
 .nt input.mb{width:15em}
-.nt input[type=number]{font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);width:4.6em}
+.nt input[type=text][inputmode=decimal]{font:inherit;padding:5px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);width:4.6em}
 .nt select{font:inherit;padding:4px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink)}
 .tot{font-family:var(--f-mono);font-weight:700;font-size:1.05rem;white-space:nowrap}
 .x{border:0;background:none;color:var(--bad);cursor:pointer;font-size:1.1rem}
@@ -80,7 +80,7 @@ function rendu() {
     E.map((e, i) => { const r = calc(e, i, perf);
       return `<tr><td class="g"><input type="text" data-i="${i}" data-k="nom" value="${esc(e.nom)}" placeholder="nom de l'équipe"></td><td class="g"><input type="text" class="mb" data-i="${i}" data-k="membres" value="${esc(e.membres)}" placeholder="élèves"></td>` +
         PARTS.map((p) => p.crit ? p.crit.map((c) => `<td><select data-i="${i}" data-k="${c}"><option value="">–</option>${[1, 2, 3, 4].map((n) => `<option ${String(e[c]) === String(n) ? "selected" : ""}>${n}</option>`).join("")}</select></td>`).join("")
-          : `<td><input type="number" step="0.1" min="0" data-i="${i}" data-k="${p.id}" value="${esc(e[p.id])}"></td>`).join("") +
+          : `<td><input type="text" inputmode="decimal" autocomplete="off" data-i="${i}" data-k="${p.id}" value="${esc(e[p.id])}"></td>`).join("") +
         PARTS.map((p) => `<td>${r.d[p.id] == null ? "—" : fr(r.d[p.id])}</td>`).join("") +
         `<td class="tot">${r.complet ? fr(r.total, 1) : `<span class="discret">${fr(r.total, 1)} …</span>`}</td><td class="no-print"><button class="x" data-del="${i}" title="Supprimer l'équipe">✕</button></td></tr>`; }).join("") +
     (E.length ? "" : `<tr><td colspan="99" class="g discret">Aucune équipe : clique sur « Ajouter une équipe ».</td></tr>`);
