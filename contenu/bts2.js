@@ -81,7 +81,8 @@ SIP.SERIES_E4 = [
   { id: "dim", titre: "Dimensionner une installation" },
   { id: "pompe", titre: "Station de pompage" },
   { id: "prot", titre: "Protéger les personnes et les biens" },
-  { id: "eco", titre: "Énergie, coûts et environnement" }
+  { id: "eco", titre: "Énergie, coûts et environnement" },
+  { id: "reg", titre: "Mesurer, réguler, communiquer" }
 ];
 SIP.DEVOIRS_E4 = [
   { id: "dim1", serie: "dim", court: "Niveau 1", titre: "Dimensionner une installation", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Bilan de puissance", 8], ["B", "Câble et protection", 10], ["C", "Compensation", 2]] },
@@ -99,5 +100,9 @@ SIP.DEVOIRS_E4 = [
   { id: "eco1", serie: "eco", court: "Niveau 1", titre: "Énergie, coûts et environnement", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Éclairage", 6], ["B", "Moteur", 6]] },
   { id: "eco2", serie: "eco", court: "Niveau 2", titre: "Énergie, coûts et environnement", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Énergie et abonnement", 4], ["B", "La facture", 2], ["C", "Décaler un usage", 3], ["D", "Énergie réactive", 4]] },
   { id: "eco3", serie: "eco", court: "Niveau 3", titre: "Énergie, coûts et environnement", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Production", 3], ["B", "Autoconsommation", 4], ["C", "Investissement", 3], ["D", "Environnement", 2]] },
-  { id: "eco4", serie: "eco", court: "Niveau 4", titre: "Énergie, coûts et environnement", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Bilan thermique", 4], ["B", "Consommation", 3], ["C", "Décision", 3]] }
+  { id: "eco4", serie: "eco", court: "Niveau 4", titre: "Énergie, coûts et environnement", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Bilan thermique", 4], ["B", "Consommation", 3], ["C", "Décision", 3]] },
+  { id: "reg1", serie: "reg", court: "Niveau 1", titre: "Mesurer, réguler, communiquer", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Le transmetteur 4-20 mA", 4], ["B", "La carte d'entrées", 4], ["C", "Régulation tout ou rien", 5]] },
+  { id: "reg2", serie: "reg", court: "Niveau 2", titre: "Mesurer, réguler, communiquer", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Identifier le procédé", 3], ["B", "Choisir et régler le correcteur", 4], ["C", "Essai en boucle fermée", 3], ["D", "Consigne et sécurité", 2]] },
+  { id: "reg3", serie: "reg", court: "Niveau 3", titre: "Mesurer, réguler, communiquer", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Le réseau Ethernet", 4], ["B", "La liaison Modbus", 3], ["C", "Le comptage", 5]] },
+  { id: "reg4", serie: "reg", court: "Niveau 4", titre: "Mesurer, réguler, communiquer", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Identifier", 2], ["B", "Régler le PI", 4], ["C", "Mise en œuvre numérique", 4]] }
 ];
