@@ -34,6 +34,10 @@
    départ, une ligne « devoir_debut » part chez le professeur (il voit un devoir recommencé ailleurs) ;
    à la fin, la note part dans le module e4-devoir-<id>. Ensuite le devoir se refait pour s'entraîner,
    avec d'autres valeurs : module e4-devoir-<id>-entr, qui ne compte pas.
+   Niveaux : un devoir qui a d.apres (le devoir du niveau précédent) ne s'ouvre qu'une fois celui-ci rendu
+   (sur cet appareil ou, d'après la base, sur un autre) ; l'aperçu du professeur ouvre tout.
+   Dossier complet (q.classeur) : tous les documents dans les onglets, étiquette courte d.etiq ; le panneau
+   garde l'onglet ouvert d'une question à l'autre, comme un classeur qu'on feuillette.
    ===================================================================== */
 (function () {
   "use strict";
@@ -224,12 +228,15 @@
     btn.hidden = !docs.length; btn.textContent = "📄 Documents (" + docs.length + ")"; btn.onclick = () => zone.classList.add("ouvert");
     if (!docs.length) { zone.className = ""; zone.innerHTML = ""; return; }
     zone.className = "docs";
-    let k = 0;
+    let k = q.classeur ? Math.min(st.docK || 0, docs.length - 1) : 0;
     const dessiner = () => {
-      zone.innerHTML = `<div class="docs-tabs">${docs.map((d, j) => `<button class="${j === k ? "actif" : ""}" data-d="${j}" title="${esc(d.nom)}">${esc(court(d.nom))}</button>`).join("")}<button class="fermer" data-fermer>✕ Fermer</button></div>
+      const beaucoup = docs.length > 6;   // sur téléphone, une liste déroulante plutôt qu'une forêt d'onglets
+      zone.innerHTML = `<div class="docs-tabs${beaucoup ? " beaucoup" : ""}">${docs.map((d, j) => `<button class="${j === k ? "actif" : ""}" data-d="${j}" title="${esc(d.nom)}">${esc(d.etiq || court(d.nom))}</button>`).join("")}${beaucoup ? `<select class="docs-select" aria-label="Choisir un document">${docs.map((d, j) => `<option value="${j}"${j === k ? " selected" : ""}>${esc(d.etiq || court(d.nom))}</option>`).join("")}</select>` : ""}<button class="fermer" data-fermer>✕ Fermer</button></div>
         <div class="docs-html"><div class="doc-titre">${esc(docs[k].nom)}</div>${docs[k].html}</div>`;
-      zone.querySelectorAll("[data-d]").forEach((b) => b.addEventListener("click", () => { k = Number(b.dataset.d); dessiner(); }));
+      zone.querySelectorAll("[data-d]").forEach((b) => b.addEventListener("click", () => { k = Number(b.dataset.d); if (q.classeur) st.docK = k; dessiner(); zone.querySelector(".docs-html").scrollTop = 0; }));
       zone.querySelector("[data-fermer]").addEventListener("click", () => zone.classList.remove("ouvert"));
+      const sel = zone.querySelector(".docs-select");
+      if (sel) sel.addEventListener("change", () => { k = Number(sel.value); if (q.classeur) st.docK = k; dessiner(); });
     };
     dessiner();
   }
@@ -248,7 +255,7 @@
     trav.innerHTML = `<div class="carte">
         <div class="q-tete"><span class="q-num">Q${st.i + 1}</span>${q.type === "redac" ? `<span class="chip redac">✎ Rédaction</span>` : morc(st.id) || ann(st.id) || dev(st.id) ? "" : `<span class="chip niv${q.lv}">Niveau ${q.lv} · ${NIV[q.lv]}</span>`}${dev(st.id) && q.ref ? `<span class="chip">Question ${esc(q.ref)}</span>` : ""}${morc(st.id) && q.ref ? `<span class="chip">Sujet · question ${esc(q.ref)}</span>` : ""}${ann(st.id) && q.ref ? `<span class="chip">${esc(q.orig || "Sujet")} · question ${esc(q.ref)}</span>` : ""}${st.id === "express" ? `<span class="chip">${esc(notion(q.nid).nom)}</span>` : ""}<span class="discret">repère ≈ ${minutes(E4.repereMinutes(q))}</span></div>
         ${prec}${q.ctx ? `<div class="contexte">${q.ctx}</div>` : ""}${q.rappel ? `<div class="rappel-q">${q.rappel}</div>` : ""}${figHTML(q)}${q.data ? `<div class="data-serie">${q.data}</div>` : ""}
-        ${q.docs && q.docs.length ? `<p class="discret doc-rappel">📄 Données à chercher dans : ${q.docs.map((d) => `<b>${esc(d.nom)}</b>`).join(" · ")}</p>` : ""}
+        ${q.docs && q.docs.length ? (q.classeur ? `<p class="discret doc-rappel">📄 Tout le dossier est dans les onglets : DTEC (ton installation, avec tes valeurs) et DRES (ressources). Sur téléphone : bouton « Documents ».</p>` : `<p class="discret doc-rappel">📄 Données à chercher dans : ${q.docs.map((d) => `<b>${esc(d.nom)}</b>`).join(" · ")}</p>`) : ""}
         <p class="q-enonce">${q.q}</p>
         ${saisie}
         ${dev(st.id) ? `<p class="discret" style="margin:6px 0 0">${q.type === "ch" ? "Une seule réponse : une erreur retire 2 points." : "Deux essais : chaque erreur retire 2 points. Si tu te trompes, tu peux te corriger."}</p>` : ""}
@@ -483,19 +490,22 @@
     const x = S && S[did], loc = lireDev(did);
     if (x && x.rendu && !(loc && loc.fini)) ecrireDev(did, Object.assign(loc || { v: 1 }, { fini: true, note: noteServeur(x.rendu), rendu: x.rendu.fait_le, transmis: true, ailleurs: true }));
   }
+  /* progression : un niveau s'ouvre quand le précédent (d.apres) est rendu ; l'aperçu du professeur ouvre tout */
+  const renduLoc = (did) => { const o = lireDev(did); return !!(o && o.fini); };
+  const ouvertDev = (d) => enApercu() || !d.apres || renduLoc(d.apres);
   async function ouvrirDevoir(app, did, libre) {
-    const hash = location.hash, id = (libre ? "e:" : "d:") + did;
+    const hash = location.hash, id = (libre ? "e:" : "d:") + did, d = E4.devoir(did);
     if (!connecte()) { location.hash = "#/devoirs"; return; }
     if (enApercu() || (st && st.id === id && !st.fini)) return vueJeu(app, id);
     let loc = lireDev(did);
-    if (!loc) {   // rien sur cet appareil : le devoir a peut-être été rendu ailleurs
+    if (!loc || (d.apres && !renduLoc(d.apres))) {   // rien sur cet appareil : le devoir (ou le niveau précédent) a peut-être été rendu ailleurs
       app.innerHTML = `<p class="discret">Ouverture du devoir…</p>`;
       const S = await devoirsServeur();
       if (location.hash !== hash) return;
-      rapprocher(did, S); loc = lireDev(did);
+      rapprocher(did, S); if (d.apres) rapprocher(d.apres, S); loc = lireDev(did);
     }
     const rendu = !!(loc && loc.fini);
-    if (libre ? !rendu : rendu) { location.hash = "#/devoirs"; return; }
+    if ((libre ? !rendu : rendu) || !ouvertDev(d)) { location.hash = "#/devoirs"; return; }
     vueJeu(app, id);
   }
   async function transmettreDevoir(did) {
@@ -511,21 +521,22 @@
     const dessiner = (S) => {
       L.forEach((d) => rapprocher(d.id, S));
       const carte = (d) => {
-        const loc = lireDev(d.id), n = d.parties.reduce((a, p) => a + p[2], 0), x = S && S[d.id];
+        const loc = lireDev(d.id), n = d.parties.reduce((a, p) => a + p[2], 0), x = S && S[d.id], ouvert = ouvertDev(d), prec = d.apres ? E4.devoir(d.apres) : null;
         const parties = `<ul class="discret" style="margin:8px 0 0;padding-left:1.2em">${d.parties.map((p) => `<li><b>Partie ${esc(p[0])}</b> · ${esc(p[1])} (${p[2]} question${p[2] > 1 ? "s" : ""})</li>`).join("")}</ul>`;
         let etat, actions;
         if (enApercu()) { etat = `<span class="chip">Aperçu professeur</span>`; actions = `<a class="btn plein" href="#/devoir/${d.id}">Essayer le devoir</a><span class="discret">Autres valeurs à chaque essai, rien n'est gardé ni transmis.</span>`; }
-        else if (!connecte()) { etat = `<span class="chip attente">À faire</span>`; actions = `<span class="discret">Connecte-toi pour commencer.</span>`; }
+        else if (!connecte()) { etat = `<span class="chip attente">${ouvert ? "À faire" : "🔒 Après le niveau " + (prec.niveau || "précédent")}</span>`; actions = `<span class="discret">Connecte-toi pour commencer.</span>`; }
         else if (loc && loc.fini) {
           const cls = loc.note >= 16 ? "n3" : loc.note >= 10 ? "n2" : "n1";
           etat = `<span class="chip dispo">Rendu${loc.rendu ? " le " + esc(jourDe(loc.rendu)) : ""}</span>`;
           actions = `<span class="pastille ${cls}" style="font-size:1.05rem">${nf(loc.note, 1)} / 20</span>${loc.envoi && !loc.transmis ? `<button class="btn plein" data-envoyer="${d.id}">Transmettre ma note</button>` : ""}<a class="btn" href="#/devoir/${d.id}/entrainement">Le refaire pour m'entraîner</a><span class="discret">Autres valeurs ; ne change pas ta note.</span>`;
-        } else if (loc && (loc.rep || []).length) { etat = `<span class="chip attente">En cours · ${loc.rep.length} / ${n}</span>`; actions = `<a class="btn plein" href="#/devoir/${d.id}">Reprendre à la question ${Math.min(loc.rep.length + 1, n)}</a>`; }
+        } else if (!ouvert) { etat = `<span class="chip">🔒 Verrouillé</span>`; actions = `<span class="discret">S'ouvre quand tu as rendu le ${esc(prec.court.replace(/^D/, "d"))} (niveau ${prec.niveau} « ${esc(prec.nomNiveau || "")} »).</span>`; }
+        else if (loc && (loc.rep || []).length) { etat = `<span class="chip attente">En cours · ${loc.rep.length} / ${n}</span>`; actions = `<a class="btn plein" href="#/devoir/${d.id}">Reprendre à la question ${Math.min(loc.rep.length + 1, n)}</a>`; }
         else {
           etat = `<span class="chip attente">À faire</span>`;
           actions = `<a class="btn plein" href="#/devoir/${d.id}">Commencer le devoir</a>${!loc && x && x.debuts ? `<p class="discret" style="flex-basis:100%;margin:6px 0 0">Tu as déjà commencé ce devoir sur un autre appareil : tes réponses y sont restées. Reprends-le de préférence là-bas ; si tu recommences ici, ton professeur le verra.</p>` : ""}`;
         }
-        return `<div class="carte"><div class="eyebrow">${esc(d.court)} · ${n} questions · on part de 20, −2 points par erreur · ≈ ${d.duree_min} min</div>
+        return `<div class="carte"${ouvert || enApercu() ? "" : ' style="opacity:.75"'}><div class="eyebrow">${d.niveau ? `Niveau ${d.niveau} · ${esc(d.nomNiveau || "")} · ` : ""}${esc(d.court)} · ${n} questions · ≈ ${d.duree_min} min</div>
           <h3 style="margin-top:4px">${esc(d.titre)} ${etat}</h3><p class="discret">${esc(d.resume)}</p>${parties}<div class="actions">${actions}</div></div>`;
       };
       app.innerHTML = `
@@ -533,11 +544,12 @@
         <h1>Devoirs notés</h1>
         <div class="carte" style="max-width:860px"><div class="eyebrow">Règles du devoir</div>
           <ul style="margin:6px 0 0;padding-left:1.2em">
-            <li>Le devoir se fait <b>une seule fois</b> : sa note, sur 20, est transmise au professeur.</li>
+            <li><b>${L.length} niveaux</b>, du plus guidé à celui de l'épreuve, puis au-delà. <b>Chaque niveau s'ouvre quand tu as rendu le précédent.</b></li>
+            <li>Chaque devoir se fait <b>une seule fois</b> : sa note, sur 20, est transmise au professeur.</li>
             <li><b>Tu pars de 20 ; chaque erreur retire 2 points.</b> Pour un calcul, tu as deux essais : si tu te trompes, tu perds 2 points et tu peux te corriger. Pour un choix, une seule réponse.</li>
             <li><b>Tes valeurs sont les tiennes</b> : chaque élève a son installation, ses documents et ses résultats. Recopier un voisin ne sert à rien.</li>
-            <li>La correction s'affiche dès que la question est finie, et la question suivante rappelle le bon résultat : une erreur ne se reporte pas sur la suite.</li>
-            <li>Travaille comme à l'épreuve : copie, calculatrice, documents du dossier ressources (onglets à gauche). Pas de bouton « Où chercher ? » dans un devoir.</li>
+            <li>La correction s'affiche dès que la question est finie ; quand une question reprend un résultat, il est rappelé (« On prendra… ») : une erreur ne se reporte pas sur la suite.</li>
+            <li>Travaille comme à l'épreuve : copie, calculatrice et documents (onglets à gauche sur ordinateur, bouton « Documents » sur téléphone). À partir du niveau 2, c'est le dossier complet : dossier technique (DTEC, ton installation) et dossier ressources (DRES). Pas de bouton « Où chercher ? » dans un devoir.</li>
             <li>Tu peux quitter et reprendre plus tard <b>sur le même appareil</b> : tes réponses sont gardées.</li>
           </ul></div>
         ${connecte() ? "" : `<div class="carte" style="max-width:860px;margin-top:12px"><p style="margin:0"><b>Connecte-toi au site pour faire un devoir.</b></p><div class="actions"><a class="btn plein" href="../index.html#/connexion/BTS2-STI">Me connecter · BTS 2 STI</a><a class="btn" href="../index.html#/connexion/BTS2-ADM">BTS 2 ADM</a></div></div>`}
@@ -550,7 +562,7 @@
   }
   /* état des devoirs gardé sur l'appareil, pour la page d'accueil E4 */
   E4.etatDevoirs = () => (E4.DEVOIRS || []).map((d) => { const loc = connecte() && !enApercu() ? lireDev(d.id) : null;
-    return { id: d.id, court: d.court, titre: d.titre, n: d.parties.reduce((a, p) => a + p[2], 0), fini: !!(loc && loc.fini), note: loc && loc.fini ? loc.note : null, faites: loc && !loc.fini ? (loc.rep || []).length : 0 }; });
+    return { id: d.id, court: d.court, titre: d.titre, niveau: d.niveau, nomNiveau: d.nomNiveau, ouvert: ouvertDev(d), n: d.parties.reduce((a, p) => a + p[2], 0), fini: !!(loc && loc.fini), note: loc && loc.fini ? loc.note : null, faites: loc && !loc.fini ? (loc.rep || []).length : 0 }; });
 
   /* ---------- fin et bilan ---------- */
   function terminer(app, tempsEcoule) {
