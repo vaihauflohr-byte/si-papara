@@ -975,6 +975,8 @@ const prR = [
 ];
 B["protections"].redac = prR;
 B["protections"].count = Object.assign({}, B["protections"].count, { r: 2 });
+/* dessins repris par les devoirs notés (e4/devoirs-prot.js) */
+E4.FIG_PROT = { figSLT, eclair, courbeLog, figSelect, noteFig, empilerSvg: empiler };
 }
 
 /* =====================================================================
