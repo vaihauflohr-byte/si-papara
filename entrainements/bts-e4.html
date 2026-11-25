@@ -410,6 +410,8 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
     return 0;
   }
   const poids = (q) => q.indicateurs.length;
+  /* « Où chercher ? » : chaque usage retire 1,5 point à la note indicative (règle commune à tout l'entraînement E4) */
+  const PEN_OU = 1.5, avecMalus = (note, run) => (note == null ? null : Math.max(0, Math.round((note - PEN_OU * (run.indices || 0)) * 10) / 10));
   function noteSur20(items) {   // items : [{q, niveau}]
     const faits = items.filter((i) => i.niveau != null);
     if (!faits.length) return null;
@@ -527,7 +529,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
     const prc = r.parcours.startsWith("notion:") ? parcoursNotion(r.parcours.slice(7)) : parcoursSujet(r.parcours.split(":")[0], r.parcours.split(":")[1]);
     if (!prc) return "";
     const faits = prc.items.filter((it) => (r.reponses[idItem(it)] || {}).niveau != null);
-    const note = noteSur20(faits.map((it) => ({ q: it.q, niveau: r.reponses[idItem(it)].niveau })));
+    const note = avecMalus(noteSur20(faits.map((it) => ({ q: it.q, niveau: r.reponses[idItem(it)].niveau }))), r);
     const lien = prc.notion ? "#/notion/" + prc.notion.id : "#/jouer/" + prc.sujet.id + "/" + prc.mode;
     const bilan = prc.notion ? "#/bilan/notion/" + prc.notion.id : "#/bilan/" + prc.sujet.id + "/" + prc.mode;
     return `<tr><td><b>${esc(prc.titre)}</b><br><span class="discret">${esc(prc.sous)}</span></td><td>${prc.mode === "blanc" ? "Sujet blanc" : "Guidé"}</td>
@@ -828,7 +830,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
         actions.innerHTML = prec + (r.niveau == null && !enRevue ? "" : suiv);
         montrerCorrection(it, r, actions, suiv);
       } else {
-        actions.innerHTML = prec + (blanc ? suiv : `${q.ou ? `<button class="btn" data-indice ${r.indice ? "disabled" : ""}>💡 Où chercher ?</button>` : ""}<button class="btn plein" data-verifier>Vérifier et m'évaluer</button>`);
+        actions.innerHTML = prec + (blanc ? suiv : `${q.ou ? `<button class="btn" data-indice ${r.indice ? "disabled" : ""}>💡 Où chercher ? <small>(−1,5 point)</small></button>` : ""}<button class="btn plein" data-verifier>Vérifier et m'évaluer</button>`);
         const bi = actions.querySelector("[data-indice]"); if (bi) bi.addEventListener("click", () => { r.indice = true; run.indices++; sauver(); afficher(); viz.repere((q.docs || [])[0] || ""); });
         const bv = actions.querySelector("[data-verifier]"); if (bv) bv.addEventListener("click", () => { lireSaisies(); r.verifie = true; sauver(); afficher(); });
       }
@@ -923,7 +925,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
     prc = ordonner(prc, run);
     const items = prc.items.map((it) => ({ it, q: it.q, r: run.reponses[idItem(it)] || {}, niveau: (run.reponses[idItem(it)] || {}).niveau ?? null }));
     const faits = items.filter((i) => i.niveau != null);
-    const note = noteSur20(faits);
+    const note = avecMalus(noteSur20(faits), run);
     const rep = [0, 1, 2, 3].map((n) => faits.filter((i) => i.niveau === n).length);
     const duree = run.termine ? Math.round((run.termine - run.debut) / 60e3) : null;
     const par = (clef, lib) => { const g = {}; faits.forEach((i) => { const k = clef(i); (g[k] = g[k] || []).push(i); });
@@ -939,7 +941,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
       <div class="carte"><div class="score">
         <div><div class="grand">${note == null ? "—" : nb(note, 3)}<small> / 20</small></div><div class="discret">note indicative sur ${faits.length} question${faits.length > 1 ? "s" : ""} évaluée${faits.length > 1 ? "s" : ""}${faits.length < items.length ? " (" + (items.length - faits.length) + " non traitée" + (items.length - faits.length > 1 ? "s" : "") + ")" : ""}</div></div>
         <div><div class="repartition">${[3, 2, 1, 0].map((n) => `<span class="pastille n${n}" style="font-size:.95rem">N${n} · ${rep[n]}</span>`).join("")}</div>
-          <div class="discret" style="margin-top:6px">N3 totalement acquise · N2 partiellement · N1 en cours · N0 non acquise${duree != null ? " · durée " + Math.floor(duree / 60) + " h " + String(duree % 60).padStart(2, "0") : ""}${run.indices ? " · " + run.indices + " indice" + (run.indices > 1 ? "s" : "") : ""}</div></div>
+          <div class="discret" style="margin-top:6px">N3 totalement acquise · N2 partiellement · N1 en cours · N0 non acquise${duree != null ? " · durée " + Math.floor(duree / 60) + " h " + String(duree % 60).padStart(2, "0") : ""}${run.indices ? " · « Où chercher ? » " + run.indices + " fois : −" + nb(PEN_OU * run.indices, 2) + " point" + (PEN_OU * run.indices >= 2 ? "s" : "") : ""}</div></div>
         <div style="margin-left:auto" class="actions"><button class="btn" id="btn-faibles" ${faits.some((i) => i.niveau <= 1) ? "" : "disabled"}>Retravailler les N0 et N1</button><button class="btn" id="btn-envoyer">Transmettre au professeur</button></div>
       </div></div>
       ${parPartie.length ? `<h2>Par partie</h2><div class="carte" style="padding:8px 14px"><table><thead><tr><th>Partie</th><th class="num">Questions</th><th class="num">N0–N1</th><th style="width:30%">Niveau</th><th class="num">/ 20</th></tr></thead><tbody>${parPartie.map(ligneGroupe).join("")}</tbody></table></div>` : ""}
@@ -961,10 +963,10 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
   // ---------- transmission au site SI Papara ----------
   async function transmettre(prc, run, manuel) {
     const items = prc.items.map((it) => ({ q: it.q, r: run.reponses[idItem(it)] || {} })).filter((i) => i.r.niveau != null);
-    const note = noteSur20(items.map((i) => ({ q: i.q, niveau: i.r.niveau })));
+    const note = avecMalus(noteSur20(items.map((i) => ({ q: i.q, niveau: i.r.niveau }))), run);
     if (note == null) { if (manuel) toast("Aucune question évaluée : rien à transmettre."); return false; }
     if (!window.SIP || !SIP.session || !SIP.session.get()) { toast(manuel ? "Tu n'es pas connecté(e) au site : connecte-toi sur la page d'accueil du site, puis reviens transmettre." : "Résultat gardé sur cet appareil (non connecté au site)."); return false; }
-    const details = items.map((i) => { const d = { q: i.q.id + " · " + i.q.capacite.slice(0, 90), rep: "N" + i.r.niveau + " (" + nb(nbCoches(i.r.coches), 2) + "/" + i.q.indicateurs.length + " indicateurs" + (i.r.ia && i.r.ia.etat === "ok" ? ", rédaction vérifiée par l'IA" : "") + ")" + (i.r.indice ? " · indice" : ""), attendu: "N3", pts: Math.round(100 * i.r.niveau / 3) / 100, erreurs: i.r.niveau <= 1 ? 1 : 0, notion: i.q.notion };
+    const details = items.map((i) => { const d = { q: i.q.id + " · " + i.q.capacite.slice(0, 90), rep: "N" + i.r.niveau + " (" + nb(nbCoches(i.r.coches), 2) + "/" + i.q.indicateurs.length + " indicateurs" + (i.r.ia && i.r.ia.etat === "ok" ? ", rédaction vérifiée par l'IA" : "") + ")" + (i.r.indice ? " · indice" : ""), attendu: "N3", pts: Math.round(100 * i.r.niveau / 3) / 100, erreurs: i.r.niveau <= 1 ? 1 : 0, notion: i.q.notion, indice: i.r.indice ? true : undefined };
       const tr = i.r.valeurs && i.r.valeurs.dessin; if (Array.isArray(tr) && tr.length && JSON.stringify(tr).length < 30000) d.dessin = tr; return d; });
     try {
       const ok = await SIP.ecrire("enregistrer", { module: prc.module, titre: prc.titreSite, type: "externe", score: note, score_max: 20, duree_s: run.termine ? Math.round((run.termine - run.debut) / 1000) : null, details });
