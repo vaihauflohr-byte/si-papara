@@ -82,7 +82,8 @@ SIP.SERIES_E4 = [
   { id: "pompe", titre: "Station de pompage" },
   { id: "prot", titre: "Protéger les personnes et les biens" },
   { id: "eco", titre: "Énergie, coûts et environnement" },
-  { id: "reg", titre: "Mesurer, réguler, communiquer" }
+  { id: "reg", titre: "Mesurer, réguler, communiquer" },
+  { id: "poste", titre: "Poste de livraison et transformateur" }
 ];
 SIP.DEVOIRS_E4 = [
   { id: "dim1", serie: "dim", court: "Niveau 1", titre: "Dimensionner une installation", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Bilan de puissance", 8], ["B", "Câble et protection", 10], ["C", "Compensation", 2]] },
@@ -104,5 +105,9 @@ SIP.DEVOIRS_E4 = [
   { id: "reg1", serie: "reg", court: "Niveau 1", titre: "Mesurer, réguler, communiquer", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Le transmetteur 4-20 mA", 4], ["B", "La carte d'entrées", 4], ["C", "Régulation tout ou rien", 5]] },
   { id: "reg2", serie: "reg", court: "Niveau 2", titre: "Mesurer, réguler, communiquer", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Identifier le procédé", 3], ["B", "Choisir et régler le correcteur", 4], ["C", "Essai en boucle fermée", 3], ["D", "Consigne et sécurité", 2]] },
   { id: "reg3", serie: "reg", court: "Niveau 3", titre: "Mesurer, réguler, communiquer", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Le réseau Ethernet", 4], ["B", "La liaison Modbus", 3], ["C", "Le comptage", 5]] },
-  { id: "reg4", serie: "reg", court: "Niveau 4", titre: "Mesurer, réguler, communiquer", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Identifier", 2], ["B", "Régler le PI", 4], ["C", "Mise en œuvre numérique", 4]] }
+  { id: "reg4", serie: "reg", court: "Niveau 4", titre: "Mesurer, réguler, communiquer", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Identifier", 2], ["B", "Régler le PI", 4], ["C", "Mise en œuvre numérique", 4]] },
+  { id: "poste1", serie: "poste", court: "Niveau 1", titre: "Poste de livraison et transformateur", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "La plaque du transformateur", 5], ["B", "Le raccordement HTA", 2], ["C", "Pertes et rendement", 5]] },
+  { id: "poste2", serie: "poste", court: "Niveau 2", titre: "Poste de livraison et transformateur", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Choisir la puissance", 3], ["B", "Les pertes du CCTP", 3], ["C", "Le coût des pertes", 3], ["D", "Le comptage", 2]] },
+  { id: "poste3", serie: "poste", court: "Niveau 3", titre: "Poste de livraison et transformateur", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Le raccordement", 2], ["B", "Les TC de protection", 2], ["C", "La chute de tension", 6], ["D", "Le court-circuit", 2]] },
+  { id: "poste4", serie: "poste", court: "Niveau 4", titre: "Poste de livraison et transformateur", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Choisir TR2", 2], ["B", "Partage de la charge", 2], ["C", "Court-circuit", 2], ["D", "Comptage et exploitation", 3]] }
 ];
