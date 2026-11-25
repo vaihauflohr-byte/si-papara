@@ -80,7 +80,8 @@ SIP.definirModule({
 SIP.SERIES_E4 = [
   { id: "dim", titre: "Dimensionner une installation" },
   { id: "pompe", titre: "Station de pompage" },
-  { id: "prot", titre: "Protéger les personnes et les biens" }
+  { id: "prot", titre: "Protéger les personnes et les biens" },
+  { id: "eco", titre: "Énergie, coûts et environnement" }
 ];
 SIP.DEVOIRS_E4 = [
   { id: "dim1", serie: "dim", court: "Niveau 1", titre: "Dimensionner une installation", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Bilan de puissance", 8], ["B", "Câble et protection", 10], ["C", "Compensation", 2]] },
@@ -94,5 +95,9 @@ SIP.DEVOIRS_E4 = [
   { id: "prot1", serie: "prot", court: "Niveau 1", titre: "Protéger les personnes et les biens", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Le défaut en schéma TT", 5], ["B", "Le disjoncteur et le DDR", 4], ["C", "Temps de coupure et prise de terre", 4]] },
   { id: "prot2", serie: "prot", court: "Niveau 2", titre: "Protéger les personnes et les biens", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Le défaut en schéma TN-S", 4], ["B", "Le disjoncteur protège-t-il ?", 4], ["C", "Solutions", 3], ["D", "Section du câble", 2]] },
   { id: "prot3", serie: "prot", court: "Niveau 3", titre: "Protéger les personnes et les biens", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Les schémas", 2], ["B", "L'atelier en TN-S", 4], ["C", "Le bâtiment annexe en TT", 3], ["D", "La ligne en IT", 3]] },
-  { id: "prot4", serie: "prot", court: "Niveau 4", titre: "Protéger les personnes et les biens", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Réglage du magnétique", 3], ["B", "Sélectivité", 2], ["C", "La ligne en IT", 3], ["D", "Types de DDR", 2]] }
+  { id: "prot4", serie: "prot", court: "Niveau 4", titre: "Protéger les personnes et les biens", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Réglage du magnétique", 3], ["B", "Sélectivité", 2], ["C", "La ligne en IT", 3], ["D", "Types de DDR", 2]] },
+  { id: "eco1", serie: "eco", court: "Niveau 1", titre: "Énergie, coûts et environnement", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Éclairage", 6], ["B", "Moteur", 6]] },
+  { id: "eco2", serie: "eco", court: "Niveau 2", titre: "Énergie, coûts et environnement", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Énergie et abonnement", 4], ["B", "La facture", 2], ["C", "Décaler un usage", 3], ["D", "Énergie réactive", 4]] },
+  { id: "eco3", serie: "eco", court: "Niveau 3", titre: "Énergie, coûts et environnement", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Production", 3], ["B", "Autoconsommation", 4], ["C", "Investissement", 3], ["D", "Environnement", 2]] },
+  { id: "eco4", serie: "eco", court: "Niveau 4", titre: "Énergie, coûts et environnement", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Bilan thermique", 4], ["B", "Consommation", 3], ["C", "Décision", 3]] }
 ];
