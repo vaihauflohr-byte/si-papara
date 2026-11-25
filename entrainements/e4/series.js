@@ -29,7 +29,7 @@
    Le devoir se fait une seule fois, élève connecté : ses valeurs sont tirées à partir de son nom (les mêmes
    quand il reprend sur le même appareil, différentes de celles des autres élèves ; un devoir recommencé à zéro
    ailleurs a de nouvelles valeurs : la graine compte les départs déjà enregistrés), ses réponses sont gardées sur l'appareil
-   question après question (il peut quitter et reprendre), pas de bouton « Où chercher ? ». Notation des
+   question après question (il peut quitter et reprendre), pas de bouton « Où chercher ? » (ailleurs, il retire 1,5 point). Notation des
    devoirs, comme sur le site des Terminales : on part de 20, chaque erreur retire 2 points ; un calcul a
    deux essais (l'élève se corrige : une erreur au 1er essai coûte 2 points, une 2e encore 2), un choix
    n'a qu'une réponse. Au premier
@@ -137,7 +137,7 @@
         </div>
         <div class="carte">
           <div class="eyebrow">Méthode</div><h3 style="margin-top:4px">Comment travailler une série</h3>
-          <ol class="discret" style="margin:6px 0 0;padding-left:1.2em"><li>Lis la situation, puis ouvre le document qui contient la donnée (onglets à gauche).</li><li>Rédige le calcul sur ta copie : relation, valeurs, unité, résultat.</li><li>Saisis ton résultat (3 chiffres significatifs suffisent) et lis le corrigé, même si tu as juste.</li><li>« Où chercher ? » t'indique la ligne ou la colonne : il est noté dans ton bilan.</li><li>Les questions <b>✎ Rédaction</b> (justifier, expliquer, conclure) se rédigent dans le cadre prévu : une IA compare ta réponse au corrigé, élément par élément du barème.</li></ol>
+          <ol class="discret" style="margin:6px 0 0;padding-left:1.2em"><li>Lis la situation, puis ouvre le document qui contient la donnée (onglets à gauche).</li><li>Rédige le calcul sur ta copie : relation, valeurs, unité, résultat.</li><li>Saisis ton résultat (3 chiffres significatifs suffisent) et lis le corrigé, même si tu as juste.</li><li>« Où chercher ? » t'indique la ligne ou la colonne : <b>chaque usage retire 1,5 point</b> à ta note.</li><li>Les questions <b>✎ Rédaction</b> (justifier, expliquer, conclure) se rédigent dans le cadre prévu : une IA compare ta réponse au corrigé, élément par élément du barème.</li></ol>
         </div>
       </div>
       <h2>Les notions <span class="discret" style="font-family:var(--f-body);font-weight:400;text-transform:none;font-size:.88rem">classées par poids dans les sujets 2022-2026</span></h2>
@@ -217,11 +217,12 @@
   const fracDe = (r) => (r && r.frac != null ? r.frac : r && r.ok ? 1 : 0);
   /* devoirs : nombre d'erreurs d'une réponse (0, 1 ou 2) ; st.pend : erreur déjà faite sur la question en cours */
   const errDe = (r) => (r && r.err != null ? r.err : fracDe(r) >= 1 ? 0 : 1);
-  /* devoir refait (ou aperçu du professeur) : chaque « Où chercher ? » retire PEN_OU points ; st.ouQ : ouvert sur la question en cours, pas encore répondue */
+  /* partout où le bouton existe (séries, sujets en morceaux, annales, épreuve express, devoir refait, aperçu du professeur ; le devoir noté
+     n'en a pas) : chaque « Où chercher ? » retire PEN_OU points à la note ; st.ouQ : ouvert sur la question en cours, pas encore répondue */
   const PEN_OU = 1.5, PEN_OU_TXT = "1,5 point";
   const nbOu = () => st.rep.filter((r) => r && r.indice).length + (st.ouQ != null && st.ouQ >= st.rep.length ? 1 : 0);
   const noteCourante = () => { if (dev(st.id)) return Math.max(0, 20 - 2 * (st.rep.reduce((a, r) => a + errDe(r), 0) + (st.pend ? st.pend.err : 0)) - PEN_OU * nbOu());
-    const n = st.qs.length, err = st.rep.reduce((a, r) => a + 1 - fracDe(r), 0); return Math.max(0, Math.round((20 - 20 * err / n) * 2) / 2); };
+    const n = st.qs.length, err = st.rep.reduce((a, r) => a + 1 - fracDe(r), 0); return Math.max(0, Math.round((20 - 20 * err / n - PEN_OU * nbOu()) * 2) / 2); };
   function entete() {
     document.getElementById("s-pts").innerHTML = st.qs.map((q, k) => { const f = k < st.rep.length ? fracDe(st.rep[k]) : null;
       return `<i class="${f != null ? (f >= 1 ? "ok" : f > 0 ? "part" : "ko") : k === st.i ? "cour" : ""}" title="Question ${k + 1}${q.type === "redac" ? " (rédaction)" : ""}"></i>`; }).join("");
@@ -267,14 +268,14 @@
         ${saisie}
         ${dev(st.id) ? `<p class="discret" style="margin:6px 0 0">${q.type === "ch" ? "Une seule réponse : une erreur retire 2 points." : "Deux essais : chaque erreur retire 2 points. Si tu te trompes, tu peux te corriger."}${q.ou && !st.devoir ? ` « Où chercher ? » retire ${PEN_OU_TXT}.` : ""}</p>` : ""}
         <div class="warn-serie" id="s-warn" hidden></div>
-        <div class="actions" id="s-actions">${q.type === "ch" ? "" : `<button class="btn plein" id="s-valider">Valider</button>`}${q.ou && !st.devoir ? `<button class="btn" id="s-ou">Où chercher ?${dev(st.id) ? ` <small>(−${PEN_OU_TXT})</small>` : ""}</button>` : ""}</div>
+        <div class="actions" id="s-actions">${q.type === "ch" ? "" : `<button class="btn plein" id="s-valider">Valider</button>`}${q.ou && !st.devoir ? `<button class="btn" id="s-ou">Où chercher ? <small>(−${PEN_OU_TXT})</small></button>` : ""}</div>
         <div id="s-ind"></div><div id="s-fb"></div><div id="s-sig"></div>
       </div>`;
     let indice = false;
     signalement(q);
     const ou = document.getElementById("s-ou");
-    if (ou) ou.addEventListener("click", () => { if (indice || st.rep.length > st.i) return; indice = true; if (dev(st.id)) { st.ouQ = st.i; entete(); }
-      document.getElementById("s-ind").innerHTML = `<div class="indice"><b>Où chercher ?</b> ${q.ou}${dev(st.id) ? ` <span class="discret">(−${PEN_OU_TXT})</span>` : ""}</div>`; ou.disabled = true; });
+    if (ou) ou.addEventListener("click", () => { if (indice || st.rep.length > st.i) return; indice = true; st.ouQ = st.i; entete();
+      document.getElementById("s-ind").innerHTML = `<div class="indice"><b>Où chercher ?</b> ${q.ou} <span class="discret">(−${PEN_OU_TXT})</span></div>`; ou.disabled = true; });
     const repondre = (ok, rep, attendu, opt) => {
       opt = opt || {};
       st.rep.push(Object.assign({ ok, rep, attendu, indice, t: Date.now() }, opt.donnees || {})); if (indice) st.indices++;
@@ -282,7 +283,7 @@
       entete();
       const fin = st.i + 1 >= st.qs.length;
       document.getElementById("s-actions").innerHTML = `<button class="btn plein" id="s-suite">${fin ? "Voir le bilan →" : "Question suivante →"}</button>`;
-      document.getElementById("s-fb").innerHTML = opt.fb || `<div class="correction"><div class="verdict-serie ${ok ? "ok" : "ko"}">${ok ? (dev(st.id) && errDe(st.rep[st.i]) ? "Exact au 2e essai · −2 points pour le premier" : "Exact") : "Faux"}${ok ? "" : `${dev(st.id) ? ` · −${2 * errDe(st.rep[st.i])} points` : ""} · réponse attendue : <b>${attendu}</b>`}${dev(st.id) && indice ? ` · « Où chercher ? » : −${PEN_OU_TXT}` : ""}</div><div class="corrige">${q.expl}</div></div>`;
+      document.getElementById("s-fb").innerHTML = opt.fb || `<div class="correction"><div class="verdict-serie ${ok ? "ok" : "ko"}">${ok ? (dev(st.id) && errDe(st.rep[st.i]) ? "Exact au 2e essai · −2 points pour le premier" : "Exact") : "Faux"}${ok ? "" : `${dev(st.id) ? ` · −${2 * errDe(st.rep[st.i])} points` : ""} · réponse attendue : <b>${attendu}</b>`}${indice ? ` · « Où chercher ? » : −${PEN_OU_TXT}` : ""}</div><div class="corrige">${q.expl}</div></div>`;
       const s = document.getElementById("s-suite"); s.focus({ preventScroll: true });
       s.addEventListener("click", () => { if (fin) terminer(app, false); else { st.i++; question(app); window.scrollTo({ top: 0, behavior: "smooth" }); } });
     };
@@ -658,7 +659,7 @@
           <div><div><b>${ok}</b> réponse${ok > 1 ? "s" : ""} entièrement juste${ok > 1 ? "s" : ""} sur ${n}${nbRed ? ` (dont ${nbRed} rédaction${nbRed > 1 ? "s" : ""})` : ""}</div>
           ${dev(st.id) && !estNote(st.id) && !enApercu() ? `<div><b>C'est ta nouvelle note</b> pour ce niveau${st.avant != null ? ` : elle remplace ${nf(st.avant, 1)} / 20` : ""}.</div>` : ""}
           <div class="discret">Temps : <b>${minutes(duree)}</b> · repère de l'épreuve : ${minutes(st.repere)}${st.tempsEcoule ? " · <b>temps écoulé</b>" : ""}</div>
-          ${st.indices ? `<div class="discret">« Où chercher ? » utilisé ${st.indices} fois${dev(st.id) ? ` : −${nf(PEN_OU * st.indices, 1)} point${PEN_OU * st.indices >= 2 ? "s" : ""}` : ""}</div>` : ""}</div></div>
+          ${st.indices ? `<div class="discret">« Où chercher ? » utilisé ${st.indices} fois : −${nf(PEN_OU * st.indices, 1)} point${PEN_OU * st.indices >= 2 ? "s" : ""}</div>` : ""}</div></div>
           <p class="discret" style="margin-bottom:0">${duree > st.repere * 1.3 ? "Tu dépasses nettement le temps de référence : à l'épreuve, tu manquerais de temps. Repère plus vite le document et la ligne utiles, puis écris directement la relation." : duree < st.repere * 0.5 && note < 14 ? "Tu vas vite mais tu fais des erreurs : prends le temps de relire l'unité et la ligne du tableau avant de valider." : "Ton rythme est compatible avec la durée de l'épreuve."}</p>
           <div class="actions"><button class="btn plein" id="b-encore">${dev(st.id) && !enApercu() ? "Le refaire (nouvelles valeurs, nouvelle note)" : "Recommencer (nouvelles valeurs)"}</button><a class="btn" href="${retourDe(st.id)}">${dev(st.id) ? "Les devoirs notés" : morc(st.id) ? "Autre partie" : ann(st.id) ? "Autre notion" : "Autre série"}</a>${ann(st.id) && B[ann(st.id)] ? `<a class="btn" href="#/serie/${ann(st.id)}">Série de la notion</a>` : ""}${N && !ann(st.id) && (E4.SUJETS || []).some((s) => s.questions.some((qq) => qq.notion === st.id)) ? `<a class="btn" href="#/notion/${st.id}">Questions d'annales de la notion</a>` : ""}</div></div>
         ${N ? `<div class="carte"><h3>Fiche · ${esc(N.fiche.t)}</h3><ul class="fiche-serie">${N.fiche.l.map((l) => `<li>${l}</li>`).join("")}</ul></div>`
@@ -673,7 +674,7 @@
     const details = st.qs.map((q, k) => { const r = st.rep[k] || {}, f = fracDe(r);
       const rep = q.type === "redac" && !r.horsTemps ? `✎ ${r.mode || "auto"} ${nf(f * q.el.length, 1)}/${q.el.length} · ${String(r.rep || "").replace(/\s+/g, " ")}` : String(r.rep || "");
       return { q: txt((q.ctx ? q.ctx + " · " : "") + q.q).slice(0, 400), rep: rep.slice(0, q.type === "redac" ? 300 : 80) + (r.indice ? " · indice" : ""), attendu: (q.type === "redac" ? attenduDe(q) : txt(r.attendu)).slice(0, q.type === "redac" ? 400 : 120),
-        pts: dev(st.id) ? -2 * errDe(r) - (r.indice ? PEN_OU : 0) : Math.round(f * 100) / 100, erreurs: dev(st.id) ? errDe(r) : f >= 1 ? 0 : 1, indice: dev(st.id) && r.indice ? true : undefined, essais: dev(st.id) ? r.essais || 1 : undefined, notion: q.nid, niveau: q.lv, g: q.g, ref: dev(st.id) ? q.ref : undefined, type: q.type === "redac" ? "redaction" : undefined }; });
+        pts: dev(st.id) ? -2 * errDe(r) - (r.indice ? PEN_OU : 0) : Math.round(f * 100) / 100, erreurs: dev(st.id) ? errDe(r) : f >= 1 ? 0 : 1, indice: r.indice ? true : undefined, essais: dev(st.id) ? r.essais || 1 : undefined, notion: q.nid, niveau: q.lv, g: q.g, ref: dev(st.id) ? q.ref : undefined, type: q.type === "redac" ? "redaction" : undefined }; });
     const titre = dev(st.id) ? "E4 · " + titreDe(st.id) + (estNote(st.id) ? "" : " (refait : nouvelle note)") : st.id === "express" ? "E4 · Épreuve express (" + st.qs.length + " q.)" : morc(st.id) ? "E4 · " + titreDe(st.id) + (st.officiel ? " (valeurs du sujet)" : "") : ann(st.id) ? "E4 · Annales — " + notion(ann(st.id)).nom + " (" + st.qs.length + " q.)" : "E4 · Série — " + notion(st.id).nom;
     const envoi = { module: moduleDe(st.id), titre, type: "externe", score: st.note, score_max: 20, duree_s: Math.round((st.fin - st.debut) / 1000), details };
     const moi = st, did = st.devoir ? st.did : null;
