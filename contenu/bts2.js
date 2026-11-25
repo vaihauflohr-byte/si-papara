@@ -83,7 +83,8 @@ SIP.SERIES_E4 = [
   { id: "prot", titre: "Protéger les personnes et les biens" },
   { id: "eco", titre: "Énergie, coûts et environnement" },
   { id: "reg", titre: "Mesurer, réguler, communiquer" },
-  { id: "poste", titre: "Poste de livraison et transformateur" }
+  { id: "poste", titre: "Poste de livraison et transformateur" },
+  { id: "secours", titre: "Alimentation de secours" }
 ];
 SIP.DEVOIRS_E4 = [
   { id: "dim1", serie: "dim", court: "Niveau 1", titre: "Dimensionner une installation", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "Bilan de puissance", 8], ["B", "Câble et protection", 10], ["C", "Compensation", 2]] },
@@ -109,5 +110,9 @@ SIP.DEVOIRS_E4 = [
   { id: "poste1", serie: "poste", court: "Niveau 1", titre: "Poste de livraison et transformateur", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "La plaque du transformateur", 5], ["B", "Le raccordement HTA", 2], ["C", "Pertes et rendement", 5]] },
   { id: "poste2", serie: "poste", court: "Niveau 2", titre: "Poste de livraison et transformateur", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Choisir la puissance", 3], ["B", "Les pertes du CCTP", 3], ["C", "Le coût des pertes", 3], ["D", "Le comptage", 2]] },
   { id: "poste3", serie: "poste", court: "Niveau 3", titre: "Poste de livraison et transformateur", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Le raccordement", 2], ["B", "Les TC de protection", 2], ["C", "La chute de tension", 6], ["D", "Le court-circuit", 2]] },
-  { id: "poste4", serie: "poste", court: "Niveau 4", titre: "Poste de livraison et transformateur", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Choisir TR2", 2], ["B", "Partage de la charge", 2], ["C", "Court-circuit", 2], ["D", "Comptage et exploitation", 3]] }
+  { id: "poste4", serie: "poste", court: "Niveau 4", titre: "Poste de livraison et transformateur", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "Choisir TR2", 2], ["B", "Partage de la charge", 2], ["C", "Court-circuit", 2], ["D", "Comptage et exploitation", 3]] },
+  { id: "secours1", serie: "secours", court: "Niveau 1", titre: "Alimentation de secours", niveau: 1, nomNiveau: "Pas à pas", parties: [["A", "L'ASI", 3], ["B", "La batterie", 5], ["C", "Le groupe électrogène", 3]] },
+  { id: "secours2", serie: "secours", court: "Niveau 2", titre: "Alimentation de secours", niveau: 2, nomNiveau: "Par étapes", parties: [["A", "Le bilan", 3], ["B", "Le groupe", 3], ["C", "Le gazole", 3], ["D", "Inverseur et courant", 2]] },
+  { id: "secours3", serie: "secours", court: "Niveau 3", titre: "Alimentation de secours", niveau: 3, nomNiveau: "Comme à l'épreuve", parties: [["A", "Redondance", 2], ["B", "L'ASI à volant", 4], ["C", "La cuve", 3], ["D", "Le disjoncteur", 2]] },
+  { id: "secours4", serie: "secours", court: "Niveau 4", titre: "Alimentation de secours", niveau: 4, nomNiveau: "Au-delà de l'épreuve", parties: [["A", "La batterie lithium", 4], ["B", "La recharge", 2], ["C", "Les essais du groupe", 2], ["D", "Le volant d'inertie", 2]] }
 ];
