@@ -320,6 +320,7 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
 <script src="e4/morceaux/2022-aerosol.js"></script>
 <script src="e4/morceaux/2022nc-telesiege.js"></script>
 <script src="e4/devoirs.js"></script>
+<script src="e4/devoirs-pompe.js"></script>
 <script src="e4/series.js"></script>
 <script>
 /* =====================================================================
@@ -484,13 +485,13 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
         <div class="etape"><div class="num">2</div><h3>Réponds sur ta copie</h3><p class="discret">Rédige comme à l'examen (relation, unités, calcul), puis saisis tes résultats : les valeurs numériques et les choix sont vérifiés automatiquement.</p></div>
         <div class="etape"><div class="num">3</div><h3>Évalue-toi avec la grille du barème</h3><p class="discret">Le corrigé s'affiche avec les indicateurs du barème (officiel, ou reconstitué quand il n'est pas publié) : coche ceux que tu as réellement produits → niveau N0 à N3, comme le correcteur. Le bilan montre tes notions solides et fragiles.</p></div>
       </div>
-      ${(() => { const L = E4.etatDevoirs ? E4.etatDevoirs() : []; if (!L.length) return "";   // devoirs notés en niveaux : une seule carte
-        const suiv = L.find((d) => d.ouvert && !d.fini), nb = (x) => Number(x).toLocaleString("fr-FR");
-        const puce = (d) => d.fini ? `<span class="chip dispo">N${d.niveau} · ${nb(d.note)} / 20</span>` : d.ouvert ? `<span class="chip attente">N${d.niveau} · ${d.faites ? `en cours ${d.faites} / ${d.n}` : "à faire"}</span>` : `<span class="chip">N${d.niveau} · 🔒</span>`;
-        return `<div class="carte serie-hero" style="margin-top:14px;border-color:var(--accent)"><div class="eyebrow">Travail noté · ${esc(L[0].titre)} · ${L.length} niveaux · on part de 20, −2 points par erreur</div>
-        <h3 style="margin-top:4px">${suiv ? `Niveau ${suiv.niveau} · ${esc(suiv.nomNiveau || "")}` : "Tous les niveaux sont rendus"}</h3>
-        <p class="discret" style="margin:4px 0 0;max-width:860px">Du plus guidé à l'épreuve, puis au-delà ; chaque niveau s'ouvre quand le précédent est rendu. Chaque élève a ses propres valeurs et ses propres documents ; la note sur 20 est transmise au professeur.</p>
-        <div class="actions" style="align-items:center">${L.map(puce).join("")}<a class="btn plein" href="#/devoirs">${suiv ? (suiv.faites ? "Reprendre le niveau " + suiv.niveau : "Ouvrir le niveau " + suiv.niveau) : "Voir les devoirs"}</a></div></div>`; })()}
+      ${(() => { const EE = E4.etatEtudes ? E4.etatEtudes() : []; if (!EE.length) return "";   // devoirs notés : une carte, une puce par étude
+        const suiv = E4.etudeSuivante(EE), nT = EE.reduce((a, e) => a + e.niveaux.length, 0), nR = EE.reduce((a, e) => a + e.rendus, 0);
+        const puce = (e) => `<a class="chip ${e.rendus === e.niveaux.length ? "dispo" : e.rendus || e.enCours ? "attente" : ""}" href="#/devoirs/${e.id}" style="text-decoration:none">${esc(e.titre)} · ${e.rendus} / ${e.niveaux.length}</a>`;
+        return `<div class="carte serie-hero" style="margin-top:14px;border-color:var(--accent)"><div class="eyebrow">Travail noté · ${EE.length} étude${EE.length > 1 ? "s" : ""} en 4 niveaux · on part de 20, −2 points par erreur</div>
+        <h3 style="margin-top:4px">${suiv ? `${esc(suiv.titre)} · niveau ${suiv.suiv.niveau} « ${esc(suiv.suiv.nomNiveau || "")} »` : "Tous les niveaux ouverts sont rendus"}</h3>
+        <p class="discret" style="margin:4px 0 0;max-width:860px">Chaque étude va du plus guidé à l'épreuve, puis au-delà ; un niveau s'ouvre quand le précédent est rendu. Chaque élève a ses propres valeurs et ses propres documents ; la note sur 20 est transmise au professeur.${nR ? ` ${nR} niveau${nR > 1 ? "x" : ""} rendu${nR > 1 ? "s" : ""} sur ${nT}.` : ""}</p>
+        <div class="actions" style="align-items:center">${EE.map(puce).join("")}<a class="btn plein" href="${suiv ? "#/devoirs/" + suiv.id : "#/devoirs"}">${suiv ? (suiv.suiv.faites ? "Reprendre le niveau " + suiv.suiv.niveau : suiv.rendus ? "Continuer" : "Commencer") : "Voir les devoirs"}</a></div></div>`; })()}
       ${E4.BANQUE ? `<div class="carte serie-hero" style="margin-top:14px"><div class="eyebrow">Banque de questions · ${Object.keys(E4.BANQUE).length} notions · ${Object.keys(E4.BANQUE).reduce((a, k) => a + E4.nbGenerateurs(k), 0)} types de questions</div>
         <h3 style="margin-top:4px">Avant les sujets complets : les séries par notion</h3>
         <p class="discret" style="margin:4px 0 0;max-width:860px">Les questions types des sujets 2022-2026, avec de nouvelles valeurs à chaque essai et les extraits de dossiers ressources où chercher les données. Note sur 20, résultat transmis au professeur. L'épreuve express (12 questions, temps limité) t'entraîne à gérer ton temps.</p>
