@@ -5051,6 +5051,8 @@ const coR = [
 B["compensation"].redac = coR;
 B["compensation"].count = Object.assign({}, B["compensation"].count, { r: 1 });
 }
+/* figures reprises par les devoirs notés (e4/devoirs-qualite.js) */
+E4.FIG_COMP = { uniC, hPlaque, plaque };
 }
 
 /* =====================================================================
@@ -5104,20 +5106,21 @@ function tableauSvg(x0, y0, larg, lignes, opt) {
   larg.slice(0, -1).forEach((w) => { x += w; s += Ln(x, y0, x, y0 + H, "v-thin"); });
   return { s, h: H };
 }
-/* spectre en barres (relevé d'analyseur) : f = fréquences (Hz), v = valeurs efficaces */
+/* spectre en barres (relevé d'analyseur) : f = fréquences (Hz), v = valeurs efficaces ;
+   options : d (décimales des valeurs, 0 par défaut), dy (décimales de l'axe), u (unité des valeurs, « A » par défaut) */
 function spectre(o) {
-  const W = 400, H = 250, ml = 50, mr = 12, mt = o.sous ? 46 : 30, mb = 42, n = o.f.length, cw = (W - ml - mr) / n;
+  const W = 400, H = 250, ml = 50, mr = 12, mt = o.sous ? 46 : 30, mb = 42, n = o.f.length, cw = (W - ml - mr) / n, d = o.d || 0, u = o.u || "A";
   const Y = (v) => H - mb - v / o.ymax * (H - mt - mb);
   let s = T(6, 16, o.titre, "v-cap") + (o.sous ? T(6, 32, o.sous, "v-sm") : "");
-  for (let k = 0; k * o.pas <= o.ymax + 1e-9; k++) s += Ln(ml, Y(k * o.pas), W - mr, Y(k * o.pas), "v-grid") + T(ml - 6, Y(k * o.pas) + 4, nf(k * o.pas, 0), "v-sm", "end");
+  for (let k = 0; k * o.pas <= o.ymax + 1e-9; k++) s += Ln(ml, Y(k * o.pas), W - mr, Y(k * o.pas), "v-grid") + T(ml - 6, Y(k * o.pas) + 4, nf(k * o.pas, o.dy || 0), "v-sm", "end");
   o.f.forEach((f, i) => {
     const xc = ml + cw * (i + 0.5), v = o.v[i];
-    if (v > 0) s += Rc(xc - cw * 0.17, Y(v), cw * 0.34, Y(0) - Y(v), "v-pt", 0) + T(xc, Y(v) - 5, nf(v, 0), "v-smb", "middle");
+    if (v > 0) s += Rc(xc - cw * 0.17, Y(v), cw * 0.34, Y(0) - Y(v), "v-pt", 0) + T(xc, Y(v) - 5, nf(v, d), "v-smb", "middle");
     s += T(xc, H - mb + 16, nf(f, 0), "v-sm", "middle");
   });
   s += Ln(ml, Y(0), W - mr, Y(0), "v-axe") + Ln(ml, Y(0), ml, Y(o.ymax), "v-axe");
   s += T((ml + W - mr) / 2, H - 8, "fréquence (Hz)", "v-cap", "middle") + Tv(13, (mt + H - mb) / 2, o.yt, "v-cap");
-  const alt = `${o.titre}. ${o.sous ? o.sous + ". " : ""}Spectre en barres, en abscisse la fréquence (Hz), en ordonnée ${o.yt} : ${o.f.map((f, i) => `${nf(f, 0)} Hz : ${nf(o.v[i], 0)} A`).join(" ; ")}.`;
+  const alt = `${o.titre}. ${o.sous ? o.sous + ". " : ""}Spectre en barres, en abscisse la fréquence (Hz), en ordonnée ${o.yt} : ${o.f.map((f, i) => `${nf(f, 0)} Hz : ${nf(o.v[i], d)} ${u}`).join(" ; ")}.`;
   return figure(W, H, s, alt);
 }
 /* pointe de flèche : h (vers le haut), b, d (vers la droite), g */
@@ -5553,8 +5556,9 @@ const vaR = [
 ];
 B["variateurs"].redac = vaR;
 B["variateurs"].count = Object.assign({}, B["variateurs"].count, { r: 1 });
-/* figures reprises par les devoirs notés (e4/devoirs-moteur.js) */
+/* figures reprises par les devoirs notés (e4/devoirs-moteur.js, e4/devoirs-qualite.js) */
 E4.FIG_VAR = { figVariateur, courbeAvec, avecNote };
+E4.FIG_QUAL = { spectre, tableauSvg, pointe };
 }
 
 /* =====================================================================
