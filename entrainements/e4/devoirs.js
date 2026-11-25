@@ -16,7 +16,9 @@
    la longueur, les chutes de tension, la conclusion (conforme ou non),
    l'objectif de compensation, et deux questions qui ont deux versions.
 
-   Notation : 20 questions, 1 point chacune, une seule réponse par question.
+   Notation (e4/series.js), comme sur le site des Terminales : on part de 20,
+   chaque erreur retire 2 points ; un calcul a deux essais (l'élève se corrige),
+   un choix n'a qu'une réponse.
    Le devoir se fait une seule fois ; ensuite il peut être refait pour
    s'entraîner, avec d'autres valeurs (module e4-devoir-<id>-entr).
 

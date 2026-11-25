@@ -27,7 +27,10 @@
    Devoirs notés (e4/devoirs.js) : #/devoirs (liste), #/devoir/<id> (le devoir), #/devoir/<id>/entrainement.
    Le devoir se fait une seule fois, élève connecté : ses valeurs sont tirées à partir de son nom (les mêmes
    à chaque ouverture, différentes de celles des autres élèves), ses réponses sont gardées sur l'appareil
-   question après question (il peut quitter et reprendre), pas de bouton « Où chercher ? ». Au premier
+   question après question (il peut quitter et reprendre), pas de bouton « Où chercher ? ». Notation des
+   devoirs, comme sur le site des Terminales : on part de 20, chaque erreur retire 2 points ; un calcul a
+   deux essais (l'élève se corrige : une erreur au 1er essai coûte 2 points, une 2e encore 2), un choix
+   n'a qu'une réponse. Au premier
    départ, une ligne « devoir_debut » part chez le professeur (il voit un devoir recommencé ailleurs) ;
    à la fin, la note part dans le module e4-devoir-<id>. Ensuite le devoir se refait pour s'entraîner,
    avec d'autres valeurs : module e4-devoir-<id>-entr, qui ne compte pas.
@@ -204,7 +207,10 @@
     question(app);
   }
   const fracDe = (r) => (r && r.frac != null ? r.frac : r && r.ok ? 1 : 0);
-  const noteCourante = () => { const n = st.qs.length, err = st.rep.reduce((a, r) => a + 1 - fracDe(r), 0); return Math.max(0, Math.round((20 - 20 * err / n) * 2) / 2); };
+  /* devoirs : nombre d'erreurs d'une réponse (0, 1 ou 2) ; st.pend : erreur déjà faite sur la question en cours */
+  const errDe = (r) => (r && r.err != null ? r.err : fracDe(r) >= 1 ? 0 : 1);
+  const noteCourante = () => { if (dev(st.id)) return Math.max(0, 20 - 2 * (st.rep.reduce((a, r) => a + errDe(r), 0) + (st.pend ? st.pend.err : 0)));
+    const n = st.qs.length, err = st.rep.reduce((a, r) => a + 1 - fracDe(r), 0); return Math.max(0, Math.round((20 - 20 * err / n) * 2) / 2); };
   function entete() {
     document.getElementById("s-pts").innerHTML = st.qs.map((q, k) => { const f = k < st.rep.length ? fracDe(st.rep[k]) : null;
       return `<i class="${f != null ? (f >= 1 ? "ok" : f > 0 ? "part" : "ko") : k === st.i ? "cour" : ""}" title="Question ${k + 1}${q.type === "redac" ? " (rédaction)" : ""}"></i>`; }).join("");
@@ -245,6 +251,7 @@
         ${q.docs && q.docs.length ? `<p class="discret doc-rappel">📄 Données à chercher dans : ${q.docs.map((d) => `<b>${esc(d.nom)}</b>`).join(" · ")}</p>` : ""}
         <p class="q-enonce">${q.q}</p>
         ${saisie}
+        ${dev(st.id) ? `<p class="discret" style="margin:6px 0 0">${q.type === "ch" ? "Une seule réponse : une erreur retire 2 points." : "Deux essais : chaque erreur retire 2 points. Si tu te trompes, tu peux te corriger."}</p>` : ""}
         <div class="warn-serie" id="s-warn" hidden></div>
         <div class="actions" id="s-actions">${q.type === "ch" ? "" : `<button class="btn plein" id="s-valider">Valider</button>`}${q.ou && !st.devoir ? `<button class="btn" id="s-ou">Où chercher ?</button>` : ""}</div>
         <div id="s-ind"></div><div id="s-fb"></div><div id="s-sig"></div>
@@ -260,7 +267,7 @@
       entete();
       const fin = st.i + 1 >= st.qs.length;
       document.getElementById("s-actions").innerHTML = `<button class="btn plein" id="s-suite">${fin ? "Voir le bilan →" : "Question suivante →"}</button>`;
-      document.getElementById("s-fb").innerHTML = opt.fb || `<div class="correction"><div class="verdict-serie ${ok ? "ok" : "ko"}">${ok ? "Exact" : "Faux"}${ok ? "" : ` · réponse attendue : <b>${attendu}</b>`}</div><div class="corrige">${q.expl}</div></div>`;
+      document.getElementById("s-fb").innerHTML = opt.fb || `<div class="correction"><div class="verdict-serie ${ok ? "ok" : "ko"}">${ok ? (dev(st.id) && errDe(st.rep[st.i]) ? "Exact au 2e essai · −2 points pour le premier" : "Exact") : "Faux"}${ok ? "" : `${dev(st.id) ? ` · −${2 * errDe(st.rep[st.i])} points` : ""} · réponse attendue : <b>${attendu}</b>`}</div><div class="corrige">${q.expl}</div></div>`;
       const s = document.getElementById("s-suite"); s.focus({ preventScroll: true });
       s.addEventListener("click", () => { if (fin) terminer(app, false); else { st.i++; question(app); window.scrollTo({ top: 0, behavior: "smooth" }); } });
     };
@@ -294,11 +301,28 @@
     } else {
       const inp = document.getElementById("s-val"), val = document.getElementById("s-valider");
       inp.focus({ preventScroll: true });
+      const dernier = (sens) => `<b>Pas encore : −2 points.</b>${sens ? ` Ton résultat est ${sens}.` : ""} Vérifie ta relation, tes unités et la ligne lue dans le document, puis corrige ta réponse : dernier essai.`;
+      if (dev(st.id) && st.pend && st.pend.i === st.i && st.pend.err) { const w = document.getElementById("s-warn"); w.hidden = false; w.innerHTML = dernier(""); }   // devoir repris après une première erreur
       const valider = () => {
         if (st.rep.length > st.i) return;
         const v = lireNombre(inp.value);
         if (!Number.isFinite(v)) { const w = document.getElementById("s-warn"); w.hidden = false; w.textContent = "Entre une valeur numérique (par exemple 0,35 ou 614), sans l'unité."; return; }
         const ok = numJuste(q, v);
+        if (dev(st.id)) {   // devoir : deux essais, chaque erreur retire 2 points
+          const p = st.pend && st.pend.i === st.i ? st.pend : (st.pend = { i: st.i, err: 0, reps: [] });
+          p.reps.push(inp.value.trim());
+          if (!ok) p.err++;
+          if (!ok && p.reps.length < 2) {
+            sauverDevoir(); entete();
+            const w = document.getElementById("s-warn"); w.hidden = false; w.innerHTML = dernier(v > q.ans ? "trop grand" : "trop petit");
+            inp.select(); inp.focus({ preventScroll: true });
+            return;
+          }
+          st.pend = null;
+          inp.disabled = true; val.disabled = true; inp.closest(".champ").classList.add(ok ? "ok" : "ko"); document.getElementById("s-warn").hidden = true;
+          repondre(ok, p.reps.join(" puis ") + (q.unit ? " " + q.unit : ""), affiche(q), { donnees: { err: p.err, essais: p.reps.length, frac: ok ? (p.err ? 0.5 : 1) : 0 } });
+          return;
+        }
         inp.disabled = true; val.disabled = true; inp.closest(".champ").classList.add(ok ? "ok" : "ko"); document.getElementById("s-warn").hidden = true;
         repondre(ok, inp.value + (q.unit ? " " + q.unit : ""), affiche(q));
       };
@@ -430,13 +454,14 @@
       try { SIP.ecrire("enregistrer", { module: "e4-devoir-" + did, titre: `E4 · ${d.court} · ${d.titre} (début)`, type: "devoir_debut", score: 0, score_max: 20, duree_s: 0, details: null }).catch(() => {}); } catch (e) { /* pas de connexion : rien */ }
     }
     const rep = note ? (sauve.rep || []).slice(0, qs.length) : [];
-    return { id, qs, i: Math.min(rep.length, Math.max(0, qs.length - 1)), rep, debut: Date.now() - (note ? sauve.ecoule || 0 : 0), fini: false, indices: 0, repere: d.duree_min, officiel: false, limite: null, transmis: false, devoir: note, did };
+    const pend = note && sauve.pend && sauve.pend.i === rep.length ? sauve.pend : null;
+    return { id, qs, i: Math.min(rep.length, Math.max(0, qs.length - 1)), rep, debut: Date.now() - (note ? sauve.ecoule || 0 : 0), fini: false, indices: 0, repere: d.duree_min, officiel: false, limite: null, transmis: false, devoir: note, did, pend };
   }
   /* après chaque réponse : les réponses et le temps passé restent sur l'appareil */
   function sauverDevoir() {
     if (!st || !st.devoir) return;
     const o = lireDev(st.did) || { v: 1, debut: new Date().toISOString() };
-    o.rep = st.rep; o.ecoule = (st.fini ? st.fin : Date.now()) - st.debut; o.fini = !!st.fini;
+    o.rep = st.rep; o.pend = st.pend || null; o.ecoule = (st.fini ? st.fin : Date.now()) - st.debut; o.fini = !!st.fini;
     if (st.fini) { o.note = st.note; o.rendu = new Date(st.fin).toISOString(); }
     ecrireDev(st.did, o);
   }
@@ -500,7 +525,7 @@
           etat = `<span class="chip attente">À faire</span>`;
           actions = `<a class="btn plein" href="#/devoir/${d.id}">Commencer le devoir</a>${!loc && x && x.debuts ? `<p class="discret" style="flex-basis:100%;margin:6px 0 0">Tu as déjà commencé ce devoir sur un autre appareil : tes réponses y sont restées. Reprends-le de préférence là-bas ; si tu recommences ici, ton professeur le verra.</p>` : ""}`;
         }
-        return `<div class="carte"><div class="eyebrow">${esc(d.court)} · ${n} questions · 1 point par question · ≈ ${d.duree_min} min</div>
+        return `<div class="carte"><div class="eyebrow">${esc(d.court)} · ${n} questions · on part de 20, −2 points par erreur · ≈ ${d.duree_min} min</div>
           <h3 style="margin-top:4px">${esc(d.titre)} ${etat}</h3><p class="discret">${esc(d.resume)}</p>${parties}<div class="actions">${actions}</div></div>`;
       };
       app.innerHTML = `
@@ -509,8 +534,9 @@
         <div class="carte" style="max-width:860px"><div class="eyebrow">Règles du devoir</div>
           <ul style="margin:6px 0 0;padding-left:1.2em">
             <li>Le devoir se fait <b>une seule fois</b> : sa note, sur 20, est transmise au professeur.</li>
+            <li><b>Tu pars de 20 ; chaque erreur retire 2 points.</b> Pour un calcul, tu as deux essais : si tu te trompes, tu perds 2 points et tu peux te corriger. Pour un choix, une seule réponse.</li>
             <li><b>Tes valeurs sont les tiennes</b> : chaque élève a son installation, ses documents et ses résultats. Recopier un voisin ne sert à rien.</li>
-            <li>Une seule réponse par question ; la correction s'affiche tout de suite, et la question suivante rappelle le bon résultat : une erreur ne se reporte pas sur la suite.</li>
+            <li>La correction s'affiche dès que la question est finie, et la question suivante rappelle le bon résultat : une erreur ne se reporte pas sur la suite.</li>
             <li>Travaille comme à l'épreuve : copie, calculatrice, documents du dossier ressources (onglets à gauche). Pas de bouton « Où chercher ? » dans un devoir.</li>
             <li>Tu peux quitter et reprendre plus tard <b>sur le même appareil</b> : tes réponses sont gardées.</li>
           </ul></div>
@@ -574,7 +600,7 @@
     const details = st.qs.map((q, k) => { const r = st.rep[k] || {}, f = fracDe(r);
       const rep = q.type === "redac" && !r.horsTemps ? `✎ ${r.mode || "auto"} ${nf(f * q.el.length, 1)}/${q.el.length} · ${String(r.rep || "").replace(/\s+/g, " ")}` : String(r.rep || "");
       return { q: txt((q.ctx ? q.ctx + " · " : "") + q.q).slice(0, 400), rep: rep.slice(0, q.type === "redac" ? 300 : 80) + (r.indice ? " · indice" : ""), attendu: (q.type === "redac" ? attenduDe(q) : txt(r.attendu)).slice(0, q.type === "redac" ? 400 : 120),
-        pts: Math.round(f * 100) / 100, erreurs: f >= 1 ? 0 : 1, notion: q.nid, niveau: q.lv, g: q.g, ref: dev(st.id) ? q.ref : undefined, type: q.type === "redac" ? "redaction" : undefined }; });
+        pts: dev(st.id) ? -2 * errDe(r) : Math.round(f * 100) / 100, erreurs: dev(st.id) ? errDe(r) : f >= 1 ? 0 : 1, essais: dev(st.id) ? r.essais || 1 : undefined, notion: q.nid, niveau: q.lv, g: q.g, ref: dev(st.id) ? q.ref : undefined, type: q.type === "redac" ? "redaction" : undefined }; });
     const titre = dev(st.id) ? "E4 · " + titreDe(st.id) + (estNote(st.id) ? "" : " (entraînement, ne compte pas)") : st.id === "express" ? "E4 · Épreuve express (" + st.qs.length + " q.)" : morc(st.id) ? "E4 · " + titreDe(st.id) + (st.officiel ? " (valeurs du sujet)" : "") : ann(st.id) ? "E4 · Annales — " + notion(ann(st.id)).nom + " (" + st.qs.length + " q.)" : "E4 · Série — " + notion(st.id).nom;
     const envoi = { module: moduleDe(st.id), titre, type: "externe", score: st.note, score_max: 20, duree_s: Math.round((st.fin - st.debut) / 1000), details };
     const moi = st, did = st.devoir ? st.did : null;
