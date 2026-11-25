@@ -2698,6 +2698,8 @@ const reR = [
 ];
 B["regulation-automatisme"].redac = reR;
 B["regulation-automatisme"].count = Object.assign({}, B["regulation-automatisme"].count, { r: 2 });
+/* figures reprises par les devoirs notés (e4/devoirs-reg.js) */
+E4.FIG_REG = { figBroida, figBlocs, figReseau, figSurpresseur, courbePlus, figTableau, plaqueTr, plaquesEcran, cadre, etiq, vanneH, vanneV, fleche, dessous };
 }
 
 /* =====================================================================
