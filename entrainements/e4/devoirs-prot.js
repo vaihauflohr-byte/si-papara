@@ -304,7 +304,7 @@ function gen1() {
   const fS = figTT(v), fL = figLocalTT(v);
   const dSLT = doc("DRES · Schémas de liaison à la terre, tension limite", htmlSLT()), dTT = doc("DRES · Défaut d'isolement en schéma TT", htmlTT()), dC = doc("DRES · Effets du courant sur le corps humain", htmlCorps()),
     dCo = doc("DRES · Courbes de déclenchement des disjoncteurs", htmlCourbes()), dD = doc("DRES · Dispositifs différentiels", htmlDDR()), dTc = doc("DRES · Temps de coupure maximal", htmlTc()), dTe = doc("DRES · Prises de terre", htmlTerre());
-  const ctxA = `${cap(st.site)} est alimenté par le réseau public de distribution, en schéma TT. Un défaut d'isolement apparaît : une phase touche la masse métallique du récepteur « ${v.mach} ». On étudie le danger, puis la protection des personnes.`;
+  const ctxA = `L'installation ${/^une? /.test(st.site) ? "d'" + st.site : "de " + st.site} est alimentée par le réseau public de distribution, en schéma TT. Un défaut d'isolement apparaît : une phase touche la masse métallique du récepteur « ${v.mach} ». On étudie le danger, puis la protection des personnes.`;
   const a1 = QA1.TT[v.vA1], dg = chDanger(v);
   const ch4 = [libDDR(v.ddr, true), libDDR(DDR_S[v.iD + 1], true), libDDR(v.ddr, false), libDDR(DDR_S[v.iD - 1], true)];
   const tcCh = ["0,07 s", "0,2 s", "0,4 s", "1 s", "5 s"];

@@ -215,7 +215,10 @@
   const fracDe = (r) => (r && r.frac != null ? r.frac : r && r.ok ? 1 : 0);
   /* devoirs : nombre d'erreurs d'une réponse (0, 1 ou 2) ; st.pend : erreur déjà faite sur la question en cours */
   const errDe = (r) => (r && r.err != null ? r.err : fracDe(r) >= 1 ? 0 : 1);
-  const noteCourante = () => { if (dev(st.id)) return Math.max(0, 20 - 2 * (st.rep.reduce((a, r) => a + errDe(r), 0) + (st.pend ? st.pend.err : 0)));
+  /* devoir refait (ou aperçu du professeur) : chaque « Où chercher ? » retire PEN_OU points ; st.ouQ : ouvert sur la question en cours, pas encore répondue */
+  const PEN_OU = 1.5, PEN_OU_TXT = "1,5 point";
+  const nbOu = () => st.rep.filter((r) => r && r.indice).length + (st.ouQ != null && st.ouQ >= st.rep.length ? 1 : 0);
+  const noteCourante = () => { if (dev(st.id)) return Math.max(0, 20 - 2 * (st.rep.reduce((a, r) => a + errDe(r), 0) + (st.pend ? st.pend.err : 0)) - PEN_OU * nbOu());
     const n = st.qs.length, err = st.rep.reduce((a, r) => a + 1 - fracDe(r), 0); return Math.max(0, Math.round((20 - 20 * err / n) * 2) / 2); };
   function entete() {
     document.getElementById("s-pts").innerHTML = st.qs.map((q, k) => { const f = k < st.rep.length ? fracDe(st.rep[k]) : null;
@@ -260,15 +263,16 @@
         ${q.docs && q.docs.length ? (q.classeur ? `<p class="discret doc-rappel">📄 Tout le dossier est dans les onglets : DTEC (ton installation, avec tes valeurs) et DRES (ressources). Sur téléphone : bouton « Documents ».</p>` : `<p class="discret doc-rappel">📄 Données à chercher dans : ${q.docs.map((d) => `<b>${esc(d.nom)}</b>`).join(" · ")}</p>`) : ""}
         <p class="q-enonce">${q.q}</p>
         ${saisie}
-        ${dev(st.id) ? `<p class="discret" style="margin:6px 0 0">${q.type === "ch" ? "Une seule réponse : une erreur retire 2 points." : "Deux essais : chaque erreur retire 2 points. Si tu te trompes, tu peux te corriger."}</p>` : ""}
+        ${dev(st.id) ? `<p class="discret" style="margin:6px 0 0">${q.type === "ch" ? "Une seule réponse : une erreur retire 2 points." : "Deux essais : chaque erreur retire 2 points. Si tu te trompes, tu peux te corriger."}${q.ou && !st.devoir ? ` « Où chercher ? » retire ${PEN_OU_TXT}.` : ""}</p>` : ""}
         <div class="warn-serie" id="s-warn" hidden></div>
-        <div class="actions" id="s-actions">${q.type === "ch" ? "" : `<button class="btn plein" id="s-valider">Valider</button>`}${q.ou && !st.devoir ? `<button class="btn" id="s-ou">Où chercher ?</button>` : ""}</div>
+        <div class="actions" id="s-actions">${q.type === "ch" ? "" : `<button class="btn plein" id="s-valider">Valider</button>`}${q.ou && !st.devoir ? `<button class="btn" id="s-ou">Où chercher ?${dev(st.id) ? ` <small>(−${PEN_OU_TXT})</small>` : ""}</button>` : ""}</div>
         <div id="s-ind"></div><div id="s-fb"></div><div id="s-sig"></div>
       </div>`;
     let indice = false;
     signalement(q);
     const ou = document.getElementById("s-ou");
-    if (ou) ou.addEventListener("click", () => { indice = true; document.getElementById("s-ind").innerHTML = `<div class="indice"><b>Où chercher ?</b> ${q.ou}</div>`; ou.disabled = true; });
+    if (ou) ou.addEventListener("click", () => { if (indice || st.rep.length > st.i) return; indice = true; if (dev(st.id)) { st.ouQ = st.i; entete(); }
+      document.getElementById("s-ind").innerHTML = `<div class="indice"><b>Où chercher ?</b> ${q.ou}${dev(st.id) ? ` <span class="discret">(−${PEN_OU_TXT})</span>` : ""}</div>`; ou.disabled = true; });
     const repondre = (ok, rep, attendu, opt) => {
       opt = opt || {};
       st.rep.push(Object.assign({ ok, rep, attendu, indice, t: Date.now() }, opt.donnees || {})); if (indice) st.indices++;
@@ -276,7 +280,7 @@
       entete();
       const fin = st.i + 1 >= st.qs.length;
       document.getElementById("s-actions").innerHTML = `<button class="btn plein" id="s-suite">${fin ? "Voir le bilan →" : "Question suivante →"}</button>`;
-      document.getElementById("s-fb").innerHTML = opt.fb || `<div class="correction"><div class="verdict-serie ${ok ? "ok" : "ko"}">${ok ? (dev(st.id) && errDe(st.rep[st.i]) ? "Exact au 2e essai · −2 points pour le premier" : "Exact") : "Faux"}${ok ? "" : `${dev(st.id) ? ` · −${2 * errDe(st.rep[st.i])} points` : ""} · réponse attendue : <b>${attendu}</b>`}</div><div class="corrige">${q.expl}</div></div>`;
+      document.getElementById("s-fb").innerHTML = opt.fb || `<div class="correction"><div class="verdict-serie ${ok ? "ok" : "ko"}">${ok ? (dev(st.id) && errDe(st.rep[st.i]) ? "Exact au 2e essai · −2 points pour le premier" : "Exact") : "Faux"}${ok ? "" : `${dev(st.id) ? ` · −${2 * errDe(st.rep[st.i])} points` : ""} · réponse attendue : <b>${attendu}</b>`}${dev(st.id) && indice ? ` · « Où chercher ? » : −${PEN_OU_TXT}` : ""}</div><div class="corrige">${q.expl}</div></div>`;
       const s = document.getElementById("s-suite"); s.focus({ preventScroll: true });
       s.addEventListener("click", () => { if (fin) terminer(app, false); else { st.i++; question(app); window.scrollTo({ top: 0, behavior: "smooth" }); } });
     };
@@ -546,6 +550,7 @@
             <li>La correction s'affiche dès que la question est finie ; quand une question reprend un résultat, il est rappelé (« On prendra… ») : une erreur ne se reporte pas sur la suite.</li>
             <li>Travaille comme à l'épreuve : copie, calculatrice et documents (onglets à gauche sur ordinateur, bouton « Documents » sur téléphone). À partir du niveau 2, c'est le dossier complet : dossier technique (DTEC, ton installation) et dossier ressources (DRES). Pas de bouton « Où chercher ? » dans un devoir.</li>
             <li>Tu peux quitter et reprendre plus tard <b>sur le même appareil</b> : tes réponses sont gardées.</li>
+            <li>Une fois rendu, tu peux <b>le refaire pour t'entraîner</b>, avec d'autres valeurs : ta note ne change pas, mais <b>ton professeur voit aussi ces notes</b>. Là, le bouton « Où chercher ? » existe : <b>chaque usage retire ${PEN_OU_TXT}</b>.</li>
           </ul>`;
   const CONNEXION = `<div class="carte" style="max-width:860px;margin-top:12px"><p style="margin:0"><b>Connecte-toi au site pour faire un devoir.</b></p><div class="actions"><a class="btn plein" href="../index.html#/connexion/BTS2-STI">Me connecter · BTS 2 STI</a><a class="btn" href="../index.html#/connexion/BTS2-ADM">BTS 2 ADM</a></div></div>`;
   function vueDevoirs(app, sid) {
@@ -560,7 +565,7 @@
       else if (loc && loc.fini) {
         const cls = loc.note >= 16 ? "n3" : loc.note >= 10 ? "n2" : "n1";
         etat = `<span class="chip dispo">Rendu${loc.rendu ? " le " + esc(jourDe(loc.rendu)) : ""}</span>`;
-        actions = `<span class="pastille ${cls}" style="font-size:1.05rem">${nf(loc.note, 1)} / 20</span>${loc.envoi && !loc.transmis ? `<button class="btn plein" data-envoyer="${d.id}">Transmettre ma note</button>` : ""}<a class="btn" href="#/devoir/${d.id}/entrainement">Le refaire pour m'entraîner</a><span class="discret">Autres valeurs ; ne change pas ta note.</span>`;
+        actions = `<span class="pastille ${cls}" style="font-size:1.05rem">${nf(loc.note, 1)} / 20</span>${loc.envoi && !loc.transmis ? `<button class="btn plein" data-envoyer="${d.id}">Transmettre ma note</button>` : ""}<a class="btn" href="#/devoir/${d.id}/entrainement">Le refaire pour m'entraîner</a><span class="discret">Autres valeurs ; ne change pas ta note, mais ton professeur voit ces notes. « Où chercher ? » y retire ${PEN_OU_TXT}.</span>`;
       } else if (!ouvert) { etat = `<span class="chip">🔒 Verrouillé</span>`; actions = `<span class="discret">S'ouvre quand tu as rendu le niveau ${prec.niveau} « ${esc(prec.nomNiveau || "")} ».</span>`; }
       else if (loc && (loc.rep || []).length) { etat = `<span class="chip attente">En cours · ${loc.rep.length} / ${n}</span>`; actions = `<a class="btn plein" href="#/devoir/${d.id}">Reprendre à la question ${Math.min(loc.rep.length + 1, n)}</a>`; }
       else {
@@ -642,9 +647,9 @@
         <div class="carte"><div class="score"><div class="grand ${cls}">${nf(note, 1)}<small> / 20</small></div>
           <div><div><b>${ok}</b> réponse${ok > 1 ? "s" : ""} entièrement juste${ok > 1 ? "s" : ""} sur ${n}${nbRed ? ` (dont ${nbRed} rédaction${nbRed > 1 ? "s" : ""})` : ""}</div>
           <div class="discret">Temps : <b>${minutes(duree)}</b> · repère de l'épreuve : ${minutes(st.repere)}${st.tempsEcoule ? " · <b>temps écoulé</b>" : ""}</div>
-          ${st.indices ? `<div class="discret">« Où chercher ? » utilisé ${st.indices} fois</div>` : ""}</div></div>
+          ${st.indices ? `<div class="discret">« Où chercher ? » utilisé ${st.indices} fois${dev(st.id) ? ` : −${nf(PEN_OU * st.indices, 1)} point${PEN_OU * st.indices >= 2 ? "s" : ""}` : ""}</div>` : ""}</div></div>
           <p class="discret" style="margin-bottom:0">${duree > st.repere * 1.3 ? "Tu dépasses nettement le temps de référence : à l'épreuve, tu manquerais de temps. Repère plus vite le document et la ligne utiles, puis écris directement la relation." : duree < st.repere * 0.5 && note < 14 ? "Tu vas vite mais tu fais des erreurs : prends le temps de relire l'unité et la ligne du tableau avant de valider." : "Ton rythme est compatible avec la durée de l'épreuve."}</p>
-          <div class="actions"><button class="btn plein" id="b-encore">${estNote(st.id) ? "Le refaire pour m'entraîner (autres valeurs, ne compte pas)" : "Recommencer (nouvelles valeurs)"}</button><a class="btn" href="${retourDe(st.id)}">${dev(st.id) ? "Les devoirs notés" : morc(st.id) ? "Autre partie" : ann(st.id) ? "Autre notion" : "Autre série"}</a>${ann(st.id) && B[ann(st.id)] ? `<a class="btn" href="#/serie/${ann(st.id)}">Série de la notion</a>` : ""}${N && !ann(st.id) && (E4.SUJETS || []).some((s) => s.questions.some((qq) => qq.notion === st.id)) ? `<a class="btn" href="#/notion/${st.id}">Questions d'annales de la notion</a>` : ""}</div></div>
+          <div class="actions"><button class="btn plein" id="b-encore">${estNote(st.id) ? "Le refaire pour m'entraîner (autres valeurs, ne change pas ta note)" : "Recommencer (nouvelles valeurs)"}</button><a class="btn" href="${retourDe(st.id)}">${dev(st.id) ? "Les devoirs notés" : morc(st.id) ? "Autre partie" : ann(st.id) ? "Autre notion" : "Autre série"}</a>${ann(st.id) && B[ann(st.id)] ? `<a class="btn" href="#/serie/${ann(st.id)}">Série de la notion</a>` : ""}${N && !ann(st.id) && (E4.SUJETS || []).some((s) => s.questions.some((qq) => qq.notion === st.id)) ? `<a class="btn" href="#/notion/${st.id}">Questions d'annales de la notion</a>` : ""}</div></div>
         ${N ? `<div class="carte"><h3>Fiche · ${esc(N.fiche.t)}</h3><ul class="fiche-serie">${N.fiche.l.map((l) => `<li>${l}</li>`).join("")}</ul></div>`
             : `<div class="carte"><h3>Par notion</h3><table><tbody>${Object.entries(parNotion).map(([id, p]) => `<tr><td>${esc(notion(id).nom)}</td><td class="num" style="white-space:nowrap">${nf(p.ok, 1)} / ${p.n}</td><td>${p.ok < p.n - 1e-9 ? `<a class="btn petit" href="#/serie/${id}">Série</a>` : "✓"}</td></tr>`).join("")}</tbody></table></div>`}
       </div>
@@ -657,7 +662,7 @@
     const details = st.qs.map((q, k) => { const r = st.rep[k] || {}, f = fracDe(r);
       const rep = q.type === "redac" && !r.horsTemps ? `✎ ${r.mode || "auto"} ${nf(f * q.el.length, 1)}/${q.el.length} · ${String(r.rep || "").replace(/\s+/g, " ")}` : String(r.rep || "");
       return { q: txt((q.ctx ? q.ctx + " · " : "") + q.q).slice(0, 400), rep: rep.slice(0, q.type === "redac" ? 300 : 80) + (r.indice ? " · indice" : ""), attendu: (q.type === "redac" ? attenduDe(q) : txt(r.attendu)).slice(0, q.type === "redac" ? 400 : 120),
-        pts: dev(st.id) ? -2 * errDe(r) : Math.round(f * 100) / 100, erreurs: dev(st.id) ? errDe(r) : f >= 1 ? 0 : 1, essais: dev(st.id) ? r.essais || 1 : undefined, notion: q.nid, niveau: q.lv, g: q.g, ref: dev(st.id) ? q.ref : undefined, type: q.type === "redac" ? "redaction" : undefined }; });
+        pts: dev(st.id) ? -2 * errDe(r) - (r.indice ? PEN_OU : 0) : Math.round(f * 100) / 100, erreurs: dev(st.id) ? errDe(r) : f >= 1 ? 0 : 1, indice: dev(st.id) && r.indice ? true : undefined, essais: dev(st.id) ? r.essais || 1 : undefined, notion: q.nid, niveau: q.lv, g: q.g, ref: dev(st.id) ? q.ref : undefined, type: q.type === "redac" ? "redaction" : undefined }; });
     const titre = dev(st.id) ? "E4 · " + titreDe(st.id) + (estNote(st.id) ? "" : " (entraînement, ne compte pas)") : st.id === "express" ? "E4 · Épreuve express (" + st.qs.length + " q.)" : morc(st.id) ? "E4 · " + titreDe(st.id) + (st.officiel ? " (valeurs du sujet)" : "") : ann(st.id) ? "E4 · Annales — " + notion(ann(st.id)).nom + " (" + st.qs.length + " q.)" : "E4 · Série — " + notion(st.id).nom;
     const envoi = { module: moduleDe(st.id), titre, type: "externe", score: st.note, score_max: 20, duree_s: Math.round((st.fin - st.debut) / 1000), details };
     const moi = st, did = st.devoir ? st.did : null;
