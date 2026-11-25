@@ -10,7 +10,7 @@
     ok: (n) => `✓ Avancement enregistré sur ton compte${n ? " (" + n + ")" : ""} : tu le retrouves sur n'importe quel poste.`,
     attente: "Enregistrement…", erreur: "Enregistrement impossible pour le moment : ton avancement reste sur cet appareil." };
   let nom = "", pret = false, minuterie = 0, distant = {};
-  const dire = (k) => { if (el) el.innerHTML = typeof MSG[k] === "function" ? MSG[k](nom) : MSG[k] || ""; };
+  const dire = (k) => { if (el) el.innerHTML = typeof MSG[k] === "function" ? MSG[k](nom) : MSG[k] || ""; window.PLANEUR_SYNC_ETAT = k; try { document.dispatchEvent(new CustomEvent("planeur-sync", { detail: k })); } catch (e) { /* rien */ } };          // l'atelier 3D affiche le même état dans son bandeau
   const s = window.SIP && SIP.session && SIP.session.get();
   window.PLANEUR_SYNC = () => { try { localStorage.setItem(KT, String(Date.now())); } catch (e) { /* rien */ } if (!pret) return; clearTimeout(minuterie); dire("attente"); minuterie = setTimeout(pousser, 1500); };
   if (!s || s.apercu || !SIP.api || !SIP.api.projetEtat) { dire("hors"); return; }
