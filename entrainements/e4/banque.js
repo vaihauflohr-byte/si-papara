@@ -3556,6 +3556,8 @@ const trR = [
 ];
 B["transformateur"].redac = trR;
 B["transformateur"].count = Object.assign({}, B["transformateur"].count, { r: 2 });
+/* figures et données reprises par les devoirs notés (e4/devoirs-poste.js) */
+E4.FIG_TR = { plaqueEn, hPl, altPl, plaquesCadre, plaqueAfficheurs, figTableau, posteProjet, cellulesHTA, planReseau, figModele, IPN, FLP, NIV };
 }
 
 /* =====================================================================
