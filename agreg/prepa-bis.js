@@ -305,7 +305,7 @@
   // diagramme de Bode d'une fonction f(ω) → [gain en dB, phase en °]
   function bodeF(f, w0, w1, alt) {
     const g = [], ph = [];
-    for (let i = 0; i <= 240; i++) { const w = w0 * (w1 / w0) ** (i / 240), v = f(w); g.push([w, v[0]]); ph.push([w, v[1]]); }
+    for (let i = 0; i <= 240; i++) { const w = w0 * (w1 / w0) ** (i / 240), v = f(w); g.push([w, Math.max(-300, Math.min(300, isFinite(v[0]) ? v[0] : 300))]); ph.push([w, isFinite(v[1]) ? v[1] : 0]); }
     const gs = g.map((q) => q[1]), ps = ph.map((q) => q[1]);
     let y0 = Math.floor(Math.min(...gs) / 10) * 10 + 0, y1 = Math.max(10, Math.ceil(Math.max(...gs) / 10) * 10) + 0;
     const big = y1 - y0 > 80, py = y1 - y0 <= 200 ? 20 : 40;
@@ -904,9 +904,9 @@
      boucle ouverte et tracé de Bode, marges, effet d'un couple perturbateur, correcteur proportionnel
      réglé pour la marge de phase, correcteur PI (forme, Bode), quatre réglages jugés au critère du revers
      ===================================================================== */
-  function bodeMulti(fs, w0, w1, noms, alt) {
-    const G = fs.map(() => []), P = fs.map(() => []);
-    for (let i = 0; i <= 240; i++) { const w = w0 * (w1 / w0) ** (i / 240); fs.forEach((f, k) => { const v = f(w); G[k].push([w, v[0]]); P[k].push([w, v[1]]); }); }
+  function bodeMulti(fs, w0, w1, noms, alt, lim) {
+    const G = fs.map(() => []), P = fs.map(() => []), [gb, gh] = lim || [-300, 300];   // gain borné : une résonance non amortie vaut l’infini
+    for (let i = 0; i <= 240; i++) { const w = w0 * (w1 / w0) ** (i / 240); fs.forEach((f, k) => { const v = f(w), g = isFinite(v[0]) ? v[0] : (v[0] > 0 ? gh : gb); G[k].push([w, Math.max(gb, Math.min(gh, g))]); P[k].push([w, isFinite(v[1]) ? v[1] : 0]); }); }
     const gs = [].concat(...G).map((q) => q[1]), ps = [].concat(...P).map((q) => q[1]);
     const etendue = Math.max(...gs) - Math.min(...gs), py = etendue <= 100 ? 20 : etendue <= 200 ? 40 : 80;   // graduations lisibles
     const y0 = Math.floor(Math.min(...gs) / py) * py + 0, y1 = Math.ceil(Math.max(...gs) / py) * py + 0, p0 = Math.floor(Math.min(...ps) / 45) * 45 + 0, p1 = Math.ceil(Math.max(...ps) / 45) * 45 + 0;
@@ -1162,6 +1162,295 @@
           hint: 'L’avance est maximale à ω = 1/(T√μ) ; le terme y vaut √μ en gain.',
           corr: pas([`1/(T√μ) = ${wr}, donc <b>T = 1/(${wr} × √${f3(muR)}) = ${f3(1 / (wr * Math.sqrt(muR)))} s</b>.`, `À ${wr} rad/s : K<sub>p</sub> × √μ × ${sci(ol1(wr))} = 1, donc <b>K<sub>p</sub> = ${f3(1 / (Math.sqrt(muR) * ol1(wr)))}</b>.`, `Vérification : la marge de gain obtenue vaut environ ${f3(MGf)} dB, au-dessus des ${MGr} dB exigés.`],
             'on place l’avance au milieu (géométrique) de son zéro et de son pôle, là où l’on veut couper 0 dB ; le gain √μ qu’elle apporte s’y retranche du réglage de K<sub>p</sub>.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 2 · extrait de sujet 1 — sur un autre système : le radar météo au sommet d'un pylône souple
+     moteur à courant continu sans inductance, deux inerties et une raideur, réduction d'un schéma-blocs,
+     double intégrateur et avance de phase, mode souple (zéro et pôle), Nyquist, limite de bande passante
+     ===================================================================== */
+  function boucleRadar() {
+    let c = S.ar(6, 56, 50, 'Um') + S.som(70, 50, '+−') + S.ar(84, 120, 50, '') + S.box(120, 28, 'F', 50) + S.ar(170, 240, 50, 'Cm') + S.box(240, 28, 'I', 60) + S.ar(300, 600, 50, '') + S.t(578, 40, 'Θn');
+    c += S.pt(210, 50) + S.li(210, 50, 210, 130) + S.ar(210, 240, 130, '') + S.box(240, 108, 'M', 60) + S.ar(300, 426, 130, 'Θp') + S.pt(440, 50) + S.li(440, 50, 440, 108) + S.down(440, 116);
+    c += `<circle cx="440" cy="130" r="14" fill="#fff" stroke="#183047" stroke-width="1.6"/><text x="448" y="112" font-size="13" fill="#183047">+</text><text x="418" y="124" font-size="15" fill="#183047">−</text>`;
+    c += S.ar(454, 480, 130, '') + S.box(480, 108, 'N', 50) + S.ar(530, 600, 130, 'Ωm') + S.pt(570, 130) + S.li(570, 130, 570, 190) + S.li(570, 190, 360, 190) + Sg(352, 190) + S.box(312, 168, 'Ke', 40) + S.li(312, 190, 70, 190) + S.li(70, 190, 70, 72) + S.up(70, 64);
+    return S.svg(606, 216, 'modèle du pivot : tension Um, comparateur, bloc F vers le couple Cm, bloc I vers l’azimut Θn du radar, bloc M vers la torsion Θp du pylône, différence Θn − Θp, bloc N vers la vitesse Ωm, retour par Ke', c);
+  }
+  // lieu de Nyquist : F(ω) → [Re, Im], fenêtre carrée [−L ; L/3], graduations exactes (pas de 0,25)
+  function nyquist(F, w0, w1, L, alt) {
+    const seg = [], x0 = -L, x1 = L / 3;
+    let cur = [];
+    for (let i = 0; i <= 900; i++) { const w = w0 * (w1 / w0) ** (i / 900), z = F(w); if (z[0] >= x0 && z[0] <= x1 && z[1] >= x0 && z[1] <= x1) cur.push(z); else if (cur.length) { seg.push(cur); cur = []; } }
+    if (cur.length) seg.push(cur);
+    const cercle = Array.from({ length: 181 }, (_, i) => [Math.cos(i * Math.PI / 90), Math.sin(i * Math.PI / 90)]).filter((z) => z[0] >= x0 && z[0] <= x1 && z[1] >= x0 && z[1] <= x1);
+    const d = L / 30, croix = [{ pts: [[-1 - d, -d], [-1 + d, d]], c: '#c9483b', w: 2 }, { pts: [[-1 - d, d], [-1 + d, -d]], c: '#c9483b', w: 2 }];
+    return plot({ W: 500, H: 470, x0, x1, dx: 0.25, xmaj: 2, y0: x0, y1: x1, dy: 0.25, ymaj: 2, curves: [{ pts: cercle, c: '#9fb3c2', w: 1.2, dash: 1 }].concat(croix, seg.map((p) => ({ pts: p }))), hl: [{ y: 0, t: '', c: '#587083' }], xl: 'partie réelle', yl: 'partie imaginaire', alt })
+      + '<p class="pp-leg">En pointillés, le cercle de rayon 1 ; la croix rouge, le point critique −1. Le lieu est parcouru dans le sens des pulsations croissantes, du bas vers l’origine.</p>';
+  }
+  J['c2-sujet1'] = { titre: 'Le radar météo d’un pylône souple', sys: 'moteur à courant continu, deux inerties et une raideur, schéma-blocs réduit, avance de phase, mode souple, Nyquist', min: 70,
+    gen() {
+      const R = pick([0.5, 1, 2]), Kc = pick([0.8, 1, 1.5, 2]), Km = Kc / R;
+      let In = 100, Ip = 30, k = 3e4, q = 500, wz = 15, wp = 30, MGt = 8, Kp = 1, Mp = 30, cat = 2;
+      const G = (w) => (1 - (w / wz) ** 2) / (1 - (w / wp) ** 2);
+      const FN = (w) => { const re = -In * w * w, im = q * w * G(w), d = re * re + im * im; return [Kp * re / d, -Kp * im / d]; };
+      for (let e = 0; e < 200; e++) {
+        In = pick([80, 100, 120, 150]); Ip = pick([20, 30, 40, 50]); k = pick([2e4, 3e4, 5e4, 8e4]); q = pick([200, 300, 500, 800, 1200]);
+        wz = Math.sqrt(k / (In + Ip)); wp = Math.sqrt(k / Ip); MGt = pick([2, 4, 8, 14]); Kp = r3(In * wz * wz * 10 ** (-MGt / 20));
+        const wc = solve((w) => Math.log(Math.hypot(...FN(w))), 1e-3, wz * 0.999), z = FN(wc);
+        Mp = 180 + deg(Math.atan2(z[1], z[0]));
+        if ([20, 40, 60].some((x) => Math.abs(Mp - x) < 3)) continue;
+        break;
+      }
+      const MG = 20 * Math.log10(In * wz * wz / Kp);
+      cat = MG < 3 || Mp < 20 ? 0 : MG < 6 || Mp < 40 ? 1 : MG < 12 || Mp < 60 ? 2 : 3;
+      const CATS = ['très insuffisantes', 'insuffisantes', 'satisfaisantes', 'très satisfaisantes'];
+      // cas 1 : chaîne infiniment souple, avance de phase
+      const a = pick([4, 9, 16]), wc1 = pick([1, 2, 3, 5]), tau = r3(1 / (wc1 * Math.sqrt(a))), Kth = r3(In * wc1 * wc1 / Math.sqrt(a)), phm = deg(Math.asin((a - 1) / (a + 1)));
+      const F1m = (w) => Kth * Math.hypot(1, a * tau * w) / (In * w * w * Math.hypot(1, tau * w)), F1p = (w) => -180 + deg(Math.atan(a * tau * w) - Math.atan(tau * w));
+      const wc1r = solve((w) => Math.log(F1m(w)), 1e-4, 1e4), Mp1 = 180 + F1p(wc1r);
+      const fig10 = bodeMulti([(w) => [20 * Math.log10(F1m(w)), F1p(w)]], 10 ** Math.floor(Math.log10(0.1 / (a * tau))), 10 ** Math.ceil(Math.log10(10 / tau)), ['FTBO corrigée, cas 1'], 'boucle ouverte corrigée par l’avance de phase, chaîne infiniment souple');
+      const wG = pick([0.5, 0.7, 1.3, 1.6, 2.5].map((x) => r2(x * wz)).filter((w) => Math.abs(w - wz) > 0.1 * wz && Math.abs(w - wp) > 0.1 * wp)), GwG = G(wG);
+      const figG = bodeMulti([(w) => [20 * Math.log10(Math.abs(G(w)) + 1e-9), G(w) >= 0 ? 0 : 180]], 10 ** Math.floor(Math.log10(wz / 10)), 10 ** Math.ceil(Math.log10(wp * 10)), ['G(jω)'], 'diagramme de Bode du mode souple G', [-60, 60]);
+      const figN = nyquist(FN, 0.01, wp * 50, 1.5, 'lieu de Nyquist de la boucle ouverte avec un correcteur proportionnel');
+      const BLK = { F: 'K<sub>m</sub>', I: '1/(I<sub>n</sub>p²)', M: '−1/(I<sub>p</sub>p² + k)', N: 'p' }, TOUS = ['K<sub>m</sub>', '1/(I<sub>n</sub>p²)', '−1/(I<sub>p</sub>p² + k)', 'p', '1/(I<sub>p</sub>p² + k)', '1/p', 'K<sub>e</sub>', 'I<sub>n</sub>p²'];
+      const bloc = (x) => choix(`Bloc ${x}`, [BLK[x]].concat(TOUS.filter((t) => t !== BLK[x]).sort(() => Math.random() - 0.5).slice(0, 3)));
+      const intro = `<p>Un radar météo tourne en azimut au sommet d’un pylône. Le moteur du pivot (un moteur à courant continu) est placé entre le radar, qui tourne d’un angle θ<sub>n</sub>, et le haut du pylône, qui se tord d’un angle θ<sub>p</sub> : quand il applique le couple c<sub>m</sub> au radar, il applique −c<sub>m</sub> au pylône, que sa raideur en torsion k rappelle. L’inductance du moteur est négligée.</p>
+        ${tableau([['Radar', `inertie I<sub>n</sub> = ${In} kg·m²`], ['Haut du pylône et rotor', `inertie I<sub>p</sub> = ${Ip} kg·m², raideur en torsion k = ${fmt(k)} N·m/rad`], ['Moteur', `R = ${fmt(R)} Ω, K<sub>c</sub> = K<sub>e</sub> = ${fmt(Kc)} (SI) ; vitesse du moteur ω<sub>m</sub> = d(θ<sub>n</sub> − θ<sub>p</sub>)/dt`], ['Boucle d’azimut', `après réduction, FTBO<sub>θ</sub>(p) = C<sub>θ</sub>(p)/(I<sub>n</sub>p² + q·p·G(p)), avec G(p) = (Θ<sub>n</sub> − Θ<sub>p</sub>)/Θ<sub>n</sub> et un retour tachymétrique équivalent q = ${q} N·m·s/rad`]])}`;
+      const qs = [
+        { t: 'La maille d’induit', pour: ['QB-1'], fig: '',
+          text: 'Écrire l’équation de la maille d’induit du moteur (inductance négligée) et l’expression du couple moteur en fonction du courant.',
+          fields: [choix('Maille d’induit', ['u<sub>m</sub> = R·i<sub>m</sub> + K<sub>e</sub>·ω<sub>m</sub>', 'u<sub>m</sub> = R·i<sub>m</sub> − K<sub>e</sub>·ω<sub>m</sub>', 'u<sub>m</sub> = K<sub>e</sub>·i<sub>m</sub> + R·ω<sub>m</sub>', 'u<sub>m</sub> = R·i<sub>m</sub>']), choix('Couple', ['c<sub>m</sub> = K<sub>c</sub>·i<sub>m</sub>', 'c<sub>m</sub> = K<sub>c</sub>·u<sub>m</sub>', 'c<sub>m</sub> = i<sub>m</sub>/K<sub>c</sub>', 'c<sub>m</sub> = K<sub>e</sub>·ω<sub>m</sub>'])],
+          hint: 'Une résistance en série avec la force contre-électromotrice ; le couple est proportionnel au courant.',
+          corr: pas(['Modèle : une résistance R en série avec une source e = K<sub>e</sub>·ω<sub>m</sub> (force contre-électromotrice).', 'Maille : <b>u<sub>m</sub> = R·i<sub>m</sub> + K<sub>e</sub>·ω<sub>m</sub></b> ; couple : <b>c<sub>m</sub> = K<sub>c</sub>·i<sub>m</sub></b>.'],
+            'moteur à courant continu sans inductance : deux équations, électrique et électromécanique.') },
+        { t: 'Le couple en fonction de la tension', pour: ['QB-2'], fig: '',
+          text: 'En déduire C<sub>m</sub>(p) en fonction de U<sub>m</sub>(p) et Ω<sub>m</sub>(p), en posant K<sub>m</sub> = K<sub>c</sub>/R. Que vaut K<sub>m</sub> ?',
+          fields: [choix('C<sub>m</sub>(p) =', ['K<sub>m</sub>·(U<sub>m</sub>(p) − K<sub>e</sub>·Ω<sub>m</sub>(p))', 'K<sub>m</sub>·(U<sub>m</sub>(p) + K<sub>e</sub>·Ω<sub>m</sub>(p))', 'K<sub>m</sub>·U<sub>m</sub>(p)', 'U<sub>m</sub>(p)/K<sub>m</sub> − K<sub>e</sub>·Ω<sub>m</sub>(p)']), { l: 'K<sub>m</sub>', u: 'N·m/V', a: Km, tol: .02 }],
+          hint: 'Tirer i<sub>m</sub> de la maille, puis multiplier par K<sub>c</sub>.',
+          corr: pas(['i<sub>m</sub> = (u<sub>m</sub> − K<sub>e</sub>ω<sub>m</sub>)/R, donc c<sub>m</sub> = (K<sub>c</sub>/R)(u<sub>m</sub> − K<sub>e</sub>ω<sub>m</sub>).', `En Laplace : <b>C<sub>m</sub>(p) = K<sub>m</sub>·(U<sub>m</sub>(p) − K<sub>e</sub>·Ω<sub>m</sub>(p))</b>, avec <b>K<sub>m</sub> = ${fmt(Kc)}/${fmt(R)} = ${f3(Km)} N·m/V</b>.`],
+            'sans inductance, le moteur est un simple gain de la tension « utile » U − E vers le couple.') },
+        { t: 'Les équations de la mécanique', pour: ['QB-3'], fig: '',
+          text: 'Le haut du pylône est rappelé par sa raideur ; le pied du pylône est fixe. Écrire, dans le domaine de Laplace, les équations du mouvement du radar et du haut du pylône.',
+          fields: [choix('Radar', ['I<sub>n</sub>p²·Θ<sub>n</sub>(p) = C<sub>m</sub>(p)', 'I<sub>n</sub>p²·Θ<sub>n</sub>(p) = −C<sub>m</sub>(p)', 'I<sub>n</sub>p·Θ<sub>n</sub>(p) = C<sub>m</sub>(p)', 'I<sub>n</sub>p²·Θ<sub>n</sub>(p) = C<sub>m</sub>(p) − k·Θ<sub>n</sub>(p)']), choix('Haut du pylône', ['I<sub>p</sub>p²·Θ<sub>p</sub>(p) = −C<sub>m</sub>(p) − k·Θ<sub>p</sub>(p)', 'I<sub>p</sub>p²·Θ<sub>p</sub>(p) = C<sub>m</sub>(p) − k·Θ<sub>p</sub>(p)', 'I<sub>p</sub>p²·Θ<sub>p</sub>(p) = −C<sub>m</sub>(p)', 'I<sub>p</sub>p²·Θ<sub>p</sub>(p) = −C<sub>m</sub>(p) + k·Θ<sub>p</sub>(p)'])],
+          hint: 'Théorème du moment dynamique sur chaque solide, en projection sur l’axe vertical ; actions mutuelles opposées ; la raideur rappelle vers θ<sub>p</sub> = 0.',
+          corr: pas(['Le radar ne subit que le couple du moteur : <b>I<sub>n</sub>p²Θ<sub>n</sub> = C<sub>m</sub></b>.', 'Le haut du pylône subit la réaction −C<sub>m</sub> et le rappel −kθ<sub>p</sub> : <b>I<sub>p</sub>p²Θ<sub>p</sub> = −C<sub>m</sub> − kΘ<sub>p</sub></b> (conditions initiales nulles).'],
+            'un moteur placé entre deux solides agit sur les deux, en sens opposés.') },
+        { t: 'Les blocs du modèle', pour: ['QB-4'], fig: boucleRadar(),
+          text: 'Identifier les fonctions de transfert des blocs F, I, M et N du schéma.',
+          fields: ['F', 'I', 'M', 'N'].map(bloc),
+          hint: 'F : de U<sub>m</sub> − K<sub>e</sub>Ω<sub>m</sub> au couple. I et M : les deux équations de la mécanique. N : de l’angle relatif à la vitesse du moteur.',
+          corr: pas(['F = <b>K<sub>m</sub></b> (le couple vaut K<sub>m</sub> fois la tension utile).', 'I = <b>1/(I<sub>n</sub>p²)</b> ; M = <b>−1/(I<sub>p</sub>p² + k)</b>, car (I<sub>p</sub>p² + k)Θ<sub>p</sub> = −C<sub>m</sub>.', 'N = <b>p</b> : Ω<sub>m</sub> = p(Θ<sub>n</sub> − Θ<sub>p</sub>).'],
+            'chaque équation de Laplace devient un bloc : ce qu’on isole à gauche sort du bloc.') },
+        { t: 'Le transfert du mode souple', pour: ['QB-5'], fig: '',
+          text: 'Exprimer G(p) = (Θ<sub>n</sub>(p) − Θ<sub>p</sub>(p))/Θ<sub>n</sub>(p) à l’aide des deux équations de la mécanique.',
+          fields: [choix('G(p) =', ['(k + (I<sub>n</sub> + I<sub>p</sub>)p²)/(k + I<sub>p</sub>p²)', '(k + I<sub>p</sub>p²)/(k + (I<sub>n</sub> + I<sub>p</sub>)p²)', 'I<sub>n</sub>p²/(k + I<sub>p</sub>p²)', '1 − I<sub>n</sub>p²/(k + I<sub>p</sub>p²)'])],
+          hint: 'Θ<sub>p</sub>/Θ<sub>n</sub> = −I<sub>n</sub>p²/(I<sub>p</sub>p² + k), puis G = 1 − Θ<sub>p</sub>/Θ<sub>n</sub>.',
+          corr: pas(['Θ<sub>n</sub> = C<sub>m</sub>/(I<sub>n</sub>p²) et Θ<sub>p</sub> = −C<sub>m</sub>/(I<sub>p</sub>p² + k), donc Θ<sub>p</sub>/Θ<sub>n</sub> = −I<sub>n</sub>p²/(I<sub>p</sub>p² + k).', `G(p) = 1 + ${fr('I<sub>n</sub>p²', 'k + I<sub>p</sub>p²')} = <b>${fr('k + (I<sub>n</sub> + I<sub>p</sub>)p²', 'k + I<sub>p</sub>p²')}</b>.`],
+            'G porte toute la souplesse du pylône : il vaut 1 pour un pylône infiniment raide.') },
+        { t: 'La boucle ouverte réduite', pour: ['QB-6'], fig: '',
+          text: 'Après réduction (boucle de couple de gain élevé, f.c.é.m. négligeable devant le retour tachymétrique), quelle forme de FTBO<sub>θ</sub>(p) retient-on ?',
+          fields: [choix('FTBO<sub>θ</sub>(p) =', ['C<sub>θ</sub>(p)/(I<sub>n</sub>p² + q·p·G(p))', 'C<sub>θ</sub>(p)/(I<sub>n</sub>p²)', 'C<sub>θ</sub>(p)·G(p)/(I<sub>n</sub>p²)', 'C<sub>θ</sub>(p)/(I<sub>n</sub>p² + q·G(p))'])],
+          hint: 'Le radar intègre deux fois le couple ; le retour tachymétrique agit sur la vitesse relative, d’où p·G(p).',
+          corr: pas(['Le couple accélère le radar (I<sub>n</sub>p²) ; le retour tachymétrique, proportionnel à la vitesse relative p(Θ<sub>n</sub> − Θ<sub>p</sub>) = p·G(p)·Θ<sub>n</sub>, s’y ajoute.', '<b>FTBO<sub>θ</sub>(p) = C<sub>θ</sub>(p)/(I<sub>n</sub>p² + q·p·G(p))</b>.'],
+            'réduire un schéma à boucles imbriquées : remplacer chaque boucle interne par son transfert, puis simplifier avec les ordres de grandeur.') },
+        { t: 'Pylône infiniment souple', pour: ['QB-7'], fig: '',
+          text: 'Si le pylône était infiniment souple (G = 0), que deviendrait la FTBO, et pourquoi la boucle fermée ne serait-elle pas stable avec C<sub>θ</sub> = 1 ?',
+          fields: [choix('FTBO<sub>θ</sub>(p) =', ['1/(I<sub>n</sub>p²)', '1/(I<sub>n</sub>p² + q·p)', 'q·p/(I<sub>n</sub>p²)', '1/(q·p)']), choix('Pourquoi', ['double intégrateur : phase de −180° à toutes les pulsations, marge de phase nulle, boucle fermée oscillante', 'gain trop faible', 'un pôle positif dans la boucle ouverte', 'la boucle est de classe 0'])],
+          hint: 'Que devient le terme q·p·G(p) ? Quelle est la phase de 1/p² ?',
+          corr: pas(['G = 0 : <b>FTBO<sub>θ</sub> = 1/(I<sub>n</sub>p²)</b>, un double intégrateur.', 'Sa phase vaut −180° partout : à la coupure, marge de phase nulle. En boucle fermée, 1/(1 + I<sub>n</sub>p²) : deux pôles imaginaires purs, une oscillation qui ne s’amortit pas : <b>pas stable</b>.'],
+            'un double intégrateur bouclé par un gain oscille sans fin : il faut une avance de phase.') },
+        { t: 'Les trois pulsations', pour: ['QB-8'], fig: '', rappel: `C<sub>θ</sub>(p) = K<sub>θ</sub>(1 + aτp)/(1 + τp) avec K<sub>θ</sub> = ${fmt(Kth)} N·m/rad, a = ${a}, τ = ${fmt(tau)} s ; I<sub>n</sub> = ${In} kg·m².`,
+          text: 'Toujours pour G = 0, avec le correcteur C<sub>θ</sub>(p) = K<sub>θ</sub>(1 + aτp)/(1 + τp), déterminer les trois pulsations qui caractérisent la FTBO : celle du zéro, celle du pôle, et celle où l’asymptote K<sub>θ</sub>/(I<sub>n</sub>ω²) coupe 0 dB.',
+          fields: [{ l: 'Zéro 1/(aτ)', u: 'rad/s', a: 1 / (a * tau), tol: .02 }, { l: 'Pôle 1/τ', u: 'rad/s', a: 1 / tau, tol: .02 }, { l: '√(K<sub>θ</sub>/I<sub>n</sub>)', u: 'rad/s', a: Math.sqrt(Kth / In), tol: .02 }],
+          hint: 'Chaque terme (1 + T·p) casse à 1/T ; K<sub>θ</sub>/(I<sub>n</sub>ω²) = 1 donne la troisième.',
+          corr: pas([`Zéro : 1/(aτ) = <b>${f3(1 / (a * tau))} rad/s</b> ; pôle : 1/τ = <b>${f3(1 / tau)} rad/s</b>.`, `Asymptote basse : K<sub>θ</sub>/(I<sub>n</sub>ω²) = 1 pour ω = √(K<sub>θ</sub>/I<sub>n</sub>) = <b>${f3(Math.sqrt(Kth / In))} rad/s</b>.`],
+            'chaque constante de temps donne une pulsation de cassure ; le gain fixe la troisième.') },
+        { t: 'Le placement de l’avance', pour: ['QB-9'], fig: '',
+          text: 'Comment ranger ces pulsations pour que l’avance de phase stabilise la boucle ?',
+          fields: [choix('Rangement', ['1/τ > ω<sub>0 dB</sub> > 1/(aτ) : la coupure tombe entre le zéro et le pôle, au mieux à 1/(τ√a)', 'ω<sub>0 dB</sub> > 1/τ > 1/(aτ)', '1/τ > 1/(aτ) > ω<sub>0 dB</sub>', 'peu importe, l’avance agit à toutes les pulsations'])],
+          hint: 'L’avance n’apporte de la phase qu’entre son zéro et son pôle.',
+          corr: pas(['La phase de C<sub>θ</sub> n’est notable qu’entre 1/(aτ) et 1/τ, maximale à 1/(τ√a).', 'Il faut donc que la coupure tombe là : <b>1/τ > ω<sub>0 dB</sub> > 1/(aτ)</b>, idéalement ω<sub>0 dB</sub> = 1/(τ√a).'],
+            'on centre l’avance sur la pulsation de coupure.') },
+        { t: 'Les marges du cas souple', pour: ['QB-10'], fig: fig10,
+          text: 'Le diagramme de Bode de la FTBO corrigée (G = 0) est tracé. Estimer la marge de phase, la marge de gain et la bande passante (pulsation où le gain vaut 0 dB). Conclure.',
+          fields: [{ l: 'M<sub>φ</sub>', u: '°', a: Mp1, abs: 4 }, choix('M<sub>G</sub>', ['infinie : la phase revient vers −180° sans la dépasser', 'environ 6 dB', 'nulle']), { l: 'Bande passante', u: 'rad/s', a: wc1r, tol: .1 }],
+          hint: 'Lire la phase à la pulsation où le gain passe 0 dB.',
+          corr: pas([`Le gain passe 0 dB vers <b>${f3(wc1r)} rad/s</b>, où la phase vaut ${f3(F1p(wc1r))}° : <b>M<sub>φ</sub> ≈ ${f3(Mp1)}°</b> (l’avance maximale vaut arcsin((a − 1)/(a + 1)) = ${f3(phm)}°).`, 'La phase part de −180°, remonte, puis revient vers −180° sans la passer : <b>marge de gain infinie</b>. La boucle est stable, avec une bande passante fixée par le réglage.'],
+            'l’avance de phase rend stable un double intégrateur, et la bande passante se règle avec K<sub>θ</sub>.') },
+        { t: 'La forme canonique du mode souple', pour: ['QB-11'], fig: '',
+          text: 'Mettre G(p) sous forme canonique : gain statique, pulsation du zéro ω<sub>z</sub>, pulsation du pôle ω<sub>p</sub>.',
+          fields: [{ l: 'G(0)', u: '', a: 1, abs: .02 }, { l: 'ω<sub>z</sub>', u: 'rad/s', a: wz, tol: .02 }, { l: 'ω<sub>p</sub>', u: 'rad/s', a: wp, tol: .02 }],
+          hint: 'Diviser haut et bas par k : G(p) = (1 + p²/ω<sub>z</sub>²)/(1 + p²/ω<sub>p</sub>²).',
+          corr: pas([`G(p) = ${fr('1 + ((I<sub>n</sub> + I<sub>p</sub>)/k)p²', '1 + (I<sub>p</sub>/k)p²')} : <b>G(0) = 1</b>.`, `<b>ω<sub>z</sub> = √(k/(I<sub>n</sub> + I<sub>p</sub>)) = ${f3(wz)} rad/s</b> ; <b>ω<sub>p</sub> = √(k/I<sub>p</sub>) = ${f3(wp)} rad/s</b> ; ω<sub>z</sub> &lt; ω<sub>p</sub>.`],
+            'deux inerties et un ressort : une anti-résonance (zéro) avant une résonance (pôle).') },
+        { t: 'Module et argument', pour: ['QB-12'], fig: '',
+          text: `En déduire G(jω), puis son module et son argument pour ω = ${fmt(wG)} rad/s.`,
+          fields: [{ l: '|G(jω)|', u: '', a: Math.abs(GwG), tol: .03 }, { l: 'arg G(jω)', u: '°', a: GwG >= 0 ? 0 : 180, abs: 1, alt: GwG >= 0 ? [] : [-180] }],
+          hint: 'Sans amortissement, G(jω) = (1 − ω²/ω<sub>z</sub>²)/(1 − ω²/ω<sub>p</sub>²) est réel : son argument vaut 0° ou ±180° selon son signe.',
+          corr: pas([`G(jω) = ${fr('1 − ω²/ω<sub>z</sub>²', '1 − ω²/ω<sub>p</sub>²')}, un nombre réel.`, `Pour ω = ${fmt(wG)} rad/s : G = ${fr(f3(1 - (wG / wz) ** 2), f3(1 - (wG / wp) ** 2))} = ${f3(GwG)} : <b>|G| = ${f3(Math.abs(GwG))}</b>, <b>argument ${GwG >= 0 ? '0°' : '180° (ou −180°)'}</b>.`],
+            'sans amortissement, la phase d’un mode souple saute de 180° d’un coup, au zéro puis au pôle.') },
+        { t: 'Le Bode du mode souple', pour: ['QB-13'], fig: figG,
+          text: 'Le diagramme de Bode de G est tracé. Que vaut son gain aux hautes pulsations ? Comment se comporte sa phase ? Que dire de la commande du radar autour de ω<sub>z</sub> ?',
+          fields: [{ l: 'Gain aux hautes pulsations', u: 'dB', a: 20 * Math.log10((In + Ip) / Ip), abs: .5 }, choix('Phase', ['0°, puis 180° entre ω<sub>z</sub> et ω<sub>p</sub>, puis 0° : deux sauts', '0° partout', 'de 0° à −180° progressivement', 'de 0° à +90°']),
+            choix('Autour de ω<sub>z</sub>', ['le moteur n’a presque plus d’effet sur le radar : le système y devient difficile à commander', 'le système y est le plus facile à commander', 'rien de particulier', 'le radar y résonne'])],
+          hint: 'Aux hautes pulsations, G tend vers ω<sub>p</sub>²/ω<sub>z</sub>² = (I<sub>n</sub> + I<sub>p</sub>)/I<sub>p</sub>.',
+          corr: pas([`Basses pulsations : 0 dB. Creux infini à ω<sub>z</sub> = ${f3(wz)} rad/s, pic infini à ω<sub>p</sub> = ${f3(wp)} rad/s, puis un palier à 20·log((I<sub>n</sub> + I<sub>p</sub>)/I<sub>p</sub>) = <b>${f3(20 * Math.log10((In + Ip) / Ip))} dB</b> ; pentes ±40 dB/décade autour des cassures.`, 'Phase : 0°, puis <b>180°</b> entre ω<sub>z</sub> et ω<sub>p</sub>, puis 0°.', 'À ω<sub>z</sub>, G s’annule : la vitesse relative mesurée ne porte plus d’information, le moteur n’agit plus utilement : zone <b>difficile à commander</b>.'],
+            'anti-résonance : le transfert s’annule, l’actionneur « tourne dans le vide » vis-à-vis de la sortie.') },
+        { t: 'Le critère de Nyquist', pour: ['QB-14'], fig: '',
+          text: 'Quelle condition le lieu de Nyquist de la FTBO doit-il vérifier, parcouru dans le sens des pulsations croissantes, pour que la boucle fermée soit stable (FTBO sans pôle instable) ?',
+          fields: [choix('Condition', ['laisser le point critique −1 à sa gauche', 'laisser le point critique −1 à sa droite', 'passer par le point −1', 'rester dans le cercle de rayon 1'])],
+          hint: 'C’est le critère du revers dans le plan de Nyquist.',
+          corr: pas(['Critère du revers : parcouru dans le sens des ω croissants, le lieu de la FTBO doit <b>laisser le point critique −1 à sa gauche</b>.'], 'Nyquist simplifié : le point −1 à gauche, la boucle fermée est stable.') },
+        { t: 'Les marges sur Nyquist', pour: ['QB-15'], fig: figN, rappel: `Correcteur proportionnel : C<sub>θ</sub> = K<sub>p</sub> = ${fmt(Kp)} N·m/rad.`,
+          text: 'Le lieu de Nyquist de la FTBO (avec le vrai G) est tracé. Estimer la marge de gain et la marge de phase. Ces marges sont-elles très insuffisantes, insuffisantes, satisfaisantes ou très satisfaisantes ?',
+          fields: [{ l: 'M<sub>G</sub>', u: 'dB', a: MG, abs: 1.5 }, { l: 'M<sub>φ</sub>', u: '°', a: Mp, abs: 5 }, choix('Ces marges sont', [CATS[cat]].concat(CATS.filter((x, i) => i !== cat)))],
+          hint: 'M<sub>G</sub> = −20·log de la distance à l’origine du point où le lieu coupe l’axe réel négatif. M<sub>φ</sub> : l’angle entre l’axe réel négatif et le point où le lieu coupe le cercle de rayon 1.',
+          corr: pas([`Le lieu coupe l’axe réel négatif en −${f3(Kp / (In * wz * wz))} (à ω = ω<sub>z</sub>, où G = 0) : <b>M<sub>G</sub> = −20·log ${f3(Kp / (In * wz * wz))} ≈ ${f3(MG)} dB</b>.`, `Il coupe le cercle de rayon 1 à ${f3(Mp)}° de l’axe réel négatif : <b>M<sub>φ</sub> ≈ ${f3(Mp)}°</b>.`, `Repères usuels (6 dB, 45°) : marges <b>${CATS[cat]}</b>.`],
+            'sur Nyquist, les marges se lisent comme des distances au point −1 : sur l’axe réel pour le gain, sur le cercle unité pour la phase.') },
+        { t: 'La limite de bande passante', pour: ['QB-16'], fig: '',
+          text: 'Contrairement au cas du pylône infiniment souple, pourquoi un correcteur ne permet-il pas d’augmenter beaucoup la bande passante ? Quelle est sa limite ?',
+          fields: [choix('Réponse', [`la coupure doit rester sous ω<sub>z</sub> ≈ ${f3(wz)} rad/s : à cette pulsation, le lieu passe par l’axe réel négatif quel que soit le correcteur`, 'aucune limite : il suffit d’augmenter K<sub>p</sub>', `la limite est ω<sub>p</sub> ≈ ${f3(wp)} rad/s`, 'la limite est fixée par la résistance du moteur'])],
+          hint: 'Où la phase de la FTBO vaut-elle −180°, et cela dépend-il du correcteur ?',
+          corr: pas([`À ω<sub>z</sub>, G = 0 : la FTBO vaut C<sub>θ</sub>/(−I<sub>n</sub>ω<sub>z</sub>²), sur l’axe réel négatif si le correcteur n’y apporte pas de phase.`, `Pour rester stable avec de la marge, la coupure doit donc rester <b>nettement sous ω<sub>z</sub> = ${f3(wz)} rad/s</b> : le mode souple du pylône borne la bande passante.`],
+            'un mode souple non amorti fixe un plafond à la bande passante : on reste sous sa pulsation d’anti-résonance.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 2 · extrait de sujet 3 — sur un autre système : le positionnement dynamique d'un navire
+     caractéristique d'un propulseur, principe fondamental avec une traînée quadratique, modèle, correcteur P
+     réglé sur Bode, erreur due au courant, PI, réponse à une surverse de courant, PID à dérivée filtrée
+     ===================================================================== */
+  // complexes minimaux
+  const Cx = { m: (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]], d: (a, b) => { const q = b[0] * b[0] + b[1] * b[1]; return [(a[0] * b[0] + a[1] * b[1]) / q, (a[1] * b[0] - a[0] * b[1]) / q]; }, ad: (a, b) => [a[0] + b[0], a[1] + b[1]], mod: (a) => Math.hypot(a[0], a[1]), arg: (a) => deg(Math.atan2(a[1], a[0])) };
+  // navire : x' = v ; m_a v' = F − c·vr|vr| ; T_p F' = n·K_h·δ − F ; δ = C(e), e = −x (consigne nulle)
+  function simDP(P, C, Tf) {
+    const { ma, c, V0, dV, tg, Dg, nKh, Tp } = P, { Kp, wI, wD, wD2 } = C, F0 = c * V0 * V0, dt = 0.2;
+    const x0 = wI ? 0 : -F0 / (nKh * Kp);
+    const f = (t, s) => { const e = -s[0], V = V0 + (t >= tg && t < tg + Dg ? dV : 0), vr = s[1] + V, d = Kp * (e + wI * s[3] + (wD ? (wD2 / wD) * (e - s[4]) : 0)); return [s[1], (s[2] - c * vr * Math.abs(vr)) / ma, (nKh * d - s[2]) / Tp, e, wD ? wD2 * (e - s[4]) : 0]; };
+    let s = [x0, 0, F0, wI ? F0 / (nKh * Kp * wI) : 0, -x0], pk = 0, tpk = 0; const pts = [], n = Math.round(Tf / dt);
+    for (let i = 0; i <= n; i++) {
+      const t = i * dt;
+      if (i % 25 === 0) pts.push([t, s[0]]);
+      if (!isFinite(s[0]) || Math.abs(s[0]) > 1e4) return { pk: Infinity, pts, x0, ok: false };
+      if (t >= tg && Math.abs(s[0]) > pk) { pk = Math.abs(s[0]); tpk = t; }
+      const k1 = f(t, s), k2 = f(t + dt / 2, s.map((q, j) => q + dt / 2 * k1[j])), k3 = f(t + dt / 2, s.map((q, j) => q + dt / 2 * k2[j])), k4 = f(t + dt, s.map((q, j) => q + dt * k3[j]));
+      s = s.map((q, j) => q + dt / 6 * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]));
+    }
+    return { pk, tpk, pts, x0, ok: true };
+  }
+  J['c2-sujet3'] = { titre: 'Le positionnement dynamique d’un navire', sys: 'caractéristique d’un propulseur, traînée quadratique, correcteur P réglé sur Bode, erreur due au courant, PI, PID à dérivée filtrée', min: 60,
+    gen() {
+      let P = null, Kp = 1, w45 = 0.03, b = 1, tv = 20, offP = 1, rP = null, rPI = null, rPID = null, wI = 0.01, Xm = 5, Fm = 80000, n = 4, Tp = 1.5, m = 3e6, ka = 1.1, c = 6e4, V0 = 1, D = null;
+      let H = () => [1, 0];
+      const marge = (C) => { const wc = solve((w) => Math.log(Cx.mod(Cx.m(C(w), H(w)))), 1e-6, 100); return { wc, Mp: 180 + Cx.arg(Cx.m(C(wc), H(wc))) }; };
+      const PID = (KpD, wD, wD2) => (w) => Cx.ad([KpD, -KpD * wI / w], Cx.m([KpD, 0], Cx.d([0, w / wD], [1, w / wD2])));
+      for (let e = 0; e < 30; e++) {
+        m = pick([2000, 2500, 3000, 4000]) * 1000; ka = pick([1.1, 1.2]); c = pick([4e4, 6e4, 8e4]); V0 = pick([0.8, 1, 1.2, 1.5]);
+        n = pick([2, 4]); Fm = pick([60, 80, 100, 120]) * 1000; Tp = pick([1, 1.5, 2]);
+        const ma = m * ka, nKh = n * Fm / 12, Dg = pick([100, 150, 200]), tg = 300;
+        b = 2 * c * V0; tv = ma / b;
+        H = (w) => Cx.d([nKh / b, 0], Cx.m([0, w], Cx.m([1, tv * w], [1, Tp * w])));
+        w45 = solve((w) => deg(Math.atan(tv * w) + Math.atan(Tp * w)) - 45, 1e-5, 10); Kp = r3(w45 * Math.hypot(1, tv * w45) * Math.hypot(1, Tp * w45) * b / nKh);
+        P = { ma, c, V0, dV: pick([0.3, 0.5]), tg, Dg, nKh, Tp };
+        const Tf = pasDe((tg + Dg + 1200) / 10) * 10;
+        offP = c * V0 * V0 / (nKh * Kp);
+        wI = r2(w45 / pick([4, 5]));
+        rP = simDP(P, { Kp, wI: 0, wD: 0, wD2: 0 }, Tf); rPI = simDP(P, { Kp, wI, wD: 0, wD2: 0 }, Tf);
+        // PID : le gain le plus fort qui garde une marge de phase d'au moins 40°
+        const C = [];
+        [4, 3, 2].forEach((g) => [0.3, 0.5].forEach((fd) => [10, 20].forEach((f2) => { const KpD = r3(Kp * g), wD = r2(w45 * fd), wD2 = r2(w45 * f2), mm = marge(PID(KpD, wD, wD2)); if (mm.Mp >= 40 && mm.Mp <= 75) C.push({ g, KpD, wD, wD2, mm }); })));
+        for (const d of C.slice(0, 3)) {
+          const r = simDP(P, { Kp: d.KpD, wI, wD: d.wD, wD2: d.wD2 }, Tf);
+          const X = [2, 3, 4, 5, 6, 8, 10, 12, 15].filter((x) => offP > 1.25 * x && rPI.pk > 1.25 * x && r.pk < x / 1.25);
+          if (r.ok && X.length) { rPID = r; D = d; Xm = X[X.length - 1]; break; }
+        }
+        if (D) break;
+      }
+      if (!D) { const KpD = r3(Kp * 2), wD = r2(w45 * 0.5), wD2 = r2(w45 * 10); D = { g: 2, KpD, wD, wD2, mm: marge(PID(KpD, wD, wD2)) }; rPID = simDP(P, { Kp: KpD, wI, wD, wD2 }, pasDe((P.tg + P.Dg + 1200) / 10) * 10); Xm = Math.max(2, Math.ceil(rPID.pk * 1.3)); }
+      const { ma, nKh, dV, tg, Dg } = P, Kh = Fm / 12, F0 = c * V0 * V0, Tf = pasDe((tg + Dg + 1200) / 10) * 10, { g, KpD, wD, wD2 } = D, mPID = D.mm;
+      const CPI = (w) => [Kp, -Kp * wI / w], mPI = marge(CPI), zD = 1 / (1 / wD + 1 / wD2), phPD = deg(Math.atan(mPID.wc / zD) - Math.atan(mPID.wc / wD2));
+      const figHelice = plot({ x0: -20, x1: 20, dx: 1, xmaj: 5, y0: -Math.ceil(Fm / 20000) * 20, y1: Math.ceil(Fm / 20000) * 20, dy: 10, ymaj: 2, curves: [{ pts: Array.from({ length: 161 }, (_, i) => { const d = -20 + i / 4; return [d, Fm / 1000 * Math.tanh(d / 12)]; }) }], hl: [{ y: 0, t: '', c: '#587083' }], xl: 'pas de l’hélice (°)', yl: 'poussée (kN)', alt: 'caractéristique statique d’un propulseur : poussée en fonction du pas' });
+      const fig14 = bodeMulti([(w) => [20 * Math.log10(Cx.mod(H(w))), Cx.arg(H(w)) - (Cx.arg(H(w)) > 0 ? 360 : 0)]], 1e-4, 10, ['K<sub>p</sub> = 1'], 'boucle ouverte linéarisée, correcteur proportionnel de gain 1');
+      const figX = (r, nom) => { const yM = Math.max(Xm * 1.5, ...r.pts.map((q) => -q[1])) * 1.1, yP = Math.max(0, ...r.pts.map((q) => q[1])) * 1.1, py = yM + yP > 24 ? 4 : yM + yP > 12 ? 2 : 1; return plot({ x0: 0, x1: Tf, dx: Tf / 20, xmaj: 2, y0: -Math.ceil(yM / (2 * py)) * 2 * py, y1: Math.max(1, Math.ceil(yP / (2 * py))) * 2 * py, dy: py, ymaj: 2, curves: [{ pts: r.pts }], hl: [{ y: -Xm, t: `−${Xm} m`, c: '#c9483b' }], xl: 't (s)', yl: 'x (m)', alt: `position du navire avec le ${nom}, courant constant puis surverse de courant` })
+        + `<p class="pp-leg">Courant constant de ${fmt(V0)} m/s ; de t = ${tg} s à t = ${tg + Dg} s, il forcit de ${fmt(dV)} m/s. Consigne de position : 0 m.</p>`; };
+      const intro = `<p>Un navire de soutien offshore doit rester au-dessus d’un point fixe pendant qu’il travaille, face au courant. Son système de positionnement dynamique commande le pas de ${n} propulseurs. On étudie un seul axe, l’axe x de l’avant ; le courant pousse le navire vers l’arrière (x négatif).</p>
+        ${tableau([['Navire', `masse ${m / 1000} t ; masse apparente (eau entraînée) m<sub>a</sub> = ${fmt(ka)}·m`], ['Traînée', `F<sub>t</sub> = ${fmt(c)}·v<sub>r</sub>², opposée à la vitesse par rapport à l’eau v<sub>r</sub> = v − v<sub>courant</sub>`], ['Propulseurs', `${n} identiques ; le pas suit sa commande comme un premier ordre de constante de temps ${fmt(Tp)} s`], ['Exigence', `écart de position d’au plus ${Xm} m, sous un courant de ${fmt(V0)} m/s qui peut forcir de ${fmt(dV)} m/s pendant ${Dg} s`]])}`;
+      const qs = [
+        { t: 'Les propulseurs', pour: ['Q10'], fig: figHelice,
+          text: `La caractéristique statique d’un propulseur est tracée. Autour du pas nul, donner la fonction de transfert F<sub>prop</sub>(p), en kilonewtons par degré, de l’ensemble des ${n} propulseurs (pas du premier ordre, constante de temps ${fmt(Tp)} s).`,
+          fields: [{ l: 'Gain d’un propulseur', u: 'kN/°', a: Kh / 1000, tol: .08 }, { l: `Gain des ${n} propulseurs`, u: 'kN/°', a: n * Kh / 1000, tol: .08 }, choix('F<sub>prop</sub>(p) =', [`${n}·K<sub>h</sub>/(1 + ${fmt(Tp)}·p)`, `${n}·K<sub>h</sub>·(1 + ${fmt(Tp)}·p)`, `K<sub>h</sub>/(${n}·(1 + ${fmt(Tp)}·p))`, `${n}·K<sub>h</sub>/(${fmt(Tp)}·p)`])],
+          hint: 'Pente de la caractéristique à l’origine (tangente), multipliée par le nombre de propulseurs, puis le premier ordre du pas.',
+          corr: pas([`Près du pas nul, la courbe est quasi droite : sa tangente à l’origine a pour pente K<sub>h</sub> ≈ <b>${f3(Kh / 1000)} kN/°</b> par propulseur (${f3(Kh)} N/°).`, `${n} propulseurs : <b>${f3(n * Kh / 1000)} kN/°</b>, et le pas suit sa commande avec un retard du premier ordre : <b>F<sub>prop</sub>(p) = ${f3(n * Kh / 1000)}/(1 + ${fmt(Tp)}·p)</b> en kN/°.`],
+            'actionneur non linéaire : on garde la pente au point de fonctionnement, et sa dynamique.') },
+        { t: 'Le principe fondamental', pour: ['Q11'], fig: '',
+          text: 'Écrire le principe fondamental de la dynamique suivant x pour le navire, d’abord quand sa vitesse par rapport à l’eau v<sub>r</sub> est positive, puis quand elle est négative (F : poussée des propulseurs).',
+          fields: [choix('v<sub>r</sub> > 0', [`m<sub>a</sub>·dv/dt = F − ${fmt(c)}·v<sub>r</sub>²`, `m<sub>a</sub>·dv/dt = F + ${fmt(c)}·v<sub>r</sub>²`, `m·dv/dt = F − ${fmt(c)}·v<sub>r</sub>`, `m<sub>a</sub>·dv/dt = F`]), choix('v<sub>r</sub> &lt; 0', [`m<sub>a</sub>·dv/dt = F + ${fmt(c)}·v<sub>r</sub>²`, `m<sub>a</sub>·dv/dt = F − ${fmt(c)}·v<sub>r</sub>²`, `m<sub>a</sub>·dv/dt = −F + ${fmt(c)}·v<sub>r</sub>²`, `m<sub>a</sub>·dv/dt = F − ${fmt(c)}·v<sub>r</sub>`])],
+          hint: 'La traînée s’oppose toujours à v<sub>r</sub> ; on la met sous la forme −c·v<sub>r</sub>·|v<sub>r</sub>|. L’inertie à prendre est la masse apparente.',
+          corr: pas(['La traînée s’oppose à la vitesse par rapport à l’eau : F<sub>t</sub> = −c·v<sub>r</sub>·|v<sub>r</sub>|.', `v<sub>r</sub> > 0 : <b>m<sub>a</sub>·dv/dt = F − ${fmt(c)}·v<sub>r</sub>²</b> ; v<sub>r</sub> &lt; 0 : <b>m<sub>a</sub>·dv/dt = F + ${fmt(c)}·v<sub>r</sub>²</b>.`],
+            'une force quadratique change d’expression avec le signe de la vitesse : écrire −c·v·|v| évite l’erreur.') },
+        { t: 'Le modèle linéarisé', pour: ['Q12'], fig: '',
+          text: `Le navire tient sa position (v = 0) face au courant de ${fmt(V0)} m/s. Autour de ce point, la traînée se linéarise. Donner la poussée d’équilibre, le coefficient de frottement linéarisé b et la fonction de transfert de la poussée à la vitesse du navire.`,
+          fields: [{ l: 'Poussée d’équilibre', u: 'N', a: F0, tol: .02 }, { l: 'b = dF<sub>t</sub>/dv', u: 'N·s/m', a: b, tol: .02 }, { l: 'Constante de temps m<sub>a</sub>/b', u: 's', a: tv, tol: .03 }],
+          hint: 'À l’équilibre, la poussée compense la traînée c·V<sub>0</sub>². La dérivée de c·v<sub>r</sub>² en v<sub>r</sub> = V<sub>0</sub> vaut 2c·V<sub>0</sub>.',
+          corr: pas([`Équilibre : F<sub>0</sub> = ${fmt(c)} × ${fmt(V0)}² = <b>${f3(F0)} N</b>.`, `Linéarisation : b = 2c·V<sub>0</sub> = <b>${f3(b)} N·s/m</b>.`, `m<sub>a</sub>·p·ΔV = ΔF − b·ΔV, d’où ${fr('ΔV', 'ΔF')} = ${fr('1/b', '1 + (m<sub>a</sub>/b)·p')} : constante de temps <b>${f3(tv)} s</b> ; puis la position est l’intégrale de la vitesse (1/p).`],
+            'linéariser : la pente de la force au point de fonctionnement devient un frottement visqueux.') },
+        { t: 'Boucler sur la position', pour: ['Q13'], fig: '',
+          text: 'La position du navire est mesurée (GPS différentiel). Comment boucler pour l’asservir ?',
+          fields: [choix('Structure', ['consigne de position, comparateur (consigne − mesure), correcteur C(p) qui commande le pas, propulseurs, navire ; la mesure de position revient au comparateur', 'correcteur placé sur le retour de mesure', 'comparateur entre la poussée et la traînée', 'pas de comparateur : la consigne commande directement le pas'])],
+          hint: 'Écart = consigne − mesure, puis correcteur, puis actionneur.',
+          corr: pas(['Chaîne directe : consigne x<sub>c</sub> → comparateur → écart ε = x<sub>c</sub> − x → <b>C(p)</b> → pas → propulseurs → navire → x ; la mesure de x revient sur le « − » du comparateur.'], 'un asservissement : comparer la mesure à la consigne, corriger l’écart, agir.') },
+        { t: 'Le gain pour 45° de marge', pour: ['Q14'], fig: fig14,
+          text: 'Le diagramme de Bode de la boucle ouverte linéarisée est tracé pour un correcteur proportionnel de gain 1 (en degrés de pas par mètre). Quel gain K<sub>p</sub> donne une marge de phase de 45° ?',
+          fields: [{ l: 'K<sub>p</sub>', u: '°/m', a: Kp, tol: .08 }],
+          hint: 'Chercher la pulsation où la phase vaut −135°, y lire le gain, puis choisir K<sub>p</sub> qui le ramène à 0 dB.',
+          corr: pas([`Phase = −135° vers ω ≈ ${sci(w45)} rad/s ; le gain y vaut ${f3(-20 * Math.log10(Kp))} dB pour K<sub>p</sub> = 1.`, `Il faut le remonter de ${f3(20 * Math.log10(Kp))} dB : <b>K<sub>p</sub> ≈ ${f3(Kp)} °/m</b>.`],
+            'régler une marge de phase avec un gain : lire où la phase vaut −180° + M<sub>φ</sub>, puis y amener 0 dB.') },
+        { t: 'L’écart dû au courant', pour: ['Q15'], fig: figX(rP, 'correcteur proportionnel'),
+          text: 'Avec ce correcteur proportionnel, la position est tracée. En régime établi (avant la surverse de courant), l’exigence est-elle respectée ? Pourquoi passer à un correcteur proportionnel intégral ?',
+          fields: [{ l: 'Écart établi', u: 'm', a: Math.abs(rP.x0), tol: .08 }, choix('Exigence', ['non respectée : l’écart permanent dépasse la limite', 'respectée']), choix('Pourquoi un PI', ['pour tenir la poussée d’équilibre sans écart : l’intégrateur, en amont de la perturbation, annule l’écart permanent', 'pour aller plus vite', 'pour augmenter la marge de phase', 'pour filtrer le bruit du GPS'])],
+          hint: 'Avec un simple gain, la poussée qui compense le courant ne peut venir que d’un écart : F<sub>0</sub> = n·K<sub>h</sub>·K<sub>p</sub>·|x|.',
+          corr: pas([`Écart permanent : |x| = ${fr('F<sub>0</sub>', 'n·K<sub>h</sub>·K<sub>p</sub>')} = ${fr(f3(F0), `${f3(nKh)} × ${f3(Kp)}`)} = <b>${f3(Math.abs(rP.x0))} m</b> (lisible sur la courbe avant ${tg} s).`, `Plus de ${Xm} m : <b>exigence non respectée</b>.`, 'Un intégrateur dans le correcteur fabrique la poussée d’équilibre sans écart : l’écart permanent dû au courant constant devient nul.'],
+            'perturbation constante et correcteur proportionnel : un écart permanent ; l’intégrateur l’annule.') },
+        { t: 'Le PI sous forme fréquentielle', pour: ['Q16'], fig: '',
+          text: `Le correcteur proportionnel intégral est C<sub>PI</sub>(p) = K<sub>p</sub> + K<sub>I</sub>/p, avec K<sub>p</sub> = ${fmt(Kp)} °/m et K<sub>I</sub> = ${sci(Kp * wI)} °/(m·s). Mettre C<sub>PI</sub>(jω) sous la forme K<sub>p</sub>(1 + jω/ω<sub>I</sub>)/(jω/ω<sub>I</sub>) : que vaut ω<sub>I</sub> ?`,
+          fields: [choix('ω<sub>I</sub> =', ['K<sub>I</sub>/K<sub>p</sub>', 'K<sub>p</sub>/K<sub>I</sub>', 'K<sub>p</sub>·K<sub>I</sub>', '1/K<sub>I</sub>']), { l: 'ω<sub>I</sub>', u: 'rad/s', a: wI, tol: .03 }],
+          hint: 'Mettre K<sub>p</sub> en facteur : K<sub>p</sub>(1 + (K<sub>I</sub>/K<sub>p</sub>)/(jω)).',
+          corr: pas([`C<sub>PI</sub> = K<sub>p</sub>(1 + ${fr('K<sub>I</sub>/K<sub>p</sub>', 'jω')}) = K<sub>p</sub>·${fr('1 + jω/ω<sub>I</sub>', 'jω/ω<sub>I</sub>')} avec <b>ω<sub>I</sub> = K<sub>I</sub>/K<sub>p</sub> = ${sci(wI)} rad/s</b>.`],
+            'la pulsation de cassure du PI est le rapport des gains intégral et proportionnel.') },
+        { t: 'L’effet du PI sur le Bode', pour: ['Q17'], fig: '', rappel: `ω<sub>I</sub> = ${sci(wI)} rad/s ; sans PI, coupure vers ${sci(w45)} rad/s avec 45° de marge.`,
+          text: 'Décrire le diagramme asymptotique du correcteur PI, puis estimer la marge de phase de la boucle ouverte corrigée.',
+          fields: [choix('Asymptotes du PI', ['−20 dB/décade puis 0 (palier à 20·log K<sub>p</sub>) ; phase −90° puis 0°', '0 puis +20 dB/décade ; phase 0° puis +90°', '−20 dB/décade partout ; phase −90°', '0 dB partout']), { l: 'M<sub>φ</sub> avec le PI', u: '°', a: mPI.Mp, abs: 3 }],
+          hint: 'À la coupure, le PI retarde la phase de 90° − arctan(ω/ω<sub>I</sub>).',
+          corr: pas(['Avant ω<sub>I</sub> : K<sub>p</sub>ω<sub>I</sub>/ω, pente −20 dB/décade, phase −90° ; après : palier à 20·log K<sub>p</sub>, phase vers 0°.', `À la coupure (≈ ${sci(mPI.wc)} rad/s), le PI retire ${f3(90 - deg(Math.atan(mPI.wc / wI)))}° : <b>M<sub>φ</sub> ≈ ${f3(mPI.Mp)}°</b> (au lieu de 45°), toujours au-dessus de 20°.`],
+            'un PI placé une demi-décade sous la coupure coûte un peu de marge, et supprime l’écart permanent.') },
+        { t: 'La surverse avec le PI', pour: ['Q18'], fig: figX(rPI, 'correcteur PI'),
+          text: 'Avec le PI, relever l’écart de position maximal causé par la surverse de courant. Est-il acceptable ? En quoi une action dérivée peut-elle aider ?',
+          fields: [{ l: 'Écart maximal', u: 'm', a: rPI.pk, tol: .1 }, choix('Acceptable ?', ['non : il dépasse la limite', 'oui']), choix('L’action dérivée', ['elle apporte de la phase autour de la coupure : on peut monter le gain, et la boucle réagit plus vite et plus fort à la surverse', 'elle annule l’écart permanent', 'elle filtre le courant', 'elle diminue le gain aux hautes pulsations'])],
+          hint: 'Lire le creux de la courbe après le début de la surverse.',
+          corr: pas([`Écart maximal ≈ <b>${f3(rPI.pk)} m</b>, vers t ≈ ${f3(rPI.tpk)} s : plus que ${Xm} m, <b>non acceptable</b>.`, 'L’écart permanent est nul, mais la boucle est trop lente pour contrer une surverse. Une action dérivée remonte la phase près de la coupure : on peut augmenter le gain sans perdre la stabilité, donc réagir plus vite.'],
+            'l’intégrateur règle le régime établi ; le transitoire face à une perturbation dépend de la bande passante.') },
+        { t: 'Pourquoi une dérivée filtrée', pour: ['Q19'], fig: '',
+          text: `Le correcteur devient un PID : C(jω) = K<sub>p</sub>(1 + ω<sub>I</sub>/(jω) + (jω/ω<sub>D</sub>)/(1 + jω/ω<sub>D2</sub>)). Pourquoi la partie dérivée n’est-elle pas une dérivée pure jω/ω<sub>D</sub> ?`,
+          fields: [choix('Parce que', ['une dérivée pure n’est pas réalisable et amplifie sans limite le bruit de mesure aux hautes pulsations : le terme en ω<sub>D2</sub> plafonne son gain', 'une dérivée pure serait trop lente', 'pour annuler l’écart permanent', 'pour que le correcteur soit de classe 1'])],
+          hint: 'Que vaut le gain d’une dérivée pure quand ω devient grand ?',
+          corr: pas(['Le gain de jω/ω<sub>D</sub> croît sans fin avec ω : le bruit de mesure, rapide, serait énormément amplifié, et un tel transfert (numérateur de degré plus élevé que le dénominateur) n’est pas réalisable.', 'Le filtre 1/(1 + jω/ω<sub>D2</sub>) plafonne le gain dérivé au-delà de ω<sub>D2</sub>.'],
+            'on filtre toujours une dérivée : au-delà d’une décade après la coupure, elle n’apporte plus que du bruit.') },
+        { t: 'Le placement de ω<sub>D</sub> et ω<sub>D2</sub>'.replace(/<[^>]+>/g, ''), pour: ['Q20'], fig: '', rappel: `K<sub>p</sub> = ${fmt(KpD)} °/m, ω<sub>I</sub> = ${sci(wI)}, ω<sub>D</sub> = ${sci(wD)}, ω<sub>D2</sub> = ${sci(wD2)} rad/s ; coupure de la boucle avec le PID vers ${sci(mPID.wc)} rad/s.`,
+          text: 'Justifier le choix de ω<sub>D</sub> et ω<sub>D2</sub> : combien de phase le terme 1 + (jω/ω<sub>D</sub>)/(1 + jω/ω<sub>D2</sub>) apporte-t-il à la pulsation de coupure, et quelle marge de phase obtient-on ?',
+          fields: [{ l: 'Phase apportée', u: '°', a: phPD, abs: 4 }, { l: 'M<sub>φ</sub> avec le PID', u: '°', a: mPID.Mp, abs: 4 }, choix('Placement', ['ω<sub>D</sub> sous la coupure, ω<sub>D2</sub> au-dessus : l’avance est maximale vers la coupure', 'ω<sub>D</sub> et ω<sub>D2</sub> au-dessus de la coupure', 'ω<sub>D</sub> = ω<sub>D2</sub>', 'ω<sub>D2</sub> sous ω<sub>D</sub>'])],
+          hint: '1 + (jω/ω<sub>D</sub>)/(1 + jω/ω<sub>D2</sub>) = (1 + jω(1/ω<sub>D</sub> + 1/ω<sub>D2</sub>))/(1 + jω/ω<sub>D2</sub>) : un zéro un peu au-dessous de ω<sub>D</sub>, un pôle en ω<sub>D2</sub>. Sa phase : arctan du zéro moins arctan du pôle.',
+          corr: pas([`Le terme vaut (1 + jω/${sci(zD)})/(1 + jω/${sci(wD2)}). À ω<sub>c</sub> ≈ ${sci(mPID.wc)} rad/s : arctan(${f3(mPID.wc / zD)}) − arctan(${f3(mPID.wc / wD2)}) = <b>${f3(phPD)}°</b> d’avance.`, `Avec un gain ${g} fois plus fort qu’avec le seul correcteur P, la marge reste suffisante : <b>M<sub>φ</sub> ≈ ${f3(mPID.Mp)}°</b>.`, 'ω<sub>D</sub> sous la coupure et ω<sub>D2</sub> au-dessus : l’avance se concentre là où la marge se joue, et le gain aux hautes pulsations reste plafonné.'],
+            'le terme dérivé filtré est une avance de phase : on l’encadre autour de la coupure.') },
+        { t: 'La conclusion', pour: ['Q21'], fig: figX(rPID, 'correcteur PID'),
+          text: 'Avec le PID, la position est tracée. Conclure sur le maintien en position du navire.',
+          fields: [{ l: 'Écart maximal', u: 'm', a: rPID.pk, tol: .12 }, choix('Conclusion', ['exigence respectée : écart permanent nul et écart maximal sous la limite pendant la surverse', 'exigence non respectée pendant la surverse', 'écart permanent non nul', 'le système devient instable'])],
+          hint: 'Relever le pire écart après le début de la surverse et le comparer à la limite.',
+          corr: pas([`Écart maximal ≈ <b>${f3(rPID.pk)} m</b> &lt; ${Xm} m, et l’écart revient à zéro (intégrateur).`, '<b>Exigence respectée</b> : l’intégrateur règle le régime établi, l’action dérivée permet le gain qui contre la surverse.'],
+            'P pour la rapidité, I pour la précision, D (filtrée) pour la stabilité qui autorise plus de gain.') },
       ];
       return { intro, qs };
     } };
