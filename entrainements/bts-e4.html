@@ -243,6 +243,9 @@ textarea{width:100%;min-height:110px;font:inherit;padding:9px;border:1px solid v
 .t-doc tbody tr:hover td{background:var(--accent-soft)}
 .t-doc.t-serre{font-size:.78rem}.t-doc.t-serre th,.t-doc.t-serre td{padding:2px 4px;font-family:var(--f-mono)}
 .t-doc.t-ligne td{font-family:var(--f-mono);min-width:2.6em}
+/* tableaux larges : chacun défile seul, le texte autour reste en place ; listes de valeurs : retour à la ligne sur téléphone */
+.docs-html .t-doc{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media (max-width:600px){.t-doc.t-ligne,.t-doc.t-ligne tbody{display:block}.t-doc.t-ligne thead{display:none}.t-doc.t-ligne tr{display:flex;flex-wrap:wrap}.t-doc.t-ligne{padding:0 1px 1px 0}.t-doc.t-ligne td,.t-doc.t-ligne td:first-child{flex:0 0 auto;min-width:3.3em;margin:0 -1px -1px 0;text-align:center}}
 .data-serie{margin:8px 0;overflow-x:auto}.data-serie table{width:auto}
 .doc-rappel{margin:6px 0}
 .suite-q{font-size:.82rem;color:var(--accent);font-weight:600;margin-bottom:4px}
