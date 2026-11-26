@@ -1069,7 +1069,8 @@
 
   /* ---------- souris ---------- */
   cv.addEventListener("pointerdown", (e) => { cancelAnimationFrame(anim3); tire = [e.clientX, e.clientY, vue.a, vue.b, vue.px, vue.py, e.shiftKey || e.button === 1]; cv.setPointerCapture(e.pointerId); });
-  cv.addEventListener("pointermove", (e) => { if (!tire) { if (mode === "piece" && dial && dial.t === "cg3" && dial.m !== "f" && e.pointerType === "mouse") { const r = cv.getBoundingClientRect(), c = viser(e.clientX - r.left, e.clientY - r.top); if (c !== survolA) { survolA = c; cv.style.cursor = c ? "pointer" : ""; marques(); } } return; }          // à la souris, l'arête visée s'éclaire avant le clic const dx = e.clientX - tire[0], dy = e.clientY - tire[1];
+  cv.addEventListener("pointermove", (e) => { if (!tire) { if (mode === "piece" && dial && dial.t === "cg3" && dial.m !== "f" && e.pointerType === "mouse") { const r = cv.getBoundingClientRect(), c = viser(e.clientX - r.left, e.clientY - r.top); if (c !== survolA) { survolA = c; cv.style.cursor = c ? "pointer" : ""; marques(); } } return; }          // à la souris, l'arête visée s'éclaire avant le clic
+    const dx = e.clientX - tire[0], dy = e.clientY - tire[1];
     if (tire[6]) { vue.px = tire[4] + dx; vue.py = tire[5] + dy; } else { vue.a = tire[2] + dx * 0.01; vue.b = Math.max(-1.5708, Math.min(1.5708, tire[3] + dy * 0.01)); } peindre(1); });       // Maj ou bouton du milieu : on déplace ; sinon on tourne
   const finTire = (e) => { if (!tire) return; const clic = e && e.type === "pointerup" && Math.hypot(e.clientX - tire[0], e.clientY - tire[1]) < (e.pointerType === "touch" ? 10 : 5); tire = null; propre();
     if (clic && mode === "piece" && dial && !plie && e.pointerType === "touch" && ["rep", "sym", "plan", "rev"].includes(dial.t)) { lireDial(); plie = true; dialogue(); dire("Boîte repliée : la pièce se voit en entier. Touche ▸ pour la rouvrir."); return maj(); }
