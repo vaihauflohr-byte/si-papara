@@ -303,9 +303,22 @@
     return plot({ x0: 0.2, x1: 2, dx: 0.05, xmaj: 4, y0: 0, y1: 16, dy: 0.5, ymaj: 4, xl: 'Amortissement ξ', yl: 't5% × ω0', alt: 'abaque du temps de réponse réduit à 5 % en fonction de l’amortissement', curves: [{ pts: ABQ }] });
   }
   // diagramme de Bode d'une fonction f(ω) → [gain en dB, phase en °]
+  // Pulsations d’un tracé de Bode : 240 pas logarithmiques, resserrés autour des pics et des creux du gain.
+  // Sans cela, une résonance peu amortie serait tracée plus bas qu’elle n’est (un ou deux décibels de moins).
+  function grilleBode(fs, w0, w1) {
+    const n = 240, base = Array.from({ length: n + 1 }, (_, i) => w0 * (w1 / w0) ** (i / n)), plus = [];
+    fs.forEach((f) => {
+      const g = base.map((w) => f(w)[0]);
+      for (let i = 1, k = 0; i < n && k < 8; i++) {
+        if (![g[i - 1], g[i], g[i + 1]].every(isFinite)) continue;
+        if ((g[i] > g[i - 1] && g[i] > g[i + 1]) || (g[i] < g[i - 1] && g[i] < g[i + 1])) { k++; for (let j = 1; j < 60; j++) plus.push(base[i - 1] * (base[i + 1] / base[i - 1]) ** (j / 60)); }
+      }
+    });
+    return base.concat(plus).sort((a, b) => a - b);
+  }
   function bodeF(f, w0, w1, alt) {
     const g = [], ph = [];
-    for (let i = 0; i <= 240; i++) { const w = w0 * (w1 / w0) ** (i / 240), v = f(w); g.push([w, Math.max(-300, Math.min(300, isFinite(v[0]) ? v[0] : 300))]); ph.push([w, isFinite(v[1]) ? v[1] : 0]); }
+    grilleBode([f], w0, w1).forEach((w) => { const v = f(w); g.push([w, Math.max(-300, Math.min(300, isFinite(v[0]) ? v[0] : 300))]); ph.push([w, isFinite(v[1]) ? v[1] : 0]); });
     const gs = g.map((q) => q[1]), ps = ph.map((q) => q[1]);
     let y0 = Math.floor(Math.min(...gs) / 10) * 10 + 0, y1 = Math.max(10, Math.ceil(Math.max(...gs) / 10) * 10) + 0;
     const big = y1 - y0 > 80, py = y1 - y0 <= 200 ? 20 : 40;
@@ -906,12 +919,12 @@
      ===================================================================== */
   function bodeMulti(fs, w0, w1, noms, alt, lim) {
     const G = fs.map(() => []), P = fs.map(() => []), [gb, gh] = lim || [-300, 300];   // gain borné : une résonance non amortie vaut l’infini
-    for (let i = 0; i <= 240; i++) { const w = w0 * (w1 / w0) ** (i / 240); fs.forEach((f, k) => { const v = f(w), g = isFinite(v[0]) ? v[0] : (v[0] > 0 ? gh : gb); G[k].push([w, Math.max(gb, Math.min(gh, g))]); P[k].push([w, isFinite(v[1]) ? v[1] : 0]); }); }
+    grilleBode(fs, w0, w1).forEach((w) => fs.forEach((f, k) => { const v = f(w), g = isFinite(v[0]) ? v[0] : (v[0] > 0 ? gh : gb); G[k].push([w, Math.max(gb, Math.min(gh, g))]); P[k].push([w, isFinite(v[1]) ? v[1] : 0]); }));
     const gs = [].concat(...G).map((q) => q[1]), ps = [].concat(...P).map((q) => q[1]);
     const etendue = Math.max(...gs) - Math.min(...gs), py = etendue <= 100 ? 20 : etendue <= 200 ? 40 : 80;   // graduations lisibles
     const y0 = Math.floor(Math.min(...gs) / py) * py + 0, y1 = Math.ceil(Math.max(...gs) / py) * py + 0, p0 = Math.floor(Math.min(...ps) / 45) * 45 + 0, p1 = Math.ceil(Math.max(...ps) / 45) * 45 + 0;
     const cv = (L) => L.map((pts, k) => ({ pts, c: COUL[k], w: 2, dash: k % 2 }));
-    return plot({ W: 660, H: 290, logx: 1, x0: w0, x1: w1, y0, y1, dy: py / 2, ymaj: 2, curves: cv(G), hl: [{ y: 0, t: '0 dB', c: '#587083' }], xl: '', yl: 'Gain (dB)', alt: alt + ', gain' })
+    return plot({ W: 660, H: 290, logx: 1, x0: w0, x1: w1, y0, y1, dy: py >= 40 ? py / 4 : py / 2, ymaj: py >= 40 ? 4 : 2, curves: cv(G), hl: [{ y: 0, t: '0 dB', c: '#587083' }], xl: '', yl: 'Gain (dB)', alt: alt + ', gain' })
       + plot({ W: 660, H: 260, logx: 1, x0: w0, x1: w1, y0: p0, y1: p1 > p0 ? p1 : p0 + 45, dy: 15, ymaj: 3, curves: cv(P), hl: p0 <= -180 ? [{ y: -180, t: '−180°', c: '#587083' }] : [], xl: 'Pulsation ω (rad/s)', yl: 'Phase (°)', alt: alt + ', phase' })
       + `<p class="pp-leg">${noms.map((n, i) => `<span style="color:${COUL[i]};font-weight:700">${i % 2 ? '- - -' : '——'} ${n}</span>`).join(' &nbsp; ')}</p>`;
   }
@@ -1451,6 +1464,350 @@
           hint: 'Relever le pire écart après le début de la surverse et le comparer à la limite.',
           corr: pas([`Écart maximal ≈ <b>${f3(rPID.pk)} m</b> &lt; ${Xm} m, et l’écart revient à zéro (intégrateur).`, '<b>Exigence respectée</b> : l’intégrateur règle le régime établi, l’action dérivée permet le gain qui contre la surverse.'],
             'P pour la rapidité, I pour la précision, D (filtrée) pour la stabilité qui autorise plus de gain.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 1 · TD 1 — sur un autre système : le pressoir d'une coopérative fruitière
+     schéma-blocs fonctionnel (constituants, grandeurs, unités), fonctions de transfert des blocs,
+     boucle fermée du premier ordre sous forme canonique
+     ===================================================================== */
+  function boucleFonctionnelle(blocs, liens, retour, alt) {
+    // blocs : noms ; liens : grandeurs (liens[0] = entrée, liens[n] = sortie) ; retour : nom du capteur ; comparateur après le premier bloc
+    const larg = (t) => Math.max(64, Math.round(t.length * 8.2) + 18), gap = 30, x0 = 34;
+    let c = S.ar(4, x0, 50, '') + S.t(16, 40, liens[0]), x = x0, xs0 = 0;
+    blocs.forEach((b, i) => {
+      if (i === 1) { xs0 = x + 14; c += S.som(xs0, 50, '+−'); x += 28; c += S.ar(x, x + 24, 50, ''); x += 24; }
+      const w = larg(b); c += S.box(x, 28, b, w); x += w;
+      c += S.ar(x, x + gap, 50, '') + S.t(x + gap / 2, 40, liens[i + 1]); x += gap;
+    });
+    const xo = x - gap / 2, wr = larg(retour), xb = Math.round((xs0 + xo) / 2 - wr / 2);
+    c += S.pt(xo, 50) + S.li(xo, 50, xo, 120) + S.li(xo, 120, xb + wr + 8, 120) + Sg(xb + wr, 120) + S.box(xb, 98, retour, wr) + S.li(xb, 120, xs0, 120) + S.li(xs0, 120, xs0, 72) + S.up(xs0, 64);
+    return S.svg(x + 6, 150, alt, c);
+  }
+  J['c1-td1'] = { titre: 'Le pressoir d’une coopérative fruitière', sys: 'schéma-blocs fonctionnel, fonctions de transfert, boucle fermée du premier ordre', min: 30,
+    gen() {
+      const Km = pick([0.2, 0.25, 0.4, 0.5]), Tm = pick([0.02, 0.03, 0.05, 0.08]), r = pick([10, 15, 20, 25]), pasm = pick([4, 5, 6, 8]), Kcap = pick([0.5, 1, 2]) * 1e-3, Kc = pick([2, 5, 10]), Ka = pick([5, 10, 12]);
+      const G = 2 * Math.PI * r / (pasm * 1e-3), K0 = Kcap * Kc * Ka * Km * G, K = K0 / (1 + K0), tau = Tm / (1 + K0);
+      const K0R = r3(K0);
+      const fig = boucleFonctionnelle(['Adaptateur', 'Carte', 'Amplificateur', 'Moteur', 'Réducteur', 'Vis-écrou'], ['Fc', 'A', 'B', 'C', 'D', 'E', 'F'], 'Capteur', 'schéma-blocs fonctionnel du pressoir : adaptateur, comparateur, carte de commande, amplificateur, moteur, réducteur, vis-écrou, effort de pressage, capteur d’effort en retour ; liens A à F à identifier');
+      const intro = `<p>Une coopérative presse des fruits (ananas, noni) pour en tirer le jus. Le plateau du pressoir descend par une vis à billes ; l’effort de pressage F doit suivre une consigne F<sub>c</sub> réglée par l’opérateur. Un moteur à courant continu entraîne la vis par un réducteur ; un capteur d’effort mesure F ; une carte de commande compare la consigne (transformée en tension par un adaptateur) à la mesure, et un amplificateur alimente le moteur.</p>
+        ${tableau([['Moteur', `du couple C<sub>m</sub> à la tension U : premier ordre de gain K<sub>m</sub> = ${fmt(Km)} N·m/V et de constante de temps T<sub>m</sub> = ${fmt(Tm)} s`], ['Réducteur', `rapport de réduction ${r} (la vis tourne ${r} fois moins vite que le moteur ; rendement 1)`], ['Vis à billes', `pas ${pasm} mm (rendement 1)`], ['Capteur d’effort', `K<sub>cap</sub> = ${sci(Kcap)} V/N`], ['Carte et amplificateur', `correcteur proportionnel K<sub>c</sub> = ${Kc}, amplificateur K<sub>a</sub> = ${Ka}`]])}`;
+      const qs = [
+        { t: 'Le schéma-blocs fonctionnel', pour: ['Q1'], fig,
+          text: 'Le schéma-blocs fonctionnel du pressoir est tracé. Quelle grandeur physique, avec son unité, porte chacun des liens A, C, D et F ?',
+          fields: [choix('Lien A', ['une tension, en V', 'un effort, en N', 'un couple, en N·m', 'une vitesse, en rad/s']), choix('Lien C', ['une tension, en V (celle qui alimente le moteur)', 'un couple, en N·m', 'un effort, en N', 'un courant, en A']), choix('Lien D', ['un couple, en N·m (couple moteur)', 'une tension, en V', 'un effort, en N', 'un déplacement, en m']), choix('Lien F', ['un effort, en N (effort de pressage)', 'un couple, en N·m', 'une tension, en V', 'une vitesse, en m/s'])],
+          hint: 'L’adaptateur sert à comparer la consigne à la mesure : il produit la même grandeur que le capteur. Suivre ensuite la chaîne de puissance : tension, couple, couple réduit, effort.',
+          corr: pas(['A : l’adaptateur change la consigne d’effort en <b>tension (V)</b>, comme le capteur, pour qu’on puisse les comparer.', 'B : l’écart, puis la sortie de la carte, en V ; C : la <b>tension d’alimentation du moteur (V)</b>, après l’amplificateur.', 'D : le <b>couple moteur (N·m)</b> ; E : le couple sur la vis (N·m), multiplié par le réducteur.', 'F : la vis transforme le couple en <b>effort de pressage (N)</b>, mesuré par le capteur.'],
+            'chaque lien d’un schéma-blocs porte une grandeur et son unité : c’est ce qui vérifie qu’on ne compare que des choses comparables.') },
+        { t: 'Les fonctions de transfert', pour: ['Q2'], fig,
+          text: 'La carte est un correcteur proportionnel de gain K<sub>c</sub>. Donner la fonction de transfert de chaque bloc : que valent le gain de l’adaptateur, la fonction de transfert du moteur, et le gain de l’ensemble réducteur et vis (de C<sub>m</sub> à F) ?',
+          fields: [{ l: 'Gain de l’adaptateur', u: 'V/N', a: Kcap, tol: .02 }, choix('Moteur', [`K<sub>m</sub>/(1 + T<sub>m</sub>·p) = ${fmt(Km)}/(1 + ${fmt(Tm)}·p)`, `K<sub>m</sub>·(1 + T<sub>m</sub>·p)`, `K<sub>m</sub>/(T<sub>m</sub>·p)`, `K<sub>m</sub>/(1 + T<sub>m</sub>·p)²`]), { l: 'Gain réducteur et vis', u: 'N/(N·m)', a: G, tol: .02 }],
+          hint: 'Adaptateur : même gain que le capteur. Puissance conservée (rendement 1) : le couple est multiplié par le rapport de réduction, puis C·ω = F·v pour la vis, avec v = pas × (tours par seconde).',
+          corr: pas([`Adaptateur : <b>K<sub>cap</sub> = ${sci(Kcap)} V/N</b>, pour que l’écart soit nul quand F = F<sub>c</sub>.`, `Moteur : <b>${fmt(Km)}/(1 + ${fmt(Tm)}·p)</b> ; carte : K<sub>c</sub> ; amplificateur : K<sub>a</sub> ; capteur : K<sub>cap</sub>.`, `Réducteur : C<sub>vis</sub> = ${r}·C<sub>m</sub>. Vis : en un tour (2π rad), le plateau avance d’un pas ; puissance conservée : F = C<sub>vis</sub>·2π/pas. Gain : ${r} × 2π/${fmt(pasm * 1e-3)} = <b>${f3(G)} N/(N·m)</b>.`],
+            'un transformateur de mouvement idéal est un gain pur : on le trouve en écrivant que la puissance se conserve.') },
+        { t: 'La boucle fermée', pour: ['Q3'], fig, rappel: `On prendra K<sub>m</sub>·(réducteur et vis) = ${f3(Km * G)} N/V.`,
+          text: 'En déduire la fonction de transfert en boucle fermée F(p)/F<sub>c</sub>(p) sous forme canonique : gain de boucle K<sub>BO</sub>, gain statique et constante de temps.',
+          fields: [{ l: 'K<sub>BO</sub>', u: '', a: K0, tol: .03 }, { l: 'Gain statique', u: '', a: K, tol: .01 }, { l: 'Constante de temps', u: 's', a: tau, tol: .03 }],
+          hint: 'FTBF = K<sub>cap</sub>·K<sub>c</sub>·K<sub>a</sub>·M(p)·G/(1 + K<sub>c</sub>·K<sub>a</sub>·M(p)·G·K<sub>cap</sub>) ; diviser par 1 + K<sub>BO</sub>.',
+          corr: pas([`K<sub>BO</sub> = K<sub>cap</sub>·K<sub>c</sub>·K<sub>a</sub>·K<sub>m</sub>·G = ${sci(Kcap)} × ${Kc} × ${Ka} × ${f3(Km * G)} = <b>${f3(K0)}</b>.`, `FTBF = ${fr('K<sub>BO</sub>', '1 + K<sub>BO</sub> + T<sub>m</sub>·p')} = ${fr('K<sub>BO</sub>/(1 + K<sub>BO</sub>)', `1 + (T<sub>m</sub>/(1 + K<sub>BO</sub>))·p`)}.`, `Gain statique <b>${f3(K)}</b> ; constante de temps <b>${sci(tau)} s</b> (${f3(1 + K0R)} fois plus courte que T<sub>m</sub>).`],
+            'un premier ordre bouclé par un gain reste un premier ordre : gain K<sub>BO</sub>/(1 + K<sub>BO</sub>), constante de temps divisée par 1 + K<sub>BO</sub>.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 1 · TD 2 — trois réponses indicielles à identifier (premier ordre, deuxième ordre sans
+     dépassement, deuxième ordre oscillant), sur trois systèmes d'un atelier
+     ===================================================================== */
+  J['c1-td2'] = { titre: 'Trois réponses à identifier', sys: 'ordre et paramètres d’une réponse à un échelon : premier ordre, deuxième ordre amorti, deuxième ordre oscillant', min: 25,
+    gen() {
+      // 1. premier ordre
+      const K1 = pick([0.5, 1.5, 2.5, 3, 4]), t1 = pick([0.4, 2, 5, 8, 12, 20]), T1 = 5 * t1;
+      const f1 = plot({ x0: 0, x1: T1, dx: t1 / 4, xmaj: 4, y0: 0, y1: Math.ceil(K1 * 1.2 * 2) / 2, dy: K1 > 2 ? 0.25 : 0.1, ymaj: K1 > 2 ? 2 : 5, curves: [{ pts: step1(K1, t1, T1) }], xl: 't (s)', yl: 's(t)', alt: 'courbe 1 : réponse à un échelon unité' });
+      // 2. deuxième ordre, ξ = 1
+      const K2 = pick([1, 2, 3, 5]), w2 = pick([0.5, 1, 2, 4, 10]), t52 = 4.75 / w2, T2 = Math.ceil(2 * t52 * w2) / w2;
+      const p2 = Array.from({ length: 301 }, (_, i) => { const t = T2 * i / 300; return [t, K2 * (1 - (1 + w2 * t) * Math.exp(-w2 * t))]; });
+      const f2 = plot({ x0: 0, x1: T2, dx: T2 / 20, xmaj: 2, y0: 0, y1: Math.ceil(K2 * 1.2), dy: K2 >= 3 ? 0.25 : 0.1, ymaj: K2 >= 3 ? 4 : 5, curves: [{ pts: p2 }], hl: [{ y: 0.95 * K2, t: '95 %', c: '#587083' }], xl: 't (s)', yl: 's(t)', alt: 'courbe 2 : réponse à un échelon unité' });
+      // 3. deuxième ordre oscillant
+      const K3 = pick([0.8, 1, 1.5, 2]), x3 = pick([0.15, 0.2, 0.25, 0.3, 0.4]), w3 = pick([2, 5, 8, 10, 20]), wd = w3 * Math.sqrt(1 - x3 * x3), Tp = 2 * Math.PI / wd, D1 = Math.exp(-Math.PI * x3 / Math.sqrt(1 - x3 * x3)), T3 = pasDe(3.5 * Tp / 10) * 10;
+      const f3g = plot({ x0: 0, x1: T3, dx: T3 / 20, xmaj: 2, y0: 0, y1: Math.ceil(K3 * (1 + D1) * 1.1 * 4) / 4, dy: 0.05 * Math.max(1, Math.round(K3)), ymaj: 5, curves: [{ pts: step2(K3, x3, w3, T3, 500) }], xl: 't (s)', yl: 's(t)', alt: 'courbe 3 : réponse à un échelon unité' });
+      const lnD = Math.log(D1), xi3 = -lnD / Math.sqrt(Math.PI ** 2 + lnD ** 2);
+      const ordre = (bon) => choix('Modèle', [bon].concat(['premier ordre', 'deuxième ordre sans dépassement (ξ ≥ 1)', 'deuxième ordre oscillant (ξ &lt; 1)', 'intégrateur'].filter((x) => x !== bon)).slice(0, 4));
+      const intro = '<p>Trois essais à un échelon unité, sur trois systèmes d’un atelier : la température d’une étuve (courbe 1), la vitesse d’un convoyeur (courbe 2), la position du bras d’un robot de manutention (courbe 3). Pour chacun : l’ordre du modèle, puis ses paramètres.</p>';
+      const qs = [
+        { t: 'Courbe 1', pour: ['Courbe 1'], fig: f1,
+          text: 'Quel modèle, et quels paramètres ?',
+          fields: [ordre('premier ordre'), { l: 'Gain K', u: '', a: K1, tol: .03 }, { l: 'Constante de temps τ', u: 's', a: t1, tol: .08 }],
+          hint: 'Pente non nulle à l’origine, pas de dépassement : premier ordre. K : valeur finale (échelon unité). τ : 63 % de la valeur finale.',
+          corr: pas(['Départ avec une pente non nulle, pas de dépassement : <b>premier ordre</b> K/(1 + τp).', `Valeur finale ${fmt(K1)} pour un échelon unité : <b>K = ${fmt(K1)}</b>.`, `0,63 × ${fmt(K1)} = ${f3(0.632 * K1)} est atteint à <b>τ ≈ ${fmt(t1)} s</b> (autre lecture : la tangente à l’origine coupe la valeur finale à t = τ).`],
+            'premier ordre : pente à l’origine non nulle ; K = valeur finale / échelon ; τ à 63 %.') },
+        { t: 'Courbe 2', pour: ['Courbe 2'], fig: f2,
+          text: 'Quel modèle ? Donner son gain, puis sa pulsation propre en admettant un amortissement ξ = 1 (t<sub>5%</sub>·ω<sub>0</sub> ≈ 4,75 pour ξ = 1).',
+          fields: [ordre('deuxième ordre sans dépassement (ξ ≥ 1)'), { l: 'Gain K', u: '', a: K2, tol: .03 }, { l: 't<sub>5%</sub>', u: 's', a: t52, tol: .08 }, { l: 'ω<sub>0</sub>', u: 'rad/s', a: w2, tol: .1 }],
+          hint: 'Tangente horizontale à l’origine : deuxième ordre (au moins). Pas de dépassement : ξ ≥ 1. t<sub>5%</sub> : quand la courbe atteint 95 % de sa valeur finale.',
+          corr: pas(['Tangente horizontale à l’origine et pas de dépassement : <b>deuxième ordre avec ξ ≥ 1</b>.', `Valeur finale : <b>K = ${fmt(K2)}</b>.`, `95 % de ${fmt(K2)} est atteint à <b>t<sub>5%</sub> ≈ ${f3(t52)} s</b> ; avec ξ = 1, t<sub>5%</sub>·ω<sub>0</sub> ≈ 4,75, d’où <b>ω<sub>0</sub> ≈ ${f3(4.75 / t52)} rad/s</b>.`],
+            'la tangente à l’origine départage les ordres : non nulle, premier ordre ; horizontale, deuxième ordre.') },
+        { t: 'Courbe 3', pour: ['Courbe 3'], fig: f3g,
+          text: 'Quel modèle ? Donner son gain, son amortissement et sa pulsation propre.',
+          fields: [ordre('deuxième ordre oscillant (ξ &lt; 1)'), { l: 'Gain K', u: '', a: K3, tol: .03 }, { l: 'ξ', u: '', a: x3, tol: .1 }, { l: 'ω<sub>0</sub>', u: 'rad/s', a: w3, tol: .08 }],
+          hint: 'Premier dépassement relatif D = (s<sub>max</sub> − K)/K ; ξ = −ln D/√(π² + ln² D). Pseudo-période T<sub>p</sub> entre deux maxima ; ω<sub>0</sub> = 2π/(T<sub>p</sub>√(1 − ξ²)).',
+          corr: pas([`Oscillations amorties : <b>deuxième ordre, ξ &lt; 1</b>. Valeur finale : <b>K = ${fmt(K3)}</b>.`, `Premier maximum ≈ ${f3(K3 * (1 + D1))} : D = ${f3(D1)} ; ξ = ${fr('−ln D', '√(π² + ln² D)')} = <b>${f3(xi3)}</b>.`, `Pseudo-période (deux maxima successifs) : T<sub>p</sub> ≈ ${f3(Tp)} s ; ω<sub>0</sub> = ${fr('2π', 'T<sub>p</sub>·√(1 − ξ²)')} = <b>${f3(w3)} rad/s</b>.`],
+            'deuxième ordre oscillant : le dépassement donne ξ, la pseudo-période donne ω<sub>0</sub>.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 1 · TD 3 — sur un autre système : l'appareil à gouverner d'un cargo inter-îles
+     vérin hydraulique (fluide compressible), réduction à deux entrées, servovalve saturée, fluide
+     incompressible, adaptateur, boucle fermée du premier ordre, valeur finale, t5%, influence de la section,
+     vitesse maximale avec et sans saturation
+     ===================================================================== */
+  function verinBlocs() {
+    let c = S.ar(6, 50, 60, 'Q(p)') + S.box(50, 38, 'A1', 50) + S.ar(100, 138, 60, '') + S.som(152, 60, '+−') + S.ar(166, 196, 60, '') + S.box(196, 38, 'A2', 50) + S.ar(246, 300, 60, 'Σ(p)') + S.box(300, 38, 'A3', 50) + S.ar(350, 396, 60, '');
+    c += `<circle cx="410" cy="60" r="14" fill="#fff" stroke="#183047" stroke-width="1.6"/><text x="388" y="54" font-size="13" fill="#183047">+</text><text x="418" y="42" font-size="15" fill="#183047">−</text>` + S.t(410, 12, 'FR(p)') + S.li(410, 18, 410, 38) + S.down(410, 46);
+    c += S.ar(424, 450, 60, '') + S.box(450, 38, 'A4', 50) + S.ar(500, 600, 60, '') + S.t(574, 48, 'X(p)') + S.pt(540, 60) + S.li(540, 60, 540, 118) + S.li(540, 118, 152, 118) + S.li(152, 118, 152, 82) + S.up(152, 74);
+    return S.svg(606, 132, 'schéma-blocs du vérin : débit Q, bloc A1, comparateur avec le retour de X, bloc A2 vers la pression Σ, bloc A3, effort FR retranché, bloc A4 vers la position X', c);
+  }
+  function gouvernailBoucle() {
+    let c = S.ar(6, 46, 60, 'Θc') + S.box(46, 38, 'Kc′', 50) + S.ar(96, 128, 60, 'Vc') + S.som(142, 60, '+−') + S.ar(156, 186, 60, 'ε') + S.box(186, 38, 'KSV', 60) + S.ar(246, 284, 60, 'Q') + S.box(284, 38, '1/(S·p)', 74) + S.ar(358, 396, 60, 'X') + S.box(396, 38, 'Kθ', 50) + S.ar(446, 560, 60, '') + S.t(536, 48, 'Θ');
+    c += S.pt(500, 60) + S.li(500, 60, 500, 118) + S.li(500, 118, 360, 118) + Sg(352, 118) + S.box(302, 96, 'Kc', 50) + S.li(302, 118, 142, 118) + S.li(142, 118, 142, 82) + S.up(142, 74) + S.t(200, 112, 'Vm');
+    return S.svg(566, 148, 'boucle de l’appareil à gouverner : consigne d’angle, adaptateur Kc′, comparateur, servovalve KSV, vérin 1/(S p), barre Kθ, angle de barre, capteur Kc en retour', c);
+  }
+  J['c1-td3'] = { titre: 'L’appareil à gouverner d’un cargo', sys: 'vérin hydraulique, réduction à deux entrées, servovalve saturée, boucle du premier ordre, valeur finale, temps de réponse, vitesse de barre', min: 60,
+    gen() {
+      const S0 = pick([0.02, 0.025, 0.03, 0.04]), R = pick([0.8, 1, 1.2]), Kth = 180 / Math.PI / R, qmax = pick([1.5, 2, 3]) * 1e-3, vmax = 10, KSV = qmax / vmax, Kc = pick([0.2, 0.25, 0.4, 0.5]);
+      const KthR = r3(Kth), tau = S0 / (Kc * KSV * KthR), t5 = 3 * tau, Treq = pick([10, 12, 15, 20]), S2 = Treq * Kc * KSV * KthR / 3, th0 = 65, vlin = th0 / tau, vsat = KthR * qmax / S0, Vreq = 65 / 28, okV = vsat >= Vreq;
+      const okT = t5 <= Treq;
+      const intro = `<p>Un cargo inter-îles est gouverné par un safran que fait tourner une barre (bras de longueur R = ${fmt(R)} m) poussée par un vérin hydraulique. Une servovalve règle le débit d’huile envoyé au vérin ; un capteur potentiométrique mesure l’angle de barre θ. On étudie de petits mouvements autour d’une position moyenne, conditions initiales nulles.</p>
+        ${tableau([['Vérin', `q = S·dx/dt + (V/(2B))·dσ/dt (huile compressible) ; M·d²x/dt² = S·σ − k·x − λ·dx/dt − f<sub>R</sub> ; section S = ${fmt(S0)} m²`], ['Servovalve', `débit proportionnel à la tension entre −${vmax} V et +${vmax} V, saturé à ±${fmt(qmax * 1000)} L/s au-delà`], ['Barre', `θ = K<sub>θ</sub>·x (petits angles) avec K<sub>θ</sub> = ${fmt(KthR)} °/m`], ['Capteur d’angle', `K<sub>c</sub> = ${fmt(Kc)} V/°`], ['Exigences', `écart statique de position nul ; temps de réponse à 5 % d’au plus ${Treq} s ; vitesse de barre d’au moins 65° en 28 s (de 35° d’un bord à 30° de l’autre)`]])}`;
+      const qs = [
+        { t: 'Les blocs du vérin', pour: ['Q1'], fig: verinBlocs(),
+          text: 'Donner les fonctions de transfert A<sub>1</sub>(p) à A<sub>4</sub>(p) du schéma-blocs du vérin (le retour de X arrive directement au comparateur).',
+          fields: [choix('A<sub>1</sub>(p)', ['1/(S·p)', 'S·p', 'S', '2B/(V·p)']), choix('A<sub>2</sub>(p)', ['2B·S/V', 'V/(2B)', '2B/(V·p)', 'S']), choix('A<sub>3</sub>(p)', ['S', '1/S', 'S·p', 'k']), choix('A<sub>4</sub>(p)', ['1/(M·p² + λ·p + k)', 'M·p² + λ·p + k', '1/(M·p²)', '1/(λ·p + k)'])],
+          hint: 'Laplace sur la première équation : Σ = (2B/(V·p))·(Q − S·p·X) = (2B·S/V)·(Q/(S·p) − X). Puis la seconde : (M·p² + λ·p + k)·X = S·Σ − F<sub>R</sub>.',
+          corr: pas(['Équation du débit : Q = S·p·X + (V/(2B))·p·Σ, d’où Σ = (2B·S/V)·(Q/(S·p) − X) : <b>A<sub>1</sub> = 1/(S·p)</b> et <b>A<sub>2</sub> = 2B·S/V</b>, avec un retour unitaire de X.', 'Mécanique : (M·p² + λ·p + k)·X = S·Σ − F<sub>R</sub> : <b>A<sub>3</sub> = S</b> et <b>A<sub>4</sub> = 1/(M·p² + λ·p + k)</b>.'],
+            'chaque équation de Laplace donne un morceau de schéma : on isole la grandeur qu’on veut voir sortir.') },
+        { t: 'Deux entrées', pour: ['Q2'], fig: verinBlocs(),
+          text: 'Exprimer X(p) en fonction des deux entrées Q(p) et F<sub>R</sub>(p).',
+          fields: [choix('X(p) =', ['[A<sub>1</sub>A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>·Q(p) − A<sub>4</sub>·F<sub>R</sub>(p)]/(1 + A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>)', '[A<sub>1</sub>A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>·Q(p) − A<sub>4</sub>·F<sub>R</sub>(p)]/(1 + A<sub>1</sub>A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>)', 'A<sub>1</sub>A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>·Q(p) − A<sub>4</sub>·F<sub>R</sub>(p)', '[A<sub>1</sub>A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>·Q(p) + A<sub>4</sub>·F<sub>R</sub>(p)]/(1 + A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>)'])],
+          hint: 'Écrire X = A<sub>4</sub>·(A<sub>3</sub>·A<sub>2</sub>·(A<sub>1</sub>·Q − X) − F<sub>R</sub>), puis isoler X.',
+          corr: pas(['X = A<sub>4</sub>[A<sub>3</sub>A<sub>2</sub>(A<sub>1</sub>Q − X) − F<sub>R</sub>], donc X(1 + A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>) = A<sub>1</sub>A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>Q − A<sub>4</sub>F<sub>R</sub>.', `<b>X = ${fr('A<sub>1</sub>A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>·Q − A<sub>4</sub>·F<sub>R</sub>', '1 + A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>')}</b> : le retour n’entoure pas A<sub>1</sub>.`],
+            'superposition : chaque entrée passe par la même boucle, avec son propre numérateur.') },
+        { t: 'La forme réduite', pour: ['Q3'], fig: '',
+          text: 'Le schéma se réduit à : Q(p) → H<sub>1</sub>(p) → comparateur (F<sub>R</sub> retranché) → H<sub>2</sub>(p) → X(p). Exprimer X(p) avec H<sub>1</sub> et H<sub>2</sub>.',
+          fields: [choix('X(p) =', ['H<sub>2</sub>(p)·[H<sub>1</sub>(p)·Q(p) − F<sub>R</sub>(p)]', 'H<sub>1</sub>(p)·H<sub>2</sub>(p)·Q(p) − F<sub>R</sub>(p)', 'H<sub>2</sub>(p)·Q(p) − H<sub>1</sub>(p)·F<sub>R</sub>(p)', '[H<sub>1</sub>(p)·Q(p) − F<sub>R</sub>(p)]/H<sub>2</sub>(p)'])],
+          hint: 'Lire le schéma de gauche à droite.',
+          corr: pas(['<b>X = H<sub>2</sub>·(H<sub>1</sub>·Q − F<sub>R</sub>)</b>.'], 'un schéma réduit se lit de gauche à droite, comparateur compris.') },
+        { t: 'H1 et H2', pour: ['Q4'], fig: '',
+          text: 'Identifier H<sub>1</sub>(p) et H<sub>2</sub>(p) en fonction de A<sub>1</sub> à A<sub>4</sub>.',
+          fields: [choix('H<sub>1</sub>(p) =', ['A<sub>1</sub>A<sub>2</sub>A<sub>3</sub>', 'A<sub>1</sub>A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>', 'A<sub>1</sub>', 'A<sub>2</sub>A<sub>3</sub>']), choix('H<sub>2</sub>(p) =', ['A<sub>4</sub>/(1 + A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>)', 'A<sub>4</sub>', 'A<sub>4</sub>/(1 + A<sub>1</sub>A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>)', '1/(1 + A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>)'])],
+          hint: 'Comparer terme à terme H<sub>2</sub>H<sub>1</sub>Q − H<sub>2</sub>F<sub>R</sub> et l’expression de la question 2.',
+          corr: pas(['Terme en F<sub>R</sub> : <b>H<sub>2</sub> = A<sub>4</sub>/(1 + A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>)</b>.', 'Terme en Q : H<sub>2</sub>H<sub>1</sub> = A<sub>1</sub>A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>/(1 + A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>), d’où <b>H<sub>1</sub> = A<sub>1</sub>A<sub>2</sub>A<sub>3</sub></b>.'],
+            'identification : on compare les coefficients de chaque entrée.') },
+        { t: 'La servovalve', pour: ['Q5'], fig: '',
+          text: 'Sur quelle plage de tension la servovalve peut-elle être modélisée par une fonction de transfert ? Que vaut alors K<sub>SV</sub> ?',
+          fields: [choix('Plage', [`−${vmax} V ≤ v ≤ +${vmax} V, là où le débit est proportionnel à la tension`, 'toutes les tensions', `v ≥ ${vmax} V`, 'aucune : une servovalve n’est pas linéaire']), { l: 'K<sub>SV</sub>', u: 'm³·s⁻¹/V', a: KSV, tol: .02 }],
+          hint: 'Une fonction de transfert suppose un modèle linéaire : hors saturation.',
+          corr: pas([`Hors saturation, |v| ≤ ${vmax} V : q = K<sub>SV</sub>·v, avec <b>K<sub>SV</sub> = q<sub>max</sub>/v<sub>max</sub> = ${fmt(qmax)}/${vmax} = ${sci(KSV)} m³·s⁻¹/V</b>.`, 'En saturation, le débit ne dépend plus de la tension : pas de fonction de transfert.'],
+            'une fonction de transfert n’existe que dans le domaine linéaire d’un composant.') },
+        { t: 'Huile incompressible', pour: ['Q6'], fig: '',
+          text: 'En négligeant F<sub>R</sub> et la compressibilité de l’huile (B infini), justifier que le vérin se modélise par X(p)/Q(p) = 1/(S·p).',
+          fields: [choix('Justification', ['B → ∞ rend A<sub>2</sub> infini : H<sub>1</sub>H<sub>2</sub> = A<sub>1</sub>A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>/(1 + A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>) tend vers A<sub>1</sub> = 1/(S·p) ; physiquement, tout le débit déplace le piston : q = S·dx/dt', 'B → ∞ annule A<sub>2</sub>', 'la masse M devient nulle', 'le frottement λ devient infini'])],
+          hint: 'Que devient le terme (V/(2B))·dσ/dt ? Et le rapport A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>/(1 + A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>) quand A<sub>2</sub> → ∞ ?',
+          corr: pas(['Le terme (V/(2B))·dσ/dt disparaît : q = S·dx/dt, soit X/Q = <b>1/(S·p)</b>.', 'Côté schéma : A<sub>2</sub> = 2B·S/V → ∞, et X/Q = A<sub>1</sub>·A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>/(1 + A<sub>2</sub>A<sub>3</sub>A<sub>4</sub>) → A<sub>1</sub>.'],
+            'une boucle de gain infini se réduit à l’inverse de son retour : ici, la dynamique mécanique disparaît du transfert débit-position.') },
+        { t: 'L’adaptateur', pour: ['Q7'], fig: gouvernailBoucle(),
+          text: 'Exprimer l’écart ε(p) en fonction de K<sub>c</sub>, K<sub>c</sub>′, Θ<sub>c</sub>(p) et Θ(p). Quelle valeur donner à K<sub>c</sub>′ pour que l’écart soit proportionnel à Θ<sub>c</sub> − Θ ?',
+          fields: [{ l: 'K<sub>c</sub>′', u: 'V/°', a: Kc, tol: .01 }],
+          hint: 'ε = V<sub>c</sub> − V<sub>m</sub>.',
+          corr: pas(['ε = K<sub>c</sub>′·Θ<sub>c</sub> − K<sub>c</sub>·Θ.', `Proportionnel à Θ<sub>c</sub> − Θ si <b>K<sub>c</sub>′ = K<sub>c</sub> = ${fmt(Kc)} V/°</b> : alors ε = K<sub>c</sub>(Θ<sub>c</sub> − Θ).`],
+            'l’adaptateur a le gain du capteur.') },
+        { t: 'La boucle fermée', pour: ['Q8'], fig: gouvernailBoucle(), rappel: `K<sub>SV</sub> = ${sci(KSV)} m³·s⁻¹/V ; K<sub>θ</sub> = ${fmt(KthR)} °/m.`,
+          text: 'Calculer la FTBF Θ(p)/Θ<sub>c</sub>(p) et la mettre sous forme canonique : son ordre, son gain statique, sa constante de temps.',
+          fields: [choix('Ordre', ['1', '2', '0', '3']), { l: 'Gain statique', u: '', a: 1, abs: .01 }, { l: 'τ', u: 's', a: tau, tol: .02 }],
+          hint: 'FTBO = K<sub>c</sub>·K<sub>SV</sub>·K<sub>θ</sub>/(S·p) ; avec un retour unitaire équivalent, FTBF = 1/(1 + p·S/(K<sub>c</sub>K<sub>SV</sub>K<sub>θ</sub>)).',
+          corr: pas([`FTBF = ${fr('K<sub>c</sub>·K<sub>SV</sub>·K<sub>θ</sub>/(S·p)', '1 + K<sub>c</sub>·K<sub>SV</sub>·K<sub>θ</sub>/(S·p)')} = ${fr('1', '1 + (S/(K<sub>c</sub>K<sub>SV</sub>K<sub>θ</sub>))·p')} : <b>premier ordre</b>, <b>gain 1</b>.`, `τ = ${fr('S', 'K<sub>c</sub>·K<sub>SV</sub>·K<sub>θ</sub>')} = ${fr(fmt(S0), `${fmt(Kc)} × ${sci(KSV)} × ${fmt(KthR)}`)} = <b>${f3(tau)} s</b>.`],
+            'un intégrateur bouclé par un gain : un premier ordre de gain 1.') },
+        { t: 'L’écart statique', pour: ['Q9'], fig: '',
+          text: 'Pour une consigne en échelon θ<sub>0</sub>, déterminer avec le théorème de la valeur finale l’écart statique, en volts puis en degrés. L’exigence de précision est-elle tenue ?',
+          fields: [{ l: 'ε<sub>s</sub>', u: 'V', a: 0, abs: .01 }, { l: 'Écart de position', u: '°', a: 0, abs: .01 }, choix('Exigence', ['tenue : écart nul', 'non tenue'])],
+          hint: 'ε(p) = K<sub>c</sub>(Θ<sub>c</sub> − Θ) = K<sub>c</sub>·Θ<sub>c</sub>·(1 − FTBF) ; valeur finale : lim p·ε(p) quand p → 0.',
+          corr: pas([`ε(p) = K<sub>c</sub>·${fr('θ<sub>0</sub>', 'p')}·${fr('τp', '1 + τp')} ; p·ε(p) = K<sub>c</sub>θ<sub>0</sub>·${fr('τp', '1 + τp')} → <b>0 V</b> quand p → 0.`, 'Donc Θ → θ<sub>0</sub> : écart de position <b>nul</b> ; exigence <b>tenue</b>.'],
+            'valeur finale : lim<sub>t→∞</sub> f(t) = lim<sub>p→0</sub> p·F(p).') },
+        { t: 'Sans calculer la FTBF', pour: ['Q10'], fig: '',
+          text: 'Aurait-on pu obtenir ce résultat sans calculer la FTBF ?',
+          fields: [choix('Réponse', ['oui : la boucle ouverte contient un intégrateur (le vérin, 1/(S·p)) en amont : classe 1, écart nul pour un échelon', 'non, il faut toujours la FTBF', 'oui, car le capteur a le même gain que l’adaptateur, et cela suffit', 'oui, parce que le système est du premier ordre'])],
+          hint: 'Classe de la boucle ouverte et écart pour un échelon.',
+          corr: pas(['La FTBO K<sub>c</sub>K<sub>SV</sub>K<sub>θ</sub>/(S·p) est de <b>classe 1</b> : pour un échelon, l’écart statique est nul, sans autre calcul (avec K<sub>c</sub>′ = K<sub>c</sub>).'], 'classe de la FTBO → écart en échelon (classe ≥ 1 : nul), en rampe (classe ≥ 2 : nul).') },
+        { t: 'Le temps de réponse', pour: ['Q11'], fig: '', rappel: `On prendra τ = ${f3(tau)} s.`,
+          text: 'Déterminer le temps de réponse à 5 %. L’exigence est-elle tenue ?',
+          fields: [{ l: 't<sub>5%</sub>', u: 's', a: t5, tol: .02 }, choix('Exigence', okT ? ['tenue', 'non tenue'] : ['non tenue', 'tenue'])],
+          hint: 'Premier ordre : t<sub>5%</sub> = 3τ.',
+          corr: pas([`t<sub>5%</sub> = 3τ = <b>${f3(t5)} s</b>, ${okT ? 'sous' : 'au-dessus de'} ${Treq} s : <b>${okT ? 'tenue' : 'non tenue'}</b>.`], 'premier ordre : t5% = 3τ.') },
+        { t: 'L’influence de la section', pour: ['Q12'], fig: '',
+          text: `Quelle est l’influence de la section S du vérin sur la rapidité et la précision ? Quelle section donnerait t<sub>5%</sub> = ${Treq} s ?`,
+          fields: [choix('Influence', ['plus S est grand, plus τ est grand : plus lent ; la précision ne change pas (écart nul)', 'plus S est grand, plus le système est rapide', 'S change l’écart statique', 'S n’a aucune influence']), { l: 'S', u: 'm²', a: S2, tol: .02 }],
+          hint: 'τ = S/(K<sub>c</sub>K<sub>SV</sub>K<sub>θ</sub>) et t<sub>5%</sub> = 3τ.',
+          corr: pas(['τ est proportionnel à S : un vérin plus gros est plus lent pour le même débit ; l’écart statique reste nul (classe 1).', `S = ${fr(`t<sub>5%</sub>·K<sub>c</sub>K<sub>SV</sub>K<sub>θ</sub>`, '3')} = ${fr(`${Treq} × ${fmt(Kc)} × ${sci(KSV)} × ${fmt(KthR)}`, '3')} = <b>${sci(S2)} m²</b>, soit ${f3(100 * (S2 / S0 - 1))} % ${S2 > S0 ? 'de plus' : 'de moins'} : le vérin doit aussi pousser assez fort, ce qui limite la réduction de section.`],
+            'avec un débit donné, la vitesse d’un vérin est inversement proportionnelle à sa section.') },
+        { t: 'La vitesse de barre, modèle linéaire', pour: ['Q13'], fig: '', rappel: `On prendra τ = ${f3(tau)} s.`,
+          text: `Pour une consigne en échelon de ${th0}° (de 35° d’un bord à 30° de l’autre), quelle est, d’après le modèle linéaire, la vitesse maximale de la barre ?`,
+          fields: [{ l: 'Vitesse maximale', u: '°/s', a: vlin, tol: .03 }],
+          hint: 'Un premier ordre va le plus vite au départ : pente à l’origine θ<sub>0</sub>/τ.',
+          corr: pas([`Pente à l’origine d’un premier ordre : θ<sub>0</sub>/τ = ${th0}/${f3(tau)} = <b>${f3(vlin)} °/s</b>.`], 'premier ordre : la vitesse maximale est au départ, θ0/τ.') },
+        { t: 'L’exigence de vitesse, et la saturation', pour: ['Q14'], fig: '',
+          text: `Au départ, l’écart vaut ${th0}° : la tension demandée à la servovalve, K<sub>c</sub>·${th0}, dépasse-t-elle ${vmax} V ? Quelle vitesse de barre la saturation permet-elle vraiment ? L’exigence (65° en 28 s) est-elle tenue ?`,
+          fields: [{ l: 'Tension demandée au départ', u: 'V', a: Kc * th0, tol: .02 }, { l: 'Vitesse en saturation', u: '°/s', a: vsat, tol: .03 }, choix('Exigence de vitesse', okV ? ['tenue, même en saturation', 'non tenue'] : ['non tenue : la saturation limite la vitesse', 'tenue, même en saturation'])],
+          hint: 'En saturation, q = q<sub>max</sub> : dθ/dt = K<sub>θ</sub>·q<sub>max</sub>/S.',
+          corr: pas([`Tension demandée : ${fmt(Kc)} × ${th0} = <b>${f3(Kc * th0)} V</b> &gt; ${vmax} V : la servovalve sature, le modèle linéaire n’est plus valable au début du mouvement.`, `Vitesse réelle maximale : K<sub>θ</sub>·q<sub>max</sub>/S = ${fmt(KthR)} × ${fmt(qmax)}/${fmt(S0)} = <b>${f3(vsat)} °/s</b> (au lieu de ${f3(vlin)} °/s).`, `Exigence : 65/28 = ${f3(Vreq)} °/s : <b>${okV ? 'tenue' : 'non tenue'}</b>.`],
+            'un modèle linéaire n’est valable que dans le domaine linéaire de ses composants : aux grands écarts, la saturation fixe la vitesse.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 1 · TD 4 — cinq diagrammes de Bode à identifier (premier ordre, deux premiers ordres,
+     deuxième ordre amorti, deuxième ordre résonant, intégrateur et premier ordre)
+     ===================================================================== */
+  J['c1-td4'] = { titre: 'Cinq diagrammes de Bode à identifier', sys: 'ordre et paramètres d’un système sur son diagramme de Bode', min: 40,
+    gen() {
+      const dB = (x) => 20 * Math.log10(x), plage = (wc) => [10 ** (Math.floor(Math.log10(wc)) - 2), 10 ** (Math.floor(Math.log10(wc)) + 2)];
+      const MOD = ['premier ordre', 'produit de deux premiers ordres', 'deuxième ordre amorti, sans résonance', 'deuxième ordre résonant', 'intégrateur et premier ordre'];
+      const modele = (i) => choix('Modèle', [MOD[i]].concat(MOD.filter((x, k) => k !== i).sort(() => Math.random() - 0.5).slice(0, 3)));
+      // 1
+      const K1 = pick([2, 5, 8, 10, 20]), w1 = pick([0.005, 0.02, 0.1, 0.5, 2, 10]);
+      const f1 = bodeMulti([(w) => [dB(K1 / Math.hypot(1, w / w1)), -deg(Math.atan(w / w1))]], ...plage(w1), ['S₁'], 'système 1');
+      // 2
+      const K2 = pick([3, 5, 10, 20]), a2 = pick([0.02, 0.05, 0.1, 0.2]), b2 = a2 * pick([100, 300, 1000]);
+      const f2 = bodeMulti([(w) => [dB(K2 / (Math.hypot(1, w / a2) * Math.hypot(1, w / b2))), -deg(Math.atan(w / a2) + Math.atan(w / b2))]], 10 ** (Math.floor(Math.log10(a2)) - 1), 10 ** (Math.ceil(Math.log10(b2)) + 1), ['S₂'], 'système 2');
+      // 3 : deuxième ordre, ξ ≥ 1
+      const K3 = pick([5, 10, 15]), w3 = pick([0.5, 1, 2, 5]), x3 = pick([1, 1.5, 2]);
+      const H2 = (K, w0, x) => (w) => { const u = w / w0; return [dB(K / Math.hypot(1 - u * u, 2 * x * u)), -deg(Math.atan2(2 * x * u, 1 - u * u))]; };
+      const f3g = bodeMulti([H2(K3, w3, x3)], ...plage(w3), ['S₃'], 'système 3');
+      // 4 : deuxième ordre résonant
+      const K4 = pick([2, 3, 5, 8]), w4 = pick([2, 5, 10, 20]), x4 = pick([0.05, 0.1, 0.15, 0.2, 0.3]), Q4 = 1 / (2 * x4 * Math.sqrt(1 - x4 * x4)), wr = w4 * Math.sqrt(1 - 2 * x4 * x4);
+      const f4 = bodeMulti([H2(K4, w4, x4)], 10 ** (Math.floor(Math.log10(w4)) - 1), 10 ** (Math.floor(Math.log10(w4)) + 2), ['S₄'], 'système 4');
+      // 5 : intégrateur et premier ordre
+      const K5 = pick([0.5, 1, 2, 5, 10]), t5c = pick([0.1, 0.2, 0.5, 1, 2]);
+      const f5 = bodeMulti([(w) => [dB(K5 / (w * Math.hypot(1, t5c * w))), -90 - deg(Math.atan(t5c * w))]], ...plage(1 / t5c), ['S₅'], 'système 5');
+      const intro = '<p>Cinq systèmes, cinq diagrammes de Bode relevés en essai harmonique. Pour chacun : la forme du modèle, puis ses paramètres. Les gains sont sans unité.</p>';
+      const qs = [
+        { t: 'Système 1', pour: ['Système 1'], fig: f1, text: 'Quel modèle, et quels paramètres (gain statique, constante de temps) ?',
+          fields: [modele(0), { l: 'K', u: '', a: K1, tol: .1 }, { l: 'τ', u: 's', a: 1 / w1, tol: .1 }],
+          hint: 'Palier aux basses pulsations : 20·log K. Une seule cassure, phase de 0° à −90° : −45° à la cassure, où τ = 1/ω.',
+          corr: pas([`Palier à ${f3(dB(K1))} dB : <b>K = ${fmt(K1)}</b>. Phase de 0° à −90°, pente finale −20 dB/décade : <b>premier ordre</b>.`, `La phase vaut −45° (gain −3 dB) à ω ≈ ${sci(w1)} rad/s : <b>τ = 1/ω ≈ ${sci(1 / w1)} s</b>.`], 'premier ordre : palier, cassure à −3 dB et −45°, puis −20 dB/décade.') },
+        { t: 'Système 2', pour: ['Système 2'], fig: f2, text: 'Quel modèle, et quels paramètres ?',
+          fields: [modele(1), { l: 'K', u: '', a: K2, tol: .1 }, { l: 'τ₁ (la plus grande)', u: 's', a: 1 / a2, tol: .12 }, { l: 'τ₂', u: 's', a: 1 / b2, tol: .12 }],
+          hint: 'Deux cassures bien séparées : la phase marque un palier à −90° entre les deux. Chaque cassure à −45° de plus.',
+          corr: pas([`Palier à ${f3(dB(K2))} dB : <b>K = ${fmt(K2)}</b> ; −20 puis −40 dB/décade, phase de 0° à −180° avec un palier à −90° : <b>deux premiers ordres</b>.`, `Phase −45° vers ${sci(a2)} rad/s : <b>τ₁ ≈ ${sci(1 / a2)} s</b> ; −135° vers ${sci(b2)} rad/s : <b>τ₂ ≈ ${sci(1 / b2)} s</b>.`], 'deux cassures séparées d’au moins deux décades se lisent séparément.') },
+        { t: 'Système 3', pour: ['Système 3'], fig: f3g, text: 'Quel modèle ? Donner son gain, sa pulsation propre et son amortissement.',
+          fields: [modele(2), { l: 'K', u: '', a: K3, tol: .1 }, { l: 'ω₀', u: 'rad/s', a: w3, tol: .1 }, { l: 'ξ', u: '', a: x3, tol: .15 }],
+          hint: 'Phase finale −180° : deuxième ordre. Pas de bosse : ξ ≥ 0,7. À ω₀, la phase vaut −90° et le gain vaut 20·log(K/(2ξ)).',
+          corr: pas([`Palier à ${f3(dB(K3))} dB : <b>K = ${fmt(K3)}</b> ; phase de 0° à −180°, pente finale −40 dB/décade, pas de résonance : <b>deuxième ordre amorti</b>.`, `Phase −90° à <b>ω₀ ≈ ${fmt(w3)} rad/s</b>, où le gain vaut ${f3(dB(K3 / (2 * x3)))} dB, soit 20·log K − 20·log(2ξ) : 2ξ = ${f3(2 * x3)}, <b>ξ ≈ ${fmt(x3)}</b>.`], 'à ω₀, un deuxième ordre est à −90° et son gain vaut K/(2ξ) : c’est la lecture la plus sûre de ξ.') },
+        { t: 'Système 4', pour: ['Système 4'], fig: f4, text: 'Quel modèle ? Donner son gain, sa pulsation propre et son amortissement.',
+          fields: [modele(3), { l: 'K', u: '', a: K4, tol: .1 }, { l: 'ω₀', u: 'rad/s', a: w4, tol: .08 }, { l: 'ξ', u: '', a: x4, tol: .15 }],
+          hint: 'La bosse signale ξ &lt; 0,7. Phase −90° à ω₀. Surtension Q = |H|max/K = 1/(2ξ√(1 − ξ²)).',
+          corr: pas([`Palier à ${f3(dB(K4))} dB : <b>K = ${fmt(K4)}</b> ; résonance, phase de 0° à −180° : <b>deuxième ordre résonant</b>.`, `Phase −90° à <b>ω₀ ≈ ${fmt(w4)} rad/s</b> (pic vers ω<sub>r</sub> = ω₀√(1 − 2ξ²) ≈ ${f3(wr)} rad/s).`, `Pic à ${f3(dB(K4 * Q4))} dB : surtension ${f3(dB(Q4))} dB, Q = ${f3(Q4)} = 1/(2ξ√(1 − ξ²)), d’où <b>ξ ≈ ${fmt(x4)}</b> (ou, plus simple : gain à ω₀ = K/(2ξ)).`], 'la résonance donne ξ, la phase −90° donne ω₀.') },
+        { t: 'Système 5', pour: ['Système 5'], fig: f5, text: 'Quel modèle ? Donner son gain et sa constante de temps.',
+          fields: [modele(4), { l: 'K', u: 's⁻¹', a: K5, tol: .1 }, { l: 'τ', u: 's', a: t5c, tol: .1 }],
+          hint: 'Phase de départ −90° : un intégrateur. L’asymptote de pente −20 dB/décade vaut 20·log K à ω = 1 rad/s. Phase −135° à ω = 1/τ.',
+          corr: pas(['Phase de −90° à −180°, pente −20 puis −40 dB/décade : <b>K/(p(1 + τp))</b>.', `Asymptote K/ω : à ω = 1 rad/s, ${f3(dB(K5))} dB, d’où <b>K = ${fmt(K5)} s⁻¹</b>.`, `Phase −135° à ω ≈ ${fmt(1 / t5c)} rad/s : <b>τ ≈ ${fmt(t5c)} s</b>.`], 'un intégrateur se reconnaît à sa phase de départ, −90°, et à sa pente de −20 dB/décade dès les basses pulsations.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 1 · TD 5 — sur un autre système : le pot vibrant d'un banc d'essai
+     proposer un modèle sur une réponse fréquentielle mesurée, l'identifier, juger sa qualité, puis en
+     déduire la sortie pour des entrées sinusoïdales
+     ===================================================================== */
+  J['c1-td5'] = { titre: 'Le pot vibrant d’un banc d’essai', sys: 'modèle tiré d’une réponse fréquentielle, identification, qualité du modèle, réponse à une entrée sinusoïdale', min: 35,
+    gen() {
+      const dB = (x) => 20 * Math.log10(x);
+      const K = pick([2, 5, 8, 10, 20]), f0 = pick([20, 30, 40, 50, 80]), xi = pick([0.05, 0.08, 0.1, 0.15]), f2 = f0 * pick([6, 8, 10]), w0 = 2 * Math.PI * f0;
+      const Hm = (f) => { const u = f / f0, v = f / f2; const g = K / (Math.hypot(1 - u * u, 2 * xi * u) * (1 + v * v)), ph = -deg(Math.atan2(2 * xi * u, 1 - u * u)) - 2 * deg(Math.atan(v)); return [g, ph]; };
+      const H2o = (f) => { const u = f / f0; return [K / Math.hypot(1 - u * u, 2 * xi * u), -deg(Math.atan2(2 * xi * u, 1 - u * u))]; };
+      const fa = r2(f0 / pick([3, 4])), fb = f0, fc = r2(f0 * pick([4, 5])), E0 = pick([5, 10]);
+      const sortie = (f) => { const [g, ph] = Hm(f); return { A: E0 * g, ph }; }, Sa = sortie(fa), Sb = sortie(fb), Sc = sortie(fc);
+      const lo = 10 ** Math.floor(Math.log10(f0 / 10)), hi = 10 ** Math.ceil(Math.log10(f2 * 3));
+      const mesure = (f) => { const [g, ph] = Hm(f); return [dB(g), ph]; };
+      const figM = bodeMulti([mesure], lo, hi, ['mesures'], 'réponse fréquentielle mesurée du pot vibrant (abscisse en hertz)').replace(/Pulsation ω \(rad\/s\)/g, 'Fréquence f (Hz)');
+      const figC = bodeMulti([mesure, (f) => { const [g, ph] = H2o(f); return [dB(g), ph]; }], lo, hi, ['mesures', 'modèle du deuxième ordre'], 'mesures et modèle superposés').replace(/Pulsation ω \(rad\/s\)/g, 'Fréquence f (Hz)');
+      const Q = 1 / (2 * xi * Math.sqrt(1 - xi * xi));
+      const intro = `<p>Un pot vibrant secoue des pièces pour tester leur tenue aux vibrations. On a relevé sa réponse fréquentielle, de la tension de commande (V) à l’effort produit (N), sur un balayage en fréquence. On veut un modèle simple, puis prévoir l’effort pour une commande sinusoïdale d’amplitude ${E0} V.</p>`;
+      const qs = [
+        { t: 'Quel modèle ?', pour: ['Q1'], fig: figM,
+          text: 'Proposer une forme de fonction de transfert pour ce système.',
+          fields: [choix('Modèle', ['un deuxième ordre résonant K/(1 + 2ξp/ω₀ + p²/ω₀²)', 'un premier ordre K/(1 + τp)', 'un intégrateur K/p', 'un deuxième ordre très amorti (ξ > 1)'])],
+          hint: 'Un palier, une bosse, puis −40 dB/décade : quelle forme a ce comportement ?',
+          corr: pas(['Palier aux basses fréquences, pic de résonance, puis pente d’environ −40 dB/décade : un <b>deuxième ordre résonant</b>, K/(1 + 2ξp/ω₀ + p²/ω₀²).'], 'une résonance marquée appelle un deuxième ordre peu amorti.') },
+        { t: 'Les paramètres', pour: ['Q2'], fig: figM,
+          text: 'Déterminer numériquement le gain statique, la fréquence propre f₀ et l’amortissement ξ.',
+          fields: [{ l: 'K', u: 'N/V', a: K, tol: .12 }, { l: 'f₀', u: 'Hz', a: f0, tol: .08 }, { l: 'ξ', u: '', a: xi, tol: .2 }],
+          hint: 'K : palier. f₀ : sommet du pic (ou phase −90°). ξ : hauteur du pic au-dessus du palier, Q = 1/(2ξ√(1 − ξ²)) ≈ 1/(2ξ).',
+          corr: pas([`Palier à ${f3(dB(K))} dB : <b>K = ${fmt(K)} N/V</b>.`, `Pic et phase −90° vers <b>f₀ ≈ ${fmt(f0)} Hz</b> (ω₀ = 2πf₀ ≈ ${f3(w0)} rad/s).`, `Pic à ${f3(dB(K * Q))} dB, soit ${f3(dB(Q))} dB au-dessus du palier : Q ≈ ${f3(Q)}, d’où <b>ξ ≈ ${fmt(xi)}</b>.`],
+            'résonance : le pic donne ξ (Q ≈ 1/(2ξ) quand ξ est petit), sa position donne f₀.') },
+        { t: 'La qualité du modèle', pour: ['Q3'], fig: figC,
+          text: 'Le modèle et les mesures sont superposés. Que penser du modèle ? Comment l’améliorer, et est-ce possible sans quitter les systèmes linéaires continus invariants ?',
+          fields: [choix('Le modèle', ['bon en gain jusqu’après la résonance ; au-delà, les mesures descendent plus vite et leur phase dépasse −180° : il manque des pôles', 'parfait à toutes les fréquences', 'faux même autour de la résonance', 'bon en phase, faux en gain']), choix('L’améliorer', ['ajouter des pôles (ordre plus élevé) : on reste un système linéaire continu invariant', 'impossible sans sortir des SLCI', 'ajouter un intégrateur', 'diminuer le gain'])],
+          hint: 'Comparer les pentes et les phases aux hautes fréquences.',
+          corr: pas([`Gain : les deux courbes se confondent jusqu’à ${fmt(f0 * 2)} Hz environ (${f3(dB(1 + (f0 / f2) ** 2))} dB d’écart à f₀). Phase : l’écart se voit plus tôt, déjà ${f3(2 * deg(Math.atan(f0 / f2)))}° à f₀.`, `Au-delà, le gain mesuré chute à −80 dB/décade au lieu de −40 et la phase atteint −360° : il y a deux pôles de plus, vers ${f3(f2)} Hz.`, 'Amélioration : un modèle d’ordre 4, K/((1 + 2ξp/ω₀ + p²/ω₀²)(1 + p/ω₂)²) : toujours une fraction rationnelle, donc <b>un SLCI</b>.'],
+            'la phase trahit les pôles négligés avant le gain ; un modèle se juge sur la bande de fréquences utile.') },
+        { t: 'Les réponses sinusoïdales', pour: ['Q4'], fig: figM, rappel: `Commande sinusoïdale d’amplitude ${E0} V.`,
+          text: `Pour f = ${fmt(fa)} Hz, ${fmt(fb)} Hz et ${fmt(fc)} Hz, déterminer l’amplitude de l’effort en régime permanent, et son déphasage pour ${fmt(fb)} Hz.`,
+          fields: [{ l: `Amplitude à ${fmt(fa)} Hz`, u: 'N', a: Sa.A, tol: .12 }, { l: `Amplitude à ${fmt(fb)} Hz`, u: 'N', a: Sb.A, tol: .12 }, { l: `Amplitude à ${fmt(fc)} Hz`, u: 'N', a: Sc.A, tol: .15 }, { l: `Déphasage à ${fmt(fb)} Hz`, u: '°', a: Sb.ph, abs: 8, alt: [-90] }],
+          hint: 'En régime permanent, la sortie est une sinusoïde de même fréquence : amplitude E₀·|H(j2πf)|, déphasage arg H(j2πf). Lire le gain (en dB) et la phase sur le relevé.',
+          corr: pas([`${fmt(fa)} Hz : gain ${f3(dB(Sa.A / E0))} dB, soit |H| = ${f3(Sa.A / E0)} : <b>${f3(Sa.A)} N</b>, peu déphasé (${f3(Sa.ph)}°).`, `${fmt(fb)} Hz (la résonance) : |H| = ${f3(Sb.A / E0)} : <b>${f3(Sb.A)} N</b>, en retard de <b>${f3(-Sb.ph)}°</b> : 90° pour le deuxième ordre à sa fréquence propre, plus ${f3(-Sb.ph - 90)}° dus aux deux pôles de plus (−90°, la valeur du modèle, est accepté).`, `${fmt(fc)} Hz : |H| = ${f3(Sc.A / E0)} : <b>${f3(Sc.A)} N</b>, en retard de ${f3(-Sc.ph)}° : plus que l’opposition de phase, à cause des deux pôles de plus.`, 's(t) = A·sin(2πft + φ) avec e(t) = E₀·sin(2πft).'],
+            'en régime sinusoïdal, le Bode donne directement l’amplitude (gain) et le décalage (phase) de la sortie.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 1 · TD 6 — sur un autre système : le filtre réjecteur de la commande d'un portique à conteneurs
+     Bode réels et asymptotiques de deuxièmes ordres (au dénominateur et au numérateur), rôle des
+     amortissements, filtre coupe-bande
+     ===================================================================== */
+  J['c1-td6'] = { titre: 'Le filtre anti-balancement d’un portique à conteneurs', sys: 'Bode de deuxièmes ordres au dénominateur et au numérateur, amortissements, filtre coupe-bande', min: 40,
+    gen() {
+      const dB = (x) => 20 * Math.log10(x), g = 9.81, L = pick(Array.from({ length: 33 }, (_, i) => 8 + i)), w0 = Math.sqrt(g / L), z2 = pick([0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.18, 0.2]), z1p = pick([0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05]), rap = pick([2, 2.5, 3, 3.5, 4]);
+      const H1 = (z) => (w) => { const u = w / w0; return [-dB(Math.hypot(1 - u * u, 2 * z * u)), -deg(Math.atan2(2 * z * u, 1 - u * u))]; };
+      const H2f = (w) => { const u = w / w0; return [dB(Math.hypot(1 - u * u, 2 * z2 * u)), deg(Math.atan2(2 * z2 * u, 1 - u * u))]; };
+      const Hn = (z1) => (w) => { const a = H1(z1)(w), b = H2f(w); return [a[0] + b[0], a[1] + b[1]]; };
+      const lo = 10 ** (Math.floor(Math.log10(w0)) - 1), hi = 10 ** (Math.floor(Math.log10(w0)) + 2);
+      const fig1 = bodeMulti([H1(z2), H1(z1p)], lo, hi, [`H₁, z₁ = ${fmt(z2)}`, `H₁, z₁ = ${fmt(z1p)}`], 'diagramme de Bode de H1 pour deux amortissements', [-80, 40]);
+      const fig2 = bodeMulti([H2f], lo, hi, [`H₂, z₂ = ${fmt(z2)}`], 'diagramme de Bode de H2', [-40, 80]);
+      const fig4 = bodeMulti([Hn(rap * z2)], lo, hi, [`H, z₁ = ${fmt(rap)} × z₂`], 'diagramme de Bode du filtre', [-40, 20]);
+      const intro = `<p>Un portique de port déplace des conteneurs suspendus à des câbles : la charge se comporte comme un pendule, de pulsation ω₀ = √(g/L). Pour ne pas l’exciter, la commande du chariot passe par un filtre qui affaiblit les pulsations voisines de ω₀ :</p>
+        ${tableau([['Filtre', 'H(p) = H₁(p)·H₂(p), avec H₁(p) = 1/(1 + 2z₁p/ω₀ + p²/ω₀²) et H₂(p) = 1 + 2z₂p/ω₀ + p²/ω₀²'], ['Câble', `longueur L = ${fmt(L)} m, d’où ω₀ = √(${fmt(g)}/${fmt(L)}) = ${f3(w0)} rad/s`], ['Amortissement du numérateur', `z₂ = ${fmt(z2)}`]])}`;
+      const qs = [
+        { t: 'Le Bode de H1', pour: ['Q1'], fig: fig1,
+          text: `Le diagramme de Bode de H₁ est tracé pour z₁ = z₂ = ${fmt(z2)}, puis z₁ = ${fmt(z1p)}. Décrire ses asymptotes et donner le gain réel à ω₀ dans les deux cas.`,
+          fields: [choix('Asymptotes', ['0 dB, puis −40 dB/décade après ω₀ ; phase de 0° à −180°', '0 dB, puis +40 dB/décade ; phase de 0° à +180°', '−20 dB/décade partout', '0 dB, puis −20 dB/décade']), { l: `Gain à ω₀, z₁ = ${fmt(z2)}`, u: 'dB', a: -dB(2 * z2), abs: .5 }, { l: `Gain à ω₀, z₁ = ${fmt(z1p)}`, u: 'dB', a: -dB(2 * z1p), abs: .5 }, { l: 'Phase à ω₀', u: '°', a: -90, abs: 1 }],
+          hint: 'À ω = ω₀, |H₁| = 1/(2z₁) et arg H₁ = −90°.',
+          corr: pas(['Asymptotes : 0 dB jusqu’à ω₀, puis −40 dB/décade ; phase de 0° à −180°.', `À ω₀ : |H₁| = 1/(2z₁) : <b>${f3(-dB(2 * z2))} dB</b> pour z₁ = ${fmt(z2)}, <b>${f3(-dB(2 * z1p))} dB</b> pour z₁ = ${fmt(z1p)} ; phase <b>−90°</b>.`, 'Plus z₁ est petit, plus la résonance est haute et étroite.'],
+            'deuxième ordre au dénominateur : résonance de hauteur ≈ 1/(2z) quand z est petit.') },
+        { t: 'Le Bode de H2', pour: ['Q2'], fig: fig2,
+          text: 'Même question pour H₂ : asymptotes, gain réel et phase à ω₀.',
+          fields: [choix('Asymptotes', ['0 dB, puis +40 dB/décade après ω₀ ; phase de 0° à +180°', '0 dB, puis −40 dB/décade ; phase de 0° à −180°', '+20 dB/décade partout', '0 dB partout']), { l: 'Gain à ω₀', u: 'dB', a: dB(2 * z2), abs: .5 }, { l: 'Phase à ω₀', u: '°', a: 90, abs: 1 }],
+          hint: 'H₂ est l’inverse d’un deuxième ordre : son Bode est le symétrique de celui de 1/H₂ par rapport à 0 dB et 0°.',
+          corr: pas(['H₂ = 1/(deuxième ordre) : diagramme symétrique : 0 dB, puis <b>+40 dB/décade</b> ; phase de 0° à <b>+180°</b>.', `À ω₀ : |H₂| = 2z₂ = ${f3(2 * z2)} : <b>${f3(dB(2 * z2))} dB</b> (un creux, l’anti-résonance) ; phase <b>+90°</b>.`],
+            'un deuxième ordre au numérateur creuse le gain à ω₀ : c’est l’anti-résonance.') },
+        { t: 'Le choix des amortissements', pour: ['Q3'], fig: '',
+          text: 'Pour atténuer les pulsations voisines de ω₀, z₁ doit-il être plus petit ou plus grand que z₂ ?',
+          fields: [choix('Réponse', ['plus grand : |H(jω₀)| = z₂/z₁ &lt; 1', 'plus petit : |H(jω₀)| = z₂/z₁ &gt; 1 atténue', 'égal : le filtre vaut 1', 'peu importe'])],
+          hint: 'À ω₀, |H| = |H₁|·|H₂| = (1/(2z₁))·2z₂.',
+          corr: pas(['À ω₀ : |H(jω₀)| = 2z₂/(2z₁) = <b>z₂/z₁</b>.', 'Pour atténuer, il faut z₂/z₁ &lt; 1 : <b>z₁ > z₂</b>. Avec z₁ &lt; z₂, le filtre amplifierait la pulsation du pendule !'],
+            'un coupe-bande : creux du numérateur plus profond que la bosse du dénominateur.') },
+        { t: 'Le filtre réglé', pour: ['Q4'], fig: fig4, rappel: `z₁ = ${fmt(rap)} × z₂ = ${fmt(rap * z2)}.`,
+          text: `Avec un rapport ${fmt(rap)} entre les deux amortissements (z₁ = ${fmt(rap)}·z₂), quel est le gain du filtre à ω₀, en dB et en valeur, et sa phase ?`,
+          fields: [{ l: 'Gain à ω₀', u: 'dB', a: -dB(rap), abs: .4 }, { l: '|H(jω₀)|', u: '', a: 1 / rap, tol: .03 }, { l: 'Phase à ω₀', u: '°', a: 0, abs: 2 }],
+          hint: 'Gain : 20·log(z₂/z₁). Phase : −90° + 90°.',
+          corr: pas([`|H(jω₀)| = z₂/z₁ = 1/${fmt(rap)} = <b>${f3(1 / rap)}</b>, soit <b>${f3(-dB(rap))} dB</b>.`, 'Phase : −90° (H₁) + 90° (H₂) = <b>0°</b> : loin de ω₀, le filtre vaut 1 (0 dB, 0°) ; il ne touche qu’une bande autour de ω₀.'],
+            'filtre coupe-bande : profondeur z₂/z₁, largeur liée à z₁.') },
       ];
       return { intro, qs };
     } };

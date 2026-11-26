@@ -922,8 +922,12 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
     app().onchange = null; app().oninput = null;
     let R = lsGet(cle);
     if (!R || !Array.isArray(R.qs) || !R.qs.length || !Array.isArray(R.ok) || !Array.isArray(R.rep)) {
+      // un nouvel essai ne reprend jamais les valeurs du précédent : on retire tant que la signature est la même
+      const sig = (x) => { const t = (x.intro || '') + JSON.stringify(x.qs.map((q) => [q.text, (q.fields || []).filter((f) => !f.ch).map((f) => f.a)])); let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return h; };
+      const avant = lsGet(cle + '-sig');
       let o = null;
-      try { o = mob(() => B.gen()); } catch (er) { o = null; }
+      for (let k = 0; k < 8; k++) { try { o = mob(() => B.gen()); } catch (er) { o = null; } if (!o || !Array.isArray(o.qs) || sig(o) !== avant) break; }
+      if (o && Array.isArray(o.qs)) lsSet(cle + '-sig', sig(o));
       if (!o || !Array.isArray(o.qs) || !o.qs.length) { app().innerHTML = `${tete}<div class="card"><p>Les questions n’ont pas pu être préparées. Recharge la page.</p></div>`; app().onclick = null; app().onsubmit = null; return; }
       R = { intro: o.intro || '', qs: o.qs.map((q) => ({ t: q.t, pour: q.pour || [], rappel: q.rappel || '', aide: q.hint || '', inst: { text: q.text, fig: q.fig || '', fields: q.fields, corr: q.corr } })), i: 0, rep: [], ok: [], t0: Date.now() };
       lsSet(cle, R);
@@ -933,7 +937,9 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
     const faites = () => R.ok.reduce((s, o) => s + (o ? o.length : 0), 0);
     const note = () => Math.round(40 * justes() / nF) / 2;
     const enCours = () => (faites() ? Math.round(40 * justes() / faites()) / 2 : null);   // note sur les réponses déjà données
-    const prep = (q) => `<span class="pp-pour">${q.pour.length ? `Comme ${q.pour.length > 1 ? 'les questions' : 'la question'} ${esc(q.pour.join(', '))} du ${nom}` : `Un geste du ${nom}`}</span>`;
+    // « Comme la question Q5 du TD », « Comme la courbe 2 du TD », « Comme le système 3 du TD »
+    const nomme = (L) => L.map((l) => (/^courbe/i.test(l) ? 'la ' + l.toLowerCase() : /^syst/i.test(l) ? 'le ' + l.toLowerCase() : null));
+    const prep = (q) => { const N = nomme(q.pour); return `<span class="pp-pour">${!q.pour.length ? `Un geste du ${nom}` : N.every(Boolean) ? `Comme ${esc(N.join(', '))} du ${nom}` : `Comme ${q.pour.length > 1 ? 'les questions' : 'la question'} ${esc(q.pour.join(', '))} du ${nom}`}</span>`; };
     const sys = (ouvert) => `<details class="pp-aide"${ouvert ? ' open' : ''}><summary>Le système et ses données</summary>${R.intro}</details>`;
     function retour(q, ok) {
       const e = ok.filter((y) => !y).length;
