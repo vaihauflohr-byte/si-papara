@@ -252,7 +252,7 @@
             `Comme K ≫ 1, la lecture asymptotique donne presque la même chose : K/T = ${f3(KR / TR)} rad/s.`,
             `La rapidité d’une boucle suit sa pulsation de coupure : ω<sub>c</sub> = 2 × ${f3(w0)} = <b>${f3(2 * w0)} rad/s</b>.`],
             'la pulsation de coupure à 0 dB de la boucle ouverte fixe la rapidité de la boucle fermée.') },
-        { t: 'Régler T<sub>i</sub> et K<sub>p</sub>', pour: ['Q55'], fig: boucleVitesse(), rappel: `On prendra ω<sub>c</sub> = ${f3(wc)} rad/s, K = ${f3(KR)} et T = ${f3(TR)} s.`,
+        { t: 'Régler le temps d’intégration, puis le gain', pour: ['Q55'], fig: boucleVitesse(), rappel: `On prendra ω<sub>c</sub> = ${f3(wc)} rad/s, K = ${f3(KR)} et T = ${f3(TR)} s.`,
           text: 'La cassure du correcteur est placée une décade sous ω<sub>c</sub>. En déduire T<sub>i</sub>, puis K<sub>p</sub> pour que la boucle ouverte corrigée coupe 0 dB à ω<sub>c</sub>.',
           fields: [{ l: 'T<sub>i</sub>', u: 's', a: Ti, tol: .02 }, { l: 'K<sub>p</sub>', u: '', a: Kp, tol: .03 }],
           hint: '1/T<sub>i</sub> = ω<sub>c</sub>/10. Puis |C(jω<sub>c</sub>)|·|H(jω<sub>c</sub>)| = 1, avec |C(jω)| = K<sub>p</sub>·√(1 + 1/(T<sub>i</sub>ω)²).',
@@ -307,7 +307,9 @@
     const g = [], ph = [];
     for (let i = 0; i <= 240; i++) { const w = w0 * (w1 / w0) ** (i / 240), v = f(w); g.push([w, v[0]]); ph.push([w, v[1]]); }
     const gs = g.map((q) => q[1]), ps = ph.map((q) => q[1]);
-    const y0 = Math.floor(Math.min(...gs) / 10) * 10 + 0, y1 = Math.max(10, Math.ceil(Math.max(...gs) / 10) * 10) + 0, big = y1 - y0 > 80;
+    let y0 = Math.floor(Math.min(...gs) / 10) * 10 + 0, y1 = Math.max(10, Math.ceil(Math.max(...gs) / 10) * 10) + 0;
+    const big = y1 - y0 > 80;
+    if (big) { y0 = Math.floor(y0 / 20) * 20 + 0; y1 = Math.ceil(y1 / 20) * 20 + 0; }
     const p0 = Math.floor(Math.min(...ps) / 45) * 45 + 0, p1 = Math.ceil(Math.max(...ps) / 45) * 45 + 0;
     return plot({ W: 660, H: 270, logx: 1, x0: w0, x1: w1, y0, y1, dy: big ? 10 : 5, ymaj: 2, curves: [{ pts: g }], hl: [{ y: 0, t: '0 dB', c: '#587083' }], xl: '', yl: 'Gain (dB)', alt: alt + ', gain' })
       + plot({ W: 660, H: 250, logx: 1, x0: w0, x1: w1, y0: p0, y1: p1 > p0 ? p1 : p0 + 45, dy: 15, ymaj: 3, curves: [{ pts: ph }], xl: 'Pulsation ω (rad/s)', yl: 'Phase (°)', alt: alt + ', phase' });
@@ -519,6 +521,380 @@
             `Abaque : pour ξ = ${f3(xiP)}, t<sub>5%</sub>·ω<sub>0</sub> ≈ ${f3(t5rP)}, d’où t<sub>5%</sub> ≈ ${f3(t5rP)}/${f3(w0P)} = <b>${f3(t5P)} s</b>.`,
             `Exigence 1.2 : t<sub>5%</sub> ${okP ? 'inférieur' : 'supérieur'} à ${Tpsi} s : rapidité <b>${okP ? 'vérifiée' : 'non vérifiée'}</b>.`],
             'la classe se lit sur la pente aux basses pulsations ; la rapidité d’un second ordre, sur l’abaque du temps de réponse réduit.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 2 · TD 2 — sur un autre système : l'antenne satellite d'un navire
+     formes canoniques, FTBO, ordre des cassures, tracé asymptotique de Bode, bande passante à 0 dB,
+     gain pour une bande passante imposée, marge de phase, limite d'un simple gain
+     ===================================================================== */
+  function boucleAntenne() {
+    let c = S.ar(6, 62, 60, 'Θc(p)') + S.som(76, 60, '+−') + S.ar(90, 124, 60, 'ε') + S.box(124, 38, 'C₁(p)·C₂(p)', 120) + S.ar(244, 290, 60, '') + S.box(290, 38, 'M(p)', 80) + S.ar(370, 414, 60, 'Ω(p)') + S.box(414, 38, 'T(p)', 76) + S.ar(490, 600, 60, '');
+    c += S.t(572, 48, 'Θ(p)') + S.pt(540, 60) + S.li(540, 60, 540, 112) + S.li(540, 112, 76, 112) + S.li(76, 112, 76, 82) + S.up(76, 74);
+    return S.svg(606, 124, 'boucle de pointage de l’antenne : consigne Θc, comparateur, correcteurs C1 et C2, moteur M(p), intégration T(p), angle Θ, retour unitaire', c);
+  }
+  J['c2-td2'] = { titre: 'L’antenne satellite d’un navire', sys: 'formes canoniques, tracé asymptotique de Bode, bande passante à 0 dB, réglage d’un gain, marge de phase', min: 35,
+    gen() {
+      let a = 6, b = 25, tm = 0.025, Km = 1, K = 2, wmin = 20, N = 3, KBO = 12, wcA = 1, okB = true;
+      const asy = (w) => { let g = KBO / w; if (w > a) g *= w / a; if (w > b) g *= b / w; if (w > 1 / tm) g *= 1 / (tm * w); return g; };
+      const exa = (w) => KBO / w * Math.hypot(1, w / a) / Math.hypot(1, w / b) / Math.hypot(1, w * tm);
+      const phi = (w) => -90 + deg(Math.atan(w / a)) - deg(Math.atan(w / b)) - deg(Math.atan(w * tm));
+      let trouve = false;
+      for (let essai = 0; essai < 3000 && !trouve; essai++) {
+        a = pick([2, 3, 4, 6, 8]); b = pick([20, 25, 40, 50, 80]); tm = pick([0.005, 0.008, 0.0125, 0.02, 0.025]); Km = pick([0.5, 1, 2]); K = pick([1, 2, 2.5, 5]); KBO = a * Km * K;
+        if (Km * K < 1.4 || b < 3 * a || 1 / tm < 1.5 * a || Math.abs(Math.log10(b * tm)) < 0.1) continue;
+        wcA = solve((w) => Math.log(asy(w)), 1e-3, 1e5); okB = Math.random() < 0.5;
+        const wE = solve((w) => Math.log(exa(w)), 1e-3, 1e5), C = [];
+        [5, 8, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100].filter((w) => (okB ? w < Math.min(wcA, wE) / 1.12 : w > Math.max(wcA, wE) * 1.12)).forEach((w) => [2, 3].forEach((n) => { const t = n * w, M = 180 + phi(t); if (t > 1.3 * wcA && t < 2.5 / tm && M > 25 && M < 80) C.push([w, n]); }));
+        if (C.length) { [wmin, N] = pick(C); trouve = true; }
+      }
+      if (!trouve) { a = 6; b = 25; tm = 0.025; Km = 1; K = 2; KBO = 12; wcA = solve((w) => Math.log(asy(w)), 1e-3, 1e5); wmin = 20; N = 3; okB = true; }
+      const wcE = solve((w) => Math.log(exa(w)), 1e-3, 1e5), wt = N * wmin, w2 = Math.min(b, 1 / tm), w3 = Math.max(b, 1 / tm);
+      const KpA = 1 / asy(wt), KpE = 1 / exa(wt), MtA = 180 + phi(wt), wcK = solve((w) => Math.log(KpA * exa(w)), 1e-3, 1e5), MtE = 180 + phi(wcK);
+      const MM = [35, 40, 45, 50, 60].filter((m) => Math.abs(m - MtA) > 4 && Math.abs(m - MtE) > 4 && (m <= MtA) === (m <= MtE));
+      const Mmin = MM.length ? pick(MM) : Math.round(MtA / 5) * 5 + (Math.random() < 0.5 ? -10 : 10), okM = MtA >= Mmin;
+      const nf = ['au double', 'au triple'][N - 2], plat = 20 * Math.log10(KBO / a), M0 = 180 + phi(wcA);
+      // tracé : asymptotes en pointillés rouges, courbe réelle
+      const w0b = 10 ** Math.floor(Math.log10(a / 5)), w1b = 10 ** Math.ceil(Math.log10(8 / tm)), pG = [], pA = [], pP = [];
+      for (let i = 0; i <= 240; i++) { const w = w0b * (w1b / w0b) ** (i / 240); pG.push([w, 20 * Math.log10(exa(w))]); pA.push([w, 20 * Math.log10(asy(w))]); pP.push([w, phi(w)]); }
+      const gs = pG.concat(pA).map((q) => q[1]), gy0 = Math.floor(Math.min(...gs) / 20) * 20 + 0, gy1 = Math.ceil(Math.max(...gs) / 20) * 20 + 0;
+      const figBode = plot({ W: 660, H: 280, logx: 1, x0: w0b, x1: w1b, y0: gy0, y1: gy1, dy: 10, ymaj: 2, curves: [{ pts: pA, c: '#c9483b', dash: 1, w: 1.6 }, { pts: pG }], hl: [{ y: 0, t: '0 dB', c: '#587083' }], xl: '', yl: 'Gain (dB)', alt: 'diagramme de Bode de la FTBO, gain : asymptotes en pointillés et courbe réelle' })
+        + plot({ W: 660, H: 250, logx: 1, x0: w0b, x1: w1b, y0: -180, y1: 0, dy: 15, ymaj: 3, curves: [{ pts: pP }], xl: 'Pulsation ω (rad/s)', yl: 'Phase (°)', alt: 'diagramme de Bode de la FTBO, phase' })
+        + '<p class="pp-leg">En pointillés rouges, le tracé asymptotique du gain ; en bleu, les courbes réelles.</p>';
+      const t1 = 1 / a, t2 = 1 / b, T = (x) => f3(x) + ' s';
+      const ord = t2 > tm ? `τ₁ = ${T(t1)} > τ₂ = ${T(t2)} > τm = ${T(tm)}` : `τ₁ = ${T(t1)} > τm = ${T(tm)} > τ₂ = ${T(t2)}`;
+      const ordF = t2 > tm ? [`τ₁ = ${T(t1)} > τm = ${T(tm)} > τ₂ = ${T(t2)}`, `τm = ${T(tm)} > τ₂ = ${T(t2)} > τ₁ = ${T(t1)}`, `τ₂ = ${T(t2)} > τ₁ = ${T(t1)} > τm = ${T(tm)}`] : [`τ₁ = ${T(t1)} > τ₂ = ${T(t2)} > τm = ${T(tm)}`, `τ₂ = ${T(t2)} > τm = ${T(tm)} > τ₁ = ${T(t1)}`, `τm = ${T(tm)} > τ₁ = ${T(t1)} > τ₂ = ${T(t2)}`];
+      const nom2 = b < 1 / tm ? 'le pôle du filtre C₂' : 'le pôle du moteur', nom3 = b < 1 / tm ? 'le pôle du moteur' : 'le pôle du filtre C₂';
+      const reg = wcA < w3 ? `l’asymptote de pente −20 dB/décade, ${fr(`${f3(KBO / a)} × ${f3(w2)}`, 'ω')}, vaut 1 pour ω = ${f3(KBO / a)} × ${f3(w2)}` : `l’asymptote de pente −40 dB/décade, ${fr(`${f3(KBO / a)} × ${f3(w2)} × ${f3(w3)}`, 'ω²')}, vaut 1 pour ω = √(${f3(KBO / a)} × ${f3(w2)} × ${f3(w3)})`;
+      const intro = `<p>Sur un navire, une antenne de télécommunication par satellite doit rester pointée vers le satellite malgré le roulis. Une centrale d’attitude calcule à chaque instant l’angle θ<sub>c</sub> que l’antenne doit prendre ; un asservissement à retour unitaire l’y amène.</p>
+        ${tableau([['Correcteur C₁(p)', `action dérivée : C<sub>1</sub>(p) = p + ${a}`], ['Filtre C₂(p)', `C<sub>2</sub>(p) = ${b}/(p + ${b})`], ['Moteur M(p)', `M(p) = ${fmt(Km)}/(1 + ${fmt(tm)}·p), de la tension à la vitesse`], ['Réducteur et intégration T(p)', `T(p) = ${fmt(K)}/p, de la vitesse du moteur à l’angle de l’antenne`], ['Exigences', `bande passante à 0 dB de la FTBO d’au moins ${wmin} rad/s ; marge de phase d’au moins ${Mmin}°`]])}`;
+      const qs = [
+        { t: 'Les formes canoniques', pour: ['Q1'], fig: boucleAntenne(),
+          text: 'Mettre C<sub>1</sub>(p) et C<sub>2</sub>(p) sous forme canonique : gain statique et constante de temps.',
+          fields: [{ l: 'Gain statique de C₁', u: 's⁻¹', a: a, tol: .01 }, { l: 'Constante de temps τ₁ de C₁', u: 's', a: t1, tol: .02 }, { l: 'Constante de temps τ₂ de C₂', u: 's', a: t2, tol: .02 }],
+          hint: 'Mettre en facteur le terme constant pour faire apparaître 1 + τ·p.',
+          corr: pas([`C<sub>1</sub>(p) = p + ${a} = ${a}·(1 + p/${a}) = ${a}·(1 + ${f3(t1)}·p) : gain statique <b>${a}</b>, constante de temps <b>τ<sub>1</sub> = ${f3(t1)} s</b>. C’est un zéro : l’action dérivée.`,
+            `C<sub>2</sub>(p) = ${b}/(p + ${b}) = 1/(1 + p/${b}) = 1/(1 + ${f3(t2)}·p) : gain statique 1, constante de temps <b>τ<sub>2</sub> = ${f3(t2)} s</b>. C’est un pôle : le filtre.`,
+            `M(p) = ${fmt(Km)}/(1 + ${fmt(tm)}·p) et T(p) = ${fmt(K)}/p sont déjà sous forme canonique.`],
+            'forme canonique : mettre le terme constant en facteur pour faire apparaître 1 + τ·p ; le gain statique sort devant.') },
+        { t: 'La boucle ouverte', pour: ['Q2'], fig: boucleAntenne(),
+          text: 'En déduire la fonction de transfert en boucle ouverte FTBO(p) = C<sub>1</sub>(p)·C<sub>2</sub>(p)·M(p)·T(p) sous forme canonique : son gain, sa classe et son ordre.',
+          fields: [{ l: 'K<sub>BO</sub>', u: 's⁻¹', a: KBO, tol: .02 }, choix('Classe et ordre', ['classe 1, ordre 3, avec un zéro', 'classe 0, ordre 3', 'classe 1, ordre 4', 'classe 2, ordre 3'])],
+          hint: 'Multiplier les quatre blocs sous forme canonique ; le gain est le produit des gains statiques.',
+          corr: pas([`FTBO(p) = ${fr(`${a} × ${fmt(Km)} × ${fmt(K)} × (1 + ${f3(t1)}·p)`, `p·(1 + ${f3(t2)}·p)·(1 + ${fmt(tm)}·p)`)}.`,
+            `K<sub>BO</sub> = ${a} × ${fmt(Km)} × ${fmt(K)} = <b>${f3(KBO)} s⁻¹</b>.`,
+            'Un p en facteur au dénominateur : <b>classe 1</b> ; dénominateur de degré 3 : <b>ordre 3</b> ; un zéro au numérateur.'],
+            'classe : nombre de p en facteur en bas (intégrateurs) ; ordre : degré du dénominateur.') },
+        { t: 'L’ordre des cassures', pour: ['Q3'], fig: '', rappel: `On prendra τ₁ = ${f3(t1)} s, τ₂ = ${f3(t2)} s et τm = ${fmt(tm)} s.`,
+          text: 'Ranger les constantes de temps par ordre décroissant, puis donner les pulsations des deuxième et troisième cassures du tracé asymptotique.',
+          fields: [choix('Ordre décroissant', [ord].concat(ordF)), { l: 'Deuxième cassure', u: 'rad/s', a: w2, tol: .02 }, { l: 'Troisième cassure', u: 'rad/s', a: w3, tol: .02 }],
+          hint: 'Une constante de temps τ donne une cassure à la pulsation 1/τ : la plus grande constante de temps donne la première cassure.',
+          corr: pas([`Rangées : ${ord}.`,
+            `Cassures aux pulsations 1/τ, dans l’ordre croissant : ${a} rad/s (le zéro de C<sub>1</sub>), puis <b>${f3(w2)} rad/s</b> (${nom2}), puis <b>${f3(w3)} rad/s</b> (${nom3}).`],
+            'la plus grande constante de temps donne la première cassure, à la plus basse pulsation.') },
+        { t: 'Le tracé asymptotique', pour: ['Q4'], fig: '', rappel: `Cassures : ${a}, ${f3(w2)} et ${f3(w3)} rad/s ; K<sub>BO</sub> = ${f3(KBO)} s⁻¹.`,
+          text: 'Construire le tracé asymptotique de Bode de la FTBO : pentes successives du gain, valeur du palier qui suit le zéro, allure de la phase.',
+          fields: [choix('Pentes successives du gain', ['−20, puis 0, puis −20, puis −40 dB/décade', '−20, puis −40, puis −60, puis −80 dB/décade', '0, puis +20, puis 0, puis −20 dB/décade', '−20, puis 0, puis −40 dB/décade']),
+            { l: 'Gain du palier', u: 'dB', a: plat, abs: .5 },
+            choix('Phase', ['part de −90°, remonte vers 0° après le zéro, puis redescend vers −180°', 'reste à −90°', 'descend de 0° à −270°', 'descend de −90° à −270°'])],
+          hint: `L’intégrateur impose −20 dB/décade au départ ; un zéro ajoute +20, un pôle −20. Sur le palier, |FTBO| vaut K<sub>BO</sub>·τ<sub>1</sub> = K<sub>BO</sub>/${a} ; en dB, 20·log de cette valeur.`,
+          corr: pas([`Avant ${a} rad/s, seul l’intégrateur compte : pente −20 dB/décade, phase −90°.`,
+            `Après le zéro, +20 compense −20 : un palier à 20·log(K<sub>BO</sub>·τ<sub>1</sub>) = 20·log(${f3(KBO / a)}) = <b>${f3(plat)} dB</b>.`,
+            `Après ${f3(w2)} rad/s : −20 dB/décade ; après ${f3(w3)} rad/s : −40 dB/décade.`,
+            `Phase : −90° au départ, elle remonte vers 0° après le zéro, puis redescend vers −180° après les deux pôles. Le tracé :<div class="fig">${figBode}</div>`],
+            'chaque cassure change la pente de 20 dB/décade : +20 pour un zéro, −20 pour un pôle.') },
+        { t: 'La bande passante à 0 dB', pour: ['Q5'], fig: figBode,
+          text: `Déterminer la bande passante à 0 dB de la FTBO sur le tracé asymptotique. L’exigence est-elle respectée ? On ajoute un gain K<sub>p</sub> en série : quelle valeur lui donner pour une bande passante égale ${nf} de la valeur exigée ?`,
+          fields: [{ l: 'ω<sub>0 dB</sub>', u: 'rad/s', a: wcA, tol: .08, alt: [wcE] }, choix('Exigence de bande passante', okB ? ['respectée', 'non respectée'] : ['non respectée', 'respectée']), { l: 'K<sub>p</sub>', u: '', a: KpA, tol: .05, alt: [KpE] }],
+          hint: 'Lire où l’asymptote passe 0 dB. Pour la nouvelle coupure, K<sub>p</sub> doit compenser |FTBO| à la pulsation visée.',
+          corr: pas([`Sur le tracé asymptotique, ${reg} = <b>${f3(wcA)} rad/s</b> (la courbe réelle coupe 0 dB à ${f3(wcE)} rad/s).`,
+            `Exigence : au moins ${wmin} rad/s : <b>${okB ? 'respectée' : 'non respectée'}</b>.`,
+            `Pour couper à ${N} × ${wmin} = ${wt} rad/s, il faut K<sub>p</sub>·|FTBO(j${wt})| = 1. Sur les asymptotes, |FTBO| vaut ${f3(asy(wt))} à ${wt} rad/s (${f3(20 * Math.log10(asy(wt)))} dB) : K<sub>p</sub> = 1/${f3(asy(wt))} = <b>${f3(KpA)}</b> (avec la courbe réelle : ${f3(KpE)}).`],
+            'un gain en série translate la courbe de gain verticalement sans toucher à la phase : on le choisit pour que le gain passe 0 dB à la pulsation voulue.') },
+        { t: 'La marge de phase', pour: ['Q6'], fig: figBode,
+          text: `Avec ce gain, la FTBO coupe 0 dB à ${wt} rad/s. Déterminer la marge de phase. L’exigence est-elle respectée ?`,
+          fields: [{ l: 'M<sub>φ</sub>', u: '°', a: MtA, abs: 2.5, alt: [MtE] }, choix('Exigence de marge', okM ? ['respectée', 'non respectée'] : ['non respectée', 'respectée'])],
+          hint: 'Additionner les arguments : −90° pour l’intégrateur, +arctan(ω·τ₁) pour le zéro, −arctan(ω·τ) pour chaque pôle.',
+          corr: pas([`φ(${wt}) = −90° + arctan(${wt} × ${f3(t1)}) − arctan(${wt} × ${f3(t2)}) − arctan(${wt} × ${fmt(tm)}) = −90 + ${f3(deg(Math.atan(wt / a)))} − ${f3(deg(Math.atan(wt / b)))} − ${f3(deg(Math.atan(wt * tm)))} = ${f3(phi(wt))}°.`,
+            `M<sub>φ</sub> = 180° + φ = <b>${f3(MtA)}°</b>.`,
+            `Exigence : au moins ${Mmin}° : <b>${okM ? 'respectée' : 'non respectée'}</b>.`],
+            'la marge de phase se lit à la pulsation de coupure ; le gain la déplace, mais la courbe de phase ne bouge pas.') },
+        { t: 'Plus de bande passante, même marge ?', pour: ['Q7'], fig: '',
+          text: 'Est-il possible d’augmenter la bande passante du système sans modifier sa marge de phase ?',
+          fields: [choix('Réponse', ['pas avec un simple gain : la coupure se déplace là où la phase est plus basse ; il faut relever la phase autour de la nouvelle coupure (avance de phase)', 'oui : il suffit d’augmenter K_p, la marge de phase ne dépend pas du gain', 'oui : en augmentant la constante de temps du filtre C₂', 'non : la bande passante d’un système asservi ne peut pas être augmentée'])],
+          hint: 'Le gain change-t-il la courbe de phase ? Où se lit la marge de phase ?',
+          corr: pas(['Le gain K<sub>p</sub> translate seulement la courbe de gain : la pulsation de coupure se déplace, la courbe de phase reste la même.',
+            `Or la phase redescend vers −180° aux hautes pulsations${M0 > MtA + 2 ? ` : la marge passe de ${f3(M0)}° à ${f3(wcA)} rad/s à ${f3(MtA)}° à ${wt} rad/s` : ''}. Plus la coupure est loin, plus la marge baisse.`,
+            'Pour gagner en bande passante sans perdre de marge, il faut <b>relever la phase</b> autour de la nouvelle coupure : un correcteur à avance de phase.'],
+            'avec un simple gain, rapidité et stabilité tirent en sens contraires ; l’avance de phase les réconcilie.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 2 · TD 4 — sur un autre système : le calage des pales d'une éolienne
+     schéma-blocs à deux boucles, adaptateur de consigne, moteur du deuxième ordre, gain de la boucle de
+     vitesse pour le temps de réponse le plus court, Bode de la boucle de position, marges, correcteur P
+     ===================================================================== */
+  const Sg = (x, y) => `<path d="M${x + 8} ${y - 5}L${x} ${y}L${x + 8} ${y + 5}Z" fill="#183047"/>`;   // flèche vers la gauche
+  const sci = (x) => { const e = Math.floor(Math.log10(Math.abs(x))); if (e >= -2 && e <= 3) return fmt(x); return `${fmt(x / 10 ** e)}·10<sup>${String(e).replace('-', '−')}</sup>`; };
+  function boucleCalage() {
+    let c = S.ar(6, 40, 60, 'Θpc') + S.box(40, 38, 'A', 40) + S.ar(80, 118, 60, 'Vpc') + S.som(136, 60, '+−') + S.ar(150, 176, 60, 'εp') + S.box(176, 38, 'C(p)', 56) + S.ar(232, 268, 60, 'Evp') + S.som(286, 60, '+−') + S.ar(300, 322, 60, '') + S.box(322, 38, 'B', 40) + S.ar(362, 396, 60, 'Um') + S.box(396, 38, 'M(p)', 56) + S.ar(452, 498, 60, 'Ωm') + S.box(498, 38, 'D', 40) + S.ar(538, 576, 60, 'Θm') + S.box(576, 38, 'E', 40) + S.ar(616, 676, 60, 'Θp');
+    c += S.pt(475, 60) + S.li(475, 60, 475, 112) + S.li(475, 112, 416, 112) + Sg(408, 112) + S.box(368, 90, 'F', 40) + S.li(368, 112, 286, 112) + S.li(286, 112, 286, 82) + S.up(286, 74) + S.t(330, 106, 'Vω');
+    c += S.pt(557, 60) + S.li(557, 60, 557, 166) + S.li(557, 166, 416, 166) + Sg(408, 166) + S.box(368, 144, 'H', 40) + S.li(368, 166, 136, 166) + S.li(136, 166, 136, 82) + S.up(136, 74) + S.t(260, 160, 'Vθ');
+    return S.svg(680, 196, 'schéma-blocs du calage : consigne, bloc A, comparateur, correcteur C(p), comparateur de la boucle de vitesse, bloc B, moteur M(p), bloc D, bloc E vers l’angle de la pale ; retours par les blocs F (vitesse) et H (position)', c);
+  }
+  J['c2-td4'] = { titre: 'Le calage des pales d’une éolienne', sys: 'schéma-blocs à deux boucles, adaptateur, moteur du deuxième ordre, boucle de vitesse, Bode, marges, correcteur proportionnel', min: 45,
+    gen() {
+      const RPM = 60 / (2 * Math.PI * 1000);   // V/(1000 tr/min) → V·s/rad
+      const amort = (KE, R, L, Jm) => R / 2 * Math.sqrt(Jm * 1e-5 / (L * 1e-3 * (KE * RPM) ** 2));
+      let KE = 12, R = 1, L = 2, Jm = 10;
+      for (let e = 0; e < 500; e++) {
+        const k = pick([10, 12, 15, 18]), r = pick([0.6, 0.8, 1, 1.2, 1.5]), l = pick([1, 1.5, 2, 2.5]), j = pick([6, 8, 10, 15, 20]), x = amort(k, r, l, j);
+        if (x >= 0.9 && x <= 2.2) { KE = k; R = r; L = l; Jm = j; break; }
+      }
+      const ke = KE * RPM, KM = 1 / ke, tmec = R * Jm * 1e-5 / (ke * ke), C2 = L * 1e-3 * Jm * 1e-5 / (ke * ke), w0 = 1 / Math.sqrt(C2), xi = tmec * w0 / 2;
+      const Kw = pick([3, 4, 5, 6, 8]), kw = Kw * RPM, lam = pick([0.01, 0.0125, 0.02]), Kth = pick([0.005, 0.01, 0.02]), Kc = Kth / lam;
+      const KMR = r3(KM), w0R = r3(w0), xiR = r3(xi);
+      const G = ((xiR / 0.69) ** 2 - 1) / (kw * KMR), GR = r3(G), w0i = w0R * xiR / 0.69, t5i = 3 / w0i;
+      // boucle de position non corrigée : HB(p) = N / (p·(A + B·p + C·p²))
+      const N = r3(Kth * GR * KM), A = r3(1 + GR * kw * KM), B = r3(tmec), C = r3(C2);
+      const KB = N / A, wB = Math.sqrt(A / C), xiB = B / (2 * Math.sqrt(A * C)), MGa = 20 * Math.log10(wB / KB), MGr = MGa + 20 * Math.log10(2 * xiB);
+      let BPm = 50, MGm = 10, Mpm = 45, c0a = 1, c0b = 2;
+      for (let e = 0; e < 200; e++) {
+        BPm = pick([20, 25, 30, 40, 50, 60, 80]); MGm = pick([8, 10, 12]); Mpm = pick([45, 50]);
+        c0a = BPm / KB; c0b = wB / (KB * 10 ** (MGm / 20));
+        if (c0b > 1.4 * c0a) break;
+      }
+      const okStab = MGa >= MGm && 90 >= Mpm;
+      const BL = { A: 'K<sub>c</sub>', B: 'G', D: '1/p', E: 'λ', F: 'K<sub>ω</sub>', H: 'K<sub>θ</sub>' }, TOUS = ['K<sub>c</sub>', 'G', '1/p', 'λ', 'K<sub>ω</sub>', 'K<sub>θ</sub>', 'p', '1/λ'];
+      const bloc = (x) => { const L0 = TOUS.filter((t) => t !== BL[x]).sort(() => Math.random() - 0.5).slice(0, 3); return choix(`Bloc ${x}`, [BL[x]].concat(L0)); };
+      const intro = `<p>Par vent fort, chaque pale d’une éolienne tourne autour de son axe pour limiter la puissance captée : c’est le calage. Un moteur à courant continu oriente la pale par un réducteur de rapport λ = ${fmt(lam)} (θ<sub>p</sub> = λ·θ<sub>m</sub>). Un codeur sur l’arbre du moteur donne deux tensions : v<sub>ω</sub> = K<sub>ω</sub>·ω<sub>m</sub> et v<sub>θ</sub> = K<sub>θ</sub>·θ<sub>m</sub>. La consigne d’angle θ<sub>pc</sub> devient une tension v<sub>pc</sub> par un adaptateur de gain K<sub>c</sub>. L’écart ε<sub>p</sub> = v<sub>pc</sub> − v<sub>θ</sub> passe dans le correcteur C(p) ; on retranche v<sub>ω</sub> à sa sortie, puis un amplificateur de gain G alimente le moteur.</p>
+        ${tableau([['Capteurs', `K<sub>θ</sub> = ${fmt(Kth)} V/rad ; K<sub>ω</sub> = ${Kw} V pour 1 000 tr/min`], ['Moteur', `u = e + R·i + L·di/dt ; e = K<sub>E</sub>·ω<sub>m</sub> ; J·dω<sub>m</sub>/dt = C<sub>m</sub> = K<sub>T</sub>·i, avec K<sub>E</sub> = ${KE} V pour 1 000 tr/min, K<sub>T</sub> = ${f3(ke)} N·m/A, R = ${fmt(R)} Ω, L = ${fmt(L)} mH, J = ${Jm}·10<sup>−5</sup> kg·m²`], ['Exigences', `écart statique nul pour un échelon ; marge de gain d’au moins ${MGm} dB et marge de phase d’au moins ${Mpm}° ; bande passante à 0 dB de H<sub>B</sub> d’au moins ${BPm} rad/s`]])}`;
+      const qs = [
+        { t: 'Le schéma-blocs', pour: ['Q1'], fig: boucleCalage(),
+          text: 'Compléter le schéma-blocs de l’asservissement du calage : que contient chacun des blocs A, B, D, E, F et H ?',
+          fields: ['A', 'B', 'D', 'E', 'F', 'H'].map(bloc),
+          hint: 'Suivre les signaux : un angle devient une tension (adaptateur, capteurs), une tension est amplifiée, une vitesse s’intègre en angle, le réducteur multiplie l’angle par λ.',
+          corr: pas(['A : l’adaptateur, <b>K<sub>c</sub></b>, transforme la consigne d’angle en tension.',
+            'B : l’amplificateur, <b>G</b>, de la tension ε<sub>v</sub> à la tension du moteur.',
+            'D : <b>1/p</b> : l’angle du moteur est l’intégrale de sa vitesse.',
+            'E : le réducteur, <b>λ</b> : θ<sub>p</sub> = λ·θ<sub>m</sub>.',
+            'F et H : les deux sorties du codeur, <b>K<sub>ω</sub></b> sur la vitesse (boucle interne) et <b>K<sub>θ</sub></b> sur l’angle du moteur (boucle externe).'],
+            'une boucle de vitesse dans une boucle de position : chaque retour part de la grandeur que mesure son capteur.') },
+        { t: 'L’adaptateur', pour: ['Q2'], fig: boucleCalage(),
+          text: 'Quelle relation entre K<sub>c</sub>, K<sub>θ</sub> et λ annule l’écart ε<sub>p</sub> quand l’angle de la pale est égal à sa consigne ? Que vaut K<sub>c</sub> ?',
+          fields: [choix('Relation', ['K<sub>c</sub> = K<sub>θ</sub>/λ', 'K<sub>c</sub> = K<sub>θ</sub>·λ', 'K<sub>c</sub> = λ/K<sub>θ</sub>', 'K<sub>c</sub> = K<sub>θ</sub>']), { l: 'K<sub>c</sub>', u: 'V/rad', a: Kc, tol: .02 }],
+          hint: 'ε<sub>p</sub> = K<sub>c</sub>·θ<sub>pc</sub> − K<sub>θ</sub>·θ<sub>m</sub>, avec θ<sub>m</sub> = θ<sub>p</sub>/λ. Écrire ε<sub>p</sub> = 0 quand θ<sub>p</sub> = θ<sub>pc</sub>.',
+          corr: pas(['ε<sub>p</sub> = K<sub>c</sub>·θ<sub>pc</sub> − K<sub>θ</sub>·θ<sub>m</sub> = K<sub>c</sub>·θ<sub>pc</sub> − (K<sub>θ</sub>/λ)·θ<sub>p</sub>.',
+            'Pour θ<sub>p</sub> = θ<sub>pc</sub>, ε<sub>p</sub> = 0 impose <b>K<sub>c</sub> = K<sub>θ</sub>/λ</b>.',
+            `K<sub>c</sub> = ${fmt(Kth)}/${fmt(lam)} = <b>${f3(Kc)} V/rad</b>.`],
+            'l’adaptateur reproduit la chaîne de mesure ramenée à la grandeur de sortie : sinon, l’écart ne s’annule pas quand la sortie est bonne.') },
+        { t: 'Le moteur', pour: ['Q3'], fig: '',
+          text: 'Déterminer la fonction de transfert du moteur M(p) = Ω<sub>m</sub>(p)/U<sub>m</sub>(p). Préciser son ordre et ses paramètres caractéristiques.',
+          fields: [{ l: 'K<sub>M</sub>', u: 'rad·s⁻¹/V', a: KM, tol: .02 }, { l: 'ω<sub>0</sub>', u: 'rad/s', a: w0, tol: .03 }, { l: 'ξ', u: '', a: xi, tol: .03 }],
+          hint: 'K<sub>E</sub> en V·s/rad : multiplier par 60/(2π × 1 000). Éliminer I(p) et E(p) entre les quatre équations.',
+          corr: pas([`En unités SI : K<sub>E</sub> = ${KE} × 60/(2π × 1 000) = ${f3(ke)} V·s/rad (= K<sub>T</sub>).`,
+            `Laplace : U = K<sub>E</sub>Ω + (R + Lp)I et Jp·Ω = K<sub>T</sub>I, d’où M(p) = ${fr('1/K<sub>E</sub>', '1 + (RJ/K<sub>E</sub>K<sub>T</sub>)·p + (LJ/K<sub>E</sub>K<sub>T</sub>)·p²')} : un <b>deuxième ordre</b>.`,
+            `K<sub>M</sub> = 1/K<sub>E</sub> = <b>${f3(KM)} rad·s⁻¹/V</b> ; RJ/K<sub>E</sub>K<sub>T</sub> = ${sci(tmec)} s et LJ/K<sub>E</sub>K<sub>T</sub> = ${sci(C2)} s².`,
+            `ω<sub>0</sub> = 1/√(${sci(C2)}) = <b>${f3(w0)} rad/s</b> ; ξ = ${fr('RJ', 'K<sub>E</sub>K<sub>T</sub>')} × ${fr('ω<sub>0</sub>', '2')} = <b>${f3(xi)}</b>.`],
+            'moteur à courant continu avec inductance : un deuxième ordre, souvent très amorti (ξ ≥ 1) parce que la constante électrique est bien plus courte que la mécanique.') },
+        { t: 'La boucle de vitesse', pour: ['Q4'], fig: abaque(), rappel: `On prendra K<sub>M</sub> = ${f3(KMR)} rad·s⁻¹/V, ω<sub>0</sub> = ${f3(w0R)} rad/s, ξ = ${f3(xiR)} et K<sub>ω</sub> = ${f3(kw)} V·s/rad.`,
+          text: 'Déterminer l’expression puis la valeur du gain G de l’amplificateur qui donne à la boucle de vitesse le temps de réponse à 5 % le plus court pour un échelon. Que vaut alors ce temps de réponse ? L’abaque du temps de réponse réduit est donné.',
+          fields: [{ l: 'G', u: '', a: G, tol: .04 }, { l: 't<sub>5%</sub>', u: 's', a: t5i, tol: .06 }],
+          hint: 'La boucle de vitesse garde la forme d’un deuxième ordre : ω<sub>0</sub> et ξ sont modifiés par le facteur 1 + G·K<sub>ω</sub>·K<sub>M</sub>. Le minimum de l’abaque est à ξ ≈ 0,69.',
+          corr: pas([`Boucle de vitesse : ${fr('Ω<sub>m</sub>', 'E<sub>v</sub>')} = ${fr('G·M', '1 + G·K<sub>ω</sub>·M')} = ${fr('G·K<sub>M</sub>', '1 + G·K<sub>ω</sub>·K<sub>M</sub> + (2ξ/ω<sub>0</sub>)·p + p²/ω<sub>0</sub>²')}.`,
+            'Sous forme canonique : ω′<sub>0</sub> = ω<sub>0</sub>·√(1 + G·K<sub>ω</sub>·K<sub>M</sub>) et ξ′ = ξ/√(1 + G·K<sub>ω</sub>·K<sub>M</sub>).',
+            `t<sub>5%</sub> minimal pour ξ′ = 0,69 : 1 + G·K<sub>ω</sub>·K<sub>M</sub> = (ξ/0,69)², d’où G = ${fr('(ξ/0,69)² − 1', 'K<sub>ω</sub>·K<sub>M</sub>')} = ${fr(`${f3((xiR / 0.69) ** 2)} − 1`, `${f3(kw)} × ${f3(KMR)}`)} = <b>${f3(G)}</b>.`,
+            `ω′<sub>0</sub> = ω<sub>0</sub>·ξ/0,69 = ${f3(w0i)} rad/s ; l’abaque donne t<sub>5%</sub>·ω′<sub>0</sub> ≈ 3, d’où <b>t<sub>5%</sub> ≈ ${sci(t5i)} s</b>.`],
+            'boucler un deuxième ordre par un gain multiplie ω<sub>0</sub> et divise ξ par le même facteur √(1 + K<sub>BO</sub>) : on choisit le gain qui amène ξ à 0,69.') },
+        { t: 'Le Bode de la boucle de position', pour: ['Q5'], fig: boucleCalage(),
+          text: `Avec ce gain G, la boucle ouverte de position non corrigée (C(p) = 1) vaut H<sub>B</sub>(p) = V<sub>θ</sub>(p)/ε<sub>p</sub>(p) = ${fr(fmt(N), `p·(${fmt(A)} + ${sci(B)}·p + ${sci(C)}·p²)`)}. Mettre H<sub>B</sub> sous forme canonique, puis donner, sur son tracé asymptotique, la pulsation où le gain vaut 0 dB et celle où la phase vaut −180°.`,
+          fields: [{ l: 'Gain K<sub>B</sub>', u: 's⁻¹', a: KB, tol: .03 }, { l: 'ω<sub>0 dB</sub>', u: 'rad/s', a: KB, tol: .05 }, { l: 'ω<sub>−180°</sub>', u: 'rad/s', a: wB, tol: .03 }],
+          hint: 'Diviser le dénominateur par son terme constant. Une classe 1 coupe 0 dB à ω = K<sub>B</sub> si K<sub>B</sub> est bien avant la cassure ; la phase d’un intégrateur et d’un deuxième ordre passe −180° à ω<sub>0</sub>.',
+          corr: pas([`H<sub>B</sub>(p) = ${fr(`${fmt(N)}/${fmt(A)}`, `p·(1 + ${sci(B / A)}·p + ${sci(C / A)}·p²)`)} : K<sub>B</sub> = <b>${sci(KB)} s⁻¹</b>, ω<sub>0</sub> = √(${fmt(A)}/${sci(C)}) = ${f3(wB)} rad/s, ξ = ${f3(xiB)}.`,
+            `Asymptotes du gain : −20 dB/décade jusqu’à ω<sub>0</sub>, puis −60 dB/décade. L’asymptote K<sub>B</sub>/ω vaut 1 pour <b>ω<sub>0 dB</sub> = K<sub>B</sub> = ${sci(KB)} rad/s</b>, bien avant la cassure.`,
+            `Phase : −90° (intégrateur) − 90° (deuxième ordre à ω<sub>0</sub>) : <b>ω<sub>−180°</sub> = ω<sub>0</sub> = ${f3(wB)} rad/s</b>.`],
+            'classe 1 : la première asymptote K/ω coupe 0 dB à ω = K ; un deuxième ordre apporte −90° à sa pulsation propre.') },
+        { t: 'Les marges, non corrigé', pour: ['Q6'], fig: '', rappel: `On prendra K<sub>B</sub> = ${sci(KB)} s⁻¹ et ω<sub>−180°</sub> = ${f3(wB)} rad/s ; les courbes sont assimilées à leurs asymptotes.`,
+          text: 'Déterminer la marge de phase, la marge de gain et la bande passante à 0 dB de H<sub>B</sub>. Le critère de stabilité est-il respecté ?',
+          fields: [{ l: 'M<sub>φ</sub>', u: '°', a: 90, abs: 2 }, { l: 'M<sub>G</sub>', u: 'dB', a: MGa, abs: 1, alt: [MGr] }, { l: 'BP<sub>0 dB</sub>', u: 'rad/s', a: KB, tol: .05 },
+            choix('Stabilité', okStab ? ['respectée, avec de larges marges', 'non respectée : marge de gain insuffisante', 'non respectée : marge de phase insuffisante', 'le système est instable'] : ['non respectée : marge de gain insuffisante', 'respectée, avec de larges marges', 'non respectée : marge de phase insuffisante', 'le système est instable'])],
+          hint: 'Sur les asymptotes : à la coupure, la phase vaut encore −90° ; à ω<sub>−180°</sub>, le gain asymptotique vaut K<sub>B</sub>/ω<sub>−180°</sub>.',
+          corr: pas([`À ω<sub>0 dB</sub> = ${sci(KB)} rad/s, la phase asymptotique vaut −90° : <b>M<sub>φ</sub> = 90°</b>.`,
+            `À ω<sub>−180°</sub>, gain asymptotique 20·log(K<sub>B</sub>/ω<sub>0</sub>) = 20·log(${sci(KB)}/${f3(wB)}) = ${f3(-MGa)} dB : <b>M<sub>G</sub> = ${f3(MGa)} dB</b> (avec la courbe réelle, ${f3(MGr)} dB).`,
+            `<b>BP<sub>0 dB</sub> = ${sci(KB)} rad/s</b>.`,
+            `Stabilité : M<sub>G</sub> ${okStab ? '≥' : '&lt;'} ${MGm} dB et M<sub>φ</sub> ≥ ${Mpm}° : <b>${okStab ? 'respectée' : 'non respectée'}</b>. Mais la bande passante est très loin des ${BPm} rad/s exigés.`],
+            'des marges énormes signalent souvent un système trop lent : il reste de la place pour monter le gain.') },
+        { t: 'Le correcteur proportionnel', pour: ['Q7'], fig: '', rappel: `On prendra K<sub>B</sub> = ${sci(KB)} s⁻¹ et ω<sub>−180°</sub> = ${f3(wB)} rad/s ; courbes assimilées aux asymptotes.`,
+          text: 'On prend C(p) = C<sub>0</sub>. Pourquoi un tel correcteur suffit-il a priori ? Entre quelles valeurs choisir C<sub>0</sub> pour respecter toutes les exigences ?',
+          fields: [choix('Pourquoi un gain suffit', ['H<sub>B</sub> est déjà de classe 1 (écart statique nul) : il ne manque que de la bande passante, que le gain donne tant que les marges suivent', 'un gain annule l’écart statique', 'un gain augmente la marge de phase', 'un gain rend la boucle de classe 2'])
+            , { l: 'C<sub>0</sub> minimal', u: '', a: c0a, tol: .05 }, { l: 'C<sub>0</sub> maximal', u: '', a: c0b, tol: .05 }],
+          hint: 'Bande passante : la coupure passe à C<sub>0</sub>·K<sub>B</sub>. Marge de gain : à ω<sub>−180°</sub>, il faut C<sub>0</sub>·K<sub>B</sub>/ω<sub>−180°</sub> sous −M<sub>G</sub> dB.',
+          corr: pas(['Précision : l’intégrateur est déjà dans la boucle ouverte (classe 1) : écart statique nul en échelon, quel que soit C<sub>0</sub>.',
+            `Bande passante : la coupure passe à C<sub>0</sub>·K<sub>B</sub> ≥ ${BPm} rad/s, donc <b>C<sub>0</sub> ≥ ${BPm}/${sci(KB)} = ${f3(c0a)}</b>.`,
+            `Marge de gain : C<sub>0</sub>·K<sub>B</sub>/ω<sub>−180°</sub> ≤ 10<sup>−${MGm}/20</sup>, donc <b>C<sub>0</sub> ≤ ${f3(wB)}/(${sci(KB)} × ${f3(10 ** (MGm / 20))}) = ${f3(c0b)}</b>.`,
+            `Marge de phase : tant que la coupure reste avant ω<sub>−180°</sub>, la phase asymptotique vaut −90° : M<sub>φ</sub> = 90° ≥ ${Mpm}°.`],
+            'un correcteur proportionnel se choisit dans un intervalle : la rapidité fixe le minimum, la stabilité le maximum.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 2 · TD 5 — sur un autre système : le tapis de course d'une salle de sport
+     schéma-blocs du moteur, gains d'adaptation, stabilité et précision sans correction (poursuite et
+     régulation), correcteur intégral (rôle, K_I maximal par les marges, pôle dominant, réglage le plus
+     rapide), correcteur PI choisi sur des réponses simulées, conclusion sur Bode
+     ===================================================================== */
+  // boucle fermée à retour unitaire : correcteur Kp·(1 + 1/(Ti·p)) devant K/((1+T1·p)(1+T2·p)), échelon unité
+  function simPI(K, T1, T2, Kp, Ti, Tf) {
+    const n = Math.ceil(Tf / Math.min(T1 / 3, Tf / 3000)), h = Tf / n, tous = Math.max(1, Math.floor(n / 300)), pts = [];
+    const f = (x) => { const e = 1 - x[1], c = Kp * (e + x[2] / Ti); return [(-x[0] + K * c) / T1, (-x[1] + x[0]) / T2, e]; };
+    let x = [0, 0, 0], t5 = 0;
+    for (let i = 0; i <= n; i++) {
+      if (i % tous === 0) pts.push([i * h, x[1]]);
+      if (Math.abs(x[1] - 1) > 0.05) t5 = i * h;
+      const k1 = f(x), k2 = f(x.map((v, j) => v + h / 2 * k1[j])), k3 = f(x.map((v, j) => v + h / 2 * k2[j])), k4 = f(x.map((v, j) => v + h * k3[j]));
+      x = x.map((v, j) => v + h / 6 * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]));
+    }
+    return { pts, t5 };
+  }
+  const COUL = ['#12566f', '#c9483b', '#2f8f4e', '#8a4513'];
+  function faisceau(R, Tf, noms, alt) {
+    const yM = Math.max(1.1, ...R.map((r) => Math.max(...r.pts.map((q) => q[1])))), y1 = Math.ceil(yM * 10) / 10;
+    return plot({ W: 640, H: 320, x0: 0, x1: Tf, dx: Tf / 20, xmaj: 2, y0: 0, y1, dy: 0.05, ymaj: 4, curves: R.map((r, i) => ({ pts: r.pts, c: COUL[i], w: 2, dash: i % 2 })), hl: [{ y: 1.05, t: '±5 %', c: '#587083' }, { y: 0.95, t: '', c: '#587083' }], xl: 't (s)', yl: 'V/V<sub>c0</sub>'.replace(/<[^>]+>/g, ''), alt })
+      + `<p class="pp-leg">${noms.map((n, i) => `<span style="color:${COUL[i]};font-weight:700">${i % 2 ? '- - -' : '——'} ${n}</span>`).join(' &nbsp; ')}</p>`;
+  }
+  function boucleTapis() {
+    let c = S.ar(4, 30, 60, 'Vc') + S.box(30, 38, 'KG', 34) + S.ar(64, 84, 60, '') + S.box(84, 38, 'Kconv', 50) + S.ar(134, 154, 60, '') + S.som(168, 60, '+−') + S.ar(182, 198, 60, '') + S.box(198, 38, 'C(p)', 40) + S.ar(238, 252, 60, '') + S.box(252, 38, 'KA', 32) + S.ar(284, 312, 60, 'U') + S.som(326, 60, '+−') + S.ar(340, 356, 60, '') + S.box(356, 38, 'A', 32) + S.ar(388, 410, 60, 'I') + S.box(410, 38, 'B', 32) + S.ar(442, 466, 60, 'Cm');
+    c += `<circle cx="480" cy="60" r="14" fill="#fff" stroke="#183047" stroke-width="1.6"/><text x="458" y="54" font-size="13" fill="#183047">+</text><text x="488" y="42" font-size="15" fill="#183047">−</text>` + S.t(480, 12, 'Ceq') + S.li(480, 18, 480, 38) + S.down(480, 46);
+    c += S.ar(494, 512, 60, '') + S.box(512, 38, 'D', 32) + S.ar(544, 590, 60, 'Ω') + S.box(590, 38, 'E', 32) + S.ar(622, 676, 60, 'V');
+    c += S.pt(558, 60) + S.li(558, 60, 558, 112) + S.li(558, 112, 424, 112) + Sg(416, 112) + S.box(384, 90, 'F', 32) + S.li(384, 112, 326, 112) + S.li(326, 112, 326, 82) + S.up(326, 74) + S.t(352, 106, 'E');
+    c += S.pt(574, 60) + S.li(574, 60, 574, 166) + S.li(574, 166, 300, 166) + Sg(292, 166) + S.box(260, 144, 'H', 32) + S.li(260, 166, 168, 166) + S.li(168, 166, 168, 82) + S.up(168, 74) + S.t(214, 160, 'Um');
+    return S.svg(680, 196, 'schéma-blocs de l’asservissement du tapis : générateur de consigne KG, convertisseur Kconv, comparateur, correcteur C(p), amplificateur KA, comparateur U − E, blocs A et B, couple perturbateur Ceq retranché, bloc D, vitesse du moteur, bloc E vers la vitesse du tapis ; retours par les blocs F et H', c);
+  }
+  J['c2-td5'] = { titre: 'Le tapis de course d’une salle de sport', sys: 'gains d’adaptation, précision en poursuite et en régulation, correcteur intégral, pôle dominant, correcteur PI choisi sur des simulations', min: 60,
+    gen() {
+      let ke = 0.1, r = 2, Lm = 3, Jm = 2, tm = 0.5;
+      for (let e = 0; e < 400; e++) { const k = pick([0.08, 0.1, 0.12, 0.15]), rr = pick([1, 1.5, 2, 2.5]), l = pick([2, 3, 4, 5]), j = pick([1, 1.5, 2, 3, 4]), m = rr * j * 1e-3 / (k * k); if (m >= 0.2 && m <= 0.9) { ke = k; r = rr; Lm = l; Jm = j; tm = m; break; } }
+      const te = Lm * 1e-3 / r, dsc = Math.sqrt(tm * tm - 4 * tm * te), T2 = r3((tm + dsc) / 2), T1 = r3((tm - dsc) / 2), KU = r3(1 / ke), KC = r3(r / (ke * ke));
+      let Kcapt = 0.01, KA = 10, KBO = 1, Tis = [], RT = [], ib = 0;
+      for (let e = 0; e < 40; e++) {
+        Kcapt = pick([0.005, 0.01, 0.02]); KA = pick([5, 10, 15, 20, 30]); KBO = Kcapt * KA * KU;
+        if (KBO < 0.6 || KBO > 3) continue;
+        Tis = [0.4, 1, 2.5, 5].map((x) => r2(x * T2));
+        const Tf = Math.max(8 * T2 / KBO + 2 * T2, 6 * Tis[0]);
+        RT = Tis.map((Ti) => simPI(KBO, T1, T2, 1, Ti, Tf));
+        const t5 = RT.map((q) => q.t5), m = Math.min(...t5); ib = t5.indexOf(m);
+        if (t5.every((v, i) => i === ib || v > 1.15 * m)) break;
+      }
+      const Ti = Tis[ib], t5Ti = RT[ib].t5, Tf8 = pasDe(Math.max(...RT.map((q) => q.t5)) * 1.1 / 10) * 10;
+      const R8 = Tis.map((x) => simPI(KBO, T1, T2, 1, x, Tf8));
+      // KP : quatre valeurs, l'exigence de temps de réponse calée près de l'une d'elles
+      const base = pick([1.5, 2, 3]), Kps = [base / 2, base, base * 2, base * 4].map(r2), R9a = Kps.map((k) => simPI(KBO, T1, T2, k, Ti, Tf8));
+      const kq = pick([1, 2]), Treq = r2(R9a[kq].t5 * pick([0.95, 1.05])), Tf9 = pasDe(Math.max(...R9a.map((q) => q.t5), Treq) * 1.1 / 10) * 10;
+      const R9 = Kps.map((k) => simPI(KBO, T1, T2, k, Ti, Tf9)), d9 = R9.map((q) => Math.abs(q.t5 - Treq)), i9 = d9.indexOf(Math.min(...d9)), Kp = Kps[i9];
+      // gains d'adaptation et précision sans correction
+      const Rr = pick([0.03, 0.035, 0.04, 0.05]), kr = pick([0.4, 0.5]), KR = Rr * kr, KG = 1 / KR, Vc0 = pick([1, 1.5, 2, 2.5, 3]), C0 = pick([0.1, 0.2, 0.3]);
+      const KBOR = r3(KBO), es = Vc0 / (1 + KBOR), dV = KC * C0 * KR / (1 + KBOR);
+      // correcteur intégral : K_I maximal (marges), pôle dominant
+      const Mpm = pick([45, 50]), MGm = pick([6, 8, 10]);
+      const wphi = solve((w) => deg(Math.atan(T1 * w) + Math.atan(T2 * w)) - Mpm, 1e-3, 1e5);
+      const KiP = wphi * Math.hypot(1, T1 * wphi) * Math.hypot(1, T2 * wphi) / KBOR, w180 = 1 / Math.sqrt(T1 * T2), KiG = 10 ** (-MGm / 20) * w180 * Math.hypot(1, T1 * w180) * Math.hypot(1, T2 * w180) / KBOR;
+      const Ki5 = 1 / (4 * 0.69 ** 2 * KBOR * T2), t5I = 6 * 0.69 * T2, okI = t5I <= Treq;
+      // PI retenu : marges
+      const mod = (w) => Kp * KBOR * Math.hypot(1, Ti * w) / (Ti * w * Math.hypot(1, T1 * w) * Math.hypot(1, T2 * w)), arg = (w) => -90 + deg(Math.atan(Ti * w) - Math.atan(T1 * w) - Math.atan(T2 * w));
+      const wcPI = solve((w) => Math.log(mod(w)), 1e-3, 1e6), MpPI = 180 + arg(wcPI), okPI = MpPI >= Mpm;
+      const bz = (k, ns, fn) => bodeF(fn, 10 ** Math.floor(Math.log10(0.3 / T2)), 10 ** Math.ceil(Math.log10(2 / T1)), k);
+      const fig3 = bz('FTBO non corrigée', 0, (w) => [20 * Math.log10(KBOR / (Math.hypot(1, T1 * w) * Math.hypot(1, T2 * w))), -deg(Math.atan(T1 * w) + Math.atan(T2 * w))]);
+      const fig6 = bz('FTBO avec le correcteur intégral, K_I = 1', 0, (w) => [20 * Math.log10(KBOR / (w * Math.hypot(1, T1 * w) * Math.hypot(1, T2 * w))), -90 - deg(Math.atan(T1 * w) + Math.atan(T2 * w))]);
+      const fig10 = bz('FTBO avec le correcteur PI retenu', 0, (w) => [20 * Math.log10(mod(w)), arg(w)]);
+      const fig8 = faisceau(R8, Tf8, Tis.map((x) => `T<sub>i</sub> = ${fmt(x)} s`), 'réponses à un échelon de consigne, K_p = 1, pour quatre valeurs de T_i');
+      const fig9 = faisceau(R9, Tf9, Kps.map((x) => `K<sub>p</sub> = ${fmt(x)}`), `réponses à un échelon de consigne, T_i = ${fmt(Ti)} s, pour quatre valeurs de K_p`);
+      const BLK = { A: '1/(r + L·p)', B: 'k<sub>c</sub>', D: '1/(J·p)', E: 'K<sub>R</sub>', F: 'k<sub>e</sub>', H: 'K<sub>capt</sub>' }, TOUS = Object.values(BLK).concat(['r + L·p', 'J·p']);
+      const bloc = (x) => choix(`Bloc ${x}`, [BLK[x]].concat(TOUS.filter((t) => t !== BLK[x]).sort(() => Math.random() - 0.5).slice(0, 3)));
+      const intro = `<p>Le tapis d’un tapis de course est entraîné par un rouleau de rayon R<sub>r</sub> = ${fmt(Rr * 1000)} mm, lui-même entraîné par le moteur par une courroie : ω<sub>rouleau</sub> = ${fmt(kr)}·ω<sub>moteur</sub>. La vitesse du tapis V est asservie ; à chaque foulée, le coureur freine le tapis : ce freinage est un couple perturbateur C<sub>eq</sub> ramené sur l’arbre du moteur. La consigne V<sub>c</sub> devient une consigne de vitesse du moteur (gain K<sub>G</sub>), puis une tension (convertisseur K<sub>conv</sub>) ; un capteur de gain K<sub>capt</sub> mesure la vitesse du moteur ; après le correcteur C(p), un amplificateur de gain K<sub>A</sub> = ${KA} alimente le moteur.</p>
+        ${tableau([['Moteur', `u = e + r·i + L·di/dt ; J·dω/dt = c<sub>m</sub> − c<sub>eq</sub> ; e = k<sub>e</sub>·ω ; c<sub>m</sub> = k<sub>c</sub>·i ; k<sub>e</sub> = k<sub>c</sub> = ${fmt(ke)} (SI), r = ${fmt(r)} Ω, L = ${fmt(Lm)} mH, J = ${fmt(Jm)}·10<sup>−3</sup> kg·m²`], ['Modèle retenu', `en poursuite H<sub>U</sub>(p) = K<sub>U</sub>/((1 + T<sub>1</sub>p)(1 + T<sub>2</sub>p)) ; en régulation H<sub>C</sub>(p) = K<sub>C</sub>(1 + (L/r)p)/((1 + T<sub>1</sub>p)(1 + T<sub>2</sub>p)) ; K<sub>U</sub> = ${fmt(KU)} rad·s⁻¹/V, K<sub>C</sub> = ${fmt(KC)} rad·s⁻¹/(N·m), T<sub>1</sub> = ${sci(T1)} s, T<sub>2</sub> = ${fmt(T2)} s`], ['Capteur', `K<sub>capt</sub> = ${fmt(Kcapt)} V·s/rad`], ['Exigences', `écart statique nul en poursuite pour un échelon de vitesse ; effet nul, en régime permanent, d’un échelon de couple perturbateur ; t<sub>5%</sub> au plus près de ${fmt(Treq)} s ; marge de phase d’au moins ${Mpm}°, marge de gain d’au moins ${MGm} dB`]])}
+        <p>Une fois les gains d’adaptation réglés, la boucle se ramène à un retour unitaire : FTBO(p) = K<sub>capt</sub>·C(p)·K<sub>A</sub>·H<sub>U</sub>(p).</p>`;
+      const qs = [
+        { t: 'Le schéma-blocs', pour: ['Q1'], fig: boucleTapis(),
+          text: 'Compléter le schéma-blocs dans le domaine de Laplace (conditions initiales nulles) : que contient chacun des blocs A, B, D, E, F et H ?',
+          fields: ['A', 'B', 'D', 'E', 'F', 'H'].map(bloc),
+          hint: 'Laplace sur chaque équation : la maille d’induit donne I à partir de U − E, le couple vient du courant, le principe fondamental donne Ω à partir de C<sub>m</sub> − C<sub>eq</sub>.',
+          corr: pas(['A : U − E = (r + L·p)·I, donc <b>1/(r + L·p)</b>.', 'B : C<sub>m</sub> = <b>k<sub>c</sub></b>·I.', 'D : J·p·Ω = C<sub>m</sub> − C<sub>eq</sub>, donc <b>1/(J·p)</b>.', 'F : la force contre-électromotrice E = <b>k<sub>e</sub></b>·Ω, retranchée à U.', 'E : V = <b>K<sub>R</sub></b>·Ω (rouleau et courroie) ; H : U<sub>m</sub> = <b>K<sub>capt</sub></b>·Ω.'],
+            'moteur à courant continu : deux boucles internes « naturelles », la f.c.é.m. et le couple perturbateur, entre la tension et la vitesse.') },
+        { t: 'Les gains d’adaptation', pour: ['Q2'], fig: boucleTapis(),
+          text: 'Déterminer les valeurs et unités de K<sub>R</sub>, de K<sub>G</sub> et de K<sub>conv</sub>, sachant que l’écart doit être nul quand la vitesse du tapis est égale à sa consigne.',
+          fields: [{ l: 'K<sub>R</sub>', u: 'm/rad', a: KR, tol: .02 }, { l: 'K<sub>G</sub>', u: 'rad/m', a: KG, tol: .02 }, { l: 'K<sub>conv</sub>', u: 'V·s/rad', a: Kcapt, tol: .02 }],
+          hint: 'Sans glissement, V = R<sub>r</sub>·ω<sub>rouleau</sub>. K<sub>G</sub> transforme la vitesse voulue du tapis en vitesse voulue du moteur. Écrire l’écart nul quand V = V<sub>c</sub>.',
+          corr: pas([`V = R<sub>r</sub>·${fmt(kr)}·Ω : <b>K<sub>R</sub> = ${fmt(Rr)} × ${fmt(kr)} = ${f3(KR)} m/rad</b>.`, `La consigne du moteur est celle qui donne V<sub>c</sub> : <b>K<sub>G</sub> = 1/K<sub>R</sub> = ${f3(KG)} rad/m</b>.`, `Écart nul : K<sub>conv</sub>·K<sub>G</sub>·V<sub>c</sub> = K<sub>capt</sub>·Ω = K<sub>capt</sub>·V/K<sub>R</sub> ; avec V = V<sub>c</sub> et K<sub>G</sub> = 1/K<sub>R</sub> : <b>K<sub>conv</sub> = K<sub>capt</sub> = ${fmt(Kcapt)} V·s/rad</b>.`],
+            'l’adaptateur de consigne reproduit la chaîne de mesure : même gain que le capteur, ramené à la même grandeur.') },
+        { t: 'Stable sans correction ?', pour: ['Q3'], fig: fig3,
+          text: 'Sans correction (C(p) = 1), le diagramme de Bode de la FTBO est donné. Que vaut K<sub>BO</sub> ? Le système est-il stable en boucle fermée ?',
+          fields: [{ l: 'K<sub>BO</sub>', u: '', a: KBOR, tol: .05 }, choix('Stabilité', ['stable : la phase d’un deuxième ordre ne descend jamais à −180°, la marge de gain est infinie', 'instable : le gain dépasse 0 dB', 'instable : la phase atteint −180°', 'on ne peut pas conclure sans la réponse temporelle'])],
+          hint: 'Aux basses pulsations, le gain vaut 20·log K<sub>BO</sub>. Où la phase va-t-elle au plus bas ?',
+          corr: pas([`Gain aux basses pulsations : ${f3(20 * Math.log10(KBOR))} dB, soit <b>K<sub>BO</sub> = ${f3(KBOR)}</b> (= K<sub>capt</sub>·K<sub>A</sub>·K<sub>U</sub> = ${fmt(Kcapt)} × ${KA} × ${fmt(KU)}).`,
+            'FTBO du deuxième ordre, sans intégrateur : sa phase va de 0° vers −180° sans jamais l’atteindre. Marge de gain infinie, marge de phase positive : <b>stable</b>.'],
+            'une FTBO du premier ou du deuxième ordre, sans retard ni zéro instable, donne toujours une boucle fermée stable.') },
+        { t: 'Précision sans correction', pour: ['Q4'], fig: '', rappel: `On prendra K<sub>BO</sub> = ${f3(KBOR)}, K<sub>C</sub> = ${fmt(KC)} rad·s⁻¹/(N·m) et K<sub>R</sub> = ${f3(KR)} m/rad.`,
+          text: `Sans correction, déterminer l’écart statique en poursuite pour un échelon de consigne V<sub>c0</sub> = ${fmt(Vc0)} m/s, puis la baisse de vitesse du tapis, en régime permanent, due à un échelon de couple perturbateur C<sub>0</sub> = ${fmt(C0)} N·m (consigne nulle). Les exigences de précision sont-elles respectées ?`,
+          fields: [{ l: 'ε<sub>s</sub>', u: 'm/s', a: es, tol: .03 }, { l: 'Baisse de vitesse', u: 'm/s', a: dV, tol: .04 }, choix('Précision', ['non respectée, en poursuite comme en régulation', 'respectée en poursuite seulement', 'respectée en régulation seulement', 'respectée'])],
+          hint: 'Classe 0 : ε<sub>s</sub> = V<sub>c0</sub>/(1 + K<sub>BO</sub>). En régulation, V = −H<sub>C</sub>·C<sub>eq</sub>/(K<sub>G</sub>(1 + FTBO)) ; faire p → 0.',
+          corr: pas([`Poursuite, classe 0 : ε<sub>s</sub> = ${fr('V<sub>c0</sub>', '1 + K<sub>BO</sub>')} = ${fr(fmt(Vc0), f3(1 + KBOR))} = <b>${f3(es)} m/s</b>.`,
+            `Régulation : Ω = −K<sub>A</sub>·K<sub>capt</sub>·H<sub>U</sub>·Ω − H<sub>C</sub>·C<sub>eq</sub>, d’où V = ${fr('−H<sub>C</sub>(p)·K<sub>R</sub>', '1 + FTBO(p)')}·C<sub>eq</sub>. En régime permanent : |ΔV| = ${fr('K<sub>C</sub>·K<sub>R</sub>·C<sub>0</sub>', '1 + K<sub>BO</sub>')} = ${fr(`${fmt(KC)} × ${f3(KR)} × ${fmt(C0)}`, f3(1 + KBOR))} = <b>${f3(dV)} m/s</b>.`,
+            'Les deux écarts sont non nuls : <b>précision non respectée</b>, en poursuite comme en régulation.'],
+            'sans intégrateur en amont, ni la consigne ni la perturbation ne sont rattrapées exactement : la boucle les divise seulement par 1 + K<sub>BO</sub>.') },
+        { t: 'Le correcteur intégral', pour: ['Q5'], fig: '',
+          text: 'On adopte C(p) = K<sub>I</sub>/p. Quelle est la nature de cette correction, pourquoi la choisir, et quel effet a-t-elle sur les autres performances ?',
+          fields: [choix('Nature', ['une action intégrale pure', 'une action dérivée', 'une avance de phase', 'une action proportionnelle']),
+            choix('Pourquoi', ['un intégrateur dans la boucle ouverte, en amont du couple perturbateur : écarts statiques nuls en poursuite et en régulation', 'elle augmente la marge de phase', 'elle rend la boucle plus rapide', 'elle supprime le couple perturbateur'])
+            , choix('Effet sur le reste', ['elle retire 90° de phase partout : moins de marge, et une réponse plus lente', 'aucun effet sur la stabilité', 'elle augmente la bande passante', 'elle rend le système instable quel que soit K_I'])],
+          hint: 'Où est placé le correcteur par rapport au point d’entrée de la perturbation ? Que fait 1/p sur la phase ?',
+          corr: pas(['C(p) = K<sub>I</sub>/p : une <b>action intégrale pure</b>.', 'Elle rend la boucle ouverte de classe 1, et l’intégrateur est en amont du couple perturbateur : écart statique nul en poursuite et <b>effet nul de la perturbation</b> en échelon : c’est l’exigence de précision.', 'Mais 1/p retire 90° de phase à toutes les pulsations : <b>marges plus faibles</b> et réponse <b>plus lente</b>.'],
+            'l’intégrateur achète la précision avec de la stabilité et de la rapidité.') },
+        { t: 'Le gain intégral maximal', pour: ['Q6'], fig: fig6, rappel: `Diagramme tracé pour K<sub>I</sub> = 1 s⁻¹ ; exigences : marge de phase ≥ ${Mpm}°, marge de gain ≥ ${MGm} dB.`,
+          text: 'À partir du diagramme de Bode de la FTBO avec K<sub>I</sub> = 1 s⁻¹, déterminer la valeur maximale de K<sub>I</sub> permise par chacune des deux marges. Laquelle limite ?',
+          fields: [{ l: 'K<sub>I</sub> max (marge de phase)', u: 's⁻¹', a: KiP, tol: .1 }, { l: 'K<sub>I</sub> max (marge de gain)', u: 's⁻¹', a: KiG, tol: .1 }, choix('La marge qui limite', KiP < KiG ? ['la marge de phase', 'la marge de gain'] : ['la marge de gain', 'la marge de phase'])],
+          hint: `Marge de phase : à la pulsation où la phase vaut ${Mpm - 180}°, le gain doit devenir 0 dB. Marge de gain : à la pulsation où la phase vaut −180°, le gain doit valoir −${MGm} dB.`,
+          corr: pas([`Phase = ${Mpm - 180}° pour ω ≈ ${f3(wphi)} rad/s ; le gain y vaut ${f3(20 * Math.log10(KBOR / (wphi * Math.hypot(1, T1 * wphi) * Math.hypot(1, T2 * wphi))))} dB pour K<sub>I</sub> = 1 : il faut le remonter à 0 dB, d’où <b>K<sub>I</sub> ≤ ${f3(KiP)} s⁻¹</b>.`,
+            `Phase = −180° pour ω = 1/√(T<sub>1</sub>T<sub>2</sub>) ≈ ${f3(w180)} rad/s ; le gain y vaut ${f3(20 * Math.log10(KBOR / (w180 * Math.hypot(1, T1 * w180) * Math.hypot(1, T2 * w180))))} dB : pour −${MGm} dB, <b>K<sub>I</sub> ≤ ${f3(KiG)} s⁻¹</b>.`,
+            `La plus petite l’emporte : K<sub>I max</sub> = ${f3(Math.min(KiP, KiG))} s⁻¹, fixé par <b>${KiP < KiG ? 'la marge de phase' : 'la marge de gain'}</b>.`],
+            'K<sub>I</sub> translate la courbe de gain : on lit, pour chaque marge, de combien on peut la monter.') },
+        { t: 'Le pôle dominant', pour: ['Q7'], fig: '', rappel: `On prendra K<sub>BO</sub> = ${f3(KBOR)}, T<sub>1</sub> = ${sci(T1)} s et T<sub>2</sub> = ${fmt(T2)} s.`,
+          text: 'Quel est le pôle dominant de H<sub>U</sub>(p) ? En gardant ce seul pôle, déterminer K<sub>I</sub> qui minimise le temps de réponse à 5 %, ce temps de réponse, et le comparer à l’exigence (t<sub>5%</sub>·ω<sub>0</sub> = 3 pour ξ = 0,69).',
+          fields: [choix('Pôle dominant', [`−1/T<sub>2</sub> = ${f3(-1 / T2)} s⁻¹, le plus lent`, `−1/T<sub>1</sub> = ${f3(-1 / T1)} s⁻¹, le plus rapide`, 'aucun : les deux pôles comptent autant']), { l: 'K<sub>I 5%</sub>', u: 's⁻¹', a: Ki5, tol: .03 }, { l: 't<sub>5% mini</sub>', u: 's', a: t5I, tol: .04 },
+            choix('Exigence de rapidité', okI ? ['atteinte', 'non atteinte'] : ['non atteinte', 'atteinte'])],
+          hint: 'Le pôle le plus proche de l’origine (la plus grande constante de temps) domine. FTBO ≈ K<sub>I</sub>K<sub>BO</sub>/(p(1 + T<sub>2</sub>p)), puis ξ = 0,69.',
+          corr: pas([`Les pôles sont −1/T<sub>1</sub> = ${f3(-1 / T1)} s⁻¹ et −1/T<sub>2</sub> = ${f3(-1 / T2)} s⁻¹ : le mode de −1/T<sub>2</sub> s’éteint ${f3(T2 / T1)} fois plus lentement : <b>pôle dominant −1/T<sub>2</sub></b>, et H<sub>U</sub>(p) ≈ K<sub>U</sub>/(1 + T<sub>2</sub>p).`,
+            `FTBO ≈ ${fr('K<sub>I</sub>·K<sub>BO</sub>', 'p·(1 + T<sub>2</sub>p)')} ; boucle fermée : ω<sub>0</sub> = √(K<sub>I</sub>K<sub>BO</sub>/T<sub>2</sub>), ξ = 1/(2√(K<sub>I</sub>K<sub>BO</sub>T<sub>2</sub>)).`,
+            `ξ = 0,69 : K<sub>I</sub> = ${fr('1', '4 × 0,69² × K<sub>BO</sub> × T<sub>2</sub>')} = <b>${f3(Ki5)} s⁻¹</b> ; ω<sub>0</sub> = 1/(2 × 0,69 × T<sub>2</sub>) = ${f3(1 / (1.38 * T2))} rad/s ; <b>t<sub>5%</sub> ≈ 3/ω<sub>0</sub> = ${f3(t5I)} s</b>.`,
+            `Exigence : au plus près de ${fmt(Treq)} s : <b>${okI ? 'atteinte' : 'non atteinte'}</b> avec la seule action intégrale.`],
+            'avec un intégrateur pur, t<sub>5%</sub> ne descend pas sous ≈ 4,1·T<sub>2</sub> : il faut une action proportionnelle en plus.') },
+        { t: 'Le choix du temps d’intégration', pour: ['Q8'], fig: fig8,
+          text: 'On passe à un correcteur proportionnel intégral C(p) = K<sub>p</sub>(1 + 1/(T<sub>i</sub>·p)). Les réponses à un échelon de consigne sont tracées pour K<sub>p</sub> = 1 et quatre valeurs de T<sub>i</sub>. Laquelle donne le temps de réponse à 5 % le plus faible, et que vaut-il ?',
+          fields: [choix('T<sub>i</sub> retenu', [`${fmt(Ti)} s`].concat(Tis.filter((x, i) => i !== ib).map((x) => `${fmt(x)} s`))), { l: 't<sub>5%</sub>', u: 's', a: t5Ti, tol: .1 }],
+          hint: 'Pour chaque courbe, l’instant où elle entre pour de bon dans la bande des ±5 %.',
+          corr: pas([`Entrées définitives dans la bande : ${Tis.map((x, i) => `T<sub>i</sub> = ${fmt(x)} s → ${R8[i].t5 > 0.97 * Tf8 ? `au-delà de ${fmt(Tf8)} s` : f3(R8[i].t5) + ' s'}`).join(' ; ')}.`,
+            `Le plus rapide : <b>T<sub>i</sub> = ${fmt(Ti)} s</b>, avec <b>t<sub>5%</sub> ≈ ${f3(t5Ti)} s</b>.`,
+            ib === 1 ? `Ici T<sub>i</sub> ≈ T<sub>2</sub> = ${fmt(T2)} s : le zéro du PI compense le pôle dominant, la boucle se comporte presque comme un premier ordre, sans dépassement.` : ib === 0 ? `Ici le T<sub>i</sub> le plus petit gagne : son intégrale vigoureuse fait monter la vitesse plus vite, au prix d’un petit dépassement qui reste dans la bande ou en sort à peine.` : `Ici un T<sub>i</sub> plus grand que T<sub>2</sub> = ${fmt(T2)} s gagne : moins de dépassement, sans traîner trop longtemps.`],
+            'T<sub>i</sub> trop petit : la réponse oscille ; T<sub>i</sub> trop grand : elle traîne longtemps sous la consigne.') },
+        { t: 'Le choix du gain proportionnel', pour: ['Q9'], fig: fig9, rappel: `T<sub>i</sub> = ${fmt(Ti)} s ; exigence : t<sub>5%</sub> au plus près de ${fmt(Treq)} s.`,
+          text: 'Avec ce T<sub>i</sub>, les réponses sont tracées pour quatre valeurs de K<sub>p</sub>. Laquelle donne le temps de réponse à 5 % le plus proche de l’exigence ?',
+          fields: [choix('K<sub>p</sub> retenu', [`${fmt(Kp)}`].concat(Kps.filter((x, i) => i !== i9).map((x) => `${fmt(x)}`)))],
+          hint: 'Relever t<sub>5%</sub> pour chaque courbe et le comparer à la valeur exigée.',
+          corr: pas([`${Kps.map((x, i) => `K<sub>p</sub> = ${fmt(x)} → t<sub>5%</sub> ≈ ${f3(R9[i].t5)} s`).join(' ; ')}.`, `Le plus proche de ${fmt(Treq)} s : <b>K<sub>p</sub> = ${fmt(Kp)}</b>.`],
+            'à T<sub>i</sub> fixé, K<sub>p</sub> règle la rapidité.') },
+        { t: 'Le bilan', pour: ['Q10'], fig: fig10, rappel: `PI retenu : K<sub>p</sub> = ${fmt(Kp)}, T<sub>i</sub> = ${fmt(Ti)} s.`,
+          text: 'Le diagramme de Bode de la FTBO avec le PI retenu est donné. Déterminer la marge de phase, dire ce que vaut la marge de gain, puis conclure sur toutes les exigences.',
+          fields: [{ l: 'M<sub>φ</sub>', u: '°', a: MpPI, abs: 3 }, choix('Marge de gain', ['infinie : la phase ne descend jamais à −180°', `environ ${MGm} dB`, 'nulle']),
+            choix('Conclusion', okPI ? ['toutes les exigences sont respectées : précision (classe 1), rapidité, marges', 'la précision n’est pas respectée', 'la marge de phase est insuffisante', 'la rapidité n’est pas respectée'] : ['la marge de phase est insuffisante ; le reste est respecté', 'toutes les exigences sont respectées : précision (classe 1), rapidité, marges', 'la précision n’est pas respectée', 'la rapidité n’est pas respectée'])],
+          hint: 'Lire la phase à la pulsation où le gain passe 0 dB. La phase atteint-elle −180° ?',
+          corr: pas([`Le gain passe 0 dB vers ω<sub>c</sub> ≈ ${f3(wcPI)} rad/s, où la phase vaut ${f3(arg(wcPI))}° : <b>M<sub>φ</sub> ≈ ${f3(MpPI)}°</b> ${okPI ? '≥' : '&lt;'} ${Mpm}°.`,
+            'La phase tend vers −180° sans l’atteindre : <b>marge de gain infinie</b>.',
+            `Précision : le PI garde l’intégrateur (classe 1, en amont de la perturbation). Rapidité : t<sub>5%</sub> ≈ ${f3(R9[i9].t5)} s pour ${fmt(Treq)} s exigé. ${okPI ? '<b>Toutes les exigences sont respectées.</b>' : '<b>La marge de phase manque</b> ; le reste est respecté.'}`],
+            'le PI cumule : la précision de l’intégrateur, la rapidité réglée par K<sub>p</sub>, sans perdre la stabilité si T<sub>i</sub> est bien placé.') },
       ];
       return { intro, qs };
     } };
