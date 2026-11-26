@@ -15,7 +15,9 @@
      ses « gestes » (agreg/prepa-cibles.js : exercices du site rangés dans l'ordre des questions du TD, notés
      sur 20, note dans st.prepa.x) puis fait question par question, avec sous chaque question un exemple
      corrigé du même geste ; 3. les extraits de sujets de concours (question par question ou en conditions,
-     sans verrou). Un plan chiffré dit quoi faire dans le temps qui reste avant 13 h. Les étapes par niveau
+     sans verrou). Après un TD : « le même TD, sur un autre système » (agreg/prepa-bis.js : mêmes gestes, même
+     ordre, autres valeurs à chaque essai, noté sur 20, note dans st.prepa.bis) pour vérifier qu'on sait le refaire seul.
+     Un plan chiffré dit quoi faire dans le temps qui reste avant 13 h. Les étapes par niveau
      ci-dessous restent proposées, repliées, comme « gammes » facultatives.
    - Entraînement sur le modèle de la préparation des DS de Terminale SI : pour chaque cycle, une fiche
      par chapitre (agreg/prepa-fiches.js, « Vérifie que tu as compris » puis « Ai-je compris ? » sur 20),
@@ -44,6 +46,7 @@
     if (!p.e || typeof p.e !== 'object') p.e = {};
     if (!p.f || typeof p.f !== 'object') p.f = {};
     if (!p.x || typeof p.x !== 'object') p.x = {};   // « les gestes » d'un TD ou d'un sujet : { document: { b, l, n, t } }
+    if (!p.bis || typeof p.bis !== 'object') p.bis = {};   // « le même TD, sur un autre système » : { document: { b, l, n, t } }
     // notes des étapes rangées par nom d'étape ; les anciennes clés 1, 2, 3 étaient briques, calculs, chaînes
     Object.values(p.e).forEach((c) => { if (c && typeof c === 'object') [['1', 'briques'], ['2', 'calculs'], ['3', 'chaines']].forEach(([a, b]) => { if (c[a]) { if (!c[b]) c[b] = c[a]; delete c[a]; } }); });
     return p;
@@ -239,6 +242,8 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
 .pp-plan{background:#fff8ef;border:1px solid #ecd5bd;border-radius:10px;padding:12px 16px;margin:12px 0 4px}.pp-plan ol{margin:6px 0 0;padding-left:0;list-style:none}.pp-plan li{display:block;border:0;padding:3px 0;margin:0}.pp-plan li small{color:#587083}
 .pp-gam{margin:18px 0 0}.pp-gam>summary{cursor:pointer;font-weight:700;color:#33485a;padding:6px 0}
 .pp-pour{display:inline-block;font-size:12px;font-weight:700;color:#12566f;background:#e3f0f5;border-radius:20px;padding:2px 10px;margin:0 6px 8px 0}
+.pp-dt{border-collapse:collapse;margin:8px 0;font-size:14px;width:100%}.pp-dt th{text-align:left;vertical-align:top;padding:5px 10px 5px 0;color:#33485a;white-space:nowrap;font-weight:700}.pp-dt td{padding:5px 0;border-bottom:1px solid #e0e8ef}
+@media(max-width:640px){.pp-dt th{white-space:normal;display:block;padding-bottom:0}.pp-dt td{display:block}}
 .pp-jum{margin:10px 0 0}.pp-jumc .fig{margin:8px 0}.pp-jumc .corr{margin-top:8px}
 .pp-niv{font-size:12px;font-weight:600;color:#8a4513;background:#fbeee3;border-radius:20px;padding:1px 9px;margin-left:6px;white-space:nowrap}
 .pp-aide{margin:4px 0 14px;background:#f3f7fa;border-left:4px solid #4a5fa8;border-radius:6px;padding:8px 14px}.pp-aide summary{cursor:pointer;font-weight:700;color:#4a5fa8}.pp-aide p{margin:6px 0 2px}
@@ -673,6 +678,7 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
     return (c.g || []).map(([key, l, i, pour]) => { const g = ET().reservoir(key, l)[i]; return g ? { g, key, l, pour: pour || [] } : null; }).filter(Boolean);
   }
   const jumeaux = (doc, lab) => gestesDe(doc).filter((x) => x.pour.includes(lab)).sort((a, b) => b.l - a.l).slice(0, 2);
+  const BIS = () => window.PREPA_BIS || {};   // le même TD sur un autre système (agreg/prepa-bis.js)
   const minGestes = (doc) => Math.max(10, Math.round(gestesDe(doc).length * 3 / 5) * 5);
   const hm = (t) => new Date(t).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
@@ -685,7 +691,8 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
       return `<div class="fld${cls}"><label for="${pre}in${i}">${f.l}</label><input id="${pre}in${i}" data-f="${i}" inputmode="decimal" autocomplete="off" value="${esc(r == null ? '' : r)}"${ok ? ' disabled' : ''}><span class="u">${f.u || ''}</span><span class="fb">${ok ? (ok[i] ? '✓' : 'Attendu : ' + fmt(f.a) + (f.u ? ' ' + f.u : '')) : ''}</span></div>`;
     }).join('')}</div>`;
   }
-  const juger = (inst, rep) => inst.fields.map((f, i) => { const r = rep[i]; if (f.ch) return r === f.a; const v = parse(r == null ? '' : r); return isFinite(v) && okf(f, v); });
+  // f.alt : autres valeurs acceptées (lecture d'une courbe où un extremum frôle une bande)
+  const juger = (inst, rep) => inst.fields.map((f, i) => { const r = rep[i]; if (f.ch) return r === f.a; const v = parse(r == null ? '' : r); return isFinite(v) && (okf(f, v) || (f.alt || []).some((a) => okf(Object.assign({}, f, { a }), v))); });
   const vides = (inst, rep) => inst.fields.filter((f, i) => f.ch ? rep[i] == null : !String(rep[i] == null ? '' : rep[i]).trim()).length;
   function lire(form, inst, rep) { inst.fields.forEach((f, i) => { if (!f.ch) { const x = form.querySelector(`input[data-f="${i}"]`); rep[i] = x ? x.value : ''; } }); return rep; }
   function choisir(o, rep, racine) {
@@ -777,7 +784,7 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
     const a = avance(d), ci = CI()[d.id] || {}, G = gestesDe(d), x = P().x[d.id], suj = d.type === 'sujet', nom = suj ? 'sujet' : 'TD', ep = suj ? (dOf(d.id).ep || []).slice(-1)[0] : null, pret = !!(x && x.b >= SEUIL);
     return `<div class="pp-td e${a.etat}"><div class="pp-tdh"><a class="pp-t" href="#prepa-${esc(d.id)}"><b>${esc(d.titre)}</b><small>${meta(d, a)}${ci.min ? ` · ≈ ${ci.min} min` : ''}${choisi ? ' · rangé pour cette séance' : ''}</small></a>${pastille(d, a)}${pdf(d, 0, 'PDF')}</div>
       ${ci.but ? `<p class="pp-but"><b>Ce qu’il fait travailler :</b> ${esc(ci.but)}.</p>` : ''}
-      <div class="btns">${G.length ? `<a class="b${pret ? ' sec' : ''}" href="#prepa-cible-${esc(d.id)}">① Les gestes du ${nom} · ${G.length} questions${x ? ` · ${x.b} / 20` : ` · ≈ ${minGestes(d)} min`}</a>` : ''}<a class="b${G.length && !pret ? ' sec' : ''}" href="#prepa-entr-${esc(d.id)}">${G.length ? '② ' : ''}${a.k ? 'Continuer' : 'Faire'} le ${nom}, question par question</a>${suj ? `<a class="b sec" href="#prepa-epreuve-${esc(d.id)}">En conditions d’épreuve · ${ep ? `${fmt(ep.note, 3)} / 20` : `${dureeEp(d)} min`}</a>` : ''}</div></div>`;
+      <div class="btns">${G.length ? `<a class="b${pret ? ' sec' : ''}" href="#prepa-cible-${esc(d.id)}">① Les gestes du ${nom} · ${G.length} questions${x ? ` · ${x.b} / 20` : ` · ≈ ${minGestes(d)} min`}</a>` : ''}<a class="b${G.length && !pret ? ' sec' : ''}" href="#prepa-entr-${esc(d.id)}">${G.length ? '② ' : ''}${a.k ? 'Continuer' : 'Faire'} le ${nom}, question par question</a>${suj ? `<a class="b sec" href="#prepa-epreuve-${esc(d.id)}">En conditions d’épreuve · ${ep ? `${fmt(ep.note, 3)} / 20` : `${dureeEp(d)} min`}</a>` : ''}${BIS()[d.id] ? `<a class="b sec" href="#prepa-bis-${esc(d.id)}">${G.length ? '③ ' : ''}Le même ${nom}, sur un autre système · ${P().bis[d.id] ? `${fmt(P().bis[d.id].b, 3)} / 20` : `≈ ${BIS()[d.id].min} min`}</a>` : ''}</div></div>`;
   }
   /* le travail du cycle dans l'ordre du formateur : la fiche d'un chapitre, puis les TD qui s'appuient dessus (gestes, puis TD), puis les sujets */
   function suiteDe(c) {
@@ -787,6 +794,8 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
       const x = P().x[d.id], a = avance(d), nom = d.type === 'sujet' ? 'sujet' : 'TD';
       if (gestesDe(d).length) L.push({ t: `Les gestes du ${nom} « ${d.titre} »`, h: `#prepa-cible-${d.id}`, min: minGestes(d), fait: !!(x && x.b >= SEUIL) });
       L.push({ t: `Le ${nom} « ${d.titre} », question par question`, h: `#prepa-entr-${d.id}`, min: (CI()[d.id] || {}).min || dureeEp(d), fait: a.etat === 2 });
+      const b = BIS()[d.id], nb = P().bis[d.id];
+      if (b && (a.etat === 2 || nb)) L.push({ t: `Le même ${nom}, seul, sur un autre système (${b.titre.toLowerCase()})`, h: `#prepa-bis-${d.id}`, min: b.min, fait: !!(nb && nb.b >= SEUIL) });
     };
     ch.forEach((f) => L.push({ t: `Le cours : la fiche « ${FI()[f.id].titre} », puis le chapitre du formateur`, h: `#prepa-fiche-${f.id}`, min: Math.max(15, Math.round(f.pages * 2.5 / 5) * 5), fait: !!P().f[f.id] }));
     docs.filter((d) => d.type === 'td').forEach(td);
@@ -878,6 +887,84 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
         const x = e.target.closest('[data-exp]');
         if (x) { const i = +x.closest('details').dataset.i; expliquer(R.qs[i], R.rep[i] || [], R.ok[i] || [], x); return; }
         if (e.target.closest('[data-re]')) { vueCible(doc); window.scrollTo(0, 0); }
+      };
+      app().onsubmit = null;
+      window.scrollTo(0, 0);
+    }
+    app().onclick = (e) => {
+      const o = e.target.closest('.pp-opt');
+      if (o && !o.disabled) { choisir(o, R.rep[R.i] || (R.rep[R.i] = []), document.getElementById('ppst')); lsSet(cle, R); return; }
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.exp) { if (R.ok[R.i]) expliquer(R.qs[R.i], R.rep[R.i] || [], R.ok[R.i], b); return; }
+      if (b.dataset.suiv) { if (R.i < R.qs.length - 1) { R.i++; lsSet(cle, R); question(); window.scrollTo(0, 0); } else fin(); return; }
+      if (b.dataset.raz) {
+        if (b.dataset.c !== '1') { b.dataset.c = '1'; b.textContent = 'Abandonner vraiment ?'; return; }
+        lsSet(cle, null); location.hash = '#prepa-parcours';
+      }
+    };
+    app().onsubmit = (e) => {
+      if (e.target.id !== 'ppf') return;
+      e.preventDefault();
+      const q = R.qs[R.i], rep = R.rep[R.i] || (R.rep[R.i] = []);
+      lire(e.target, q.inst, rep);
+      const nv = vides(q.inst, rep);
+      if (nv && e.target.dataset.c !== '1') { e.target.dataset.c = '1'; e.target.querySelector('[type=submit]').textContent = `${nv} réponse${nv > 1 ? 's' : ''} vide${nv > 1 ? 's' : ''} : valider quand même ?`; lsSet(cle, R); return; }
+      R.ok[R.i] = juger(q.inst, rep); lsSet(cle, R); question();
+    };
+    question();
+  }
+
+  /* ---------- le même TD, sur un autre système (agreg/prepa-bis.js) : mêmes gestes, même ordre, valeurs tirées ;
+     note proportionnelle aux réponses justes (un TD complet compte beaucoup de réponses), gardée dans st.prepa.bis */
+  function vueBis(doc) {
+    const B = BIS()[doc.id], nom = doc.type === 'sujet' ? 'sujet' : 'TD', cle = `pp-bis-${doc.id}`;
+    const tete = `<a class="back" href="#prepa-parcours">← Préparer la séance</a><div class="eyebrow pp-eb">Cycle ${esc(doc.cycle.n)} · le même ${nom}, sur un autre système</div><h1>${esc(B.titre)}</h1>`;
+    app().onchange = null; app().oninput = null;
+    let R = lsGet(cle);
+    if (!R || !Array.isArray(R.qs) || !R.qs.length || !Array.isArray(R.ok) || !Array.isArray(R.rep)) {
+      let o = null;
+      try { o = mob(() => B.gen()); } catch (er) { o = null; }
+      if (!o || !Array.isArray(o.qs) || !o.qs.length) { app().innerHTML = `${tete}<div class="card"><p>Les questions n’ont pas pu être préparées. Recharge la page.</p></div>`; app().onclick = null; app().onsubmit = null; return; }
+      R = { intro: o.intro || '', qs: o.qs.map((q) => ({ t: q.t, pour: q.pour || [], rappel: q.rappel || '', aide: q.hint || '', inst: { text: q.text, fig: q.fig || '', fields: q.fields, corr: q.corr } })), i: 0, rep: [], ok: [], t0: Date.now() };
+      lsSet(cle, R);
+    }
+    const nF = R.qs.reduce((s, q) => s + q.inst.fields.length, 0);
+    const justes = () => R.ok.reduce((s, o) => s + (o ? o.filter((y) => y).length : 0), 0);
+    const faites = () => R.ok.reduce((s, o) => s + (o ? o.length : 0), 0);
+    const note = () => Math.round(40 * justes() / nF) / 2;
+    const enCours = () => (faites() ? Math.round(40 * justes() / faites()) / 2 : null);   // note sur les réponses déjà données
+    const prep = (q) => `<span class="pp-pour">${q.pour.length ? `Comme ${q.pour.length > 1 ? 'les questions' : 'la question'} ${esc(q.pour.join(', '))} du ${nom}` : `Un geste du ${nom}`}</span>`;
+    const sys = (ouvert) => `<details class="pp-aide"${ouvert ? ' open' : ''}><summary>Le système et ses données</summary>${R.intro}</details>`;
+    function retour(q, ok) {
+      const e = ok.filter((y) => !y).length;
+      return `<div class="pp-verdict ${e ? 'ko' : 'ok'}">${e ? `${e} réponse${e > 1 ? 's' : ''} fausse${e > 1 ? 's' : ''} sur ${ok.length}` : 'Tout juste'}</div><div class="corr"><b>Correction</b>${q.inst.corr}</div>${zoneExp()}<div class="btns" style="margin-top:14px"><button class="b" type="button" data-suiv="1">${R.i < R.qs.length - 1 ? 'Question suivante →' : 'Voir ma note'}</button></div>`;
+    }
+    function question() {
+      const q = R.qs[R.i], ok = R.ok[R.i] || null, rep = R.rep[R.i] || (R.rep[R.i] = []), f = faites();
+      app().innerHTML = `${tete}<p class="muted" style="margin:0">${esc(B.sys.charAt(0).toUpperCase() + B.sys.slice(1))}. ${R.qs.length} questions, dans l’ordre des questions du ${nom} du formateur : refais-le seul, sans le document. Autres valeurs à chaque essai.</p>
+        <div class="pp-sbar"><span>Question <b>${R.i + 1}</b> / ${R.qs.length}</span><span class="pp-sn">Pour l’instant : <b>${f ? fmt(enCours(), 3) : '—'}</b> / 20</span><span class="muted">${justes()} juste${justes() > 1 ? 's' : ''} sur ${f} réponse${f > 1 ? 's' : ''} données · ${nF} en tout</span></div><div class="prog"><i style="width:${(100 * (R.i + (ok ? 1 : 0)) / R.qs.length).toFixed(1)}%"></i></div>
+        ${sys(R.i === 0 && !ok)}
+        <div class="card" id="ppst"><div>${prep(q)}</div><h2 style="margin-top:0">${R.i + 1}. ${esc(q.t)}</h2>${q.rappel ? `<p class="pp-leg">${q.rappel}</p>` : ''}<div class="pp-qtxt">${q.inst.text}</div>${q.inst.fig ? `<div class="fig">${q.inst.fig}</div>` : ''}${q.aide ? `<details class="pp-aide"><summary>Indice</summary><p>${q.aide}</p></details>` : ''}
+        ${ok ? champs(q.inst, rep, ok) : `<form id="ppf">${champs(q.inst, rep, null)}<div class="btns"><button class="b" type="submit">Valider</button></div></form>`}<div id="ppout">${ok ? retour(q, ok) : ''}</div></div>
+        <p class="muted" style="margin-top:18px"><button class="pp-lnk" type="button" data-raz="1">Abandonner cet essai</button> : il ne compte pas, et le suivant aura d’autres valeurs. <a href="#prepa-entr-${esc(doc.id)}">Revenir au ${nom} du formateur</a>.</p>`;
+      const s = document.querySelector('[data-suiv]');
+      if (s) s.focus({ preventScroll: true });
+    }
+    function fin() {
+      const nt = note(), ok = nt >= SEUIL, t = Date.now(), p = P(), r = p.bis[doc.id] || (p.bis[doc.id] = {});
+      r.n = (r.n || 0) + 1; r.l = nt; r.t = t;
+      if (r.b == null || nt > r.b) r.b = nt;
+      save(); lsSet(cle, null);
+      const rates = R.qs.filter((q, i) => (R.ok[i] || []).some((y) => !y));
+      app().innerHTML = `${tete}<div class="card"><div class="eyebrow">Le même ${nom}, sur un autre système</div><div class="pp-big">${fmt(nt, 3)}<small> / 20</small></div>
+        <p class="pp-verdict ${ok ? 'ok' : 'ko'}">${ok ? `Tu sais refaire ce ${nom} seul.` : `Encore fragile : relis les corrections ci-dessous, reprends le ${nom} du formateur, puis refais cette série (autres valeurs).`}</p>
+        <p>${justes()} réponse${justes() > 1 ? 's' : ''} juste${justes() > 1 ? 's' : ''} sur ${nF}${r.b > nt ? ` · meilleure note : ${fmt(r.b, 3)} / 20` : ''}.${rates.length ? ` À revoir : ${rates.map((q) => esc(q.t)).join(' ; ')}.` : ''}</p>
+        <div class="btns" style="margin-top:16px"><button class="b" type="button" data-re="1">Refaire, autres valeurs</button><a class="b sec" href="#prepa-entr-${esc(doc.id)}">Le ${nom} du formateur</a><a class="b sec" href="#prepa-parcours">Retour à la séance</a></div></div>
+        <div class="card" style="margin-top:16px"><h2 style="margin:0">Correction</h2><p class="muted">Les questions avec une erreur sont ouvertes.</p>${sys(false)}${R.qs.map((q, i) => { const o = R.ok[i] || [], e_ = o.filter((y) => !y).length; return `<details class="res${e_ ? '' : ' ok'}" data-i="${i}"${e_ ? ' open' : ''}><summary>${i + 1}. ${esc(q.t)}<small>${e_ ? `${e_} erreur${e_ > 1 ? 's' : ''}` : 'juste'}</small></summary><div style="margin-top:8px">${prep(q)}</div><div class="pp-qtxt">${q.inst.text}</div>${e_ && q.inst.fig ? `<div class="fig">${q.inst.fig}</div>` : ''}${champs(q.inst, R.rep[i] || [], o, 'r' + i)}<div class="corr">${q.inst.corr}</div>${zoneExp()}</details>`; }).join('')}</div>`;
+      app().onclick = (e) => {
+        const x = e.target.closest('[data-exp]');
+        if (x) { const i = +x.closest('details').dataset.i; expliquer(R.qs[i], R.rep[i] || [], R.ok[i] || [], x); return; }
+        if (e.target.closest('[data-re]')) { vueBis(doc); window.scrollTo(0, 0); }
       };
       app().onsubmit = null;
       window.scrollTo(0, 0);
@@ -1250,6 +1337,7 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
     const m = /^etape-(\w+)-([1-9])$/.exec(id), cy = m && (PROG.cycles || []).find((c) => String(c.n) === m[1]);
     if (cy && etapesDe(cy) && +m[2] <= etapesDe(cy).length) return vueEtape(cy, +m[2]);
     if (sous('cible-')) return vueCible(DOCS[id.slice(6)]);
+    if (sous('bis-') && BIS()[id.slice(4)]) return vueBis(DOCS[id.slice(4)]);
     if (sous('fiche-')) return vueFiche(DOCS[id.slice(6)]);
     if (sous('quiz-')) return vueQuiz(DOCS[id.slice(5)]);
     if (sous('entr-')) return vueEntr(DOCS[id.slice(5)]);
