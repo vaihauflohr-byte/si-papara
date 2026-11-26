@@ -849,7 +849,7 @@ function gen3() {
       q: "Calculer la puissance réactive Q<sub>c</sub> de la batterie de condensateurs.", type: "num", ans: v.Qc, unit: "kvar", tolR: 0.02,
       ou: "DTEC 5 et DRES compensation.", expl: explQc(v) }),
     q({ ref: "D.2", nid: "compensation", lv: 3, fig: figs.comp, rappel: `On prendra Q<sub>c</sub> = ${nf(v.Qc, 1)} kvar et S<sub>n</sub> = ${nf(v.Sn)} kVA.`,
-      q: "Choisir la batterie de condensateurs : puissance et type de condensateurs.", type: "ch", ch: bat.map(batLib), ok: batOk,
+      q: "Choisir la batterie de condensateurs : puissance et type de condensateurs.", type: "ch", fixe: true, ch: bat.map(batLib), ok: batOk,
       ou: "DRES compensation : catalogue, puis type selon G<sub>h</sub> / S<sub>n</sub> (DTEC 5).",
       expl: `Puissance : ${F("Q<sub>batterie</sub> ≥ Q<sub>c</sub>")} = ${nf(v.Qc, 1)} kvar, donc ${v.batt} kvar (${BATT_N[v.iB - 1]} kvar ne suffit pas). Type : ${explType(v)} Batterie : ${R(batLib([v.batt, v.type]))}.` })
   ];

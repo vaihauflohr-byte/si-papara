@@ -268,13 +268,13 @@ function gen2() {
   return [
     /* ---------- A · l'énergie et l'abonnement ---------- */
     q({ ref: "A.1", nid: "rendement-energie", lv: 1, fig: f2, ctx: ctxA, q: "Calculer l'énergie consommée chaque année en heures pleines (DTEC 2).", type: "num", ans: v.EHP, unit: "kWh", tolR: 0.01, ou: "DTEC 2 : puissance moyenne, durée par jour, jours par an.",
-      expl: `${F("E = P × t")} = ${nf(v.PHP, 1)} × ${v.hHP} × ${v.d} = ${R(`${nf(Math.round(v.EHP))} kWh`)}.` }),
+      expl: `Heures pleines : ${nf(v.PHP, 1)} kW pendant ${v.hHP} h par jour, ${v.d} jours par an. ${F("E = P × t")} = ${nf(v.PHP, 1)} × ${v.hHP} × ${v.d} = ${R(`${nf(Math.round(v.EHP))} kWh`)}.` }),
     q({ ref: "A.2", nid: "rendement-energie", lv: 1, fig: f2, q: "Calculer l'énergie consommée chaque année en heures creuses (DTEC 2).", type: "num", ans: v.EHC, unit: "kWh", tolR: 0.01, ou: "DTEC 2.",
-      expl: `E = ${nf(v.PHC, 1)} × ${v.hHC} × ${v.d} = ${R(`${nf(Math.round(v.EHC))} kWh`)}.` }),
+      expl: `Heures creuses : ${nf(v.PHC, 1)} kW pendant ${v.hHC} h par jour, ${v.d} jours par an. ${F("E = P × t")} = ${nf(v.PHC, 1)} × ${v.hHC} × ${v.d} = ${R(`${nf(Math.round(v.EHC))} kWh`)}.` }),
     q({ ref: "A.3", nid: "economie-normes", lv: 2, fig: f1, rappel: `On prendra ${nf(Math.round(v.EHP))} kWh en heures pleines et ${nf(Math.round(v.EHC))} kWh en heures creuses.`, q: "Calculer le coût annuel hors taxes de l'énergie active (DTEC 1, DRES 1).", type: "num", ans: v.cE, unit: "€", tolR: 0.015,
       ou: "DTEC 1 : prix du kWh de chaque période.", expl: `${nf(Math.round(v.EHP))} × ${e2(v.cHP)} + ${nf(Math.round(v.EHC))} × ${e2(v.cHC)} = ${nf(v.EHP * v.cHP, 1)} + ${nf(v.EHC * v.cHC, 1)} = ${R(eur(v.cE))}.` }),
     q({ ref: "A.4", nid: "economie-normes", lv: 1, fig: f1, q: "Calculer le montant annuel de l'abonnement (DTEC 1, DRES 1).", type: "num", ans: v.cAb, unit: "€", tolR: 0.005, ou: "DTEC 1 : puissance souscrite, prix par kVA et par an.",
-      expl: `${v.Ps} kVA × ${v.ab} € = ${R(eur(v.cAb))} par an.` }),
+      expl: `${F("Abonnement = puissance souscrite × prix annuel du kVA")} = ${v.Ps} kVA × ${v.ab} € = ${R(eur(v.cAb))} par an. On le paie même les jours où l'on ne consomme rien.` }),
     /* ---------- B · la facture ---------- */
     q(Object.assign({ ref: "B.1", nid: "economie-normes", lv: 2, fig: f1, rappel: `On prendra ${eur(v.cE)} d'énergie et ${eur(v.cAb)} d'abonnement.`, type: "num", tolR: 0.015, ou: "DTEC 1 : taxes. DRES 1 : structure de la facture." }, v.vT === "ht"
       ? { q: "Quelle part du montant annuel hors taxes de la facture (sans énergie réactive) l'abonnement représente-t-il ? Répondre en % (DRES 1).", ans: v.cAb / v.HT * 100, unit: "%", tolR: 0.02,
@@ -282,7 +282,7 @@ function gen2() {
       : { q: "Calculer le montant annuel TTC de la facture, sans énergie réactive (DTEC 1, DRES 1).", ans: v.TTC, unit: "€",
           expl: `HT = ${eur(v.cE)} + ${eur(v.cAb)} = ${eur(v.HT)} ; ${F(`TTC = HT × (1 + ${FRAC(String(v.tx), "100")})`)} = ${nf(Math.round(v.HT))} × ${nf(1 + v.tx / 100, 2)} = ${R(eur(v.TTC))}.` })),
     q({ ref: "B.2", nid: "economie-normes", lv: 1, fig: f1, rappel: `On prendra ${eur(v.HT)} hors taxes pour ${nf(Math.round(v.EHP + v.EHC))} kWh par an.`, q: "Quel est le prix moyen du kWh, abonnement compris, hors taxes (DTEC 1, DTEC 2) ?", type: "num", ans: v.HT / (v.EHP + v.EHC), unit: "€/kWh", tolR: 0.02, ou: "Montant HT divisé par l'énergie totale.",
-      expl: `${FRAC(nf(Math.round(v.HT)), `${nf(Math.round(v.EHP))} + ${nf(Math.round(v.EHC))}`)} = ${R(`${nf(v.HT / (v.EHP + v.EHC), 3)} €/kWh`)}.` }),
+      expl: `${F(`Prix moyen = ${FRAC("montant HT de l'année", "énergie de l'année (HP + HC)")}`)} = ${FRAC(nf(Math.round(v.HT)), `${nf(Math.round(v.EHP))} + ${nf(Math.round(v.EHC))}`)} = ${R(`${nf(v.HT / (v.EHP + v.EHC), 3)} €/kWh`)}. L'abonnement est inclus : c'est ce que coûte vraiment chaque kWh.` }),
     /* ---------- C · décaler une machine en heures creuses ---------- */
     q({ ref: "C.1", nid: "economie-normes", lv: 2, fig: f3, ctx: "Premier projet : décaler un usage en heures creuses.", q: "Calculer l'économie annuelle apportée par le projet 1 (DTEC 1, DTEC 3).", type: "num", ans: v.gainD, unit: "€", tolR: 0.015,
       ou: "DTEC 3 : puissance et durée de l'usage décalé. DTEC 1 : écart de prix entre heures pleines et creuses.",
@@ -291,14 +291,14 @@ function gen2() {
       ch: [`Oui : la puissance apparente reste sous ${v.Ps} kVA`, `Non : la puissance apparente dépasserait ${v.Ps} kVA`, "On ne peut pas savoir : il faudrait connaître le courant"], ok: v.ok ? 0 : 1,
       ou: "Puissance active des heures creuses + usage décalé, puis S = P / cos φ.", expl: `${F(`S = ${FRAC("P", "cos φ")}`)} = ${FRAC(`${nf(v.PHC, 1)} + ${nf(v.Pm, 1)}`, nd(v.cos, 2))} = ${n3(v.Snuit)} kVA ${v.ok ? "≤" : "&gt;"} ${v.Ps} kVA : ${R(v.ok ? "elle suffit" : "elle ne suffit pas")}.${v.ok ? "" : " Il faudrait décaler une puissance plus faible, ou augmenter la puissance souscrite (abonnement plus cher)."}` }),
     q({ ref: "C.3", nid: "economie-normes", lv: 1, fig: f2, q: "Calculer, en % de la consommation annuelle, l'énergie déplacée en heures creuses (DTEC 2, DTEC 3).", type: "num", ans: v.Edep / (v.EHP + v.EHC) * 100, unit: "%", tolR: 0.02, ou: "Énergie déplacée divisée par l'énergie totale.",
-      expl: `${FRAC(nf(Math.round(v.Edep)), nf(Math.round(v.EHP + v.EHC)))} = ${R(`${nf(v.Edep / (v.EHP + v.EHC) * 100, 1)} %`)}.` }),
+      expl: `${F(`Part déplacée = ${FRAC("énergie déplacée", "énergie de l'année")} × 100`)} = ${FRAC(nf(Math.round(v.Edep)), nf(Math.round(v.EHP + v.EHC)))} × 100 = ${R(`${nf(v.Edep / (v.EHP + v.EHC) * 100, 1)} %`)}.` }),
     /* ---------- D · énergie réactive ---------- */
     q({ ref: "D.1", nid: "compensation", lv: 1, fig: f2, ctx: "Second projet : l'énergie réactive.", q: "Calculer tan φ de l'installation (DTEC 2).", type: "num", ans: v.tan, unit: "", tolA: 0.005, ou: "DTEC 2 : cos φ.",
       expl: `cos φ = ${nd(v.cos, 2)} : φ = ${nf(Math.acos(v.cos) * 180 / Math.PI, 1)}°, ${R(`tan φ = ${nf(v.tan, 3)}`)}, au-delà de la franchise de 0,4.` }),
     q({ ref: "D.2", nid: "compensation", lv: 2, fig: f1, rappel: `On prendra tan φ = ${nf(v.tan, 3)} et ${nf(Math.round(v.Ea))} kWh par an.`, q: "Calculer l'énergie réactive facturée chaque année, en kvarh (DTEC 1, DRES 1).", type: "num", ans: v.Efr, unit: "kvarh", tolR: 0.02,
       ou: "DRES 1 : énergie réactive facturée au-delà de tan φ = 0,4.", expl: `${F("E<sub>r facturée</sub> = E<sub>a</sub> × (tan φ − 0,4)")} = ${nf(Math.round(v.Ea))} × (${nf(v.tan, 3)} − 0,4) = ${R(`${nf(Math.round(v.Efr))} kvarh`)}.` }),
     q({ ref: "D.3", nid: "compensation", lv: 2, fig: f1, rappel: `On prendra ${nf(Math.round(v.Efr))} kvarh facturés par an.`, q: "Calculer le coût annuel de cette énergie réactive (DTEC 1).", type: "num", ans: v.pen, unit: "€", tolR: 0.015, ou: "DTEC 1 : prix du kvarh.",
-      expl: `${nf(Math.round(v.Efr))} × ${nd(v.cR, 3)} = ${R(eur(v.pen))} par an.` }),
+      expl: `${F("Coût = énergie réactive facturée × prix du kvarh")} = ${nf(Math.round(v.Efr))} × ${nd(v.cR, 3)} = ${R(eur(v.pen))} par an.` }),
     q({ ref: "D.4", nid: "economie-normes", lv: 2, fig: f3, rappel: `On prendra ${eur(v.pen)} par an.`, q: "Calculer le temps de retour de la batterie de condensateurs, en années (DTEC 3, DRES 2).", type: "num", ans: v.trB, unit: "ans", tolR: 0.02, ou: "DTEC 3 : prix de la batterie.",
       expl: `${FRAC(nf(v.prixB), nf(Math.round(v.pen)))} = ${R(`${nf(v.trB, 1)} ans`)}. La batterie soulage aussi les câbles et le transformateur (courant plus faible).` })
   ];
@@ -324,7 +324,7 @@ function gen3() {
     q({ ref: "B.1", nid: "rendement-energie", lv: 1, fig: f2, rappel: `On prendra E<sub>p</sub> = ${nf(Math.round(v.Ep))} kWh.`, q: "Calculer l'énergie autoconsommée chaque année.", type: "num", ans: v.Eauto, unit: "kWh", tolR: 0.01, ou: "Taux d'autoconsommation.",
       expl: `${F("E<sub>auto</sub> = taux × E<sub>p</sub>")} = ${nf(v.tau, 2)} × ${nf(Math.round(v.Ep))} = ${R(`${nf(Math.round(v.Eauto))} kWh`)}.` }),
     q(Object.assign({ ref: "B.2", nid: "rendement-energie", lv: 2, fig: f2, rappel: `On prendra E<sub>auto</sub> = ${nf(Math.round(v.Eauto))} kWh.`, type: "num", tolR: 0.015, ou: "Consommation du site ; production et autoconsommation." }, v.vCov === "sur"
-      ? { q: "Calculer l'énergie injectée chaque année sur le réseau (surplus).", ans: v.Esur, unit: "kWh", expl: `Surplus = ${nf(Math.round(v.Ep))} − ${nf(Math.round(v.Eauto))} = ${R(`${nf(Math.round(v.Esur))} kWh`)}.` }
+      ? { q: "Calculer l'énergie injectée chaque année sur le réseau (surplus).", ans: v.Esur, unit: "kWh", expl: `Ce qui n'est pas consommé sur place part sur le réseau : ${F("E<sub>surplus</sub> = E<sub>p</sub> − E<sub>auto</sub>")} = ${nf(Math.round(v.Ep))} − ${nf(Math.round(v.Eauto))} = ${R(`${nf(Math.round(v.Esur))} kWh`)}.` }
       : { q: "Calculer le taux de couverture de la consommation du site, en %.", ans: v.cov * 100, unit: "%", expl: `${FRAC(nf(Math.round(v.Eauto)), nf(v.Esite))} = ${R(`${nf(v.cov * 100, 1)} %`)} de la consommation du site est produite sur place.` })),
     q({ ref: "B.3", nid: "economie-normes", lv: 3, fig: f2, rappel: `On prendra ${nf(Math.round(v.Eauto))} kWh autoconsommés et ${nf(Math.round(v.Esur))} kWh vendus.`, q: "Calculer le gain annuel apporté par l'installation.", type: "num", ans: v.gain, unit: "€", tolR: 0.015, ou: "Prix d'achat et prix de vente du kWh.",
       expl: `${nf(Math.round(v.Eauto))} × ${e2(v.c)} + ${nf(Math.round(v.Esur))} × ${e2(v.cv)} = ${nf(v.Eauto * v.c, 1)} + ${nf(v.Esur * v.cv, 1)} = ${R(eur(v.gain))} par an.` }),
@@ -332,14 +332,14 @@ function gen3() {
       ch: ["Un kWh consommé sur place évite d'acheter un kWh plus cher que le prix de vente", "L'énergie vendue n'est pas comptée par le compteur", "L'onduleur a un meilleur rendement en autoconsommation", "L'énergie vendue produit plus de CO2"], ok: 0,
       ou: "Comparer le prix d'achat et le prix de vente du kWh.", expl: `Un kWh autoconsommé vaut ${e2(v.c)} € (on ne l'achète plus), un kWh vendu seulement ${e2(v.cv)} € : ${R("mieux vaut le consommer sur place")} ; on cherche donc à faire fonctionner les machines aux heures de production.` }),
     q({ ref: "C.1", nid: "economie-normes", lv: 1, fig: f2, rappel: `On prendra P<sub>c</sub> = ${nf(v.Pc, 2)} kWc.`, q: "Calculer le coût de l'installation.", type: "num", ans: v.inv, unit: "€", tolR: 0.005, ou: "Coût par kWc.",
-      expl: `${nf(v.Pc, 2)} × ${nf(v.pkwc)} = ${R(eur(v.inv))}.` }),
+      expl: `${F("Coût = puissance crête × prix par kWc")} = ${nf(v.Pc, 2)} × ${nf(v.pkwc)} = ${R(eur(v.inv))}.` }),
     q({ ref: "C.2", nid: "economie-normes", lv: 2, fig: f2, rappel: `On prendra ${eur(v.inv)} et un gain de ${eur(v.gain)} par an.`, q: "Calculer le temps de retour de l'installation, en années.", type: "num", ans: v.tr, unit: "ans", tolR: 0.02, ou: "Temps de retour.",
-      expl: `${FRAC(nf(Math.round(v.inv)), nf(Math.round(v.gain)))} = ${R(`${nf(v.tr, 1)} ans`)}.` }),
+      expl: `${F(`t<sub>r</sub> = ${FRAC("investissement", "économie annuelle")}`)} = ${FRAC(nf(Math.round(v.inv)), nf(Math.round(v.gain)))} = ${R(`${nf(v.tr, 1)} ans`)} : au bout de ce temps, les économies ont remboursé l'installation.` }),
     q({ ref: "C.3", nid: "economie-normes", lv: 2, fig: f2, rappel: `On prendra ${nf(v.tr, 1)} ans.`, q: "Le projet respecte-t-il le critère du site ?", type: "ch",
       ch: [`Oui : il est remboursé en moins de ${crit} ans`, `Non : il faut plus de ${crit} ans pour le rembourser`, "Oui : les modules sont garantis 25 ans", "Non : le surplus est vendu moins cher qu'il n'est acheté"], ok: v.okTr ? 0 : 1,
       ou: "Critère de l'étude.", expl: `${nf(v.tr, 1)} ans ${v.okTr ? "&lt;" : "&gt;"} ${crit} ans : ${R(v.okTr ? "critère respecté" : "critère non respecté")}.${v.okTr ? "" : " On peut améliorer le taux d'autoconsommation (décaler des usages en journée)."}` }),
     q({ ref: "D.1", nid: "thermique-environnement", lv: 1, fig: f2, rappel: `On prendra E<sub>p</sub> = ${nf(Math.round(v.Ep))} kWh.`, q: "Calculer la masse de CO2 évitée chaque année, en tonnes (toute la production remplace de l'énergie du réseau).", type: "num", ans: v.co2, unit: "t", tolR: 0.015,
-      ou: "Facteur d'émission du réseau.", expl: `${nf(Math.round(v.Ep))} × ${nd(v.f, 2)} = ${nf(Math.round(v.Ep * v.f))} kg, soit ${R(`${n3(v.co2)} t`)} de CO2 par an.` }),
+      ou: "Facteur d'émission du réseau.", expl: `Chaque kWh produit sur place n'est pas produit par le réseau : ${F("m = E<sub>p</sub> × facteur d'émission")} = ${nf(Math.round(v.Ep))} × ${nd(v.f, 2)} = ${nf(Math.round(v.Ep * v.f))} kg, soit ${R(`${n3(v.co2)} t`)} de CO2 par an.` }),
     q({ ref: "D.2", nid: "thermique-environnement", lv: 2, fig: f1, rappel: `On prendra ${n3(v.co2R)} t par an.`, q: "Calculer la masse de CO2 évitée sur la durée de garantie des modules, en tonnes.", type: "num", ans: v.co2R * 25, unit: "t", tolR: 0.015, ou: "DTEC 1 : garantie de production.",
       expl: `25 ans × ${n3(v.co2R)} t = ${R(`${nf(v.co2R * 25, 1)} t`)} (sans compter la baisse lente de production des modules).` })
   ];
@@ -360,7 +360,7 @@ function gen4() {
     q({ ref: "A.1", nid: "thermique-environnement", lv: 3, fig: f1, ctx: ctxA, q: "Calculer la puissance thermique qui entre par les parois.", type: "num", ans: v.Pparois, unit: "W", tolR: 0.015, ou: "DTEC 1 : U et S de chaque paroi. DTEC 2 : températures.",
       expl: `${F("Φ<sub>parois</sub> = Σ (U × S) × ΔT")} : Σ (U × S) = ${nd(v.Umur, 1)} × ${nf(v.Smur, 1)} + ${nd(v.Uv, 1)} × ${nf(v.Sv, 1)} + ${nd(v.Utoit, 1)} × ${nf(v.Stoit)} = ${nf(US, 1)} W/K ; ΔT = ${v.Text} − ${v.Tint} = ${v.dT} K ; ${R(`Φ = ${nf(Math.round(v.Pparois))} W`)}.` }),
     q({ ref: "A.2", nid: "thermique-environnement", lv: 2, fig: f2, q: "Calculer la puissance des apports internes.", type: "num", ans: v.Pint, unit: "W", tolR: 0.01, ou: "DTEC 2 : occupants, postes, éclairage ; DRES : valeurs par occupant et par poste.",
-      expl: `${v.np} × 100 + ${v.npc} × 150 + ${nf(v.Pecl)} = ${R(`${nf(v.Pint)} W`)}.` }),
+      expl: `Occupants : ${v.np} × 100 W ; postes informatiques : ${v.npc} × 150 W ; éclairage : ${nf(v.Pecl)} W. Total : ${v.np} × 100 + ${v.npc} × 150 + ${nf(v.Pecl)} = ${R(`${nf(v.Pint)} W`)}. Toute cette puissance finit en chaleur dans le local.` }),
     q({ ref: "A.3", nid: "thermique-environnement", lv: 2, fig: f2, rappel: `On prendra ${nf(Math.round(v.Pparois))} W par les parois et ${nf(v.Pint)} W d'apports internes.`, q: "Calculer la puissance frigorifique totale nécessaire, en kW.", type: "num", ans: v.Phi, unit: "kW", tolR: 0.01, ou: "Parois + apports internes + apports solaires.",
       expl: `${nf(Math.round(v.Pparois))} + ${nf(v.Pint)} + ${nf(v.Psol)} = ${nf(Math.round(v.Phi * 1000))} W, soit ${R(`${n3(v.Phi)} kW`)}.` }),
     q({ ref: "A.4", nid: "thermique-environnement", lv: 2, fig: f3, rappel: `On prendra Φ = ${n3(v.PhiR)} kW.`, q: "Choisir la puissance du climatiseur.", type: "ch", ch: chC, ok: chC.indexOf(`${nf(v.Pclim, 1)} kW`), ou: "DRES : marge de 10 % ; DTEC 3 : catalogue.",
@@ -370,9 +370,9 @@ function gen4() {
     q({ ref: "B.2", nid: "rendement-energie", lv: 3, fig: f3, rappel: `On prendra Φ = ${n3(v.PhiR)} kW et ${climTxt}.`, q: "Calculer l'énergie électrique économisée chaque année avec le climatiseur inverter (même besoin Φ, même durée).", type: "num", ans: v.dE, unit: "kWh", tolR: 0.015,
       ou: "DTEC 2 : durée, EER actuel. DTEC 3 : SEER de l'appareil choisi.", expl: `SEER du ${nf(v.Pclim, 1)} kW : ${nd(v.SEER, 1)}. Avant : ${FRAC(`${n3(v.PhiR)} × ${nf(v.hc)}`, nd(v.EER, 1))} = ${nf(Math.round(v.PhiR * v.hc / v.EER))} kWh ; après : ${FRAC(`${n3(v.PhiR)} × ${nf(v.hc)}`, nd(v.SEER, 1))} = ${nf(Math.round(v.PhiR * v.hc / v.SEER))} kWh ; économie : ${R(`${nf(Math.round(v.dE))} kWh`)} par an.` }),
     q({ ref: "B.3", nid: "economie-normes", lv: 1, fig: f2, rappel: `On prendra ${nf(Math.round(v.dE))} kWh par an.`, q: "Calculer l'économie annuelle en euros.", type: "num", ans: v.gain, unit: "€", tolR: 0.015, ou: "DTEC 2 : prix du kWh.",
-      expl: `${nf(Math.round(v.dE))} × ${e2(v.c)} = ${R(eur(v.gain))} par an.` }),
+      expl: `${F("Économie = énergie économisée × prix du kWh")} = ${nf(Math.round(v.dE))} × ${e2(v.c)} = ${R(eur(v.gain))} par an.` }),
     q(Object.assign({ ref: "C.1", nid: "economie-normes", lv: 2, fig: f3, rappel: `On prendra ${climTxt}, une économie de ${eur(v.gain)} et ${nf(Math.round(v.dE))} kWh par an.`, type: "num", tolR: 0.02, ou: "DTEC 3 : prix du climatiseur choisi ; DTEC 2 : facteur d'émission." }, v.vR === "co2"
-      ? { q: "Calculer la masse de CO2 évitée chaque année, en kg.", ans: v.co2, unit: "kg", expl: `${nf(Math.round(v.dE))} × ${nd(v.f, 2)} = ${R(`${nf(Math.round(v.co2))} kg`)} de CO2 par an.` }
+      ? { q: "Calculer la masse de CO2 évitée chaque année, en kg.", ans: v.co2, unit: "kg", expl: `${F("m = énergie économisée × facteur d'émission")} = ${nf(Math.round(v.dE))} × ${nd(v.f, 2)} = ${R(`${nf(Math.round(v.co2))} kg`)} de CO2 par an.` }
       : { q: "Calculer le temps de retour du remplacement, en années.", ans: v.tr, unit: "ans", expl: `Prix du ${nf(v.Pclim, 1)} kW : ${eur(v.prix)} ; ${FRAC(nf(v.prix), nf(Math.round(v.gain)))} = ${R(`${nf(v.tr, 1)} ans`)}.` })),
     q({ ref: "C.2", nid: "rendement-energie", lv: 1, fig: f3, q: "Pourquoi le SEER d'un climatiseur inverter est-il bien meilleur que l'EER d'un vieux climatiseur ?", type: "ch",
       ch: ["Son compresseur, à vitesse variable, s'adapte au besoin au lieu de fonctionner en tout ou rien", "Il produit plus de froid avec la même puissance électrique quand il fait très chaud", "Il n'a pas de compresseur", "Il fonctionne seulement la nuit"], ok: 0,

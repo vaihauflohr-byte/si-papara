@@ -358,6 +358,9 @@ const htmlPuiss = (niv) => `<p><b>Hauteur manométrique totale</b> que doit four
   <p><b>Énergie</b> : ${F("E = P × t")} (E en kWh avec P en kW et t en h) ; coût = énergie × prix du kWh.</p>
   ${niv === 4 ? `<p><b>Couple</b> sur un arbre : ${F("P = C × Ω")}, soit ${F(`C = ${FRAC("P", "Ω")}`)} avec ${F(`Ω = ${FRAC("2π × n", "60")}`)} (C en N·m, P en W, Ω en rad/s, n en tr/min).</p>` : ""}
   <p class="note">Choix du moteur : la puissance normalisée immédiatement supérieure ou égale à la puissance P<sub>2</sub> demandée par la pompe${niv >= 2 ? ", augmentée de la réserve de puissance éventuelle du cahier des charges" : ""}. On admet que le moteur garde le rendement et le facteur de puissance du catalogue (ou de sa plaque).</p>`;
+/* le catalogue en image, pour les questions du niveau 1 qui choisissent le moteur et en tirent η et cos φ */
+const figCatalogue1 = () => seul(tableauML({ titre: "Catalogue de moteurs asynchrones IE3, 2 pôles, 400 V, 50 Hz (extrait)", larg: [70, 80, 66, 66, 106], tete: true, mono: [0, 1, 2, 3, 4],
+  L: [["Pn (kW)", "n (tr/min)", "η (%)", "cos φ", "In à 400 V (A)"], ...CATA.map((m) => [nf(m.P, 1), nf(m.n), nf(m.eta, 1), nd(m.cos, 2), nf(m.In, 1)])] }));
 const htmlCatalogue = () => `<p>Moteurs asynchrones triphasés à cage, 2 pôles, 50 Hz, classe de rendement IE3. Valeurs à la puissance nominale, sous 400 V.</p>`
   + tab(["P<sub>n</sub> (kW)", "n (tr/min)", "η (%)", "cos φ", "I<sub>n</sub> à 400 V (A)", "I<sub>d</sub> / I<sub>n</sub>", "Tension Δ / Y"], CATA.map((m) => [nf(m.P, 1), nf(m.n), nf(m.eta, 1), nd(m.cos, 2), nf(m.In, 1), nf(m.kd, 1), m.tens]))
   + `<p class="note">Puissances normalisées (kW) : ${PMOT.map((p) => nf(p, 1)).join(" · ")}.</p>`;
@@ -421,7 +424,7 @@ const explAn = (v, t) => `${F("E = P<sub>1</sub> × t × nombre de jours")} = ${
    ===================================================================== */
 function gen1() {
   const v = situation1(), st = v.st;
-  const fS = figStation(v), fC = figCahier(v), fP = figPompe1(v);
+  const fS = figStation(v), fC = figCahier(v), fP = figPompe1(v), fM = figCatalogue1();
   const dPdc = doc("DRES · Pertes de charge dans une conduite", htmlPdc()), dPu = doc("DRES · Hauteur manométrique, puissances, énergie", htmlPuiss(1)), dCat = doc("DRES · Catalogue de moteurs asynchrones", htmlCatalogue());
   const ctxA = `${cap(st.site)} : une pompe centrifuge P1, entraînée par un moteur asynchrone M1, doit ${st.but}. On calcule d'abord ce que la pompe doit fournir (débit et hauteur), puis on choisit son moteur et on évalue le coût de l'énergie.`;
   const PmTxt = `${nf(v.m.P, 1)} kW`, chM = fenetre(PMOT, v.iM, v.avM).map((p) => `${nf(p, 1)} kW`);
@@ -485,13 +488,13 @@ function gen1() {
       q: "Calculer la puissance mécanique P<sub>2</sub> que le moteur doit fournir sur l'arbre de la pompe.", type: "num", ans: v.P2, unit: "kW", tolR: 0.015,
       ou: "DTEC 3 : rendement de la pompe au point prévu. DRES : ηp = Ph / P2.",
       expl: `DTEC 3 : η<sub>p</sub> = ${Math.round(v.etaP * 100)} %. ${F(`η<sub>p</sub> = ${FRAC("P<sub>h</sub>", "P<sub>2</sub>")}`)}, donc ${F(`P<sub>2</sub> = ${FRAC("P<sub>h</sub>", "η<sub>p</sub>")}`)} = ${FRAC(n3(v.Ph / 1000), nd(v.etaP, 2))} = ${R(`${n3(v.P2)} kW`)}. La pompe reçoit plus de puissance qu'elle n'en donne à l'eau : le reste est perdu en frottements et en turbulences.` },
-    { ref: "C.3", nid: "moteurs", lv: 1, docs: [dCat, dPu], rappel: `Question précédente : P<sub>2</sub> = ${n3(v.P2)} kW.`,
+    { ref: "C.3", nid: "moteurs", lv: 1, fig: fM, docs: [dCat, dPu], rappel: `Question précédente : P<sub>2</sub> = ${n3(v.P2)} kW.`,
       q: "Choisir la puissance nominale du moteur M1 dans le catalogue.", type: "ch", ch: chM, ok: chM.indexOf(PmTxt),
       ou: "DRES : règle de choix du moteur (puissance normalisée) ; catalogue des moteurs.", expl: explMot(v, v.P2, 0) },
-    { ref: "C.4", nid: "rendement-energie", lv: 1, docs: [dCat, dPu], rappel: `Questions précédentes : P<sub>2</sub> = ${n3(v.P2)} kW ; moteur de ${PmTxt}.`,
+    { ref: "C.4", nid: "rendement-energie", lv: 1, fig: fM, docs: [dCat, dPu], rappel: `Questions précédentes : P<sub>2</sub> = ${n3(v.P2)} kW ; moteur de ${PmTxt}.`,
       q: "Calculer la puissance électrique P<sub>1</sub> absorbée par le moteur.", type: "num", ans: v.P1, unit: "kW", tolR: 0.015,
       ou: "Catalogue : rendement du moteur choisi. DRES : ηm = P2 / P1.", expl: explP1(v) },
-    Object.assign({ ref: "C.5", nid: "moteurs", lv: 2, docs: [dCat, dPu], rappel: `Questions précédentes : P<sub>1</sub> = ${n3(v.P1)} kW ; moteur de ${PmTxt}.`, type: "num", tolR: 0.015,
+    Object.assign({ ref: "C.5", nid: "moteurs", lv: 2, fig: fM, docs: [dCat, dPu], rappel: `Questions précédentes : P<sub>1</sub> = ${n3(v.P1)} kW ; moteur de ${PmTxt}.`, type: "num", tolR: 0.015,
       ou: "Catalogue : cos φ du moteur choisi. DRES : relations du moteur triphasé.", expl: explElec(v, v.vElec) }, qC5),
     /* ---------- Partie D · énergie et coût ---------- */
     { ref: "D.1", nid: "rendement-energie", lv: 1, fig: fC, docs: [dPu], ctx: "Pour finir, l'énergie consommée par la station et son coût.", rappel: `On prendra P<sub>1</sub> = ${n3(v.P1)} kW.`,

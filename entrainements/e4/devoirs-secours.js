@@ -396,9 +396,9 @@ function gen4() {
       ou: "DTEC 3 : nombre, durée et charge des essais, consommation à 50 %. DRES 3.", expl: `${F("V = nombre × durée × consommation")} = ${v.nEss} × ${nf(v.dEss, 1)} × ${nf(v.c50, 1)} = ${R(`${nf(Math.round(v.Lan))} L`)}.` }),
     q(v.vC === "co2"
       ? { ref: "C.2", nid: "economie-normes", lv: 1, fig: f3, rappel: `On prendra ${nf(s3(v.Lan))} L par an.`, q: "Calculer la masse de CO2 émise chaque année par ces essais, en kg.", type: "num", ans: v.co2, unit: "kg", tolR: 0.01,
-        ou: "DTEC 3 : facteur d'émission du gazole.", expl: `${nf(s3(v.Lan))} × 2,65 = ${R(`${nf(Math.round(v.co2))} kg`)} de CO2 par an.` }
+        ou: "DTEC 3 : facteur d'émission du gazole.", expl: `Chaque litre de gazole brûlé rejette 2,65 kg de CO2 (DTEC 3) : ${F("m = volume × 2,65")} = ${nf(s3(v.Lan))} × 2,65 = ${R(`${nf(Math.round(v.co2))} kg`)} de CO2 par an.` }
       : { ref: "C.2", nid: "economie-normes", lv: 1, fig: f3, rappel: `On prendra ${nf(s3(v.Lan))} L par an.`, q: "Calculer le coût annuel du gazole de ces essais.", type: "num", ans: v.cout, unit: "€", tolR: 0.01,
-        ou: "DTEC 3 : prix du gazole.", expl: `${nf(s3(v.Lan))} × ${nf(v.prixL, 2)} = ${R(`${nf(Math.round(v.cout))} €`)} par an.` }),
+        ou: "DTEC 3 : prix du gazole.", expl: `${F("Coût = volume × prix du litre")} = ${nf(s3(v.Lan))} × ${nf(v.prixL, 2)} = ${R(`${nf(Math.round(v.cout))} €`)} par an.` }),
     /* ---------- D · le volant d'inertie ---------- */
     q({ ref: "D.1", nid: "secours-asi", lv: 3, fig: f2, q: "Solution volant : calculer la durée pendant laquelle le volant alimente les charges à pleine puissance.", type: "num", ans: v.tv, unit: "s", tolR: 0.02,
       ou: "DTEC 2 : J, n et rendement ; DTEC 1 : puissance. DRES 2 : ω, W, puis t = η × W / P.", expl: `ω = ${FRAC(`2π × ${nf(v.n)}`, "60")} = ${n3(v.w)} rad/s ; W = 0,5 × ${nf(v.J, 1)} × ${n3(v.w)}² = ${n3(v.Wv / 1e6)} MJ ; ${F(`t = ${FRAC("η × W", "P")}`)} = ${FRAC(`0,95 × ${n3(v.Wv / 1e6)} × 10<sup>6</sup>`, `${nf(v.P)} × 10<sup>3</sup>`)} = ${R(`${n3(v.tv)} s`)}.` }),

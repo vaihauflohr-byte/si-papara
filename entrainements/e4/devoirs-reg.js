@@ -205,7 +205,7 @@ function gen1() {
       ou: "DRES : un cycle = un démarrage.", expl: `Un cycle dure ${n3(v.tr)} + ${n3(v.tv)} = ${nf(s3(v.tr) + s3(v.tv), 2)} min ; ${FRAC("60", nf(s3(v.tr) + s3(v.tv), 2))} = ${R(`${n3(60 / (s3(v.tr) + s3(v.tv)))} démarrages par heure`)}.` },
     { ref: "C.5", nid: "regulation-automatisme", lv: 2, fig: f4, docs: [dT], rappel: `On prendra ${n3(v.dem)} démarrages par heure.`, q: "Le réglage des seuils convient-il au moteur de la pompe ?", type: "ch", fixe: true,
       ch: [`Oui : il démarre moins de ${v.dmax} fois par heure`, `Non : il démarrerait plus de ${v.dmax} fois par heure`, "Oui : le nombre de démarrages ne compte pas pour un moteur"], ok: v.okD ? 0 : 1,
-      ou: "DTEC 4 : limite du constructeur.", expl: `${n3(v.dem)} ${v.okD ? "&lt;" : "&gt;"} ${v.dmax} : ${R(v.okD ? "le réglage convient" : "le réglage ne convient pas")}.${v.okD ? "" : " Il faut écarter les seuils (plus d'hystérésis) : le volume entre seuils grandit, les cycles s'allongent."}` }
+      ou: "DTEC 4 : limite du constructeur.", expl: `Avec ces seuils, le moteur démarrerait ${n3(v.dem)} fois par heure ; le constructeur en admet ${v.dmax} au plus (chaque démarrage chauffe le bobinage). ${n3(v.dem)} ${v.okD ? "&lt;" : "&gt;"} ${v.dmax} : ${R(v.okD ? "le réglage convient" : "le réglage ne convient pas")}.${v.okD ? "" : " Il faut écarter les seuils (plus d'hystérésis) : le volume entre seuils grandit, les cycles s'allongent."}` }
   ];
 }
 
@@ -310,7 +310,7 @@ function gen2() {
     /* ---------- D · consigne et alarme ---------- */
     q(Object.assign({ ref: "D.1", nid: "regulation-automatisme", lv: 2, fig: f1, type: "num", tolR: 0.01, ou: "DTEC 1 : étendue de PT1. DTEC 4 : alarme et consigne. DRES 3 : boucle 4-20 mA." }, v.vD === "al"
       ? { q: "Calculer le courant de la boucle de PT1 quand la pression atteint le seuil d'alarme haute.", ans: v.Ial, unit: "mA", expl: `${F(`I = 4 + 16 × ${FRAC("P", "P<sub>max</sub>")}`)} = 4 + 16 × ${FRAC(nd(v.Pal, 1), String(v.Pmax))} = ${R(`${n3(v.Ial)} mA`)}.` }
-      : { q: "La consigne est entrée dans l'automate en % de l'étendue de PT1. Calculer cette consigne en %.", ans: v.cPct, unit: "%", expl: `${FRAC(nd(v.c1, 1), String(v.Pmax))} × 100 = ${R(`${n3(v.cPct)} %`)}.` })),
+      : { q: "La consigne est entrée dans l'automate en % de l'étendue de PT1. Calculer cette consigne en %.", ans: v.cPct, unit: "%", expl: `PT1 mesure de 0 à ${v.Pmax} bar : 100 % correspond à ${v.Pmax} bar. ${F(`c = ${FRAC("consigne", "étendue")} × 100`)} = ${FRAC(nd(v.c1, 1), String(v.Pmax))} × 100 = ${R(`${n3(v.cPct)} %`)}.` })),
     q({ ref: "D.2", nid: "regulation-automatisme", lv: 2, fig: f1, q: "Le câble de PT1 est coupé. Quelle valeur l'automate reçoit-il, et que doit-il faire ?", type: "ch",
       ch: ["Un courant nul, hors de la plage 4-20 mA : il signale le défaut et met la pompe en sécurité", "Une pression nulle : il accélère la pompe pour la faire remonter", "20 mA : il arrête la pompe sur alarme de pression haute", "La dernière pression mesurée : il ne voit rien"], ok: 0,
       ou: "DRES 3 : zéro décalé.", expl: `Boucle coupée : ${R("courant nul")}, valeur impossible en fonctionnement normal (au moins 4 mA). L'automate doit le détecter comme un défaut. S'il le prenait pour une pression nulle, le régulateur pousserait la pompe à fond : surpression dans le réseau.` })
