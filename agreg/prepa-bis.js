@@ -1813,4 +1813,6 @@
     } };
 
   window.PREPA_BIS = J;
+  // outils repris par les ateliers d'identification (agreg/prepa-ident.js)
+  window.PREPA_OUTILS = { pas, f3, r3, r2, pasDe, tableau, bodeMulti, grilleBode, COUL };
 })();

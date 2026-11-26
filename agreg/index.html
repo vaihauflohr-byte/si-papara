@@ -159,7 +159,15 @@ const save=()=>{st.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(st))
 const $=s=>document.querySelector(s),app=()=>$('#app');
 const rec=k=>st.q[k]||(st.q[k]={ok:0,box:0,due:0,seen:0,fail:0});
 const allQ=()=>{const a=[];for(const N of NOTIONS)N.levels.forEach((L,li)=>L.qs.forEach((q,qi)=>a.push({N,L,li,qi,q,k:`${N.id}.${L.id}.${qi}`})));return a;};
-function parse(s){s=String(s).trim().replace(/\s/g,'').replace(',','.').replace('−','-');if(s==='')return NaN;return Number(s);}
+function parse(s){s=String(s).trim().replace(/\s/g,'').replace(/,/g,'.').replace(/[−–]/g,'-').replace(/[×·]/g,'*').replace(/÷/g,'/').replace(/π/g,'pi').replace(/√/g,'sqrt');if(s==='')return NaN;const n=Number(s);return isNaN(n)?calcul(s):n;}
+/* une réponse peut être un calcul : 10^(18/20), 1/90, 2*pi, 2pi, sqrt(2), ln(3), log(50), 3e-3… (lu sans eval) */
+function calcul(s){let i=0;const F={sqrt:Math.sqrt,exp:Math.exp,ln:Math.log,log:Math.log10,sin:Math.sin,cos:Math.cos,tan:Math.tan,atan:Math.atan,arctan:Math.atan,abs:Math.abs},C={pi:Math.PI,e:Math.E},pk=()=>s[i];
+ function prim(){if(pk()==='('){i++;const v=som();if(pk()!==')')throw 0;i++;return v;}let m=/^(\d+\.?\d*|\.\d+)(e[+-]?\d+)?/i.exec(s.slice(i));if(m){i+=m[0].length;return Number(m[0]);}m=/^[a-z]+/i.exec(s.slice(i));if(m){const n=m[0].toLowerCase();i+=m[0].length;if(F[n])return F[n](pk()==='('?prim():pui());if(n in C)return C[n];}throw 0;}
+ function una(){if(pk()==='-'){i++;return -una();}if(pk()==='+'){i++;return una();}return pui();}
+ function pui(){const b=prim();if(pk()==='^'){i++;return b**una();}return b;}
+ function pro(){let v=una();for(;;){const c=pk();if(c==='*'){i++;v*=una();}else if(c==='/'){i++;v/=una();}else if(c==='('||/[a-z]/i.test(c||'')){v*=una();}else return v;}}
+ function som(){let v=pro();for(;;){const c=pk();if(c==='+'){i++;v+=pro();}else if(c==='-'){i++;v-=pro();}else return v;}}
+ try{const v=som();return i===s.length&&isFinite(v)?v:NaN;}catch(e){return NaN;}}
 function okf(f,x){return Math.abs(x-f.a)<=Math.max((f.tol||0)*Math.abs(f.a),f.abs||0)+1e-12;}
 function mark(k,first){const r=rec(k);r.seen++;if(first){r.ok=Math.min(2,r.ok+1);r.box=Math.min(4,r.box+1);r.due=Date.now()+INT[r.box]*DAY;}else{r.fail++;r.box=0;r.due=Date.now()+DAY/2;}save();}
 const fieldsHTML=(inst,dis)=>`<div class="fields">${inst.fields.map((f,i)=>`<div class="fld" id="fd${i}"><label for="in${i}">${f.l}</label><input id="in${i}" inputmode="decimal" autocomplete="off"${dis?' disabled':''}><span class="u">${f.u}</span><span class="fb"></span></div>`).join('')}</div>`;
@@ -419,6 +427,7 @@ window.addEventListener('hashchange',()=>{if(PRET)route();});window.addEventList
 <script src="notions/labo.js"></script>
 <script src="prepa-cours.js"></script>
 <script src="prepa-bis.js"></script>
+<script src="prepa-ident.js"></script>
 <script src="prepa-etapes.js"></script>
 <script src="prepa-cibles.js"></script>
 <script src="prepa-fiches.js"></script>

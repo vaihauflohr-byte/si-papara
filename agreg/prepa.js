@@ -47,6 +47,7 @@
     if (!p.f || typeof p.f !== 'object') p.f = {};
     if (!p.x || typeof p.x !== 'object') p.x = {};   // « les gestes » d'un TD ou d'un sujet : { document: { b, l, n, t } }
     if (!p.bis || typeof p.bis !== 'object') p.bis = {};   // « le même TD, sur un autre système » : { document: { b, l, n, t } }
+    if (!p.at || typeof p.at !== 'object') p.at = {};      // ateliers d'identification (agreg/prepa-ident.js) : { atelier: { b, l, n, t } }
     // notes des étapes rangées par nom d'étape ; les anciennes clés 1, 2, 3 étaient briques, calculs, chaînes
     Object.values(p.e).forEach((c) => { if (c && typeof c === 'object') [['1', 'briques'], ['2', 'calculs'], ['3', 'chaines']].forEach(([a, b]) => { if (c[a]) { if (!c[b]) c[b] = c[a]; delete c[a]; } }); });
     return p;
@@ -232,7 +233,7 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
 .pp-opt.on{border-color:#183047;background:#183047;color:#fff}
 .pp-opt.ok{border-color:#2f9e6e;background:#eaf7f1;color:#1f5a3f}.pp-opt.ko{border-color:#c9483b;background:#fdeeed;color:#8a2a20}.pp-opt:disabled{cursor:default}
 .fld.pp-fch{flex-direction:column;align-items:flex-start}.pp-fl{font-weight:600}
-.pp-verdict{display:inline-block;font-weight:700;margin-top:14px;padding:6px 14px;border-radius:8px}.pp-verdict.ok{background:#e5f4ec;color:#1f7a53}.pp-verdict.ko{background:#fdeeed;color:#a8362b}
+.pp-sup{margin:14px 0 0}.pp-sup>b{display:block;margin-bottom:4px}.pp-verdict{display:inline-block;font-weight:700;margin-top:14px;padding:6px 14px;border-radius:8px}.pp-verdict.ok{background:#e5f4ec;color:#1f7a53}.pp-verdict.ko{background:#fdeeed;color:#a8362b}
 .pp-big{font-size:46px;font-weight:700;line-height:1.1}.pp-big small{font-size:20px;color:#587083;font-weight:600}
 .pp-fp h2{margin:0 0 8px;font-size:20px;color:#12566f}.pp-fp ul,.pp-fp ol{padding-left:22px;margin:6px 0}.pp-fp li{margin:6px 0}
 .pp-tab{border-collapse:collapse;margin:8px 0;font-size:15px;display:block;overflow-x:auto;max-width:100%}.pp-tab th,.pp-tab td{border:1px solid #dbe5ec;padding:6px 10px;text-align:left;vertical-align:middle}.pp-tab th{background:#f3f7fa}
@@ -679,6 +680,8 @@ dl.pp-fiche{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;marg
   }
   const jumeaux = (doc, lab) => gestesDe(doc).filter((x) => x.pour.includes(lab)).sort((a, b) => b.l - a.l).slice(0, 2);
   const BIS = () => window.PREPA_BIS || {};   // le même TD sur un autre système (agreg/prepa-bis.js)
+  const AT = () => window.PREPA_AT || {};     // ateliers rattachés à un TD (agreg/prepa-ident.js) : identifier sur des courbes
+  const atDe = (id) => Object.keys(AT()).filter((k) => AT()[k].doc === id);
   const minGestes = (doc) => Math.max(10, Math.round(gestesDe(doc).length * 3 / 5) * 5);
   const hm = (t) => new Date(t).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
@@ -784,7 +787,7 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
     const a = avance(d), ci = CI()[d.id] || {}, G = gestesDe(d), x = P().x[d.id], suj = d.type === 'sujet', nom = suj ? 'sujet' : 'TD', ep = suj ? (dOf(d.id).ep || []).slice(-1)[0] : null, pret = !!(x && x.b >= SEUIL);
     return `<div class="pp-td e${a.etat}"><div class="pp-tdh"><a class="pp-t" href="#prepa-${esc(d.id)}"><b>${esc(d.titre)}</b><small>${meta(d, a)}${ci.min ? ` · ≈ ${ci.min} min` : ''}${choisi ? ' · rangé pour cette séance' : ''}</small></a>${pastille(d, a)}${pdf(d, 0, 'PDF')}</div>
       ${ci.but ? `<p class="pp-but"><b>Ce qu’il fait travailler :</b> ${esc(ci.but)}.</p>` : ''}
-      <div class="btns">${G.length ? `<a class="b${pret ? ' sec' : ''}" href="#prepa-cible-${esc(d.id)}">① Les gestes du ${nom} · ${G.length} questions${x ? ` · ${x.b} / 20` : ` · ≈ ${minGestes(d)} min`}</a>` : ''}<a class="b${G.length && !pret ? ' sec' : ''}" href="#prepa-entr-${esc(d.id)}">${G.length ? '② ' : ''}${a.k ? 'Continuer' : 'Faire'} le ${nom}, question par question</a>${suj ? `<a class="b sec" href="#prepa-epreuve-${esc(d.id)}">En conditions d’épreuve · ${ep ? `${fmt(ep.note, 3)} / 20` : `${dureeEp(d)} min`}</a>` : ''}${BIS()[d.id] ? `<a class="b sec" href="#prepa-bis-${esc(d.id)}">${G.length ? '③ ' : ''}Le même ${nom}, sur un autre système · ${P().bis[d.id] ? `${fmt(P().bis[d.id].b, 3)} / 20` : `≈ ${BIS()[d.id].min} min`}</a>` : ''}</div></div>`;
+      <div class="btns">${G.length ? `<a class="b${pret ? ' sec' : ''}" href="#prepa-cible-${esc(d.id)}">① Les gestes du ${nom} · ${G.length} questions${x ? ` · ${x.b} / 20` : ` · ≈ ${minGestes(d)} min`}</a>` : ''}<a class="b${G.length && !pret ? ' sec' : ''}" href="#prepa-entr-${esc(d.id)}">${G.length ? '② ' : ''}${a.k ? 'Continuer' : 'Faire'} le ${nom}, question par question</a>${suj ? `<a class="b sec" href="#prepa-epreuve-${esc(d.id)}">En conditions d’épreuve · ${ep ? `${fmt(ep.note, 3)} / 20` : `${dureeEp(d)} min`}</a>` : ''}${BIS()[d.id] ? `<a class="b sec" href="#prepa-bis-${esc(d.id)}">${G.length ? '③ ' : ''}Le même ${nom}, sur un autre système · ${P().bis[d.id] ? `${fmt(P().bis[d.id].b, 3)} / 20` : `≈ ${BIS()[d.id].min} min`}</a>` : ''}${atDe(d.id).map((k) => { const A = AT()[k], r = P().at[k]; return `<a class="b sec" href="#prepa-at-${esc(k)}">${G.length ? '④ ' : ''}${esc(A.titre)} · ${r ? `${fmt(r.b, 3)} / 20` : `≈ ${A.min} min`}</a>`; }).join('')}</div></div>`;
   }
   /* le travail du cycle dans l'ordre du formateur : la fiche d'un chapitre, puis les TD qui s'appuient dessus (gestes, puis TD), puis les sujets */
   function suiteDe(c) {
@@ -796,6 +799,7 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
       L.push({ t: `Le ${nom} « ${d.titre} », question par question`, h: `#prepa-entr-${d.id}`, min: (CI()[d.id] || {}).min || dureeEp(d), fait: a.etat === 2 });
       const b = BIS()[d.id], nb = P().bis[d.id];
       if (b && (a.etat === 2 || nb)) L.push({ t: `Le même ${nom}, seul, sur un autre système (${b.titre.toLowerCase()})`, h: `#prepa-bis-${d.id}`, min: b.min, fait: !!(nb && nb.b >= SEUIL) });
+      atDe(d.id).forEach((k) => { const A = AT()[k], r = P().at[k]; if (a.etat === 2 || r) L.push({ t: `Atelier : ${A.titre.charAt(0).toLowerCase() + A.titre.slice(1)}`, h: `#prepa-at-${k}`, min: A.min, fait: !!(r && r.b >= SEUIL) }); });
     };
     ch.forEach((f) => L.push({ t: `Le cours : la fiche « ${FI()[f.id].titre} », puis le chapitre du formateur`, h: `#prepa-fiche-${f.id}`, min: Math.max(15, Math.round(f.pages * 2.5 / 5) * 5), fait: !!P().f[f.id] }));
     docs.filter((d) => d.type === 'td').forEach(td);
@@ -915,10 +919,13 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
   }
 
   /* ---------- le même TD, sur un autre système (agreg/prepa-bis.js) : mêmes gestes, même ordre, valeurs tirées ;
-     note proportionnelle aux réponses justes (un TD complet compte beaucoup de réponses), gardée dans st.prepa.bis */
-  function vueBis(doc) {
-    const B = BIS()[doc.id], nom = doc.type === 'sujet' ? 'sujet' : 'TD', cle = `pp-bis-${doc.id}`;
-    const tete = `<a class="back" href="#prepa-parcours">← Préparer la séance</a><div class="eyebrow pp-eb">Cycle ${esc(doc.cycle.n)} · le même ${nom}, sur un autre système</div><h1>${esc(B.titre)}</h1>`;
+     note proportionnelle aux réponses justes (un TD complet compte beaucoup de réponses), gardée dans st.prepa.bis.
+     La même vue sert aux ateliers rattachés à un TD (at : agreg/prepa-ident.js, note dans st.prepa.at) : leurs
+     questions portent une étiquette (lab) et, pour les paramètres, de quoi tracer le modèle de l'élève (sim). */
+  function vueBis(doc, at) {
+    const B = at ? AT()[at] : BIS()[doc.id], nom = doc.type === 'sujet' ? 'sujet' : 'TD', cle = at ? `pp-at-${at}` : `pp-bis-${doc.id}`;
+    const tete = `<a class="back" href="#prepa-parcours">← Préparer la séance</a><div class="eyebrow pp-eb">Cycle ${esc(doc.cycle.n)} · ${at ? esc(B.eye || 'atelier') : `le même ${nom}, sur un autre système`}</div><h1>${esc(B.titre)}</h1>`;
+    const superpose = (q, rep) => (q.inst.sim && window.PREPA_IDENT ? mob(() => window.PREPA_IDENT.superpose(q.inst.sim, rep || [])) : '');
     app().onchange = null; app().oninput = null;
     let R = lsGet(cle);
     if (!R || !Array.isArray(R.qs) || !R.qs.length || !Array.isArray(R.ok) || !Array.isArray(R.rep)) {
@@ -929,7 +936,7 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
       for (let k = 0; k < 8; k++) { try { o = mob(() => B.gen()); } catch (er) { o = null; } if (!o || !Array.isArray(o.qs) || sig(o) !== avant) break; }
       if (o && Array.isArray(o.qs)) lsSet(cle + '-sig', sig(o));
       if (!o || !Array.isArray(o.qs) || !o.qs.length) { app().innerHTML = `${tete}<div class="card"><p>Les questions n’ont pas pu être préparées. Recharge la page.</p></div>`; app().onclick = null; app().onsubmit = null; return; }
-      R = { intro: o.intro || '', qs: o.qs.map((q) => ({ t: q.t, pour: q.pour || [], rappel: q.rappel || '', aide: q.hint || '', inst: { text: q.text, fig: q.fig || '', fields: q.fields, corr: q.corr } })), i: 0, rep: [], ok: [], t0: Date.now() };
+      R = { intro: o.intro || '', qs: o.qs.map((q) => ({ t: q.t, pour: q.pour || [], lab: q.lab || '', rappel: q.rappel || '', aide: q.hint || '', inst: { text: q.text, fig: q.fig || '', fields: q.fields, corr: q.corr, sim: q.sim || null } })), i: 0, rep: [], ok: [], t0: Date.now() };
       lsSet(cle, R);
     }
     const nF = R.qs.reduce((s, q) => s + q.inst.fields.length, 0);
@@ -939,15 +946,15 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
     const enCours = () => (faites() ? Math.round(40 * justes() / faites()) / 2 : null);   // note sur les réponses déjà données
     // « Comme la question Q5 du TD », « Comme la courbe 2 du TD », « Comme le système 3 du TD »
     const nomme = (L) => L.map((l) => (/^courbe/i.test(l) ? 'la ' + l.toLowerCase() : /^syst/i.test(l) ? 'le ' + l.toLowerCase() : null));
-    const prep = (q) => { const N = nomme(q.pour); return `<span class="pp-pour">${!q.pour.length ? `Un geste du ${nom}` : N.every(Boolean) ? `Comme ${esc(N.join(', '))} du ${nom}` : `Comme ${q.pour.length > 1 ? 'les questions' : 'la question'} ${esc(q.pour.join(', '))} du ${nom}`}</span>`; };
+    const prep = (q) => { if (q.lab) return `<span class="pp-pour">${esc(q.lab)}</span>`; const N = nomme(q.pour); return `<span class="pp-pour">${!q.pour.length ? `Un geste du ${nom}` : N.every(Boolean) ? `Comme ${esc(N.join(', '))} du ${nom}` : `Comme ${q.pour.length > 1 ? 'les questions' : 'la question'} ${esc(q.pour.join(', '))} du ${nom}`}</span>`; };
     const sys = (ouvert) => `<details class="pp-aide"${ouvert ? ' open' : ''}><summary>Le système et ses données</summary>${R.intro}</details>`;
     function retour(q, ok) {
       const e = ok.filter((y) => !y).length;
-      return `<div class="pp-verdict ${e ? 'ko' : 'ok'}">${e ? `${e} réponse${e > 1 ? 's' : ''} fausse${e > 1 ? 's' : ''} sur ${ok.length}` : 'Tout juste'}</div><div class="corr"><b>Correction</b>${q.inst.corr}</div>${zoneExp()}<div class="btns" style="margin-top:14px"><button class="b" type="button" data-suiv="1">${R.i < R.qs.length - 1 ? 'Question suivante →' : 'Voir ma note'}</button></div>`;
+      return `<div class="pp-verdict ${e ? 'ko' : 'ok'}">${e ? `${e} réponse${e > 1 ? 's' : ''} fausse${e > 1 ? 's' : ''} sur ${ok.length}` : 'Tout juste'}</div>${q.inst.sim ? `<div class="pp-sup"><b>Ton modèle sur la mesure</b>${superpose(q, R.rep[R.i])}</div>` : ''}<div class="corr"><b>Correction</b>${q.inst.corr}</div>${zoneExp()}<div class="btns" style="margin-top:14px"><button class="b" type="button" data-suiv="1">${R.i < R.qs.length - 1 ? 'Question suivante →' : 'Voir ma note'}</button></div>`;
     }
     function question() {
       const q = R.qs[R.i], ok = R.ok[R.i] || null, rep = R.rep[R.i] || (R.rep[R.i] = []), f = faites();
-      app().innerHTML = `${tete}<p class="muted" style="margin:0">${esc(B.sys.charAt(0).toUpperCase() + B.sys.slice(1))}. ${R.qs.length} questions, dans l’ordre des questions du ${nom} du formateur : refais-le seul, sans le document. Autres valeurs à chaque essai.</p>
+      app().innerHTML = `${tete}<p class="muted" style="margin:0">${esc(B.sys.charAt(0).toUpperCase() + B.sys.slice(1))}. ${at ? esc(B.consigne || '') : `${R.qs.length} questions, dans l’ordre des questions du ${nom} du formateur : refais-le seul, sans le document. Autres valeurs à chaque essai.`}</p>
         <div class="pp-sbar"><span>Question <b>${R.i + 1}</b> / ${R.qs.length}</span><span class="pp-sn">Pour l’instant : <b>${f ? fmt(enCours(), 3) : '—'}</b> / 20</span><span class="muted">${justes()} juste${justes() > 1 ? 's' : ''} sur ${f} réponse${f > 1 ? 's' : ''} données · ${nF} en tout</span></div><div class="prog"><i style="width:${(100 * (R.i + (ok ? 1 : 0)) / R.qs.length).toFixed(1)}%"></i></div>
         ${sys(R.i === 0 && !ok)}
         <div class="card" id="ppst"><div>${prep(q)}</div><h2 style="margin-top:0">${R.i + 1}. ${esc(q.t)}</h2>${q.rappel ? `<p class="pp-leg">${q.rappel}</p>` : ''}<div class="pp-qtxt">${q.inst.text}</div>${q.inst.fig ? `<div class="fig">${q.inst.fig}</div>` : ''}${q.aide ? `<details class="pp-aide"><summary>Indice</summary><p>${q.aide}</p></details>` : ''}
@@ -957,20 +964,20 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
       if (s) s.focus({ preventScroll: true });
     }
     function fin() {
-      const nt = note(), ok = nt >= SEUIL, t = Date.now(), p = P(), r = p.bis[doc.id] || (p.bis[doc.id] = {});
+      const nt = note(), ok = nt >= SEUIL, t = Date.now(), p = P(), r = at ? (p.at[at] || (p.at[at] = {})) : (p.bis[doc.id] || (p.bis[doc.id] = {}));
       r.n = (r.n || 0) + 1; r.l = nt; r.t = t;
       if (r.b == null || nt > r.b) r.b = nt;
       save(); lsSet(cle, null);
       const rates = R.qs.filter((q, i) => (R.ok[i] || []).some((y) => !y));
-      app().innerHTML = `${tete}<div class="card"><div class="eyebrow">Le même ${nom}, sur un autre système</div><div class="pp-big">${fmt(nt, 3)}<small> / 20</small></div>
-        <p class="pp-verdict ${ok ? 'ok' : 'ko'}">${ok ? `Tu sais refaire ce ${nom} seul.` : `Encore fragile : relis les corrections ci-dessous, reprends le ${nom} du formateur, puis refais cette série (autres valeurs).`}</p>
+      app().innerHTML = `${tete}<div class="card"><div class="eyebrow">${at ? esc((B.eye || 'atelier').charAt(0).toUpperCase() + (B.eye || 'atelier').slice(1)) : `Le même ${nom}, sur un autre système`}</div><div class="pp-big">${fmt(nt, 3)}<small> / 20</small></div>
+        <p class="pp-verdict ${ok ? 'ok' : 'ko'}">${at ? (ok ? 'Tu sais identifier ces systèmes.' : 'Encore fragile : relis les corrections ci-dessous, puis refais une série (autres courbes).') : ok ? `Tu sais refaire ce ${nom} seul.` : `Encore fragile : relis les corrections ci-dessous, reprends le ${nom} du formateur, puis refais cette série (autres valeurs).`}</p>
         <p>${justes()} réponse${justes() > 1 ? 's' : ''} juste${justes() > 1 ? 's' : ''} sur ${nF}${r.b > nt ? ` · meilleure note : ${fmt(r.b, 3)} / 20` : ''}.${rates.length ? ` À revoir : ${rates.map((q) => esc(q.t)).join(' ; ')}.` : ''}</p>
         <div class="btns" style="margin-top:16px"><button class="b" type="button" data-re="1">Refaire, autres valeurs</button><a class="b sec" href="#prepa-entr-${esc(doc.id)}">Le ${nom} du formateur</a><a class="b sec" href="#prepa-parcours">Retour à la séance</a></div></div>
-        <div class="card" style="margin-top:16px"><h2 style="margin:0">Correction</h2><p class="muted">Les questions avec une erreur sont ouvertes.</p>${sys(false)}${R.qs.map((q, i) => { const o = R.ok[i] || [], e_ = o.filter((y) => !y).length; return `<details class="res${e_ ? '' : ' ok'}" data-i="${i}"${e_ ? ' open' : ''}><summary>${i + 1}. ${esc(q.t)}<small>${e_ ? `${e_} erreur${e_ > 1 ? 's' : ''}` : 'juste'}</small></summary><div style="margin-top:8px">${prep(q)}</div><div class="pp-qtxt">${q.inst.text}</div>${e_ && q.inst.fig ? `<div class="fig">${q.inst.fig}</div>` : ''}${champs(q.inst, R.rep[i] || [], o, 'r' + i)}<div class="corr">${q.inst.corr}</div>${zoneExp()}</details>`; }).join('')}</div>`;
+        <div class="card" style="margin-top:16px"><h2 style="margin:0">Correction</h2><p class="muted">Les questions avec une erreur sont ouvertes.</p>${sys(false)}${R.qs.map((q, i) => { const o = R.ok[i] || [], e_ = o.filter((y) => !y).length; return `<details class="res${e_ ? '' : ' ok'}" data-i="${i}"${e_ ? ' open' : ''}><summary>${i + 1}. ${esc(q.t)}<small>${e_ ? `${e_} erreur${e_ > 1 ? 's' : ''}` : 'juste'}</small></summary><div style="margin-top:8px">${prep(q)}</div><div class="pp-qtxt">${q.inst.text}</div>${!e_ ? '' : q.inst.sim ? superpose(q, R.rep[i]) : q.inst.fig ? `<div class="fig">${q.inst.fig}</div>` : ''}${champs(q.inst, R.rep[i] || [], o, 'r' + i)}<div class="corr">${q.inst.corr}</div>${zoneExp()}</details>`; }).join('')}</div>`;
       app().onclick = (e) => {
         const x = e.target.closest('[data-exp]');
         if (x) { const i = +x.closest('details').dataset.i; expliquer(R.qs[i], R.rep[i] || [], R.ok[i] || [], x); return; }
-        if (e.target.closest('[data-re]')) { vueBis(doc); window.scrollTo(0, 0); }
+        if (e.target.closest('[data-re]')) { vueBis(doc, at); window.scrollTo(0, 0); }
       };
       app().onsubmit = null;
       window.scrollTo(0, 0);
@@ -1344,6 +1351,7 @@ Réponds en JSON : {"pourquoi": "…", "etapes": ["…"], "erreur": "…", "imag
     if (cy && etapesDe(cy) && +m[2] <= etapesDe(cy).length) return vueEtape(cy, +m[2]);
     if (sous('cible-')) return vueCible(DOCS[id.slice(6)]);
     if (sous('bis-') && BIS()[id.slice(4)]) return vueBis(DOCS[id.slice(4)]);
+    if (id.startsWith('at-') && AT()[id.slice(3)] && DOCS[AT()[id.slice(3)].doc]) return vueBis(DOCS[AT()[id.slice(3)].doc], id.slice(3));
     if (sous('fiche-')) return vueFiche(DOCS[id.slice(6)]);
     if (sous('quiz-')) return vueQuiz(DOCS[id.slice(5)]);
     if (sous('entr-')) return vueEntr(DOCS[id.slice(5)]);
