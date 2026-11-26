@@ -3,6 +3,7 @@
    Tiré des rapports de jury 2024 et 2025 (agrégation externe et interne SII, option ingénierie électrique) :
    - #admission : déroulé de chaque épreuve, grille de la leçon, erreurs qui coûtent des points, conseils,
      bases que le jury trouve fragiles (liens vers les notions), sources ;
+   - #admission-tp-<banc> : la partie pratique, sur bancs simulés (agreg/admission-tp.js) ;
    - #admission-lecon-<épreuve> : s'entraîner à la leçon. Sujet tiré (support, niveau, séquence imposée,
      résultats des études), trame à remplir au chronomètre, compétences à cocher dans le référentiel du
      niveau, puis correction par l'IA avec la grille du jury et entretien en trois questions.
@@ -187,8 +188,9 @@
     css();
     const H = histo().slice(-6).reverse();
     app().innerHTML = `<a class="back" href="#accueil">← Accueil</a><div class="eyebrow">Agrégation SII · épreuves d’admission</div><h1>Le TP et son exploitation pédagogique</h1>
-      <p>Ce que disent les rapports de jury 2024 et 2025 (option ingénierie électrique) : le déroulé de chaque épreuve, ce qui est noté, ce qui coûte des points. Puis l’entraînement à la leçon, la partie où le jury enlève le plus de points.</p>
+      <p>Ce que disent les rapports de jury 2024 et 2025 (option ingénierie électrique) : le déroulé de chaque épreuve, ce qui est noté, ce qui coûte des points. Puis l’entraînement aux deux moitiés de la note : la partie pratique, sur des bancs simulés, et la leçon, la partie où le jury enlève le plus de points.</p>
       ${Object.keys(EP).map((k) => `<div class="card" style="margin-top:16px"><h2 style="margin:0 0 6px">${esc(EP[k].nom)}</h2>${frise(EP[k].phases)}<p class="muted" style="margin-top:10px">${esc(EP[k].note)}</p><div class="btns"><a class="b" href="#admission-lecon-${k}">S’entraîner à la leçon de cette épreuve · ${EP[k].min} min</a></div></div>`).join('')}
+      ${window.ADMISSION_TP ? ADMISSION_TP.carte() : ''}
       <div class="card" style="margin-top:16px"><h2 style="margin:0 0 8px">La grille de la leçon, sur 10</h2><p class="muted" style="margin:0 0 8px">Construite à partir des attentes répétées dans les rapports ; c’est elle que l’IA applique quand elle te corrige.</p>
         <table class="ad-g"><tbody>${GRILLE.map((g) => `<tr><td><b>${esc(g[1])}</b><br><span class="muted">${esc(g[3])}</span></td><td class="n">${fmt(g[2], 2)} pt</td></tr>`).join('')}</tbody></table></div>
       <div class="card" style="margin-top:16px"><h2 style="margin:0 0 8px">Les erreurs qui coûtent des points</h2><ul>${ERREURS.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>
@@ -370,6 +372,8 @@ Réponds en JSON : {"reponses": [{"note": 1.5, "commentaire": "…", "attendu": 
   }
 
   function route(h) {
+    const t = /^admission-tp-([a-z]+)$/.exec(h);
+    if (t && window.ADMISSION_TP) return ADMISSION_TP.route(t[1]);
     const m = /^admission-lecon-(e1|e2|int)$/.exec(h);
     if (m) return lecon(m[1]);
     accueil();
