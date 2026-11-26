@@ -91,15 +91,15 @@
   const couleurs = (cle, d) => COUL.map((c) => `<button type="button" class="at-co ${d[cle] === c[1] ? "on" : ""}" data-ch="${cle}" data-v="${c[1]}" style="background:${c[1]}" title="${c[0]}" aria-label="${c[0]}"></button>`).join("");
 
   racine.innerHTML = `
-    <div class="carte"><h2 style="margin-top:0">Ton planeur ne doit ressembler à aucun autre</h2>
+    <div class="carte at-pas-impr"><h2 style="margin-top:0">Ton planeur ne doit ressembler à aucun autre</h2>
       <p>Le planeur de départ est le même pour tout le monde. <b>Le tien doit porter ta marque</b> : une forme, des couleurs, un nom. Les ingénieurs travaillent comme ça :</p>
       <ol class="at-dem"><li><b>Cherche trois idées vraiment différentes.</b> Pas trois fois la même avec 5 mm d'écart.</li><li><b>Compare-les</b> : laquelle va loin, laquelle est solide, laquelle te plaît.</li><li><b>Choisis-en une et explique pourquoi.</b> Puis dessine-la dans l'atelier 3D.</li></ol>
     </div>
-    <div class="carte"><h2 style="margin-top:0">Pour trouver des idées : regarde ce qui vole déjà</h2>
+    <div class="carte at-pas-impr"><h2 style="margin-top:0">Pour trouver des idées : regarde ce qui vole déjà</h2>
       <p class="discret" style="margin-top:0">Touche une carte pour partir de cette forme dans l'idée en cours. Puis transforme-la : une copie exacte n'est pas une création.</p>
       <div class="at-insp">${IDEES.map((x, i) => `<button type="button" data-insp="${i}"><svg viewBox="0 0 230 190" aria-hidden="true">${dessus(Object.assign({}, BASE, x[3]), 1, 10, 95)}</svg><b>${x[0]}</b><span>${x[1]}</span><em>${x[2]}</em></button>`).join("")}</div>
     </div>
-    <div class="carte"><h2 style="margin-top:0">Une méthode quand on n'a pas d'idée</h2>
+    <div class="carte at-pas-impr"><h2 style="margin-top:0">Une méthode quand on n'a pas d'idée</h2>
       <p><b>Les règles de la recherche d'idées</b>, celles des bureaux d'études : on ne critique aucune idée pendant la recherche, on en cherche beaucoup, on rebondit sur celles des autres. Le tri vient après.</p>
       <div class="at-carte"><div id="at-etsi" aria-live="polite">Bloqué ? Tire une carte.</div><button type="button" class="btn" id="at-tirer">Tirer une carte « Et si… »</button></div>
       <p style="margin-bottom:.2em"><b>Mes deux références</b> : d'où vient ton idée, et ce que tu lui empruntes.</p>
@@ -155,7 +155,7 @@
     const insp = ev.target.closest("[data-insp]"); if (insp) { A.idees[A.n] = Object.assign({}, BASE, { nom: d.nom, devise: d.devise, cf: d.cf, ca: d.ca }, IDEES[+insp.dataset.insp][3]); maj(true); return $("at-dessin").scrollIntoView({ block: "center", behavior: "smooth" }); }
     if (ev.target.id === "at-tirer") { let i; do { i = Math.floor(Math.random() * CARTES.length); } while (CARTES[i] === $("at-etsi").textContent); $("at-etsi").textContent = CARTES[i]; return; }
     if (ev.target.id === "at-raz") { A.idees[A.n] = Object.assign({}, BASE, { nom: d.nom, devise: d.devise, cf: d.cf, ca: d.ca }); return maj(true); }
-    if (ev.target.id === "at-impr") { document.body.classList.add("impr-atelier"); window.print(); return setTimeout(() => document.body.classList.remove("impr-atelier"), 500); }
+    if (ev.target.id === "at-impr") { document.body.classList.remove("impr-carnet"); document.body.classList.add("impr-atelier"); window.print(); return setTimeout(() => document.body.classList.remove("impr-atelier"), 500); }
     if (ev.target.id === "at-sim") { const c = calc(d), env = { env: Math.round(c.b / 5) * 5, corde: Math.round(c.cm), envS: d.sb, cordeS: Math.round(d.sc * (1 + d.sk) / 2), m: Math.round((c.m + c.lest) * 10) / 10 };
       Object.keys(env).forEach((k) => { const s = document.querySelector(`#sim-entrees [data-s="${k}"]`); if (s) { s.value = env[k]; s.dispatchEvent(new Event("input", { bubbles: true })); } });
       const b = document.querySelector('.pl-nav [data-s="sim"]'); if (b) b.click(); } });

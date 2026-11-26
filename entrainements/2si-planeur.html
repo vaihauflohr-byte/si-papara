@@ -110,7 +110,8 @@ line.pc-o{stroke-linecap:round;fill:none;stroke-opacity:.75}
 .at-cons li::before{position:absolute;left:0;top:5px;width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:#fff;content:"✓";background:var(--good)}
 .at-cons li.ko::before{content:"✕";background:var(--bad)}.at-cons li.av::before{content:"!";background:var(--warn)}
 @media (max-width:820px){.at-duo{grid-template-columns:1fr}.at-colle{position:static}}
-@media print{body.impr-atelier main>*:not(#s-creer),body.impr-atelier .at-insp,body.impr-atelier .at-onglets{display:none!important}body.impr-atelier .at-duo{grid-template-columns:1fr}body.impr-atelier .at-colle{position:static}}
+@media print{body.impr-atelier main>*:not(#s-creer),body.impr-atelier .at-insp,body.impr-atelier .at-onglets,body.impr-atelier .at-pas-impr,body.impr-atelier .at-duo>:not(.at-colle){display:none!important}body.impr-atelier .at-duo{grid-template-columns:1fr}body.impr-atelier .at-colle{position:static}body.impr-atelier .carte{break-inside:avoid}}          /* la fiche du planeur : le dessin, ce qu'il dit, la comparaison et le choix ; pas les réglages */
+@media print{.pl-scroll{overflow:visible}.pl-essais table.pl{font-size:.78rem}.pl-essais table.pl th,.pl-essais table.pl td{padding:4px 5px}.pl-essais input[type=text][inputmode=decimal]{width:3.6em!important;min-width:0!important}}          /* le carnet imprimé : le tableau tient dans la largeur de la page */
 .pl-cycle{list-style:none;counter-reset:cy;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:0;margin:12px 0}
 .pl-cycle li{counter-increment:cy;background:var(--paper-2);border:1px solid var(--rule-2);border-top:4px solid var(--accent);border-radius:var(--r);padding:8px 10px;font-size:.9rem}
 .pl-cycle li::before{content:counter(cy);display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:.8rem;align-items:center;justify-content:center;margin-right:6px}
@@ -326,7 +327,8 @@ kbd{font-family:var(--f-mono);font-size:.85em;border:1px solid var(--rule);borde
 .pl-moy{font-family:var(--f-mono);font-weight:600}
 .pl-niv td:nth-child(n+2){font-size:.9rem}
 .pl-pts{font-family:var(--f-mono);font-weight:600;white-space:nowrap}
-@media print{.pl-nav,.haut,.no-print{display:none!important}.pl-sec[hidden]{display:block!important}.pl-et>.pl-et-in{display:block}}
+@media print{.pl-nav,.haut,.no-print{display:none!important}.pl-et>.pl-et-in{display:block}}          /* on imprime l'onglet ouvert, pas les huit (40 pages) */
+.impr-seul{display:none}@media print{.impr-seul{display:block!important}body.impr-carnet main>*:not(#s-essais),body.impr-carnet #s-essais>.carte:not(.pl-essais){display:none!important}body.impr-carnet #s-essais{display:block!important}}          /* « Imprimer le carnet » : le protocole et le carnet, rien d'autre */
 
 /* Cote vers la pièce : bords et coins des esquisses précédentes, visés avec l'outil Cote */
 .a3-xe{stroke:transparent;stroke-width:16;fill:none;vector-effect:non-scaling-stroke;pointer-events:none}
@@ -419,7 +421,7 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
 <main>
 <div class="eyebrow">Seconde SI · projet de l'année</div>
 <h1>Le planeur qui va le plus loin</h1>
-<div class="pl-hero"><div><p>Ton équipe conçoit un planeur dans l'atelier 3D du site. Il est imprimé en 3D, puis lancé à la main. <b>La même ligne de départ et les mêmes règles pour tous</b> : c'est ta conception qui fait la différence.</p></div><img class="" src="2si-planeur/img/hero.png" alt="Un planeur imprimé en 3D, fuselage bleu et aile orange, vu en vol" loading="lazy"></div>
+<div class="pl-hero"><div><p>Ton équipe conçoit un planeur dans l'atelier 3D du site. Il est imprimé en 3D, puis lancé à la main. <b>La même ligne de départ et les mêmes règles pour tous</b> : c'est ta conception qui fait la différence.</p></div><img class="" src="2si-planeur/img/hero.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Un planeur imprimé en 3D, fuselage bleu et aile orange, vu en vol" loading="lazy"></div>
 
 <div class="pl-nav" role="tablist">
   <button role="tab" data-s="defi" aria-selected="true">Le défi</button>
@@ -447,20 +449,20 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
       <li>La distance se mesure de la ligne de départ jusqu'au <b>premier point où le planeur touche le sol</b>.</li>
       <li>Tu as droit à deux versions : la version 1, puis une version 2 améliorée après les essais.</li>
     </ul>
-    <img class="pl-img" src="2si-planeur/img/mesure.png" alt="Trois lancers depuis la ligne de départ : on mesure la distance de la ligne au premier contact avec le sol, et on garde la moyenne" loading="lazy">
+    <img class="pl-img" src="2si-planeur/img/mesure.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Trois lancers depuis la ligne de départ : on mesure la distance de la ligne au premier contact avec le sol, et on garde la moyenne" loading="lazy">
   </div>
 
   <div class="carte">
     <h2 style="margin-top:0">De quoi est fait un planeur</h2>
     <p>Trois pièces imprimées, qui s'emboîtent sans colle. C'est le <b>planeur de départ</b> : tu vas l'étudier dans l'atelier 3D, puis le transformer.</p>
-    <img class="pl-img" src="2si-planeur/img/pieces.png" alt="Les trois pièces du planeur écartées : l'aile et le stabilisateur au-dessus du fuselage, avec le nez, la fente et la dérive repérés" loading="lazy">
+    <img class="pl-img" src="2si-planeur/img/pieces.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Les trois pièces du planeur écartées : l'aile et le stabilisateur au-dessus du fuselage, avec le nez, la fente et la dérive repérés" loading="lazy">
     <div data-lab="pieces"></div>
   </div>
 
   <div class="carte">
     <h2 style="margin-top:0">Le cahier des charges</h2>
     <p><b>Le besoin</b> : un planeur lancé à la main, qui parcourt la plus grande distance possible. <b>Les contraintes</b> : un planeur qui ne respecte pas une de ces lignes n'est pas imprimé.</p>
-    <img class="pl-img" src="2si-planeur/img/cotes_max.png" alt="Planeur vu de dessus avec ses deux dimensions maximales : envergure 210 mm et longueur 210 mm" loading="lazy">
+    <img class="pl-img" src="2si-planeur/img/cotes_max.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Planeur vu de dessus avec ses deux dimensions maximales : envergure 210 mm et longueur 210 mm" loading="lazy">
     <div class="pl-scroll"><table class="pl pl-pile">
       <tr><th class="n">N°</th><th>Ce qu'on demande</th><th>Limite</th><th>Pourquoi</th></tr>
       <tr><td class="n"><b>C1</b></td><td>Envergure (largeur totale de l'aile)</td><td class="n"><b>210 mm</b> maximum</td><td>Taille du plateau de l'imprimante</td></tr>
@@ -554,7 +556,7 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
 
   <div class="carte" id="n3"><div class="eyebrow">Notion 3</div>
     <h2 style="margin-top:.1em">Le centre de gravité : le réglage qui décide de tout</h2>
-    <img class="pl-img" src="2si-planeur/img/m6.png" alt="Planeur posé en équilibre sur une cale placée sous l'aile" loading="lazy" style="max-height:300px;width:auto">
+    <img class="pl-img" src="2si-planeur/img/m6.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Planeur posé en équilibre sur une cale placée sous l'aile" loading="lazy" style="max-height:300px;width:auto">
     <p>Le <b>centre de gravité</b> (on l'écrit G) est le point où le planeur tient en équilibre. Pose-le sur un doigt : G est juste au-dessus.</p>
     <div data-lab="equilibre"></div>
     <p>Voilà ce que ça donne en vol :</p>
@@ -592,7 +594,7 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
 
   <div class="carte" id="n5"><div class="eyebrow">Notion 5</div>
     <h2 style="margin-top:.1em">La stabilité : ce qui le garde droit</h2>
-    <img class="pl-img" src="2si-planeur/img/pieces.png" alt="Les pièces du planeur : aile, stabilisateur, dérive, fuselage, nez" loading="lazy" style="max-height:380px;width:auto">
+    <img class="pl-img" src="2si-planeur/img/pieces.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Les pièces du planeur : aile, stabilisateur, dérive, fuselage, nez" loading="lazy" style="max-height:380px;width:auto">
     <ul>
       <li>Le <b>stabilisateur</b> (la petite aile arrière) agit comme les plumes d'une flèche : si le nez monte ou descend, il le ramène à plat.</li>
       <li>La <b>dérive</b> (la partie verticale) fait la même chose pour la gauche et la droite : elle garde le planeur dans l'axe.</li>
@@ -682,7 +684,7 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
       <li>Regarde les traits : ils sont passés du <b>bleu</b> au <b>noir</b>. Noir veut dire « dimension fixée ».</li>
       <li>Clique sur la coche verte, puis sur <b>Extruder</b> (<kbd>Maj</kbd> + <kbd>E</kbd>). Profondeur : <b>5 mm</b>. Valide.</li>
     </ol>
-    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m1.png" alt="Plaque bleue de 60 par 20 mm, épaisse de 5 mm, vue en 3D" loading="lazy"><figcaption>Ce que tu dois obtenir</figcaption></figure>
+    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m1.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Plaque bleue de 60 par 20 mm, épaisse de 5 mm, vue en 3D" loading="lazy"><figcaption>Ce que tu dois obtenir</figcaption></figure>
   <p class="astuce"><b>Mission réussie si</b> tu fais tourner à la souris une plaque de 60 × 20 × 5 mm, et si son esquisse a tous ses traits noirs.</p></div>
 
   <div class="carte"><div class="eyebrow">Mission 2</div><h2 style="margin-top:.1em">Un nez en biseau</h2><p class="discret" style="margin-top:0">Tu apprends à tracer un trait incliné avec l'outil Ligne, et à modifier une pièce déjà faite.</p>
@@ -694,7 +696,7 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
       <li>Mets les 2 cotes du biseau : <b>12</b> sur le côté du haut, <b>8</b> sur le côté gauche.</li>
       <li>Valide l'esquisse. La pièce se met à jour toute seule.</li>
     </ol>
-    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m2.png" alt="La même plaque avec un coin coupé en biseau, vue en 3D" loading="lazy"><figcaption>Ce que tu dois obtenir</figcaption></figure>
+    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m2.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="La même plaque avec un coin coupé en biseau, vue en 3D" loading="lazy"><figcaption>Ce que tu dois obtenir</figcaption></figure>
   <p class="astuce"><b>Mission réussie si</b> le coin de ta plaque est coupé, si tous les traits sont noirs, et si la pièce a changé sans que tu refasses l'extrusion.</p></div>
 
   <div class="carte"><div class="eyebrow">Mission 3</div><h2 style="margin-top:.1em">Le fuselage de départ : le contour</h2><p class="discret" style="margin-top:0">Tu dessines le vrai fuselage, vu de côté, en un seul contour fermé.</p>
@@ -705,7 +707,7 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
       <li>Outil <b>Cote</b> : pour chaque coin, clique sur l'origine puis sur le coin, et tape la distance du dessin. Tire la souris vers le bas pour une distance depuis le nez, vers la gauche pour une hauteur.</li>
       <li>Quand tous les traits sont noirs, valide, puis <b>Extruder</b> de <b>5 mm</b>.</li>
     </ol>
-    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m3.png" alt="Fuselage de départ après extrusion : une longue barre avec un nez plus haut et une queue relevée" loading="lazy"><figcaption>Ce que tu dois obtenir</figcaption></figure>
+    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m3.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Fuselage de départ après extrusion : une longue barre avec un nez plus haut et une queue relevée" loading="lazy"><figcaption>Ce que tu dois obtenir</figcaption></figure>
   <p class="astuce"><b>Mission réussie si</b> ton fuselage mesure 210 mm de long, 14 mm de haut au nez, et si son dessous est plat.</p></div>
 
   <div class="carte"><div class="eyebrow">Mission 4</div><h2 style="margin-top:.1em">Les fentes, le trou de lest et la dérive</h2><p class="discret" style="margin-top:0">Tu apprends à enlever de la matière, et à extruder une zone avec une autre épaisseur.</p>
@@ -718,7 +720,7 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
       <li>Valide. <b>Extruder</b> → choisis <b>Enlever</b> et <b>À travers tout</b>, puis clique sur les deux fentes et le cercle.</li>
       <li><b>Dérive</b> : nouvelle esquisse sur la même face, trace les 4 points du dessin. <b>Extruder</b> → <b>Ajouter</b>, profondeur <b>1 mm</b>.</li>
     </ol>
-    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m4.png" alt="Fuselage terminé avec le trou de lest, la fente de l'aile, la fente du stabilisateur et la dérive" loading="lazy"><figcaption>Ce que tu dois obtenir</figcaption></figure>
+    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m4.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Fuselage terminé avec le trou de lest, la fente de l'aile, la fente du stabilisateur et la dérive" loading="lazy"><figcaption>Ce que tu dois obtenir</figcaption></figure>
   <p class="astuce"><b>Mission réussie si</b> tu vois le jour à travers les deux fentes et le trou, et si la dérive est bien plus fine que le reste.</p></div>
 
   <div class="carte"><div class="eyebrow">Mission 5</div><h2 style="margin-top:.1em">L'aile et le stabilisateur de départ</h2><p class="discret" style="margin-top:0">Deux plaques fines, chacune dans son atelier de pièces.</p>
@@ -728,7 +730,7 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
       <li>Crée un atelier de pièces <code>Aile</code>. Plan <b>Dessus</b> → <b>Esquisse</b> → rectangle de <b>200 × 45</b> → <b>Extruder</b> de <b>0,8 mm</b> (4 couches d'impression).</li>
       <li>Crée un atelier de pièces <code>Stabilisateur</code>. Rectangle de <b>80 × 25</b> → <b>Extruder</b> de <b>0,6 mm</b> (3 couches).</li>
     </ol>
-    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m5.png" alt="L'aile et le stabilisateur : deux plaques fines orange" loading="lazy"><figcaption>Ce que tu dois obtenir</figcaption></figure>
+    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m5.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="L'aile et le stabilisateur : deux plaques fines orange" loading="lazy"><figcaption>Ce que tu dois obtenir</figcaption></figure>
   <p class="astuce"><b>Mission réussie si</b> tu as trois ateliers de pièces : Fuselage, Aile, Stabilisateur.</p></div>
 
   <div class="carte"><div class="eyebrow">Mission 6</div><h2 style="margin-top:.1em">Vérifier que mon modèle est juste</h2><p class="discret" style="margin-top:0">Avant d'aller plus loin, tu compares ton modèle aux valeurs attendues.</p>
@@ -744,7 +746,7 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
       <tr><th>Planeur de départ, sans lest</th><th class="n"></th><th class="n">23 g</th></tr>
     </table></div>
     <p>Ce planeur a la queue un peu trop lourde : sans lest, son point d'équilibre est à <b>107 mm</b> du nez, un peu trop en arrière. Il lui faut environ <b>1,7 g</b> dans le trou du nez (une petite vis, ou de la pâte à fixe) pour le ramener vers <b>100 mm</b>. Total : environ <b>25 g</b>.</p>
-    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m6.png" alt="Planeur de départ monté, posé en équilibre sur une cale placée sous l'aile" loading="lazy"><figcaption>Le planeur de départ monté : il doit tenir en équilibre sur une cale placée à 100 mm du nez</figcaption></figure>
+    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m6.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Planeur de départ monté, posé en équilibre sur une cale placée sous l'aile" loading="lazy"><figcaption>Le planeur de départ monté : il doit tenir en équilibre sur une cale placée à 100 mm du nez</figcaption></figure>
   <p class="astuce"><b>Mission réussie si</b> tes trois volumes sont ceux du tableau.</p></div>
 
   <div class="carte"><div class="eyebrow">Mission 7</div><h2 style="margin-top:.1em">À toi : rends-le meilleur</h2><p class="discret" style="margin-top:0">Le planeur de départ vole, mais il est lourd : plus léger, il volera plus lentement et pardonnera mieux le lancer. Voici ce que tu peux changer, et les notions de l'onglet « Comprendre » t'expliquent pourquoi.</p>
@@ -759,9 +761,9 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
       <tr><td>Forme du fuselage, nom de l'équipe gravé</td><td>Des points d'esthétique</td><td>Aucun, tant que les deux fentes gardent leur taille</td></tr>
     </table></div>
     <div class="pl-trio">
-      <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m7a.png" alt="Planeur avec une aile aux bouts effilés" loading="lazy"><figcaption>Idée 1 : des bouts d'aile effilés</figcaption></figure>
-      <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m7b.png" alt="Planeur avec une poutre plus fine et une dérive plus petite" loading="lazy"><figcaption>Idée 2 : un arrière allégé</figcaption></figure>
-      <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m7c.png" alt="Planeur avec un nez plus haut et une aile effilée" loading="lazy"><figcaption>Idée 3 : un nez plus haut, qui fait le lest</figcaption></figure>
+      <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m7a.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Planeur avec une aile aux bouts effilés" loading="lazy"><figcaption>Idée 1 : des bouts d'aile effilés</figcaption></figure>
+      <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m7b.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Planeur avec une poutre plus fine et une dérive plus petite" loading="lazy"><figcaption>Idée 2 : un arrière allégé</figcaption></figure>
+      <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m7c.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Planeur avec un nez plus haut et une aile effilée" loading="lazy"><figcaption>Idée 3 : un nez plus haut, qui fait le lest</figcaption></figure>
     </div>
     <ol class="pl-pas">
       <li>Fais d'abord une copie : clic droit sur l'onglet de l'atelier → <b>Dupliquer</b>. Tu gardes le planeur de départ intact.</li>
@@ -778,7 +780,7 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
       <li>Clic droit sur la pièce dans la liste → <b>Exporter</b>. Format <b>STL</b>, unité <b>millimètre</b>. Nomme le fichier <code>equipe_piece_v1.stl</code>.</li>
       <li>Envoie les trois fichiers STL à ton professeur.</li>
     </ol>
-    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m8.png" alt="Les trois pièces posées à plat sur le plateau de l'imprimante" loading="lazy"><figcaption>Sur le plateau de l'imprimante</figcaption></figure>
+    <figure class="pl-fig"><img class="pl-img" src="2si-planeur/img/m8.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Les trois pièces posées à plat sur le plateau de l'imprimante" loading="lazy"><figcaption>Sur le plateau de l'imprimante</figcaption></figure>
   <p class="astuce"><b>Mission réussie si</b> le professeur a reçu tes trois fichiers et qu'ils s'ouvrent dans le logiciel de l'imprimante.</p></div>
 </section>
 
@@ -820,6 +822,7 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
 <!-- ============ MES ESSAIS ============ -->
 <section class="pl-sec" id="s-essais" hidden>
   <div class="carte pl-essais">
+    <p class="impr-seul" id="carnet-entete"></p>
     <h2 style="margin-top:0">Mon protocole d'essai</h2>
     <p>Un <b>protocole</b>, c'est la recette de ton expérience : quelqu'un d'autre doit pouvoir refaire exactement les mêmes essais en le lisant. Écris-le <b>avant</b> le premier lancer.</p>
     <p><label>Ce que je mesure :<br><input type="text" id="p1" placeholder="exemple : la distance entre la ligne de départ et le premier contact avec le sol"></label></p>
@@ -841,11 +844,11 @@ table.pl-pile td[data-l]:not(:first-child)::before{content:attr(data-l);display:
     <p><label>La seule chose que je change :<br><input type="text" id="modif" placeholder="exemple : j'ajoute 2 g dans le nez"></label></p>
     <p><label>Pourquoi (ce que j'ai observé) :<br><input type="text" id="pourquoi" placeholder="exemple : la version 1 lève le nez puis tombe"></label></p>
     <p><label>Ce que j'attends :<br><input type="text" id="attendu" placeholder="exemple : un vol plus à plat, donc plus long"></label></p>
-    <p class="no-print"><button class="btn" onclick="window.print()">Imprimer le carnet</button> <button class="btn sec" id="raz">Tout effacer</button></p>
+    <p class="no-print"><button class="btn" id="impr-carnet">Imprimer le carnet</button> <button class="btn sec" id="raz">Tout effacer</button></p>
   </div>
   <div class="carte">
     <h2 style="margin-top:0">Bien lancer à la main</h2>
-    <img class="pl-img" src="2si-planeur/img/lancer.png" alt="Le planeur tenu entre deux doigts sous l'aile, au point d'équilibre, et une flèche qui montre la poussée droit devant" loading="lazy">
+    <img class="pl-img" src="2si-planeur/img/lancer.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="Le planeur tenu entre deux doigts sous l'aile, au point d'équilibre, et une flèche qui montre la poussée droit devant" loading="lazy">
     <ul>
       <li>Tiens le fuselage entre le pouce et l'index, <b>juste sous l'aile</b>, là où il tient en équilibre.</li>
       <li>Planeur <b>à plat</b>, nez à peine vers le bas. Vise un point au sol à une dizaine de mètres.</li>
@@ -1022,7 +1025,16 @@ if (boutons.some((b) => b.dataset.s === location.hash.slice(1))) ouvrir(location
 /* ---------- Mémoire locale ---------- */
 const CLE = "sip_2si_planeur";
 let D = {}; try { D = JSON.parse(localStorage.getItem(CLE)) || {}; } catch (e) { D = {}; }
-const garder = () => { try { localStorage.setItem(CLE, JSON.stringify(D)); } catch (e) { /* stockage indisponible : on continue sans */ } if (window.PLANEUR_SYNC) window.PLANEUR_SYNC(); };
+document.getElementById("impr-carnet").addEventListener("click", () => { let A = {}; try { A = JSON.parse(localStorage.getItem("sip_2si_planeur_atelier")) || {}; } catch (e) { A = {}; }          // l'en-tête du carnet imprimé : l'équipe, le planeur, la date
+  const ch = Array.isArray(A.idees) && A.choisi != null ? A.idees[A.choisi] : null;
+  document.getElementById("carnet-entete").textContent = [D.f.eqNom ? "Équipe : " + D.f.eqNom : "Équipe :", D.f.eqMb ? "(" + D.f.eqMb + ")" : "", ch && ch.nom ? "· planeur « " + ch.nom + " »" : "", "· imprimé le " + new Date().toLocaleDateString("fr-FR")].filter(Boolean).join(" ");
+  document.body.classList.remove("impr-atelier"); document.body.classList.add("impr-carnet"); window.print(); });
+window.addEventListener("afterprint", () => document.body.classList.remove("impr-carnet"));
+{ let ouverts = null; window.addEventListener("beforeprint", () => { const L = [...document.querySelectorAll("#s-etapes details.pl-et")]; if (!ouverts) ouverts = L.map((d) => d.open); L.forEach((d) => (d.open = true)); });          // imprimer les étapes : les huit, dépliées
+  window.addEventListener("afterprint", () => { if (ouverts) document.querySelectorAll("#s-etapes details.pl-et").forEach((d, i) => (d.open = ouverts[i])); ouverts = null; }); }
+let tVerif = 0;
+const garder = () => { try { localStorage.setItem(CLE, JSON.stringify(D)); } catch (e) { /* stockage indisponible : on continue sans */ } if (window.PLANEUR_SYNC) window.PLANEUR_SYNC();
+  clearTimeout(tVerif); tVerif = setTimeout(() => { if (typeof verifier === "function") verifier(); }, 400); };          // après chaque changement, les cases que la page sait vérifier se mettent à jour
 const nbfr = (x, n = 2) => x.toFixed(n).replace(".", ",");
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const pt = (s) => String(s == null ? "" : s).trim().replace(/\s+/g, "").replace(",", "."), virg = (s) => String(s == null ? "" : s).replace(".", ",");          // les nombres tapés : « 4,2 » ou « 4.2 », gardés avec le point, réaffichés avec la virgule (un champ type="number" perd la virgule sur un navigateur en anglais : 4,2 devenait 42)
@@ -1064,7 +1076,19 @@ function depuisAtelier() {          // les cases que l'atelier 3D sait vérifier
 }
 function notesAtelier(x) { if (!x) return; document.querySelectorAll("[data-note]").forEach((e) => { const m = +e.dataset.note, n = x.N[m - 1];          // la note du moment, à côté de la ligne
   e.textContent = n == null ? "" : m === 1 ? `Ta note : ${n} / 20.` : `Ta note : ${n} / 20${x.R[m] ? ", pièce rendue." : ", pas encore rendue."}`; }); }
-function verifier() { const xA = depuisAtelier();
+function depuisDonnees() {          // ce que la page voit déjà rempli se coche tout seul : tableau d'observation, équipe, fiche toute verte, protocole, carnet d'essais, phrases de l'oral
+  const plein = (x) => String(x == null ? "" : x).trim() !== "", nb = (x) => plein(x) && isFinite(parseFloat(pt(x))), E = D.essais || {}, e = (i) => E[i] || {}, trois = (i) => ["d1", "d2", "d3"].every((k) => nb(e(i)[k]));
+  let A = null; try { A = JSON.parse(localStorage.getItem("sip_2si_planeur_atelier")); } catch (x) { A = null; }
+  const ch = A && Array.isArray(A.idees) && A.choisi != null ? A.idees[A.choisi] : null;
+  const V = ["vf", "va", "vs"].map(nv), env = nv("env"), ep = nv("ep"), lon = nv("lon"), m = V.every((x) => x != null) ? V.reduce((t, x) => t + x, 0) * LIMITES.pla + (nv("lest") || 0) : null, n = ep == null ? NaN : ep / LIMITES.couche;
+  const faits = { "1o": ["A", "B", "C"].every((x) => plein(D.f["obs" + x]) && nb(D.f["eq" + x])), "2e": plein(D.f.eqNom) && plein(D.f.eqMb),
+    "4d": env != null && env <= LIMITES.envergure && ep > 0 && Math.abs(n - Math.round(n)) < 1e-6 && lon != null && lon <= LIMITES.longueur && m != null && m <= LIMITES.masse && !!D.c.plat,
+    "5i": !!ch && String(A.pourquoi || "").trim().length >= 10, "5j": !!ch && plein(ch.nom), "5p": ["p1", "p2", "p3", "p4"].every((k) => plein(D[k])),
+    "5s": nb(e(0).prev), "5d": nb(e(0).m), "5e": trois(0), "5g": ["modif", "pourquoi", "attendu"].every((k) => plein(D[k])),
+    "6s": nb(e(1).prev), "6d": trois(1), "7b": trois(2), "7o": ["o1", "o2", "o3"].every((k) => plein(D.f[k])) };
+  Object.keys(faits).forEach((id) => { if (faits[id] && !D.c[id]) { D.c[id] = true; const c = document.querySelector(`[data-c="${id}"]`); if (c) c.checked = true; garder(); } });
+}
+function verifier() { const xA = depuisAtelier(); depuisDonnees();
   const set = (id, h) => { const el = document.getElementById(id); if (el) el.innerHTML = h; };
   const env = nv("env"), corde = nv("corde"), ep = nv("ep"), lon = nv("lon");
   set("v-env", env == null ? "" : OKT(env <= LIMITES.envergure, `maximum ${LIMITES.envergure} mm`));
@@ -1110,7 +1134,7 @@ document.getElementById("guide").addEventListener("click", (ev) => {
   if (cible) setTimeout(() => cible.scrollIntoView({ behavior: "smooth", block: s === "etapes" ? "center" : "start" }), 60); else window.scrollTo(0, 0);
 });
 const premiere = Math.max(0, ETAPES.findIndex((e) => e.items.some((x) => x.k === "c" && !D.c[x.id])));
-document.getElementById("etapes").innerHTML = ETAPES.map((e, i) => `<details class="carte pl-et" ${i === premiere ? "open" : ""}><summary><span class="pl-num">${i + 1}</span><span class="pl-et-t"><b>${e.t}</b><span class="discret">${e.but}</span></span><img class="pl-et-thumb" src="2si-planeur/img/${e.img}.png" alt="" loading="lazy"><span class="etiquette" id="av${i}"></span></summary>
+document.getElementById("etapes").innerHTML = ETAPES.map((e, i) => `<details class="carte pl-et" ${i === premiere ? "open" : ""}><summary><span class="pl-num">${i + 1}</span><span class="pl-et-t"><b>${e.t}</b><span class="discret">${e.but}</span></span><img class="pl-et-thumb" src="2si-planeur/img/${e.img}.webp" onerror="this.onerror=null;this.src=this.src.replace('.webp','.png')" alt="" loading="lazy"><span class="etiquette" id="av${i}"></span></summary>
   <div class="pl-et-in">${e.items.map((x) => x.k === "c" ? `<label class="pl-fait" id="c-${x.id}"><input type="checkbox" data-c="${x.id}" ${D.c[x.id] ? "checked" : ""}><span>${x.t}</span></label>` : `<div class="pl-bloc">${BLOCS[x.id]()}</div>`).join("")}</div></details>`).join("");
 const $et = document.getElementById("etapes");
 const saisie = (ev) => { const el = ev.target; if (el.dataset.c != null) D.c[el.dataset.c] = el.checked; else if (el.dataset.f != null) D.f[el.dataset.f] = el.dataset.nb != null ? pt(el.value) : el.value; else return; garder(); verifier(); };
