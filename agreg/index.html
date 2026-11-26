@@ -260,7 +260,7 @@ function home(){clearInterval(window.__chr);const Q=allQ(),G=noteOf(Q),ex=st.exa
 const C2='#e0803a';
 function notion(N){const seen=N.levels.some(L=>L.qs.some((_,j)=>(st.q[`${N.id}.${L.id}.${j}`]||{}).seen));
  let mode=(N.cours&&!seen)?'cours':'train',lv=N.levels.findIndex(L=>L.qs.some((_,j)=>rec(`${N.id}.${L.id}.${j}`).ok<2)),qi=0,ci=0;if(lv<0)lv=0;
- app().innerHTML=`<a class="back" href="#accueil">← Toutes les notions</a><h1>${N.name}</h1><p class="muted">${N.desc}</p>${tsiBloc(N)}${N.cours?`<div class="switch"><button data-m="cours">Cours</button><button data-m="train">Entraînement</button></div>`:''}<div id="zone"></div>`;
+ app().innerHTML=`<a class="back" href="#accueil">← Toutes les notions</a><h1>${N.name}</h1><p class="muted">${N.desc}</p>${tsiBloc(N)}${atBloc(N)}${N.cours?`<div class="switch"><button data-m="cours">Cours</button><button data-m="train">Entraînement</button></div>`:''}<div id="zone"></div>`;
  app().onclick=e=>{const b=e.target.closest('[data-m]');if(b){mode=b.dataset.m;go();}};
  function go(){document.querySelectorAll('.switch button').forEach(b=>b.classList.toggle('on',b.dataset.m==mode));mode=='cours'?cours():train();}
  function train(){$('#zone').innerHTML=`<div class="tabs" id="tabs"></div><div id="fiche"></div><div class="qnav" id="qnav"></div><div class="card" id="card"></div>`;
@@ -342,6 +342,9 @@ function tsiAll(){let B=null;try{B=window.SIP&&SIP.BAC;if(B&&!B.recale&&SIP.cale
 function tsiWeek(start){const e=wk0(start,1),inw=x=>x&&d0(x)>=start&&d0(x)<e;return tsiAll().map(n=>Object.assign({c:!!inw(n.cours),d:!!inw(n.dsd)},n)).filter(n=>n.c||n.d);}
 const tsiLien=n=>HOOK?` <a href="../entrainements/bac-si.html#n=${n.id}">côté élève</a>`:'';
 const tsiQuand=n=>[n.cours?`cours à partir du ${jfr(d0(n.cours))}`:'',n.ds&&n.dsd?`${n.ds} le ${jfr(d0(n.dsd))}`:''].filter(Boolean).join(', ');
+/* ateliers interactifs de la prépa (agreg/prepa-ident.js) rattachés à la notion : une courbe, la réponse, puis la réponse tracée sur la courbe */
+function atBloc(N){const A=window.PREPA_AT||{},L=Object.keys(A).filter(k=>A[k].notion===N.id);if(!L.length)return '';const R=(st.prepa&&st.prepa.at)||{};
+ return `<div class="keep" style="margin:12px 0"><b>Ateliers interactifs</b> : une courbe, ta réponse, puis, à la correction, ta réponse tracée sur la courbe.<ul>${L.map(k=>`<li><a href="#prepa-at-${k}">${A[k].titre}</a> · ${R[k]?'meilleure note '+n20(R[k].b):'≈ '+A[k].min+' min'}</li>`).join('')}</ul></div>`;}
 function tsiBloc(N){const L=tsiAll().filter(n=>n.ag.includes(N.id));if(!L.length)return '';L.sort((a,b)=>(a.cours||'9')<(b.cours||'9')?-1:1);
  return `<div class="keep" style="margin:12px 0"><b>Ce que tu enseignes en Terminale SI sur cette notion</b><ul>${L.map(n=>`<li>${n.lab}${tsiQuand(n)?' : '+tsiQuand(n):''}.${tsiLien(n)}</li>`).join('')}</ul><small>Le palier « Bac SI » reprend ce que tes élèves doivent savoir faire ; les paliers suivants vont au-delà, sur les mêmes idées.</small></div>`;}
 /* ---------- défis de la semaine ---------- */
