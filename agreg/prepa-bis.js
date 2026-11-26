@@ -308,10 +308,10 @@
     for (let i = 0; i <= 240; i++) { const w = w0 * (w1 / w0) ** (i / 240), v = f(w); g.push([w, v[0]]); ph.push([w, v[1]]); }
     const gs = g.map((q) => q[1]), ps = ph.map((q) => q[1]);
     let y0 = Math.floor(Math.min(...gs) / 10) * 10 + 0, y1 = Math.max(10, Math.ceil(Math.max(...gs) / 10) * 10) + 0;
-    const big = y1 - y0 > 80;
-    if (big) { y0 = Math.floor(y0 / 20) * 20 + 0; y1 = Math.ceil(y1 / 20) * 20 + 0; }
+    const big = y1 - y0 > 80, py = y1 - y0 <= 200 ? 20 : 40;
+    if (big) { y0 = Math.floor(y0 / py) * py + 0; y1 = Math.ceil(y1 / py) * py + 0; }
     const p0 = Math.floor(Math.min(...ps) / 45) * 45 + 0, p1 = Math.ceil(Math.max(...ps) / 45) * 45 + 0;
-    return plot({ W: 660, H: 270, logx: 1, x0: w0, x1: w1, y0, y1, dy: big ? 10 : 5, ymaj: 2, curves: [{ pts: g }], hl: [{ y: 0, t: '0 dB', c: '#587083' }], xl: '', yl: 'Gain (dB)', alt: alt + ', gain' })
+    return plot({ W: 660, H: 270, logx: 1, x0: w0, x1: w1, y0, y1, dy: big ? py / 2 : 5, ymaj: 2, curves: [{ pts: g }], hl: [{ y: 0, t: '0 dB', c: '#587083' }], xl: '', yl: 'Gain (dB)', alt: alt + ', gain' })
       + plot({ W: 660, H: 250, logx: 1, x0: w0, x1: w1, y0: p0, y1: p1 > p0 ? p1 : p0 + 45, dy: 15, ymaj: 3, curves: [{ pts: ph }], xl: 'Pulsation ω (rad/s)', yl: 'Phase (°)', alt: alt + ', phase' });
   }
   function boucleGiration() {
@@ -895,6 +895,273 @@
             'La phase tend vers −180° sans l’atteindre : <b>marge de gain infinie</b>.',
             `Précision : le PI garde l’intégrateur (classe 1, en amont de la perturbation). Rapidité : t<sub>5%</sub> ≈ ${f3(R9[i9].t5)} s pour ${fmt(Treq)} s exigé. ${okPI ? '<b>Toutes les exigences sont respectées.</b>' : '<b>La marge de phase manque</b> ; le reste est respecté.'}`],
             'le PI cumule : la précision de l’intégrateur, la rapidité réglée par K<sub>p</sub>, sans perdre la stabilité si T<sub>i</sub> est bien placé.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 2 · TD 6 — sur un autre système : la broche d'un tour à commande numérique
+     boucle ouverte et tracé de Bode, marges, effet d'un couple perturbateur, correcteur proportionnel
+     réglé pour la marge de phase, correcteur PI (forme, Bode), quatre réglages jugés au critère du revers
+     ===================================================================== */
+  function bodeMulti(fs, w0, w1, noms, alt) {
+    const G = fs.map(() => []), P = fs.map(() => []);
+    for (let i = 0; i <= 240; i++) { const w = w0 * (w1 / w0) ** (i / 240); fs.forEach((f, k) => { const v = f(w); G[k].push([w, v[0]]); P[k].push([w, v[1]]); }); }
+    const gs = [].concat(...G).map((q) => q[1]), ps = [].concat(...P).map((q) => q[1]);
+    const etendue = Math.max(...gs) - Math.min(...gs), py = etendue <= 100 ? 20 : etendue <= 200 ? 40 : 80;   // graduations lisibles
+    const y0 = Math.floor(Math.min(...gs) / py) * py + 0, y1 = Math.ceil(Math.max(...gs) / py) * py + 0, p0 = Math.floor(Math.min(...ps) / 45) * 45 + 0, p1 = Math.ceil(Math.max(...ps) / 45) * 45 + 0;
+    const cv = (L) => L.map((pts, k) => ({ pts, c: COUL[k], w: 2, dash: k % 2 }));
+    return plot({ W: 660, H: 290, logx: 1, x0: w0, x1: w1, y0, y1, dy: py / 2, ymaj: 2, curves: cv(G), hl: [{ y: 0, t: '0 dB', c: '#587083' }], xl: '', yl: 'Gain (dB)', alt: alt + ', gain' })
+      + plot({ W: 660, H: 260, logx: 1, x0: w0, x1: w1, y0: p0, y1: p1 > p0 ? p1 : p0 + 45, dy: 15, ymaj: 3, curves: cv(P), hl: p0 <= -180 ? [{ y: -180, t: '−180°', c: '#587083' }] : [], xl: 'Pulsation ω (rad/s)', yl: 'Phase (°)', alt: alt + ', phase' })
+      + `<p class="pp-leg">${noms.map((n, i) => `<span style="color:${COUL[i]};font-weight:700">${i % 2 ? '- - -' : '——'} ${n}</span>`).join(' &nbsp; ')}</p>`;
+  }
+  function boucleBroche() {
+    let c = S.ar(200, 300, 30, 'Cr(p)') + S.box(300, 8, 'Hr(p)', 70) + S.li(370, 30, 470, 30) + S.li(470, 30, 470, 68) + S.down(470, 76);
+    c += S.ar(6, 64, 90, 'Uc(p)') + S.som(78, 90, '+−') + S.ar(92, 130, 90, 'ε(p)') + S.box(130, 68, 'C(p)', 60) + S.ar(190, 250, 90, 'U(p)') + S.box(250, 68, 'Hm(p)', 70) + S.ar(320, 456, 90, '');
+    c += `<circle cx="470" cy="90" r="14" fill="#fff" stroke="#183047" stroke-width="1.6"/><text x="446" y="84" font-size="13" fill="#183047">+</text><text x="478" y="72" font-size="13" fill="#183047">+</text>` + S.ar(484, 600, 90, '') + S.t(572, 78, 'Ω(p)');
+    c += S.pt(540, 90) + S.li(540, 90, 540, 150) + S.li(540, 150, 330, 150) + Sg(322, 150) + S.box(282, 128, 'a', 40) + S.li(282, 150, 78, 150) + S.li(78, 150, 78, 112) + S.up(78, 104) + S.t(110, 144, 'V(p)');
+    return S.svg(606, 176, 'boucle de vitesse de la broche : consigne Uc, comparateur, correcteur C(p), moteur Hm(p), couple perturbateur Cr à travers Hr(p) ajouté à la sortie, vitesse Ω, retour par le capteur de gain a', c);
+  }
+  function piParallele(Ks, Ki) {
+    const c = S.ar(6, 60, 70, 'ε(p)') + S.pt(60, 70) + S.li(60, 70, 60, 30) + S.ar(60, 140, 30, '') + S.box(140, 8, `K* = ${fmt(Ks)}`, 110) + S.li(60, 70, 60, 112) + S.ar(60, 140, 112, '') + S.box(140, 90, `${fmt(Ki)}/p`, 110)
+      + S.li(250, 30, 330, 30) + S.li(330, 30, 330, 56) + S.down(330, 56) + S.li(250, 112, 330, 112) + S.li(330, 112, 330, 84) + S.up(330, 84)
+      + `<circle cx="330" cy="70" r="14" fill="#fff" stroke="#183047" stroke-width="1.6"/><text x="338" y="52" font-size="13" fill="#183047">+</text><text x="338" y="98" font-size="13" fill="#183047">+</text>` + S.ar(344, 440, 70, 'U(p)');
+    return S.svg(446, 140, `correcteur fait d’un gain proportionnel ${fmt(Ks)} et d’un intégrateur de gain ${fmt(Ki)} placés en parallèle, puis sommés`, c);
+  }
+  J['c2-td6'] = { titre: 'La broche d’un tour à commande numérique', sys: 'Bode et marges, couple perturbateur, correcteur proportionnel puis PI, critère du revers', min: 60,
+    gen() {
+      let T1 = 0.5, T2 = 0.025, Ka = 2.4, a = 0.02, Km = 120, MGm = 10, Mpm = 45, CAS = null;
+      for (let tour = 0; tour < 25 && !CAS; tour++) {
+        T1 = pick([0.4, 0.5, 0.8, 1, 1.2]); T2 = pick([0.02, 0.025, 0.04, 0.05, 0.08]);
+        if (T1 / T2 < 8) continue;
+        a = pick([0.01, 0.02, 0.025, 0.05]); Km = pick([40, 50, 80, 100, 120]); Ka = a * Km;
+        if (Ka < 1.5 || Ka > 4) continue;
+        MGm = pick([8, 10, 12]); Mpm = pick([45, 50]);
+        const marges = (K, T) => {
+          const mod = (w) => K * Ka * Math.hypot(1, T * w) / (w * Math.hypot(1, T1 * w) * Math.hypot(1, T2 * w)), ph = (w) => -90 + deg(Math.atan(T * w) - Math.atan(T1 * w) - Math.atan(T2 * w));
+          const wc = solve((w) => Math.log(mod(w)), 1e-4, 1e6), Mp = 180 + ph(wc);
+          let w180 = null;
+          for (let i = 1; i <= 600; i++) { const w = 1e-3 * 1e8 ** (i / 600); if (ph(w) < -180) { w180 = solve((x) => ph(x) + 180, 1e-3 * 1e8 ** ((i - 1) / 600), w); break; } }
+          return { K, T, mod, ph, wc, Mp, MG: w180 ? -20 * Math.log10(mod(w180)) : Infinity, w180, stable: Mp > 0 };
+        };
+        for (let e = 0; e < 60 && !CAS; e++) {
+          const Ts = [r2(T2 / pick([3, 4, 5])), r2(T2 * pick([2, 3])), r2(T1 / pick([2, 4])), T1], Ks = Ts.map(() => pick([0.5, 1, 2, 4, 5, 10, 20, 40]));
+          const M = Ts.map((T, i) => marges(Ks[i], T));
+          M.forEach((m) => { m.ok = m.Mp >= Mpm && m.MG >= MGm; });
+          const oks = M.map((m, i) => (m.ok ? i : -1)).filter((i) => i >= 0);
+          if (oks.length < 2 || oks.length > 3 || !M.some((m) => !m.stable) || !isFinite(M[0].MG)) continue;
+          const w = oks.map((i) => M[i].wc).sort((x, y) => y - x);
+          if (w[0] < 1.3 * w[1]) continue;
+          if (M.some((m) => Math.abs(m.Mp - Mpm) < 6 || Math.abs(m.Mp) < 8 || (isFinite(m.MG) && Math.abs(m.MG - MGm) < 2))) continue;
+          CAS = { M, oks, best: oks.reduce((x, y) => (M[y].wc > M[x].wc ? y : x)) };
+        }
+      }
+      if (!CAS) {   // réglage de secours, vérifié
+        T1 = 0.8; T2 = 0.02; a = 0.02; Km = 120; Ka = 2.4; MGm = 10; Mpm = 45;
+        const mk = (K, T) => { const mod = (w) => K * Ka * Math.hypot(1, T * w) / (w * Math.hypot(1, T1 * w) * Math.hypot(1, T2 * w)), ph = (w) => -90 + deg(Math.atan(T * w) - Math.atan(T1 * w) - Math.atan(T2 * w)); const wc = solve((w) => Math.log(mod(w)), 1e-4, 1e6); let w180 = null; for (let i = 1; i <= 600; i++) { const w = 1e-3 * 1e8 ** (i / 600); if (ph(w) < -180) { w180 = solve((x) => ph(x) + 180, 1e-3 * 1e8 ** ((i - 1) / 600), w); break; } } return { K, T, mod, ph, wc, Mp: 180 + ph(wc), MG: w180 ? -20 * Math.log10(mod(w180)) : Infinity, w180, stable: 180 + ph(wc) > 0 }; };
+        const M = [mk(40, 0.0067), mk(4, 0.04), mk(40, 0.2), mk(5, 0.8)]; M.forEach((m) => { m.ok = m.Mp >= Mpm && m.MG >= MGm; });
+        CAS = { M, oks: [2, 3], best: 2 };
+      }
+      const { M, oks, best } = CAS, L4 = ['1', '2', '3', '4'];
+      const Kr = pick([0.8, 1, 1.5, 2, 3]), Cr0 = pick([2, 3, 5, 8]), N0 = pick([1000, 1500, 2000, 2500, 3000]), RPMf = 30 / Math.PI, tr = r2(T2 * pick([0.2, 0.3]));
+      const wA = solve((w) => Math.log(Ka / (Math.hypot(1, T1 * w) * Math.hypot(1, T2 * w))), 1e-4, 1e6), MpA = 180 - deg(Math.atan(T1 * wA) + Math.atan(T2 * wA));
+      const dN0 = Kr * Cr0 / (1 + Ka) * RPMf;
+      const w45 = solve((w) => deg(Math.atan(T1 * w) + Math.atan(T2 * w)) - (180 - Mpm), 1e-4, 1e6), KP = Math.hypot(1, T1 * w45) * Math.hypot(1, T2 * w45) / Ka, KPR = r3(KP), dNP = Kr * Cr0 / (1 + KPR * Ka) * RPMf;
+      const Ks8 = pick([1, 2, 4, 5]), Ki8 = pick([2, 4, 5, 10, 20]), K8 = Ki8, T8 = Ks8 / Ki8;
+      const wb0 = 10 ** Math.floor(Math.log10(0.1 / T1)), wb1 = 10 ** Math.ceil(Math.log10(10 / T2));
+      const fHm = bodeMulti([(w) => [20 * Math.log10(Km / (Math.hypot(1, T1 * w) * Math.hypot(1, T2 * w))), -deg(Math.atan(T1 * w) + Math.atan(T2 * w))]], wb0, wb1, ['H<sub>m</sub>(p)'], 'diagramme de Bode du moteur');
+      const asy = (K, w) => { let g = K; if (w > 1 / T1) g /= T1 * w; if (w > 1 / T2) g /= T2 * w; return g; };
+      const fHa = bodeMulti([(w) => [20 * Math.log10(Km / (Math.hypot(1, T1 * w) * Math.hypot(1, T2 * w))), -deg(Math.atan(T1 * w) + Math.atan(T2 * w))], (w) => [20 * Math.log10(asy(Km, w)), -90 * ((w > 1 / T1) + (w > 1 / T2))], (w) => [20 * Math.log10(Ka / (Math.hypot(1, T1 * w) * Math.hypot(1, T2 * w))), -deg(Math.atan(T1 * w) + Math.atan(T2 * w))], (w) => [20 * Math.log10(asy(Ka, w)), -90 * ((w > 1 / T1) + (w > 1 / T2))]], wb0, wb1, ['H<sub>m</sub> réel', 'H<sub>m</sub> asymptotique', 'H<sub>a</sub> réel', 'H<sub>a</sub> asymptotique'], 'diagrammes de Bode du moteur et de la boucle ouverte non corrigée');
+      const fHa1 = bodeMulti([(w) => [20 * Math.log10(Ka / (Math.hypot(1, T1 * w) * Math.hypot(1, T2 * w))), -deg(Math.atan(T1 * w) + Math.atan(T2 * w))]], wb0, wb1, ['H<sub>a</sub>(p)'], 'diagramme de Bode de la boucle ouverte non corrigée');
+      const fC = bodeMulti([(w) => [20 * Math.log10(K8 * Math.hypot(1, T8 * w) / w), -90 + deg(Math.atan(T8 * w))], (w) => [20 * Math.log10(w < 1 / T8 ? K8 / w : K8 * T8), w < 1 / T8 ? -90 : 0]], 10 ** Math.floor(Math.log10(0.1 / T8)), 10 ** Math.ceil(Math.log10(10 / T8)), ['réel', 'asymptotique'], 'diagramme de Bode du correcteur PI');
+      const f11 = bodeMulti(M.map((m) => (w) => [20 * Math.log10(m.mod(w)), m.ph(w)]), wb0, wb1, M.map((m, i) => `cas ${i + 1} : K = ${fmt(m.K)}, T = ${fmt(m.T)} s`), 'boucle ouverte corrigée par le PI, quatre réglages');
+      const stables = M.map((m, i) => (m.stable ? L4[i] : null)).filter(Boolean), ensemble = (L) => (L.length ? L.join(', ') : 'aucun');
+      const autres = (bon, n) => { const S0 = new Set([bon]); const R = [bon]; for (let e = 0; e < 60 && R.length < n; e++) { const sub = L4.filter(() => Math.random() < 0.5); const t = ensemble(sub); if (!S0.has(t)) { S0.add(t); R.push(t); } } return R; };
+      const intro = `<p>La broche d’un tour à commande numérique fait tourner la pièce à usiner. Sa vitesse est asservie : quand l’outil attaque la pièce, le couple de coupe C<sub>r</sub> freine la broche, et la vitesse ne doit pas en garder la trace.</p>
+        ${tableau([['Moteur', `H<sub>m</sub>(p) = ${fmt(Km)}/((1 + ${fmt(T1)}p)(1 + ${fmt(T2)}p)), en rad·s⁻¹/V`], ['Perturbation', `H<sub>r</sub>(p) = K<sub>r</sub>(1 + ${fmt(tr)}p)/((1 + ${fmt(T1)}p)(1 + ${fmt(T2)}p)), K<sub>r</sub> = ${fmt(Kr)} rad·s⁻¹/(N·m)`], ['Capteur', `a = ${fmt(a)} V·s/rad`], ['Exigences', `marge de gain d’au moins ${MGm} dB, marge de phase d’au moins ${Mpm}° ; vitesse insensible à un couple de coupe en échelon`]])}`;
+      const qs = [
+        { t: 'La boucle ouverte non corrigée', pour: ['Q1'], fig: boucleBroche(),
+          text: 'Sans perturbation et avec C(p) = 1, exprimer la fonction de transfert en boucle ouverte H<sub>a</sub>(p) en fonction de H<sub>m</sub>(p), puis donner son gain statique.',
+          fields: [choix('H<sub>a</sub>(p) =', ['a·H<sub>m</sub>(p)', 'H<sub>m</sub>(p)/(1 + a·H<sub>m</sub>(p))', 'H<sub>m</sub>(p)/a', 'a·H<sub>m</sub>(p)/(1 + a·H<sub>m</sub>(p))']), { l: 'Gain statique de H<sub>a</sub>', u: '', a: Ka, tol: .02 }],
+          hint: 'La boucle ouverte : on coupe le retour juste avant le comparateur et on fait le produit des blocs rencontrés.',
+          corr: pas(['Boucle ouverte : V(p)/ε(p) = C(p)·H<sub>m</sub>(p)·a, avec C = 1 : <b>H<sub>a</sub>(p) = a·H<sub>m</sub>(p)</b>.', `H<sub>a</sub>(p) = ${fr(`${fmt(a)} × ${fmt(Km)}`, `(1 + ${fmt(T1)}p)(1 + ${fmt(T2)}p)`)} : gain statique <b>${f3(Ka)}</b>.`],
+            'la FTBO ne se divise jamais par 1 + … : c’est le produit des blocs de la chaîne directe et du retour.') },
+        { t: 'Les tracés asymptotiques', pour: ['Q2'], fig: fHm,
+          text: 'Le diagramme de Bode de H<sub>m</sub>(p) est tracé ci-dessous. Construire son diagramme asymptotique, puis celui de H<sub>a</sub>(p) : gain du palier de H<sub>m</sub>, pulsations de cassure, et décalage vertical qui fait passer de H<sub>m</sub> à H<sub>a</sub>.',
+          fields: [{ l: 'Palier de H<sub>m</sub>', u: 'dB', a: 20 * Math.log10(Km), abs: .5 }, { l: 'Première cassure', u: 'rad/s', a: 1 / T1, tol: .02 }, { l: 'Seconde cassure', u: 'rad/s', a: 1 / T2, tol: .02 }, { l: 'Décalage de H<sub>m</sub> à H<sub>a</sub>', u: 'dB', a: 20 * Math.log10(a), abs: .5 }],
+          hint: 'Palier : 20·log du gain statique. Cassures : 1/T. Multiplier par a ajoute 20·log a à toutes les pulsations, sans changer la phase.',
+          corr: pas([`Palier : 20·log ${fmt(Km)} = <b>${f3(20 * Math.log10(Km))} dB</b>, puis −20 dB/décade après <b>${f3(1 / T1)} rad/s</b> et −40 dB/décade après <b>${f3(1 / T2)} rad/s</b> ; phase asymptotique 0°, −90°, −180°.`,
+            `H<sub>a</sub> = a·H<sub>m</sub> : même allure, décalée de 20·log ${fmt(a)} = <b>${f3(20 * Math.log10(a))} dB</b> ; même phase.<div class="fig">${fHa}</div>`],
+            'un gain en facteur translate la courbe de gain et laisse la phase intacte.') },
+        { t: 'Les marges sans correction', pour: ['Q3'], fig: fHa1,
+          text: 'Déterminer graphiquement les marges de gain et de phase de H<sub>a</sub>. La stabilité est-elle suffisante au regard des exigences ?',
+          fields: [choix('Marge de gain', ['infinie : la phase n’atteint jamais −180°', `environ ${MGm} dB`, 'nulle']), { l: 'M<sub>φ</sub>', u: '°', a: MpA, abs: 4 }, choix('Stabilité', MpA >= Mpm ? ['suffisante', 'insuffisante'] : ['insuffisante', 'suffisante'])],
+          hint: 'Chercher la pulsation où le gain passe 0 dB, et y lire la phase.',
+          corr: pas(['Deuxième ordre : la phase tend vers −180° sans l’atteindre : <b>marge de gain infinie</b>.', `Le gain passe 0 dB vers ${f3(wA)} rad/s, où la phase vaut ${f3(MpA - 180)}° : <b>M<sub>φ</sub> ≈ ${f3(MpA)}°</b>.`, `Exigences (${MGm} dB, ${Mpm}°) : stabilité <b>${MpA >= Mpm ? 'suffisante' : 'insuffisante'}</b>.`],
+            'marge de phase : la phase lue là où le gain vaut 0 dB, comptée depuis −180°.') },
+        { t: 'Le couple de coupe, sans correction', pour: ['Q4'], fig: boucleBroche(), rappel: `On prendra a·H<sub>m</sub>(0) = ${f3(Ka)} et K<sub>r</sub> = ${fmt(Kr)} rad·s⁻¹/(N·m).`,
+          text: `La broche tourne à N<sub>0</sub> = ${N0} tr/min quand l’outil attaque la pièce : couple de coupe en échelon de ${fmt(Cr0)} N·m, qui freine. De combien la vitesse baisse-t-elle en régime permanent ? L’exigence est-elle vérifiée ?`,
+          fields: [{ l: 'ΔN', u: 'tr/min', a: dN0, tol: .03 }, choix('Exigence', ['non vérifiée : la vitesse garde un écart', 'vérifiée'])],
+          hint: 'Ω = H<sub>m</sub>·C·(U<sub>c</sub> − aΩ) + H<sub>r</sub>·C<sub>r</sub> : isoler la part due à C<sub>r</sub>, puis faire p → 0 ; convertir en tr/min (× 30/π).',
+          corr: pas([`Part due à la perturbation : Ω<sub>r</sub>(p) = ${fr('H<sub>r</sub>(p)', '1 + a·H<sub>m</sub>(p)')}·C<sub>r</sub>(p).`, `En régime permanent : ΔΩ = ${fr('K<sub>r</sub>·C<sub>r0</sub>', '1 + a·K<sub>m</sub>')} = ${fr(`${fmt(Kr)} × ${fmt(Cr0)}`, f3(1 + Ka))} = ${f3(Kr * Cr0 / (1 + Ka))} rad/s, soit <b>ΔN ≈ ${f3(dN0)} tr/min</b>.`, 'Écart non nul : <b>exigence non vérifiée</b>.'],
+            'une perturbation n’est rejetée exactement que s’il y a un intégrateur entre l’écart et le point où elle entre.') },
+        { t: 'Avec un correcteur proportionnel', pour: ['Q5'], fig: '',
+          text: 'On prend C(p) = K<sub>P</sub>. Quelle est la fonction de transfert en boucle ouverte corrigée H<sub>b</sub>(p) ?',
+          fields: [choix('H<sub>b</sub>(p) =', [`K<sub>P</sub>·${f3(Ka)}/((1 + ${fmt(T1)}p)(1 + ${fmt(T2)}p))`, `${f3(Ka)}/(K<sub>P</sub>(1 + ${fmt(T1)}p)(1 + ${fmt(T2)}p))`, `K<sub>P</sub>·${f3(Ka)}/(p(1 + ${fmt(T1)}p)(1 + ${fmt(T2)}p))`, `K<sub>P</sub>·${f3(Ka)}/(1 + K<sub>P</sub>·${f3(Ka)})`])],
+          hint: 'Le correcteur se met en série : il multiplie la boucle ouverte.',
+          corr: pas([`H<sub>b</sub>(p) = K<sub>P</sub>·H<sub>a</sub>(p) = <b>K<sub>P</sub>·${f3(Ka)}/((1 + ${fmt(T1)}p)(1 + ${fmt(T2)}p))</b>.`], 'un correcteur proportionnel multiplie la FTBO : sur Bode, il translate le gain.') },
+        { t: 'Le gain pour la marge de phase', pour: ['Q6'], fig: fHa1, rappel: `Exigence : marge de phase d’au moins ${Mpm}°.`,
+          text: `Évaluer K<sub>P</sub> pour que la marge de phase soit voisine de ${Mpm}°. Que vaut alors la marge de gain ?`,
+          fields: [{ l: 'K<sub>P</sub>', u: '', a: KP, tol: .06 }, choix('Marge de gain', ['infinie', `${MGm} dB`, 'nulle'])],
+          hint: `Chercher la pulsation où la phase vaut ${Mpm - 180}° ; K<sub>P</sub> doit y ramener le gain à 0 dB.`,
+          corr: pas([`Phase de H<sub>a</sub> = ${Mpm - 180}° pour ω ≈ ${f3(w45)} rad/s, où |H<sub>a</sub>| = ${f3(1 / KP)} (${f3(-20 * Math.log10(KP))} dB).`, `Pour y couper 0 dB : <b>K<sub>P</sub> = ${f3(KP)}</b>.`, 'La phase ne passe toujours pas −180° : <b>marge de gain infinie</b>.'],
+            'régler un gain pour une marge de phase : lire où la phase vaut −180° + M<sub>φ</sub>, et remonter le gain jusqu’à 0 dB à cet endroit.') },
+        { t: 'Le couple de coupe, avec le gain', pour: ['Q7'], fig: '', rappel: `On prendra K<sub>P</sub> = ${f3(KPR)}.`,
+          text: 'Avec ce correcteur proportionnel, de combien la vitesse baisse-t-elle sous le même couple de coupe ? Ce correcteur suffit-il ?',
+          fields: [{ l: 'ΔN', u: 'tr/min', a: dNP, tol: .03 }, choix('Ce correcteur', ['ne suffit pas : l’écart diminue mais ne s’annule pas', 'suffit : l’écart est nul', 'aggrave l’écart'])],
+          hint: 'Même calcul, avec K<sub>P</sub>·a·K<sub>m</sub> au dénominateur.',
+          corr: pas([`ΔΩ = ${fr('K<sub>r</sub>·C<sub>r0</sub>', '1 + K<sub>P</sub>·a·K<sub>m</sub>')} = ${fr(`${fmt(Kr)} × ${fmt(Cr0)}`, f3(1 + KPR * Ka))} rad/s, soit <b>ΔN ≈ ${f3(dNP)} tr/min</b>.`, 'Plus petit qu’avant, mais <b>pas nul</b> : un gain ne suffit pas, il faut un intégrateur.'],
+            'un gain divise l’effet de la perturbation par 1 + K<sub>BO</sub> ; seul un intégrateur l’annule.') },
+        { t: 'Le PI en parallèle', pour: ['Q8'], fig: piParallele(Ks8, Ki8),
+          text: `Un gain proportionnel K* = ${fmt(Ks8)} et un intégrateur de gain K<sub>i</sub> = ${fmt(Ki8)} s⁻¹ sont placés en parallèle (schéma). Mettre le correcteur sous la forme C(p) = K·(1 + T·p)/p : que valent K et T ?`,
+          fields: [{ l: 'K', u: 's⁻¹', a: K8, tol: .02 }, { l: 'T', u: 's', a: T8, tol: .02 }],
+          hint: 'Sommer les deux branches sur le même dénominateur p.',
+          corr: pas([`C(p) = K* + ${fr('K<sub>i</sub>', 'p')} = ${fr('K<sub>i</sub> + K*·p', 'p')} = K<sub>i</sub>·${fr('1 + (K*/K<sub>i</sub>)·p', 'p')}.`, `<b>K = K<sub>i</sub> = ${fmt(K8)} s⁻¹</b> et <b>T = K*/K<sub>i</sub> = ${f3(T8)} s</b>.`],
+            'un PI, c’est un intégrateur et un gain en parallèle : le zéro est en K<sub>i</sub>/K*.') },
+        { t: 'Le Bode du correcteur', pour: ['Q9'], fig: '', rappel: `C(p) = ${fmt(K8)}·(1 + ${f3(T8)}·p)/p.`,
+          text: 'Construire le diagramme de Bode de ce correcteur seul : pentes des asymptotes, pulsation de cassure, gain et phase réels à cette pulsation.',
+          fields: [choix('Pentes', ['−20 dB/décade, puis 0', '0, puis +20 dB/décade', '−20, puis −40 dB/décade', '+20 dB/décade, puis 0']), { l: 'Pulsation de cassure', u: 'rad/s', a: 1 / T8, tol: .02 }, { l: 'Gain à la cassure', u: 'dB', a: 20 * Math.log10(K8 * T8 * Math.SQRT2), abs: .5 }, { l: 'Phase à la cassure', u: '°', a: -45, abs: 1 }],
+          hint: 'Avant 1/T, l’intégrateur domine ; après, le gain se stabilise à K·T. À la cassure, le réel est 3 dB au-dessus du coin des asymptotes.',
+          corr: pas([`Avant ω = 1/T = <b>${f3(1 / T8)} rad/s</b> : K/ω, pente −20 dB/décade, phase −90°. Après : palier à 20·log(K·T) = ${f3(20 * Math.log10(K8 * T8))} dB, phase qui remonte vers 0°.`, `À la cassure : gain réel 20·log(K·T·√2) = <b>${f3(20 * Math.log10(K8 * T8 * Math.SQRT2))} dB</b> (3 dB au-dessus des asymptotes), phase <b>−45°</b>.<div class="fig">${fC}</div>`],
+            'le PI : un intégrateur aux basses pulsations (précision), un simple gain aux hautes (il ne retarde presque plus la phase).') },
+        { t: 'La boucle ouverte avec le PI', pour: ['Q10'], fig: '',
+          text: 'Donner l’expression de la boucle ouverte corrigée H<sub>c</sub>(p), puis son gain avec le correcteur de la question précédente.',
+          fields: [choix('H<sub>c</sub>(p) =', [`K·(1 + T·p)·${f3(Ka)}/(p·(1 + ${fmt(T1)}p)(1 + ${fmt(T2)}p))`, `K·(1 + T·p)·${f3(Ka)}/((1 + ${fmt(T1)}p)(1 + ${fmt(T2)}p))`, `K·${f3(Ka)}/(p·(1 + T·p)(1 + ${fmt(T1)}p)(1 + ${fmt(T2)}p))`, `K·p·${f3(Ka)}/((1 + T·p)(1 + ${fmt(T1)}p)(1 + ${fmt(T2)}p))`]), { l: 'Gain K·a·K<sub>m</sub>', u: 's⁻¹', a: K8 * Ka, tol: .02 }],
+          hint: 'Produit du correcteur et de H<sub>a</sub>.',
+          corr: pas([`H<sub>c</sub>(p) = C(p)·H<sub>a</sub>(p) = <b>K·(1 + T·p)·${f3(Ka)}/(p·(1 + ${fmt(T1)}p)(1 + ${fmt(T2)}p))</b> : classe 1, un zéro, trois pôles.`, `Gain : ${fmt(K8)} × ${f3(Ka)} = <b>${f3(K8 * Ka)} s⁻¹</b>.`],
+            'le PI fait passer la boucle en classe 1 et ajoute un zéro.') },
+        { t: 'Quatre réglages, critère du revers', pour: ['Q11'], fig: f11,
+          text: 'Les diagrammes de Bode de H<sub>c</sub> sont tracés pour quatre réglages (K, T). Pour chacun, évaluer la marge de phase ; donner la marge de gain du cas 1 (elle est infinie pour les autres) ; dire quels cas sont stables en boucle fermée selon le critère du revers.',
+          fields: M.map((m, i) => ({ l: `M<sub>φ</sub>, cas ${i + 1}`, u: '°', a: m.Mp, abs: 4 })).concat([{ l: 'M<sub>G</sub>, cas 1', u: 'dB', a: M[0].MG, abs: 2 }, choix('Cas stables', autres(ensemble(stables), 4))]),
+          hint: 'Revers : à la pulsation où le gain passe 0 dB, la phase doit être au-dessus de −180°. Une marge négative signale un cas instable.',
+          corr: pas(M.map((m, i) => `Cas ${i + 1} (K = ${fmt(m.K)}, T = ${fmt(m.T)} s) : coupure vers ${f3(m.wc)} rad/s, <b>M<sub>φ</sub> ≈ ${f3(m.Mp)}°</b>, M<sub>G</sub> ${isFinite(m.MG) ? `≈ <b>${f3(m.MG)} dB</b>` : 'infinie'} : <b>${m.stable ? 'stable' : 'instable'}</b>.`).concat([`Cas 1 : T plus petit que ${fmt(T2)} s, le zéro arrive trop tard pour relever la phase, qui passe sous −180° ; les autres phases restent au-dessus.`]),
+            'critère du revers : stable si, quand le gain passe 0 dB, la phase n’a pas encore atteint −180°.') },
+        { t: 'Le meilleur réglage', pour: ['Q12'], fig: f11, rappel: `Exigences : marge de gain ≥ ${MGm} dB, marge de phase ≥ ${Mpm}°.`,
+          text: 'Quels cas respectent les marges exigées ? Parmi eux, lequel est le plus rapide ?',
+          fields: [choix('Cas qui respectent les marges', autres(ensemble(oks.map((i) => L4[i])), 4)), choix('Le plus rapide', [`le cas ${best + 1}`].concat(L4.filter((x, i) => i !== best).map((x) => `le cas ${x}`)))],
+          hint: 'Comparer chaque marge aux exigences. À marges suffisantes, le plus rapide est celui qui coupe 0 dB à la plus haute pulsation.',
+          corr: pas([`${M.map((m, i) => `cas ${i + 1} : ${m.ok ? 'oui' : 'non'}`).join(' ; ')} : <b>${ensemble(oks.map((i) => L4[i]))}</b>.`, `La rapidité suit la pulsation de coupure : ${oks.map((i) => `cas ${i + 1} ≈ ${f3(M[i].wc)} rad/s`).join(', ')} : <b>le cas ${best + 1}</b> est le plus rapide.`],
+            'à stabilité suffisante, la pulsation de coupure la plus élevée donne la boucle la plus rapide.') },
+        { t: 'Et le couple de coupe ?', pour: ['Q13'], fig: boucleBroche(),
+          text: 'Avec le correcteur proportionnel intégral, la vitesse est-elle encore sensible à un couple de coupe en échelon ?',
+          fields: [choix('Réponse', ['non : l’intégrateur du PI est en amont du point où entre la perturbation ; en régime permanent, ΔN = 0', 'oui : l’écart est seulement divisé par 1 + K', 'oui : un PI ne change rien à la perturbation', 'non, mais seulement si T = T<sub>1</sub>'])],
+          hint: 'Refaire le calcul de ΔN avec C(p) = K(1 + Tp)/p et faire p → 0.',
+          corr: pas([`ΔΩ = ${fr('H<sub>r</sub>(p)·C<sub>r</sub>(p)', '1 + C(p)·a·H<sub>m</sub>(p)')} ; quand p → 0, C(p) → ∞ (intégrateur) : le dénominateur devient infini.`, 'En régime permanent, <b>ΔN = 0</b> : la vitesse est insensible au couple de coupe en échelon.'],
+            'pour rejeter une perturbation en échelon, l’intégrateur doit se trouver entre l’écart et le point où elle entre.') },
+      ];
+      return { intro, qs };
+    } };
+
+  /* =====================================================================
+     Cycle 2 · TD 7 — sur un autre système : le siège à suspension active d'un engin de chantier
+     forme canonique avec une boucle interne, boucle ouverte non corrigée, lecture d'un Bode, classe du
+     correcteur pour la précision, double intégrateur (marges, gain pour la coupure), avance de phase
+     ===================================================================== */
+  function boucleSiege() {
+    let c = S.ar(6, 62, 60, 'V*c') + S.som(76, 60, '+−') + S.ar(90, 120, 60, 'ε') + S.box(120, 38, 'C(p)', 56) + S.ar(176, 222, 60, 'I(p)') + S.box(222, 38, 'Hs(p)', 64) + S.ar(286, 336, 60, 'F(p)') + S.som(350, 60, '+−') + S.ar(364, 392, 60, '') + S.box(392, 38, 'Hz(p)', 64) + S.ar(456, 480, 60, '') + S.box(480, 38, '1/p', 44) + S.ar(524, 640, 60, '') + S.t(612, 48, 'V*(p)');
+    c += S.pt(560, 60) + S.li(560, 60, 560, 112) + S.li(560, 112, 470, 112) + Sg(462, 112) + S.box(422, 90, 'λ', 40) + S.li(422, 112, 350, 112) + S.li(350, 112, 350, 82) + S.up(350, 74);
+    c += S.pt(590, 60) + S.li(590, 60, 590, 160) + S.li(590, 160, 76, 160) + S.li(76, 160, 76, 82) + S.up(76, 74);
+    return S.svg(646, 176, 'asservissement du siège : consigne de vitesse, comparateur, correcteur C(p), courant, vérin Hs(p), force, comparateur avec l’amortisseur passif λ, Hz(p), intégration 1/p, vitesse du siège, retour unitaire', c);
+  }
+  const figAvance = () => plot({ x0: 1, x1: 20, dx: 0.5, xmaj: 2, y0: 0, y1: 70, dy: 5, ymaj: 2, curves: [{ pts: Array.from({ length: 191 }, (_, i) => { const m = 1 + i * 0.1; return [m, deg(Math.asin((m - 1) / (m + 1)))]; }) }], xl: 'μ', yl: 'φmax (°)', alt: 'avance de phase maximale apportée par (1 + μTp)/(1 + Tp) en fonction de μ' })
+    + '<p class="pp-leg">Le terme (1 + μT·p)/(1 + T·p) apporte au plus φ<sub>max</sub>, à la pulsation 1/(T√μ), où son gain vaut √μ.</p>';
+  J['c2-td7'] = { titre: 'Le siège à suspension active d’un engin de chantier', sys: 'forme canonique avec une boucle interne, Bode, classe du correcteur, double intégrateur, avance de phase', min: 45,
+    gen() {
+      let m = 120, wz = 5, k = 3000, xz = 0.05, lam = 600, xi = 0.6, Ks = 500, Ts = 0.01, wr = 5, Mpr = 45, MGr = 6, trouve = false;
+      const argD = (w) => deg(Math.atan2(2 * xi * w / wz, 1 - (w / wz) ** 2)), modD = (w) => Math.hypot(1 - (w / wz) ** 2, 2 * xi * w / wz);
+      const ol1 = (w) => Ks / k / (w * Math.hypot(1, Ts * w) * modD(w)), ph1 = (w) => -90 - deg(Math.atan(Ts * w)) - argD(w);
+      let M0 = 0, mu = 4, T = 0.1, Kp = 1, MGf = 10;
+      for (let e = 0; e < 400 && !trouve; e++) {
+        m = pick([100, 120, 150]); wz = pick([4, 5, 6, 8]); k = m * wz * wz; xz = pick([0.05, 0.1]);
+        lam = r2(2 * (pick([0.4, 0.5, 0.6, 0.8, 1]) - xz) * Math.sqrt(k * m)); xi = xz + lam / (2 * Math.sqrt(k * m));
+        Ks = pick([200, 400, 500, 800]); Ts = pick([0.005, 0.01, 0.02]); wr = pick([3, 4, 5, 6, 8, 10]); Mpr = pick([45, 50]); MGr = pick([6, 8]);
+        if (wr / wz < 0.9 || wr / wz > 1.6) continue;
+        M0 = 180 + ph1(wr);
+        if (M0 < -25 || M0 > 20) continue;
+        mu = (1 + Math.sin(rad(Mpr - M0))) / (1 - Math.sin(rad(Mpr - M0)));
+        if (mu > 20) continue;
+        T = 1 / (wr * Math.sqrt(mu)); Kp = 1 / (Math.sqrt(mu) * ol1(wr));
+        const ph = (w) => ph1(w) + deg(Math.atan(mu * T * w) - Math.atan(T * w)), mod = (w) => Kp * ol1(w) * Math.hypot(1, mu * T * w) / Math.hypot(1, T * w);
+        let w180 = null;
+        for (let i = 1; i <= 800; i++) { const w = wr * 1000 ** (i / 800); if (ph(w) < -180) { w180 = solve((x) => ph(x) + 180, wr * 1000 ** ((i - 1) / 800), w); break; } }
+        MGf = w180 ? -20 * Math.log10(mod(w180)) : Infinity;
+        if (MGf >= MGr + 1) trouve = true;
+      }
+      if (!trouve) { m = 100; wz = 8; k = 6400; xz = 0.1; lam = 800; xi = xz + lam / (2 * Math.sqrt(k * m)); Ks = 800; Ts = 0.01; wr = 8; Mpr = 45; MGr = 6; M0 = 180 + ph1(wr); mu = (1 + Math.sin(rad(Mpr - M0))) / (1 - Math.sin(rad(Mpr - M0))); T = 1 / (wr * Math.sqrt(mu)); Kp = 1 / (Math.sqrt(mu) * ol1(wr)); MGf = 8.4; }
+      const Kz = 1 / k, KBO = Ks * Kz, KpW = 1 / ol1(wr);
+      const wc1 = solve((w) => Math.log(ol1(w)), 1e-4, 1e6), Mp1 = 180 + ph1(wc1);
+      const w180a = solve((w) => ph1(w) + 180, Math.min(wz, 1 / Ts) / 100, 1e6), MG1 = -20 * Math.log10(ol1(w180a));
+      const fm = Mpr - M0, muR = r3(mu);
+      const wb0 = 10 ** (Math.floor(Math.log10(wz)) - 2), wb1 = 10 ** Math.ceil(Math.log10(3 / Ts));
+      const figHF = bodeMulti([(w) => [20 * Math.log10(Kz * w / modD(w)), 90 - argD(w)]], wb0, wb1, ['H<sub>F</sub>(p)'], 'diagramme de Bode de la vitesse du siège sous l’effet de la force du vérin');
+      const fig5 = bodeMulti([(w) => [20 * Math.log10(ol1(w)), ph1(w)]], wb0, wb1, ['C(p) = 1/p²'], 'diagramme de Bode de la boucle ouverte avec C(p) = 1/p²');
+      const intro = `<p>Pour protéger le dos du conducteur, le siège d’un engin de chantier est monté sur une suspension active : un vérin électrique, dont la force est commandée par un courant, travaille en parallèle d’un amortisseur passif. On règle le correcteur de la boucle qui asservit la vitesse verticale v* du siège.</p>
+        ${tableau([['Vérin', `H<sub>s</sub>(p) = K<sub>s</sub>/(1 + T<sub>s</sub>p), K<sub>s</sub> = ${Ks} N/A, T<sub>s</sub> = ${fmt(Ts)} s`], ['Siège et conducteur', `H<sub>z</sub>(p) = K<sub>z</sub>p²/(1 + (2ξ<sub>z</sub>/ω<sub>z</sub>)p + p²/ω<sub>z</sub>²) de la force à l’accélération, avec K<sub>z</sub> = 1/k : masse ${m} kg, raideur k = ${fmt(k)} N/m, ξ<sub>z</sub> = ${fmt(xz)}`], ['Amortisseur passif', `λ = ${fmt(lam)} N·s/m, en retour de la vitesse`], ['Exigences', `erreur statique nulle ; pulsation de coupure à 0 dB : ${wr} rad/s ; marge de gain d’au moins ${MGr} dB ; marge de phase d’au moins ${Mpr}°`]])}`;
+      const qs = [
+        { t: 'La forme canonique', pour: ['Q1'], fig: boucleSiege(),
+          text: 'Déterminer la forme canonique de H<sub>F</sub>(p) = V*(p)/F(p), la vitesse du siège sous l’effet de la force du vérin (boucle de l’amortisseur passif comprise) : son gain, sa pulsation propre et son amortissement.',
+          fields: [{ l: 'K (gain devant p)', u: 'm/N', a: Kz, tol: .02 }, { l: 'ω<sub>0</sub>', u: 'rad/s', a: wz, tol: .02 }, { l: 'ξ', u: '', a: xi, tol: .03 }],
+          hint: 'H<sub>z</sub>(p)/p vaut K<sub>z</sub>p/D(p) ; la boucle de l’amortisseur donne H<sub>F</sub> = (K<sub>z</sub>p/D)/(1 + λK<sub>z</sub>p/D). Identifier ensuite le terme en p du dénominateur.',
+          corr: pas([`ω<sub>z</sub> = √(k/m) = √(${fmt(k)}/${m}) = ${fmt(wz)} rad/s ; H<sub>z</sub>(p)/p = K<sub>z</sub>p/D(p), D(p) = 1 + (2ξ<sub>z</sub>/ω<sub>z</sub>)p + p²/ω<sub>z</sub>².`,
+            `H<sub>F</sub>(p) = ${fr('K<sub>z</sub>p', 'D(p) + λK<sub>z</sub>p')} = ${fr('K<sub>z</sub>·p', '1 + (2ξ<sub>z</sub>/ω<sub>z</sub> + λK<sub>z</sub>)·p + p²/ω<sub>z</sub>²')}.`,
+            `Gain <b>K<sub>z</sub> = 1/k = ${sci(Kz)} m/N</b>, <b>ω<sub>0</sub> = ω<sub>z</sub> = ${fmt(wz)} rad/s</b>, et 2ξ/ω<sub>z</sub> = 2ξ<sub>z</sub>/ω<sub>z</sub> + λK<sub>z</sub> : <b>ξ = ξ<sub>z</sub> + λK<sub>z</sub>ω<sub>z</sub>/2 = ${f3(xi)}</b>.`],
+            'une boucle interne de retour sur la vitesse ne change ni le gain ni la pulsation propre ici : elle ajoute de l’amortissement.') },
+        { t: 'La boucle ouverte non corrigée', pour: ['Q2'], fig: boucleSiege(), rappel: `On prendra H<sub>F</sub>(p) = ${sci(Kz)}·p/(1 + ${f3(2 * xi / wz)}p + p²/${fmt(wz * wz)}).`,
+          text: 'Déterminer, sous forme canonique, la boucle ouverte non corrigée H<sub>BONC</sub>(p) (C(p) = 1). Que vaut son gain ?',
+          fields: [choix('Forme', ['K·p/((1 + T<sub>s</sub>p)(1 + (2ξ/ω<sub>0</sub>)p + p²/ω<sub>0</sub>²))', 'K/(p(1 + T<sub>s</sub>p)(1 + (2ξ/ω<sub>0</sub>)p + p²/ω<sub>0</sub>²))', 'K·p/(1 + K·p)', 'K/((1 + T<sub>s</sub>p)(1 + (2ξ/ω<sub>0</sub>)p + p²/ω<sub>0</sub>²))']), { l: 'K = K<sub>s</sub>·K<sub>z</sub>', u: 'm/A', a: KBO, tol: .02 }],
+          hint: 'Produit du vérin et de H<sub>F</sub> (le retour unitaire de la boucle principale n’ajoute rien à la boucle ouverte).',
+          corr: pas([`H<sub>BONC</sub>(p) = H<sub>s</sub>(p)·H<sub>F</sub>(p) = ${fr('K<sub>s</sub>K<sub>z</sub>·p', '(1 + T<sub>s</sub>p)(1 + (2ξ/ω<sub>0</sub>)p + p²/ω<sub>0</sub>²)')}.`, `K = ${Ks} × ${sci(Kz)} = <b>${sci(KBO)} m/A</b>. Le p au numérateur : une « classe −1 ».`],
+            'un p au numérateur de la boucle ouverte : aux basses pulsations, le gain monte à +20 dB/décade.') },
+        { t: 'Lire le Bode', pour: ['Q3'], fig: figHF,
+          text: 'Le diagramme de Bode de H<sub>F</sub>(p) est tracé. Justifier sa forme (asymptotes), y retrouver K<sub>z</sub> et ω<sub>z</sub>, puis donner le gain de l’asymptote de basse pulsation de H<sub>BONC</sub> à ω = 1 rad/s.',
+          fields: [choix('Asymptotes du gain', ['+20 dB/décade, puis −20 dB/décade après ω<sub>z</sub>', '−20 dB/décade, puis −60 dB/décade', '0, puis −40 dB/décade', '+20 dB/décade, puis 0']), { l: 'K<sub>z</sub>', u: 'm/N', a: Kz, tol: .1 }, { l: 'ω<sub>z</sub>', u: 'rad/s', a: wz, tol: .1 }, { l: 'H<sub>BONC</sub> à 1 rad/s (asymptote)', u: 'dB', a: 20 * Math.log10(KBO), abs: 1 }],
+          hint: 'L’asymptote de basse pulsation vaut K<sub>z</sub>·ω : à ω = 1 rad/s, elle vaut 20·log K<sub>z</sub>. Les deux asymptotes se coupent à ω<sub>z</sub>. Pour H<sub>BONC</sub>, ajouter 20·log K<sub>s</sub>.',
+          corr: pas(['Aux basses pulsations, K<sub>z</sub>p : +20 dB/décade, phase +90° ; après ω<sub>z</sub>, le deuxième ordre retire 40 dB/décade : −20 dB/décade, phase vers −90°.',
+            `À ω = 1 rad/s, l’asymptote vaut 20·log K<sub>z</sub> = ${f3(20 * Math.log10(Kz))} dB : <b>K<sub>z</sub> = ${sci(Kz)} m/N</b>. Les asymptotes se coupent à <b>ω<sub>z</sub> = ${fmt(wz)} rad/s</b> (la phase y vaut 0°).`,
+            `H<sub>BONC</sub> : on ajoute 20·log K<sub>s</sub> = ${f3(20 * Math.log10(Ks))} dB, soit <b>${f3(20 * Math.log10(KBO))} dB</b> à 1 rad/s, et une cassure de plus à 1/T<sub>s</sub> = ${fmt(1 / Ts)} rad/s.`],
+            'un dérivateur se lit à sa pente de +20 dB/décade ; son gain, sur l’asymptote à ω = 1 rad/s.') },
+        { t: 'La classe du correcteur', pour: ['Q4'], fig: '',
+          text: 'Quelle doit être la classe minimale du correcteur pour garantir une erreur statique nulle en réponse à un échelon de consigne ?',
+          fields: [choix('Classe minimale', ['2 : la boucle ouverte a un p au numérateur ; il faut deux intégrateurs pour la ramener en classe 1', '1 : un intégrateur suffit toujours', '0 : la boucle est déjà précise', '3 : un intégrateur par pôle'])],
+          hint: 'Erreur nulle en échelon : la boucle ouverte doit être au moins de classe 1. Que vaut la classe de H<sub>BONC</sub> ?',
+          corr: pas(['H<sub>BONC</sub> a un p au numérateur : sa « classe » vaut −1.', 'Pour une erreur statique nulle en échelon, la boucle ouverte doit être de classe 1 au moins : il faut <b>deux intégrateurs</b> dans le correcteur, classe <b>2</b>.'],
+            'classe de la boucle ouverte = classe du correcteur + classe du procédé ; un dérivateur compte pour −1.') },
+        { t: 'Le double intégrateur', pour: ['Q5'], fig: fig5, rappel: `Diagramme tracé pour C(p) = 1/p² (K<sub>p</sub> = 1). Exigences : coupure à ${wr} rad/s, marges ${MGr} dB et ${Mpr}°.`,
+          text: `On prend C(p) = K<sub>p</sub>/p². Évaluer les marges pour K<sub>p</sub> = 1. Quelle valeur de K<sub>p</sub> place la coupure à ${wr} rad/s, et quelle marge de phase obtient-on alors ? Ce correcteur peut-il satisfaire toutes les exigences ?`,
+          fields: [{ l: 'M<sub>φ</sub> pour K<sub>p</sub> = 1', u: '°', a: Mp1, abs: 4 }, { l: 'M<sub>G</sub> pour K<sub>p</sub> = 1', u: 'dB', a: MG1, abs: 2 }, { l: 'K<sub>p</sub> pour la coupure', u: '', a: KpW, tol: .06 }, { l: `M<sub>φ</sub> à ${wr} rad/s`, u: '°', a: M0, abs: 3 },
+            choix('Ce correcteur', ['ne suffit pas : à la pulsation de coupure exigée, la marge de phase est trop faible', 'suffit : toutes les exigences sont tenues', 'ne suffit pas : l’erreur statique n’est pas nulle'])],
+          hint: 'Marges : lire la phase où le gain vaut 0 dB, et le gain où la phase vaut −180°. Pour la coupure, K<sub>p</sub> = 1/|H<sub>BO</sub>| à la pulsation voulue.',
+          corr: pas([`K<sub>p</sub> = 1 : coupure vers ${f3(wc1)} rad/s, phase ${f3(ph1(wc1))}° : <b>M<sub>φ</sub> ≈ ${f3(Mp1)}°</b> ; phase −180° vers ${f3(w180a)} rad/s, où le gain vaut ${f3(-MG1)} dB : <b>M<sub>G</sub> ≈ ${f3(MG1)} dB</b>.`,
+            `À ${wr} rad/s, le gain vaut ${f3(20 * Math.log10(ol1(wr)))} dB : <b>K<sub>p</sub> = ${f3(KpW)}</b> pour y couper 0 dB.`,
+            `La phase y vaut ${f3(ph1(wr))}° : <b>M<sub>φ</sub> ≈ ${f3(M0)}°</b>, loin des ${Mpr}° exigés : <b>ce correcteur ne suffit pas</b> ; il faut remonter la phase autour de ${wr} rad/s.`],
+            'un double intégrateur assure la précision mais retire 180° de phase : la stabilité ne suit plus.') },
+        { t: 'Le nom de l’action', pour: ['Q6'], fig: '',
+          text: 'On ajoute au correcteur le terme (1 + μT·p)/(1 + T·p), avec μ > 1. Comment se nomme cette action de correction ?',
+          fields: [choix('Action', ['une avance de phase', 'un retard de phase', 'une action intégrale', 'une action dérivée pure'])],
+          hint: 'Le zéro (pulsation 1/(μT)) arrive avant le pôle (1/T) : la phase monte puis redescend.',
+          corr: pas(['μ > 1 : le zéro, à 1/(μT), précède le pôle, à 1/T. Entre les deux, la phase du terme est positive : c’est une <b>avance de phase</b>.'], 'avance de phase : un zéro avant un pôle ; elle relève la phase là où on la place.') },
+        { t: 'Le coefficient μ', pour: ['Q7'], fig: figAvance(), rappel: `Marge de phase sans avance, à ${wr} rad/s : ${f3(M0)}° ; exigence : ${Mpr}°.`,
+          text: 'Quelle valeur donner à μ pour garantir la marge de phase exigée, l’avance étant placée à la pulsation de coupure ?',
+          fields: [{ l: 'μ', u: '', a: mu, tol: .05 }],
+          hint: 'Avance à apporter : la marge exigée moins la marge actuelle. Puis sin φ<sub>max</sub> = (μ − 1)/(μ + 1).',
+          corr: pas([`Avance à apporter : φ<sub>max</sub> = ${Mpr} − (${f3(M0)}) = ${f3(fm)}°.`, `sin φ<sub>max</sub> = ${fr('μ − 1', 'μ + 1')}, d’où μ = ${fr('1 + sin φ<sub>max</sub>', '1 − sin φ<sub>max</sub>')} = ${fr(`1 + ${f3(Math.sin(rad(fm)))}`, `1 − ${f3(Math.sin(rad(fm)))}`)} = <b>${f3(mu)}</b>.`],
+            'l’avance maximale ne dépend que de μ : sin φ<sub>max</sub> = (μ − 1)/(μ + 1).') },
+        { t: 'Les réglages T et K<sub>p</sub>'.replace(/<[^>]+>/g, ''), pour: ['Q8'], fig: '', rappel: `On prendra μ = ${f3(muR)} ; à ${wr} rad/s, |H<sub>BO</sub>| = ${sci(ol1(wr))} pour C(p) = 1/p².`,
+          text: `En déduire T, pour que l’avance maximale tombe à ${wr} rad/s, puis K<sub>p</sub>, pour que la boucle ouverte y coupe 0 dB.`,
+          fields: [{ l: 'T', u: 's', a: 1 / (wr * Math.sqrt(muR)), tol: .04 }, { l: 'K<sub>p</sub>', u: '', a: 1 / (Math.sqrt(muR) * ol1(wr)), tol: .05 }],
+          hint: 'L’avance est maximale à ω = 1/(T√μ) ; le terme y vaut √μ en gain.',
+          corr: pas([`1/(T√μ) = ${wr}, donc <b>T = 1/(${wr} × √${f3(muR)}) = ${f3(1 / (wr * Math.sqrt(muR)))} s</b>.`, `À ${wr} rad/s : K<sub>p</sub> × √μ × ${sci(ol1(wr))} = 1, donc <b>K<sub>p</sub> = ${f3(1 / (Math.sqrt(muR) * ol1(wr)))}</b>.`, `Vérification : la marge de gain obtenue vaut environ ${f3(MGf)} dB, au-dessus des ${MGr} dB exigés.`],
+            'on place l’avance au milieu (géométrique) de son zéro et de son pôle, là où l’on veut couper 0 dB ; le gain √μ qu’elle apporte s’y retranche du réglage de K<sub>p</sub>.') },
       ];
       return { intro, qs };
     } };
