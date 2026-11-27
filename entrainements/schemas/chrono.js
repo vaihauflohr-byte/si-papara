@@ -75,6 +75,10 @@
         ajouter({ k: "p:" + r, lib: r, sous: "porte (1 = fermée)", g: "ana", ty: "bin", lire: (E) => { const a = A(E, r); return a && a.porte != null ? !!a.porte : null; } });
       } else if (t === "station") ajouter({ k: "o:" + r, lib: r, sous: "niveau de la bâche", g: "ana", ty: "ana", min: 0, max: 1, fmt: (v) => nf(v * 100) + " %", lire: (E) => { const a = A(E, r); return a && a.niv != null ? a.niv : null; } });
     }
+    // la pince ampèremétrique, si on la pose : le courant qu'elle mesure (jusqu'à 6 In du plus gros moteur)
+    const In = (pc) => ((Number(((M && M.parametres(pc)) || {}).puissance) || 2.2) * 1000) / (Math.sqrt(3) * 400 * 0.8 * 0.82);
+    const imax = Math.max(1, ...pieces.filter((pc) => pc.type === "moteur" || pc.type === "moteur6").map((pc) => 6 * In(pc)));
+    ajouter({ k: "pince", lib: "Pince", sous: "courant mesuré par la pince", g: "ana", ty: "ana", auto: true, min: 0, max: imax, fmt: (v) => (v < 0.0995 ? nf(v * 1000) + " mA" : nf(v, 2) + " A"), lire: (E) => (E.pinceI != null ? E.pinceI : null) });
     const rang = (g) => GROUPES.findIndex((x) => x[0] === g);
     const nat = (a, b) => String(a).localeCompare(String(b), "fr", { numeric: true });
     const sorteApi = (p) => "iqx".indexOf(p.k[0]);   // automate : entrées, sorties, puis étapes

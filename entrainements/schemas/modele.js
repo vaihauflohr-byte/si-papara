@@ -88,9 +88,10 @@
   // Récepteurs
   def("electrovanne", { nom: "Électrovanne (bobine de distributeur)", court: "Électrovanne", cat: "rec", pref: "YV", p: { tension: "230~" }, boite: [-1.6, -3, 4.2, 3], bornes: () => deux("A1", "A2") });
   def("voyant", { nom: "Voyant", court: "Voyant", cat: "rec", pref: "H", p: { couleur: "vert", tension: "230~" }, boite: [-1.2, -3, 1.6, 3], bornes: () => deux("X1", "X2") });
-  def("moteur", { nom: "Moteur asynchrone triphasé", court: "Moteur M 3~", cat: "rec", pref: "M", boite: [-2.8, -4, 4.4, 3.4],
+  // puissance : la puissance utile (kW), pour le courant que mesure la pince (In ≈ P / (√3 · 400 V · 0,8 · 0,82))
+  def("moteur", { nom: "Moteur asynchrone triphasé", court: "Moteur M 3~", cat: "rec", pref: "M", p: { puissance: 2.2 }, boite: [-2.8, -4, 4.4, 3.4],
     bornes: () => [{ id: "U", x: -2, y: -4, d: "n", n: "U" }, { id: "V", x: 0, y: -4, d: "n", n: "V" }, { id: "W", x: 2, y: -4, d: "n", n: "W" }, { id: "PE", x: 4, y: -4, d: "n", n: "PE" }] });
-  def("moteur6", { nom: "Moteur 6 bornes (étoile-triangle)", court: "Moteur 6 bornes", cat: "rec", pref: "M", p: { plaque: "400/690" }, boite: [-2.8, -4, 4.4, 5],
+  def("moteur6", { nom: "Moteur 6 bornes (étoile-triangle)", court: "Moteur 6 bornes", cat: "rec", pref: "M", p: { plaque: "400/690", puissance: 2.2 }, boite: [-2.8, -4, 4.4, 5],
     bornes: () => [{ id: "U1", x: -2, y: -4, d: "n", n: "U1" }, { id: "V1", x: 0, y: -4, d: "n", n: "V1" }, { id: "W1", x: 2, y: -4, d: "n", n: "W1" },
       { id: "U2", x: -2, y: 5, d: "s", n: "U2" }, { id: "V2", x: 0, y: 5, d: "s", n: "V2" }, { id: "W2", x: 2, y: 5, d: "s", n: "W2" }, { id: "PE", x: 4, y: -4, d: "n", n: "PE" }] });
 

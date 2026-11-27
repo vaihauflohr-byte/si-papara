@@ -498,6 +498,18 @@
       const pc = pieceA(w, tac ? 7 : 2);
       if (pc) { e.preventDefault(); repondreLecture(pc); geste = { type: "rien" }; return; }
     }
+    if (sim && e.button !== 1 && outil === "pince") {
+      const pc = pieceA(w, tac ? 7 : 2);
+      if (pc && PINCE_APP.test(pc.type)) { e.preventDefault(); pince = { piece: pc.id }; majPince(true); dessiner(); geste = { type: "rien" }; return; }
+      const fh = filA(w, rayon(tac ? 14 : 7));
+      if (fh) {   // le point du fil le plus proche du clic, sur la grille
+        e.preventDefault();
+        const a = fh.f.pts[fh.i], b = fh.f.pts[fh.i + 1], gx = w[0] / G, gy = w[1] / G;
+        const x = a[0] === b[0] ? a[0] : Math.round(Math.max(Math.min(a[0], b[0]), Math.min(Math.max(a[0], b[0]), gx)));
+        const y = a[1] === b[1] ? a[1] : Math.round(Math.max(Math.min(a[1], b[1]), Math.min(Math.max(a[1], b[1]), gy)));
+        pince = { fil: fh.f.id, x, y }; majPince(true); dessiner(); geste = { type: "rien" }; return;
+      }
+    }
     if (sim && e.button !== 1 && outil === "volt") {
       const bo = borneA(w, rayon(tac ? 22 : 10));
       if (bo) { e.preventDefault(); poserSonde(bo.pc, bo.b); geste = { type: "rien" }; return; }
@@ -744,8 +756,8 @@
     if (sel.size) { sel.clear(); rendre(); majPanneau(); majBoutons(); }
   }
   function choisirOutil(o, item) {
-    if (sim && !/^(main|fleche|volt|designer)$/.test(o)) return;
-    if (!sim && (o === "volt" || o === "designer")) return;
+    if (sim && !/^(main|fleche|volt|designer|pince)$/.test(o)) return;
+    if (!sim && (o === "volt" || o === "designer" || o === "pince")) return;
     if (o === "panne" && (sim || !prep)) return;
     if (brouillon && !(o === "fil" && outil === "fil")) brouillon = null;
     outil = o; aPlacer = o === "placer" ? item : null;
@@ -754,6 +766,7 @@
     if (o === "placer") bulle(DOIGT ? `Touche la feuille pour poser : ${esc(M.TYPES[item.type].nom.toLowerCase())}. « Choisir » pour arrêter.` : `Clique sur la feuille pour poser : ${esc(M.TYPES[item.type].nom.toLowerCase())}. <span class="kbd">R</span> pour le tourner, <span class="kbd">Maj</span> + clic pour en poser plusieurs, <span class="kbd">Échap</span> pour arrêter.`, 0);
     else if (o === "fil") bulle("Glisse d'une borne à une autre, ou clique borne par borne. Les coins se font tout seuls.", 3500);
     else if (o === "volt") bulle(`Voltmètre : ${DOIGT ? "touche" : "clique sur"} une borne pour la pointe <b style="color:var(--p-l1)">rouge</b>, puis une autre pour la pointe <b>noire</b> (COM). Les boutons du schéma marchent toujours.`, 5000);
+    else if (o === "pince") { bulle(`Pince : ${DOIGT ? "touche" : "clique sur"} un fil pour lire son courant, ou un appareil (moteur, bobine…) pour le courant de chacune de ses bornes.`, 5500); majPince(); }
     else if (o === "designer") bulle(`${DOIGT ? "Touche" : "Clique sur"} l'élément que tu crois en panne : un fil, un contact, une bobine, un fusible…`, 6000);
     else if (o === "panne") bulle(`${DOIGT ? "Touche" : "Clique sur"} l'élément à mettre en panne : un fil, un contact, un fusible, une bobine, un voyant…`, 5000);
     else bulle("");
@@ -785,6 +798,48 @@
     }
     majVoltmetre(); rendre();
   }
+  /* ---------- pince ampèremétrique : un fil (son courant), ou un appareil (le courant de chaque borne, et tous ensemble) ---------- */
+  const PINCE_APP = /^(moteur|moteur6|bobine|relais|tempo_travail|tempo_repos|voyant|electrovanne|transfo|automate|variateur|capteur3)$/;
+  let pince = null, pinceC = null, pinceT = 0;   // pince : { fil, x, y } (pas de la grille) ou { piece } ; pinceC : les courants
+  function courantsSim(force) {
+    if (!sim) return null;
+    const t = performance.now();
+    if (force || !pinceC || t - pinceT > 120) { pinceC = sim.courants(); pinceT = t; }
+    return pinceC;
+  }
+  const nfA = (I) => (I < 1e-4 ? "0 A" : I < 0.0995 ? nf(I * 1000, I < 0.00995 ? 1 : 0) + " mA" : I < 9.95 ? nf(I, 2) + " A" : nf(I, 1) + " A");
+  function lirePince(force) {   // { I, texte, lignes : [[nom, I]], ensemble }
+    const C = pince && courantsSim(force); if (!C) return null;
+    if (pince.fil) {
+      const L = C.segments.filter((g) => g.fil === pince.fil);
+      const g = L.find((q) => Math.min(q.x1, q.x2) <= pince.x && pince.x <= Math.max(q.x1, q.x2) && Math.min(q.y1, q.y2) <= pince.y && pince.y <= Math.max(q.y1, q.y2)) || L[0];
+      const I = g ? g.I : 0, ac = g ? g.ac : true;
+      return { I, texte: nfA(I) + (I < 1e-4 ? "" : ac ? " ~" : " ="), ac };
+    }
+    const pc = pieceParId(pince.piece); if (!pc) return null;
+    const B = C.bornes[pc.id] || {}, L = M.bornesAbs(pc).filter((b) => b.id !== "PE" && b.id !== "PE2");
+    const lignes = L.filter((b) => B[b.id]).map((b) => [b.n || b.id, Math.hypot(B[b.id].re, B[b.id].im)]);
+    const somme = L.reduce((a, b) => (B[b.id] ? { re: a.re + B[b.id].re, im: a.im + B[b.id].im } : a), { re: 0, im: 0 });
+    const I = lignes.length ? Math.max(...lignes.map((x) => x[1])) : 0;
+    return { I, texte: nfA(I), lignes, ensemble: Math.hypot(somme.re, somme.im), In: C.In[pc.id] };
+  }
+  function majPince(force) {
+    const z = $("sc-pince"); if (!z) return;
+    const voir = !!sim && (outil === "pince" || !!pince);
+    z.hidden = !voir; document.body.classList.toggle("pince", voir); if (!voir) return;
+    const r = pince ? lirePince(force) : null;
+    let h;
+    if (!r) h = `<div class="sv-ecran">— A</div><div class="sv-p">${DOIGT ? "touche" : "clique sur"} un fil, ou un appareil</div>`;
+    else if (pince.fil) h = `<div class="sv-ecran">${esc(r.texte)}</div><div class="sv-p">${r.I < 1e-4 ? "aucun courant dans ce fil" : "courant dans le fil, sous la pince"}</div>`;
+    else {
+      const pc = pieceParId(pince.piece);
+      h = `<div class="sv-ecran">${esc(r.texte)}</div><div class="sv-p"><b>${esc(pc.ref || "")}</b>&nbsp;${r.lignes.length ? r.lignes.map(([n, I]) => `${esc(n)} ${esc(nfA(I))}`).join(" · ") : "aucun courant"}</div>`
+        + (r.lignes.length > 1 ? `<div class="sv-p">tous ses fils ensemble : ${esc(nfA(r.ensemble))}</div>` : "")
+        + (r.In ? `<div class="sv-p">In ≈ ${esc(nfA(r.In))} (${esc(nf(Number(M.parametres(pc).puissance) || 2.2))} kW)</div>` : "");
+    }
+    if (z.dataset.h !== h) { z.dataset.h = h; z.innerHTML = h; }
+    const t = monde.querySelector("[data-pince-t]"); if (t && r && pince.fil && t.textContent !== r.texte) t.textContent = r.texte;
+  }
   function majVoltmetre() {
     const z = $("sc-volt"); if (!z) return;
     const voir = !!sim && (outil === "volt" || !!sondes.a || !!sondes.b);
@@ -805,6 +860,13 @@
     let h = "";
     for (const m of marques) h += marqueDe(m);
     if (outil === "volt" && survolBorne) h += `<circle class="sonde-vise" cx="${survolBorne.x * G}" cy="${survolBorne.y * G}" r="7"/>`;
+    if (pince && pince.fil) {
+      const f = filParId(pince.fil), x = pince.x * G, y = pince.y * G, r = lirePince();
+      if (f) h += `<g class="pince-g"><path class="pince-m" d="M${x - 7} ${y - 5}A8.6 8.6 0 1 1 ${x - 7} ${y + 5}"/><text class="pince-t" x="${x + 11}" y="${y - 10}" data-pince-t="1">${esc(r ? r.texte : "")}</text></g>`;
+    } else if (pince && pince.piece) {
+      const pc = pieceParId(pince.piece);
+      if (pc) { const b = M.boiteAbs(pc); h += `<rect class="pince-c" x="${b[0] * G - 7}" y="${b[1] * G - 7}" width="${(b[2] - b[0]) * G + 14}" height="${(b[3] - b[1]) * G + 14}" rx="6"/>`; }
+    }
     for (const [k, c] of [["a", "r"], ["b", "n"]]) {
       const q = sondes[k]; if (!q) continue;
       const sx = k === "a" ? 1 : -1;   // la pointe rouge penche à droite, la noire à gauche
@@ -1290,8 +1352,8 @@
   }
   function arreterSim() {
     sim = null; simE = null; cancelAnimationFrame(rafId); appuis.clear(); survolPiece = null; PR.live.fermer(); CH.arreter();
-    sondes = { a: null, b: null, prochaine: "a" }; survolBorne = null;
-    if (outil === "volt" || outil === "designer") { outil = "fleche"; document.querySelectorAll("#sc-barre [data-o]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.o === "fleche"))); }
+    sondes = { a: null, b: null, prochaine: "a" }; survolBorne = null; pince = null; pinceC = null; majPince();
+    if (outil === "volt" || outil === "designer" || outil === "pince") { outil = "fleche"; document.querySelectorAll("#sc-barre [data-o]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.o === "fleche"))); }
     document.body.classList.remove("simu", "depannage"); majVoltmetre();
     const b = $("sc-simuler"); b.querySelector("span").textContent = "Simuler"; b.querySelector("svg").innerHTML = '<path d="M7 4.5v15l12-7.5z"/>';
     bulle(""); majBoutons(); dessiner(); majPanneau();
@@ -1309,15 +1371,16 @@
     if (!bouge && simSig) { $("sc-horloge").textContent = "t = " + nf(sim.temps() / 1000) + " s"; sim.avancer(dt); CH.tic(sim.temps()); return; }
     sim.avancer(dt);
     simE = masquer(sim.etat());
+    if (pince) { const r = lirePince(); simE.pinceI = r ? r.I : null; }
     CH.echantillon(simE);
     for (const pc of schema.pieces) if (pc.type === "moteur" || pc.type === "moteur6") { const o = simE.pieces[pc.id]; if (o) angles[pc.id] = (angles[pc.id] || 0) + (o.w || 0) * dt * 0.32; }
     majSim(false);
   }
   function majSim(force) {
     if (!sim) return;
-    if (force) { simE = masquer(sim.etat()); CH.echantillon(simE); }
+    if (force) { simE = masquer(sim.etat()); if (pince) { const r = lirePince(true); simE.pinceI = r ? r.I : null; } CH.echantillon(simE); }
     $("sc-horloge").textContent = "t = " + nf(sim.temps() / 1000) + " s";
-    majVoltmetre();
+    majVoltmetre(); majPince(force);
     const sig = signature(simE);
     if (sig !== simSig) { simSig = sig; dessiner(); majPanneauSim(); PR.live.maj(simE); } else { majRotors(); majSystemes(); }
   }
@@ -1385,7 +1448,7 @@
       <h3>Journal</h3><ul class="msgs" id="sm-journal"></ul>`;
     pn.innerHTML = h;
     brancherPoignee(); brancherDefi(); brancherDep(); brancherCartes();
-    $("sm-raz").onclick = () => { sim.reinitialiser(); angles = {}; majSim(true); };
+    $("sm-raz").onclick = () => { sim.reinitialiser(); angles = {}; pinceC = null; majSim(true); };
     $("sm-courant").onclick = () => { sim.rearmerAlimentation(); majSim(true); };
     for (const b of pn.querySelectorAll("#sm-cmd button[data-c]")) {
       const ref = b.closest(".cmd").dataset.ref, c = b.dataset.c;
@@ -1734,6 +1797,7 @@
     if (P.cal !== undefined) h += `<label class="ch" for="pc-cal">${pc.type === "thermique" || pc.type === "disj_moteur" ? "Réglage du thermique Ir (A)" : "Calibre (A)"}</label><input type="number" id="pc-cal" data-ch="cal" value="${esc(P.cal)}" min="0.1" max="1000" step="0.5" inputmode="decimal">`;
     if (pc.type === "alim") h += `<label class="ch" for="pc-pot">Potentiel</label><select id="pc-pot" data-ch="pot">${M.POTENTIELS.map((p) => option(p.id, `${p.nom} · ${p.aide}`, P.pot)).join("")}</select>`;
     if (pc.type === "transfo") h += `<label class="ch" for="pc-prim">Primaire</label><select id="pc-prim" data-ch="prim">${[400, 230].map((v) => option(v, v + " V", P.prim)).join("")}</select><label class="ch" for="pc-sec">Secondaire</label><select id="pc-sec" data-ch="sec">${[24, 48, 230].map((v) => option(v, v + " V", P.sec)).join("")}</select>`;
+    if (pc.type === "moteur" || pc.type === "moteur6") h += `<label class="ch" for="pc-puissance">Puissance utile (kW)</label><input type="number" id="pc-puissance" data-ch="puissance" value="${esc(P.puissance)}" min="0.06" max="400" step="0.01" inputmode="decimal"><p class="discret">Pour la pince ampèremétrique : In ≈ ${nf(((Number(P.puissance) || 2.2) * 1000) / (Math.sqrt(3) * 400 * 0.8 * 0.82), 2)} A sous 400 V.</p>`;
     if (pc.type === "moteur6") h += `<label class="ch" for="pc-plaque">Plaque signalétique</label><select id="pc-plaque" data-ch="plaque">${option("400/690", "400 V / 690 V (étoile-triangle sur 400 V)", P.plaque)}${option("230/400", "230 V / 400 V (étoile sur 400 V)", P.plaque)}</select>`;
     if (pc.type === "automate") {
       const r = PR.resume(pc.prog);
@@ -1814,6 +1878,7 @@
       if (!Number.isFinite(x) || x <= 0) { majPanneau(); return; }
       pc.p[k] = k === "delai" ? clamp(Math.round(x * 10) / 10, 0.1, 600) : clamp(x, 0.1, 1000);
     } else if (k === "poles" || k === "prim" || k === "sec") pc.p[k] = Number(v);
+    else if (k === "puissance") { const x = Number(String(v).replace(",", ".")); if (!Number.isFinite(x) || x <= 0) { majPanneau(); return; } pc.p.puissance = clamp(Math.round(x * 100) / 100, 0.06, 400); }
     else if (T.cat === "po" && /^(moteur|gauche|droite|bas|haut|capteur|verin|rentre|sorti|amont|aval|ralbas|ralhaut|porte|pompe1|pompe2|pompe3|tbas|thaut)$/.test(k)) pc.p[k] = String(v).trim().toUpperCase().replace(/[^A-Z0-9_.\-]/g, "").slice(0, 12);
     else if (T.cat === "po" && /^(duree|conso|niveau|ecart|caisses|course)$/.test(k)) {
       const x = Number(String(v).replace(",", "."));
@@ -2127,6 +2192,7 @@
       <h3 style="margin-top:14px">Le voltmètre et le dépannage</h3>
       <p class="discret"><b>Chronogramme</b> (pendant la simulation) : une ligne par élément, au fil du temps — boutons et capteurs (1 = actionné), bobines (1 = alimentée), contacts temporisés (1 = fermé), voyants, vitesse et couplage des moteurs, étapes du GRAFCET, fréquence du variateur, position du chariot, niveau de la cuve. ${DOIGT ? "Touche" : "Clique sur"} le tracé pour poser un repère : l'écart de temps avec le curseur s'affiche (pratique pour une temporisation). « Lignes » choisit ce qui est tracé, « Image » l'enregistre pour un compte rendu.</p>
       <p class="discret">Pendant la simulation, le bouton <b>Voltmètre</b> remplace « Fil » dans la barre d'outils. ${DOIGT ? "Touche" : "Clique sur"} une borne pour la pointe <b style="color:#e03131">rouge</b>, puis une autre pour la pointe <b>noire</b> (COM) : l'écran donne la tension entre les deux, et la suit quand le schéma change (appuie sur S2 en gardant les pointes). En continu, le signe dit dans quel sens tu mesures (−24 V : pointes inversées). Comme un vrai voltmètre, il « voit à travers » une bobine ou un voyant : derrière un contact ouvert, on retrouve le neutre.</p>
+      <p class="discret"><b>Pince</b> (pendant la simulation, à côté du Voltmètre) : ${DOIGT ? "touche" : "clique sur"} un fil pour lire le courant qui le traverse, ou un appareil (moteur, bobine…) pour le courant de chacune de ses bornes. Les trois phases d'un moteur prises ensemble donnent 0 A : il faut pincer <b>un seul</b> fil. Au démarrage direct, le moteur tire près de 6 fois son courant nominal (In) ; en marche, un peu moins que In. La ligne « Pince » du chronogramme trace la mesure.</p>
       <p class="discret"><b>Lecture de schéma</b> (fenêtre « Défis », en bas) : une question sur le schéma (« Clique sur le contact d'auto-maintien »…), tu réponds en cliquant sur l'appareil. Deux essais par question ; après deux erreurs, la bonne réponse est entourée en vert. Ta note sur 20 part dans ton suivi si tu es connecté(e).</p>
       <p class="discret"><b>Dépannage</b> (fenêtre « Défis ») : un schéma juste, avec une panne cachée au hasard (un fil coupé, un contact qui ne conduit plus, une bobine, un voyant ou un fusible coupé). Les fils ne sont plus en couleur : on essaie, on mesure pour trouver où la tension s'arrête, puis « Désigner la panne ». La méthode : pointe noire sur le neutre (ou le 0 V), pointe rouge de borne en borne en partant de la phase ; ou bien les deux pointes aux bornes d'un même élément (un contact fermé qui conduit donne 0 V).</p>
       <p class="discret"><b>Dépannage du professeur</b> : ton professeur peut te donner un lien (ou un fichier, à ouvrir avec Fichier → Ouvrir un fichier). Toute la classe a la même panne, et ta note sur 20 lui est envoyée : connecte-toi au site <b>avant</b> de commencer. Chaque mesure au-delà de celles qui sont gratuites et chaque mauvaise désignation enlèvent des points ; reposer une pointe là où elle est déjà ne compte pas.</p>
@@ -2205,6 +2271,7 @@
     q("tourner").disabled = !!sim || (!sel.size && outil !== "placer"); q("supprimer").disabled = !!sim || (!sel.size && !brouillon);
     for (const o of ["fil"]) document.querySelector(`#sc-barre [data-o="${o}"]`).disabled = !!sim;
     document.querySelector('#sc-barre [data-o="volt"]').disabled = !sim;
+    { const p = document.querySelector('#sc-barre [data-o="pince"]'); if (p) p.disabled = !sim; }
   }
   let tBulle = 0;
   function bulle(html, ms) {

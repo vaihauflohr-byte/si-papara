@@ -110,8 +110,8 @@
         case "transfo": d = "Transformateur de commande"; c = [`${P.prim} V / ${P.sec} V`]; break;
         case "voyant": d = "Voyant"; c = [P.couleur, tens(P.tension)]; break;
         case "electrovanne": d = "Électrovanne (bobine de distributeur)"; c = [tens(P.tension)]; break;
-        case "moteur": d = "Moteur asynchrone triphasé"; break;
-        case "moteur6": d = "Moteur asynchrone triphasé (6 bornes)"; c = [`plaque ${P.plaque} V`]; break;
+        case "moteur": d = "Moteur asynchrone triphasé"; c = [`${nb(P.puissance)} kW`]; break;
+        case "moteur6": d = "Moteur asynchrone triphasé (6 bornes)"; c = [`plaque ${P.plaque} V`, `${nb(P.puissance)} kW`]; break;
         case "capteur": d = "Détecteur (contact)"; break;
         case "capteur3": d = `Détecteur ${P.detection} 3 fils`; c = [`${P.type}, sortie ${P.sortie}`]; break;
         case "automate": d = "Automate programmable"; c = ["8 entrées 24 V", "8 sorties à relais", tete.prog && tete.prog.lang === "grafcet" ? "GRAFCET" : tete.prog && tete.prog.lang === "ladder" ? "Ladder" : ""]; break;

@@ -482,9 +482,9 @@
     b.f([2, 10], [2, 15]).f([4, 10], [4, 15]).f([6, 10], [6, 15]);
     const xd = 4 + 10 * (L.length - 1);
     if (L.length > 1) b.f([2, 12], [xd - 2, 12]).f([4, 13], [xd, 13]).f([6, 14], [xd + 2, 14]);
-    L.forEach(([km, f, m, cal], k) => {
+    L.forEach(([km, f, m, cal, kw], k) => {
       const x = 4 + 10 * k;
-      b.p("poles", x, 18, km); b.p("thermique", x, 26, f, { cal }); b.p("moteur", x, 35, m);
+      b.p("poles", x, 18, km); b.p("thermique", x, 26, f, { cal }); b.p("moteur", x, 35, m, kw ? { puissance: kw } : {});
       if (k) b.f([x - 2, 12], [x - 2, 15]).f([x, 13], [x, 15]).f([x + 2, 14], [x + 2, 15]);
       for (const dx of [-2, 0, 2]) b.f([x + dx, 21], [x + dx, 23]).f([x + dx, 29], [x + dx, 31]);
       b.f([x + 4, 30], [x + 4, 31]);
@@ -493,7 +493,7 @@
   }
   function exempleStation(sansProg) {
     const b = plan(sansProg ? "Défi · Les pompes en renfort" : "Station de pompage : trois pompes, quatre électrodes (Ladder)");
-    puissanceMoteurs(b, [["KM1", "F1", "M1", 2.2], ["KM2", "F2", "M2", 1.2], ["KM3", "F3", "M3", 1.2]]);
+    puissanceMoteurs(b, [["KM1", "F1", "M1", 2.2, 0.75], ["KM2", "F2", "M2", 1.2, 0.37], ["KM3", "F3", "M3", 1.2, 0.37]]);
     const ax = 52;
     const ap = automate24(b, ax, progStation());
     if (sansProg) ap.prog = SA.validerProg({ lang: "ladder", noms: progStation().noms });

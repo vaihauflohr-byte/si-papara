@@ -121,6 +121,15 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    inversées). Comme un vrai voltmètre, il « voit à travers » les bobines, les voyants, les enroulements et les entrées
    d'automate : derrière un contact ouvert, on retrouve le neutre ; un point relié à deux phases par des récepteurs
    donne une tension partielle (aux bornes d'un pôle coupé : 345 V). Deux circuits séparés (24 V et réseau) : 0 V.
+   **Pince ampèremétrique** (bouton « Pince », pendant la simulation) : un clic sur un **fil** donne le courant qui le
+   traverse, là où on a posé la pince (mâchoires orange sur le fil, la valeur à côté, et l'afficheur en haut à droite) ;
+   un clic sur un **appareil** (moteur, bobine, voyant, automate, variateur…) donne le courant de chacune de ses bornes
+   et celui de « tous ses fils ensemble » : 0 A pour les trois phases d'un moteur (le courant qui part par une phase
+   revient par les autres), et pour l'aller et le retour d'une bobine. La valeur suit la simulation : on voit la pointe du
+   démarrage direct (près de 6 In) puis le courant de marche (0,8 In), le tiers en étoile, la pointe au passage en
+   triangle, l'absence de pointe sur variateur, 6 In moteur bloqué (le relais thermique déclenche). La ligne « Pince »
+   du chronogramme trace le courant mesuré. Chaque moteur a une puissance utile (réglage « Puissance utile (kW) »,
+   2,2 kW par défaut : In ≈ 4,8 A) ; les pompes de la station ont 0,75 et 0,37 kW, comme au labo.
 10. **Lecture de schéma** (fenêtre « Défis », en bas) : des questions sur un schéma du cours (« Clique sur le contact
    d'auto-maintien », « Clique sur le contacteur qui fait le couplage étoile »…) ; on répond en cliquant sur l'appareil
    (n'importe quel morceau : pôles, bobine ou contact d'un contacteur). Juste du premier coup : 1 point, au deuxième :
@@ -479,6 +488,17 @@ Une étape : `{ n, init, com, actions: [{ t: "n" | "s" | "r" | "inc" | "ana", v,
   les contacts qui doivent s'ouvrir, puis ferme ceux qui doivent se fermer (`transit` : tous ouverts, le temps d'une
   évaluation). Une bobine qui perd son alimentation retombe entre les deux : c'est ce qui fait marcher la marche par
   à-coups (S3 21-22 dans l'auto-maintien), comme en vrai.
+- **Courants** (`courants()`, pour la pince) : en phaseurs. Chaque récepteur alimenté fait entrer un courant par ses
+  bornes ; on le fait remonter jusqu'à sa source (repère de potentiel, réseau, secondaire d'un transformateur, sortie
+  d'un variateur) par le plus court chemin de conducteurs fermés (morceaux de fils coupés à chaque raccord, contacts,
+  pôles, fusibles, sorties d'automate), et on l'ajoute à chaque morceau traversé. Moteur : In = P / (√3 · 400 · 0,8 ·
+  0,82) ; 0,8 In en marche, In · (0,8 + 5,2 · retard) au démarrage direct (retard : 1 à l'arrêt, 0 à sa vitesse), 6 In
+  bloqué, 0,87 · 6 In sur deux phases, le tiers en étoile ; un enroulement en triangle porte In/√3 (la ligne est la
+  somme des phaseurs de deux enroulements) ; sur variateur, 0,4 à 0,8 In (le réseau fournit I · vitesse · 0,9). Bobine de
+  contacteur 8 VA, de relais ou de temporisation 3 VA (cos φ 0,5), voyant 1,5 W, électrovanne 5 VA, transformateur : ce
+  qu'il alimente + 3 VA ; automate 0,15 A en continu, entrée d'automate ou de variateur 5 mA, capteur 3 fils 15 mA.
+  `courants()` donne les morceaux de fils (`segments` : fil, extrémités, phaseur, intensité, alternatif ou continu) et le
+  courant de chaque borne de chaque appareil (`bornes`).
 - **Automate** : `%S6` vaut 1 quand `t mod 1000 < 500` ; si le programme l'utilise, `prochain()` donne la
   demi-seconde suivante.
 - **Défis** : `verifier: { PO1: "gauche" | "droite" | "en-route" }` (chariot ; toute autre valeur : jamais en butée),
@@ -588,6 +608,12 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   suivi intacte, détail de l'élève, téléphone ;
 - `t_folio.js` (Node, dans `/tmp/folio`) : colonnes, numéros de fils (une équipotentielle = un nom), renvois de KM1 avec
   leurs colonnes, nomenclature triée (relais temporisé, transformateur), bornier de la station, CSV, feuille vide ;
+- `t_pince.js` (Node, dans `/tmp/pince`) : démarrage direct (pointe puis 0,8 In, les trois phases ensemble 0, le fil
+  du moteur), bobine 35 mA et tout à zéro à l'arrêt, étoile (le tiers) et triangle (√3), les pompes de la station dans
+  le rapport de leurs puissances, variateur (pas de pointe, le réseau fournit moins), automate (0,15 A, 5 mA, continu) ;
+- `e2e_pince.py` (Playwright, PC et téléphone) : l'outil (seulement en simulation), un fil (0 A, pointe, 3,9 A), les
+  mâchoires sur la feuille, la ligne « Pince » du chronogramme, le moteur (U, V, W, ensemble 0 A, In), la bobine
+  (35 mA), l'arrêt ;
 - `t_defis.js` (Node, dans `/tmp/defis2`) : pour les défis 16 à 23, le départ échoue et une solution réussit (les
   solutions sont dans `solutions.js`, reprises par `t_moteur2.js`) ;
 - `e2e_lecture.py` (Playwright, PC et téléphone) : la fenêtre Défis (23 défis, 5 dépannages, 5 lectures), une lecture

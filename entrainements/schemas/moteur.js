@@ -185,28 +185,28 @@
       if (nat && d) {
         const tempo = T === "contact_tno" || T === "contact_tnf";
         // d.transit : un organe qu'on manœuvre a, un instant, tous ses contacts ouverts (coupure avant fermeture)
-        cond.push({ pc, i: 0, n1: nd(pc, "a"), n2: nd(pc, "b"), ferme: () => !d.transit && (nat === "no") === (tempo ? actionneRetarde(d) : actionne(d)) });
+        cond.push({ pc, i: 0, n1: nd(pc, "a"), n2: nd(pc, "b"), b1: "a", b2: "b", ferme: () => !d.transit && (nat === "no") === (tempo ? actionneRetarde(d) : actionne(d)) });
       } else if (T === "poles" && d) {
-        for (let k = 0; k < 3; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), ferme: () => actionne(d) });
+        for (let k = 0; k < 3; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), b1: String(2 * k + 1), b2: String(2 * k + 2), ferme: () => actionne(d) });
       } else if (T === "sectionneur" && d) {
-        for (let k = 0; k < 3; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), ferme: () => d.ferme && !d.fondus[k], prot: { d, cal: Number(P.cal) || 10, sorte: "fusible" } });
+        for (let k = 0; k < 3; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), b1: String(2 * k + 1), b2: String(2 * k + 2), ferme: () => d.ferme && !d.fondus[k], prot: { d, cal: Number(P.cal) || 10, sorte: "fusible" } });
       } else if (T === "disjoncteur" && d) {
         const n = Math.max(1, Math.min(3, P.poles | 0));
-        for (let k = 0; k < n; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), ferme: () => d.ferme, prot: { d, cal: Number(P.cal) || 10, sorte: "disj" } });
+        for (let k = 0; k < n; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), b1: String(2 * k + 1), b2: String(2 * k + 2), ferme: () => d.ferme, prot: { d, cal: Number(P.cal) || 10, sorte: "disj" } });
       } else if (T === "disj_moteur" && d) {
-        for (let k = 0; k < 3; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), ferme: () => d.ferme, prot: { d, cal: Number(P.cal) || 6, sorte: "disj" }, therm: d });
+        for (let k = 0; k < 3; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), b1: String(2 * k + 1), b2: String(2 * k + 2), ferme: () => d.ferme, prot: { d, cal: Number(P.cal) || 6, sorte: "disj" }, therm: d });
       } else if (T === "thermique" && d) {
-        for (let k = 0; k < 3; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), ferme: () => true, therm: d });
+        for (let k = 0; k < 3; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), b1: String(2 * k + 1), b2: String(2 * k + 2), ferme: () => true, therm: d });
       } else if (T === "fusible" && d) {
-        cond.push({ pc, i: 0, n1: nd(pc, "a"), n2: nd(pc, "b"), ferme: () => !d.fondu, prot: { d, cal: Number(P.cal) || 2, sorte: "fusible" } });
+        cond.push({ pc, i: 0, n1: nd(pc, "a"), n2: nd(pc, "b"), b1: "a", b2: "b", ferme: () => !d.fondu, prot: { d, cal: Number(P.cal) || 2, sorte: "fusible" } });
       } else if (T === "capteur3" && d) {
         const pnp = P.type !== "NPN", no = P.sortie !== "NC";
-        cond.push({ pc, i: 0, n1: nd(pc, pnp ? "BN" : "BU"), n2: nd(pc, "BK"), ferme: () => d.alim && !d.grille && no === !!d.actionne });
+        cond.push({ pc, i: 0, n1: nd(pc, pnp ? "BN" : "BU"), n2: nd(pc, "BK"), b1: pnp ? "BN" : "BU", b2: "BK", ferme: () => d.alim && !d.grille && no === !!d.actionne });
       } else if (T === "automate" && d) {
-        for (let k = 0; k < 8; k++) cond.push({ pc, i: k, n1: nd(pc, k < 4 ? "C0" : "C1"), n2: nd(pc, "Q" + k), ferme: () => d.actif && d.sorties[k] });
+        for (let k = 0; k < 8; k++) cond.push({ pc, i: k, n1: nd(pc, k < 4 ? "C0" : "C1"), n2: nd(pc, "Q" + k), b1: k < 4 ? "C0" : "C1", b2: "Q" + k, ferme: () => d.actif && d.sorties[k] });
       } else if (T === "variateur" && d) {
-        cond.push({ pc, i: 0, n1: nd(pc, "R1A"), n2: nd(pc, "R1C"), ferme: () => d.alim && !d.grille && !d.defaut });
-        cond.push({ pc, i: 1, n1: nd(pc, "PE"), n2: nd(pc, "PE2"), ferme: () => true });   // la borne de terre traverse le variateur
+        cond.push({ pc, i: 0, n1: nd(pc, "R1A"), n2: nd(pc, "R1C"), b1: "R1A", b2: "R1C", ferme: () => d.alim && !d.grille && !d.defaut });
+        cond.push({ pc, i: 1, n1: nd(pc, "PE"), n2: nd(pc, "PE2"), b1: "PE", b2: "PE2", ferme: () => true });   // la borne de terre traverse le variateur
       }
     }
     // panne : le contact (ou le pôle) bouge comme d'habitude, mais il ne conduit plus
@@ -252,11 +252,11 @@
     for (const pc of pieces) {
       const d = devDe.get(pc.id), P = M.parametres(pc);
       if (!d) continue;
-      if (M.BOBINES.indexOf(pc.type) >= 0) charges.push({ pc, d, n1: nd(pc, "a"), n2: nd(pc, "b"), cote: lireTension(P.tension), sorte: "bobine" });
-      else if (pc.type === "voyant") charges.push({ pc, d, n1: nd(pc, "a"), n2: nd(pc, "b"), cote: lireTension(P.tension), sorte: "voyant" });
-      else if (pc.type === "electrovanne") charges.push({ pc, d, n1: nd(pc, "a"), n2: nd(pc, "b"), cote: lireTension(P.tension), sorte: "ev" });
-      else if (pc.type === "transfo") charges.push({ pc, d, n1: nd(pc, "p1"), n2: nd(pc, "p2"), cote: { v: Number(P.prim) || 400, ac: true }, sorte: "transfo" });
-      else if (pc.type === "capteur3") charges.push({ pc, d, n1: nd(pc, "BN"), n2: nd(pc, "BU"), cote: { v: 24, ac: false }, sorte: "capteur3" });
+      if (M.BOBINES.indexOf(pc.type) >= 0) charges.push({ pc, d, n1: nd(pc, "a"), n2: nd(pc, "b"), b1: "a", b2: "b", cote: lireTension(P.tension), sorte: "bobine" });
+      else if (pc.type === "voyant") charges.push({ pc, d, n1: nd(pc, "a"), n2: nd(pc, "b"), b1: "a", b2: "b", cote: lireTension(P.tension), sorte: "voyant" });
+      else if (pc.type === "electrovanne") charges.push({ pc, d, n1: nd(pc, "a"), n2: nd(pc, "b"), b1: "a", b2: "b", cote: lireTension(P.tension), sorte: "ev" });
+      else if (pc.type === "transfo") charges.push({ pc, d, n1: nd(pc, "p1"), n2: nd(pc, "p2"), b1: "p1", b2: "p2", cote: { v: Number(P.prim) || 400, ac: true }, sorte: "transfo" });
+      else if (pc.type === "capteur3") charges.push({ pc, d, n1: nd(pc, "BN"), n2: nd(pc, "BU"), b1: "BN", b2: "BU", cote: { v: 24, ac: false }, sorte: "capteur3" });
     }
     if (panne && panne.piece) for (const ch of charges) if (ch.pc.id === panne.piece) ch.coupee = true;   // bobine ou voyant coupé
     const moteurs = pieces.filter((pc) => (pc.type === "moteur" || pc.type === "moteur6") && devDe.get(pc.id)).map((pc) => ({ pc, d: devDe.get(pc.id) }));
@@ -1224,8 +1224,118 @@
       return condValides.some((c) => c.pc.ref === refProt && (c.prot || c.therm) && c.ferme() && cheminMoteur(mo, c));
     }
 
+    /* ----- les courants (pince ampèremétrique), fil par fil, en phaseurs -----
+       Chaque récepteur alimenté fait entrer un courant (un phaseur : intensité et décalage) par ses bornes ; on le fait
+       remonter jusqu'à sa source par le plus court chemin de conducteurs fermés (morceaux de fils, contacts, pôles,
+       fusibles…) et on l'ajoute à chaque morceau traversé. En phaseurs, les trois phases d'un moteur prises ensemble
+       donnent 0, et le courant de ligne d'un moteur en triangle vaut √3 fois celui d'un enroulement.
+       Valeurs : moteur In = P / (√3 · 400 V · 0,8 · 0,82) (P : puissance utile, 2,2 kW par défaut) ; 0,8 In en marche,
+       jusqu'à 6 In au démarrage direct (le temps qu'il prenne sa vitesse) et 6 In bloqué ; en étoile, le tiers ; sur
+       variateur, 0,4 à 0,8 In sans pointe ; bobine de contacteur 8 VA, de relais 3 VA ; voyant 1,5 W ; électrovanne 5 VA ;
+       automate 0,15 A ; entrée d'automate ou de variateur 5 mA ; capteur 3 fils 15 mA. */
+    const RAC3 = Math.sqrt(3);
+    const pol = (r, deg) => ({ re: r * Math.cos((deg * Math.PI) / 180), im: r * Math.sin((deg * Math.PI) / 180) });
+    const ANG_PH = [0, -120, 120];
+    function vPh(p) {   // le phaseur de tension d'un potentiel (230 V pour une phase ; 0 pour N, PE, 0 V)
+      const i = info(p); if (!i) return null;
+      if (i.net === "R" || i.net.indexOf("V:") === 0) return i.chaud ? pol(230, ANG_PH[i.ph] || 0) : { re: 0, im: 0 };
+      if (i.net.indexOf("T:") === 0) return i.chaud ? { re: i.v, im: 0 } : { re: 0, im: 0 };
+      if (i.net === "DC") return i.chaud ? { re: 24, im: 0 } : { re: 0, im: 0 };
+      return { re: 0, im: 0 };
+    }
+    const argDiff = (a, b) => { const A = vPh(a), B = vPh(b); if (!A || !B) return null; const re = A.re - B.re, im = A.im - B.im; return Math.hypot(re, im) < 1e-9 ? null : { deg: (Math.atan2(im, re) * 180) / Math.PI, v: Math.hypot(re, im) }; };
+    const In = (pc) => ((Number(M.parametres(pc).puissance) || 2.2) * 1000) / (RAC3 * 400 * 0.8 * 0.82);
+    function courants() {
+      if (!dernier) evaluer();
+      const { uf, m } = dernier, pot = (n) => potDe(uf, m, n);
+      const cle = (x, y) => x + "," + y, adj = new Map(), segs = [];
+      const lien = (a, b, o) => { const e = Object.assign({ a, b, re: 0, im: 0 }, o); for (const k of [a, b]) (adj.get(k) || adj.set(k, []).get(k)).push(e); return e; };
+      // les points de chaque pièce, et les points « où l'on se raccorde » : bouts de fils et bornes
+      const pts = new Map();
+      for (const pc of pieces) { const o = {}; for (const b of M.bornesAbs(pc)) o[b.id] = cle(b.x, b.y); pts.set(pc.id, o); }
+      const fils = (s.fils || []).filter((f) => f.pts && f.pts.length >= 2 && !(panne && panne.fil === f.id));
+      const raccords = new Set();
+      for (const f of fils) { const a = f.pts[0], z = f.pts[f.pts.length - 1]; raccords.add(cle(a[0], a[1])); raccords.add(cle(z[0], z[1])); }
+      for (const [, o] of pts) for (const k of Object.values(o)) raccords.add(k);
+      for (const f of fils) for (let i = 1; i < f.pts.length; i++) {   // chaque segment, coupé aux raccords qui sont dessus
+        const A = f.pts[i - 1], B = f.pts[i], dx = Math.sign(B[0] - A[0]), dy = Math.sign(B[1] - A[1]), n = Math.abs(B[0] - A[0]) + Math.abs(B[1] - A[1]);
+        const L = [];
+        if (dx && dy) L.push(A, B);
+        else for (let k = 0; k <= n; k++) { const x = A[0] + dx * k, y = A[1] + dy * k; if (k === 0 || k === n || raccords.has(cle(x, y))) L.push([x, y]); }
+        for (let j = 1; j < L.length; j++) segs.push(lien(cle(L[j - 1][0], L[j - 1][1]), cle(L[j][0], L[j][1]), { fil: f.id, x1: L[j - 1][0], y1: L[j - 1][1], x2: L[j][0], y2: L[j][1], n: net.fil[f.id] }));
+      }
+      for (const c of condValides) if (c.b1 != null && c.b2 != null && c.ferme()) { const o = pts.get(c.pc.id); if (o && o[c.b1] && o[c.b2]) lien(o[c.b1], o[c.b2], { app: c.pc.id }); }
+      // les sources : quel potentiel, à quel point
+      const srcPts = new Map(), ajSrc = (pc, b, p) => { const o = pts.get(pc.id); if (o && o[b]) (srcPts.get(o[b]) || srcPts.set(o[b], []).get(o[b])).push(p); };
+      for (const pc of pieces) {
+        const d = devDe.get(pc.id), P = M.parametres(pc);
+        if (pc.type === "alim") ajSrc(pc, "a", POT_ALIM[P.pot] || "L1");
+        else if (pc.type === "reseau") for (const id of ["L1", "L2", "L3", "N", "PE"]) ajSrc(pc, id, id);
+        else if (pc.type === "transfo" && d && d.pots) { ajSrc(pc, "s2", d.pots[0]); ajSrc(pc, "s1", d.pots[1]); }
+        else if (pc.type === "variateur" && d && d.k) { ["U", "V", "W"].forEach((b) => ajSrc(pc, b, d.k + ":" + b)); ajSrc(pc, "P24", "+24"); ajSrc(pc, "COM", "0V"); }
+      }
+      // ce que chaque borne fait entrer (phaseurs)
+      const inj = [], bornes = {};
+      const entre = (pc, b, I) => { const o = pts.get(pc.id); if (!o || !o[b] || !I) return; inj.push([o[b], I, pot(nd(pc, b))]); const x = (bornes[pc.id] = bornes[pc.id] || {}); const q = x[b] || { re: 0, im: 0 }; x[b] = { re: q.re + I.re, im: q.im + I.im }; };
+      const neg = (I) => ({ re: -I.re, im: -I.im });
+      const dipole = (pc, b1, b2, A, phi) => { const g = argDiff(pot(nd(pc, b1)), pot(nd(pc, b2))); if (!g) return; const I = pol(A, g.deg - phi); entre(pc, b1, I); entre(pc, b2, neg(I)); };
+      const VA = { bobine: (pc) => (pc.type === "bobine" ? 8 : 3), voyant: () => 1.5, ev: () => 5, capteur3: () => 0.36 };
+      const secondaire = new Map();   // transformateur : la puissance de ce qu'il alimente
+      for (const ch of charges) {
+        if (!ch.d.alim || ch.sorte === "transfo") continue;
+        const va = VA[ch.sorte](ch.pc), phi = ch.sorte === "voyant" || !ch.cote.ac ? 0 : 60;
+        dipole(ch.pc, ch.b1, ch.b2, va / ch.cote.v, phi);
+        const p1 = pot(ch.n1) || "", p2 = pot(ch.n2) || "", k = [p1, p2].find((x) => x.indexOf("T:") === 0);
+        if (k) secondaire.set(k.replace(/[+-]$/, ""), (secondaire.get(k.replace(/[+-]$/, "")) || 0) + va);
+      }
+      for (const ch of charges) if (ch.sorte === "transfo" && ch.d.alim) { const va = (secondaire.get("T:" + ch.d.cle) || 0) + 3; dipole(ch.pc, "p1", "p2", va / ch.cote.v, 30); }
+      // les moteurs
+      const parVar = new Map();
+      for (const { pc, d } of moteurs) {
+        const marche = d.etatM === "marche" || d.etatM === "surtension";
+        if (!marche && d.etatM !== "2ph") continue;
+        const iN = In(pc), cible = Math.abs(d.niveau || 1) * (d.var ? Math.abs(d.var.fs) / 50 : 1);
+        let I, phi;
+        if (d.etatM === "2ph" || d.bloque) { I = 6 * iN * (d.etatM === "2ph" ? 0.87 : 1); phi = 72; }
+        else if (d.var) { I = iN * (0.4 + 0.4 * Math.abs(d.w)) + (Math.abs(cible - Math.abs(d.w)) > 0.05 ? 0.3 * iN : 0); phi = 37; }
+        else { const lag = Math.max(0, 1 - Math.abs(d.w) / Math.max(0.05, cible)); I = iN * (0.8 + 5.2 * lag); phi = 37 + 35 * lag; }
+        if (d.couplage === "etoile") I /= 3;
+        if (d.var) parVar.set(d.var, (parVar.get(d.var) || 0) + I * Math.abs(d.w) * 0.9);
+        if (pc.type === "moteur") {
+          const B = ["U", "V", "W"], P = B.map((b) => pot(nd(pc, b)));
+          if (d.etatM === "2ph") { const i = B.filter((b, k) => P[k] && vPh(P[k]) && Math.hypot(vPh(P[k]).re, vPh(P[k]).im) > 1); if (i.length === 2) dipole(pc, i[0], i[1], I, phi); }
+          else B.forEach((b, k) => { const g = argDiff(P[k], "N"); if (g) entre(pc, b, pol(I, g.deg - phi)); });
+        } else if (d.couplage === "etoile") ["U", "V", "W"].forEach((x) => { const g = argDiff(pot(nd(pc, x + "1")), "N"); if (g) { const J = pol(I, g.deg - phi); entre(pc, x + "1", J); entre(pc, x + "2", neg(J)); } });
+        else if (d.couplage === "triangle") ["U", "V", "W"].forEach((x) => dipole(pc, x + "1", x + "2", I / RAC3, phi));
+      }
+      for (const [v, I] of parVar) { const pc = v.principal; if (pc) ["L1", "L2", "L3"].forEach((b) => { const g = argDiff(pot(nd(pc, b)), "N"); if (g) entre(pc, b, pol(I + 0.05, g.deg - 10)); }); }
+      // l'automate (son alimentation et ses entrées), les entrées du variateur
+      for (const d of automates) {
+        const pc = d.principal; if (!pc) continue;
+        if (d.alim) dipole(pc, "p24", "m0", 0.15, 0);
+        d.entrees.forEach((on, k) => { if (on) dipole(pc, "I" + k, "COM", 0.005, 0); });
+      }
+      for (const d of variateurs) { const pc = d.principal; if (pc && d.alim) d.LI.forEach((on, k) => { if (on) entre(pc, "LI" + (k + 1), { re: 0.005, im: 0 }); }); }   // le retour se fait dans le variateur
+      // chaque courant remonte jusqu'à sa source (le plus court chemin de conducteurs fermés)
+      for (const [k0, I, p] of inj) {
+        if (!p) continue;
+        const venu = new Map([[k0, null]]), file = [k0]; let S = null;
+        for (let i = 0; i < file.length && !S; i++) {
+          const u = file[i];
+          if ((srcPts.get(u) || []).includes(p)) { S = u; break; }
+          for (const e of adj.get(u) || []) { const v = e.a === u ? e.b : e.a; if (!venu.has(v)) { venu.set(v, { u, e }); file.push(v); } }
+        }
+        for (let v = S; v != null && venu.get(v);) { const { u, e } = venu.get(v); const sg = e.a === v ? 1 : -1; e.re += sg * I.re; e.im += sg * I.im; v = u; }
+      }
+      const ac = (n) => { const p = n == null ? null : pot(n), i = p && info(p); return !(i && i.net === "DC"); };
+      return {
+        segments: segs.map((e) => ({ fil: e.fil, x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, re: e.re, im: e.im, I: Math.hypot(e.re, e.im), ac: ac(e.n) })),
+        bornes,   // pièce → borne → phaseur du courant qui entre par cette borne
+        In: Object.fromEntries(moteurs.map(({ pc }) => [pc.id, In(pc)]))
+      };
+    }
     const api = {
-      action, avancer, evaluer: () => { evaluer(); return api; }, etat, reinitialiser, rearmerAlimentation, enChemin,
+      action, avancer, evaluer: () => { evaluer(); return api; }, etat, reinitialiser, rearmerAlimentation, enChemin, courants,
       appuyer: (r) => action(r, "appuyer"), relacher: (r) => action(r, "relacher"), basculer: (r) => action(r, "basculer"),
       surcharge: (r) => action(r, "surcharge"), rearmer: (r) => action(r, "rearmer"),
       temps: () => t, journal: () => journal.slice(), netlist: netR, mesurer, appareils: () => appareils.map((d) => ({ ref: d.ref, sorte: d.sorte })),
