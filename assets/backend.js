@@ -253,7 +253,7 @@ window.SIP = window.SIP || {};
       async profJeton() { try { return sessionStorage.getItem("sip_prof") === "1" ? "demo.prof.jeton" : null; } catch (e) { return null; } },
       async profDonnees() {
         const db = load(); const depuis = SIP.ajouterJours(SIP.aujourdhui(), -70);
-        return { eleves: db.eleves.map(({ pin, ...r }) => r), entrainements: db.entrainements, fiches_suivi: db.fiches_suivi, lectures: db.lectures.filter((l) => l.jour >= depuis) };
+        return { eleves: db.eleves.map(({ pin, ...r }) => Object.assign(r, { code: pin || null })), entrainements: db.entrainements, fiches_suivi: db.fiches_suivi, lectures: db.lectures.filter((l) => l.jour >= depuis) };
       },
       async profSignalements() { const db = load(); return (db.signalements || []).slice().sort((a, b) => b.cree_le.localeCompare(a.cree_le)).slice(0, 300); },
       async profProjets() { const db = load(); return (db.projets || []).map((r) => Object.assign({}, r)); },
@@ -300,6 +300,8 @@ window.SIP = window.SIP || {};
         db.eleves.push({ id: uid(), niveau, nom: nom.trim(), pin, actif: true, cree_le: new Date().toISOString() }); save(db);
       },
       async changerPin(id, pin) { const db = load(); const e = db.eleves.find((x) => x.id === id); if (e) e.pin = pin; save(db); },
+      // retrouver un code (comptes créés avant la colonne « code ») : en démo, le code est déjà connu
+      async retrouverCode(id, debut, n) { const db = load(); const e = db.eleves.find((x) => x.id === id); if (!e) throw new Error("INTROUVABLE"); const c = String(e.pin || ""); const k = Number(c); return /^\d{4}$/.test(c) && k >= debut && k < debut + n ? c : null; },
       async basculerActif(id, actif) { const db = load(); const e = db.eleves.find((x) => x.id === id); if (e) e.actif = actif; save(db); },
       async supprimerEleve(id) {
         const db = load();
@@ -455,6 +457,8 @@ window.SIP = window.SIP || {};
       profFlashNoter: (id, points) => rpc("prof_flash_noter", { p_id: id, p_points: points }),
       creerEleve: (niveau, nom, pin) => rpc("creer_eleve", { p_niveau: niveau, p_nom: nom, p_pin: pin }),
       changerPin: (id, pin) => rpc("changer_pin", { p_eleve: id, p_pin: pin }),
+      // essaie les codes debut … debut + n - 1 contre l'empreinte (supabase/codes.sql) : le code trouvé, ou null
+      retrouverCode: (id, debut, n) => rpc("prof_retrouver_code", { p_eleve: id, p_debut: debut, p_n: n }),
       async basculerActif(id, actif) { const { error } = await sb.from("eleves").update({ actif }).eq("id", id); if (error) throw new Error(error.message); },
       async supprimerEleve(id) {
         try {   // ses fichiers déposés d'abord (la table « depots » suit l'élève, pas le stockage)
@@ -484,7 +488,7 @@ window.SIP = window.SIP || {};
     const ko = async () => { const e = new Error("Pas de réseau (HORS_LIGNE)"); e.reseau = true; throw e; };
     const api = { mode: "hors-ligne" };
     ["connexion", "etat", "enregistrer", "adopter", "lire", "signaler", "mesSignalements", "profConnexion", "profDonnees", "profSignalements",
-      "traiterSignalement", "validerSignalement", "profFlashNoter", "creerEleve", "changerPin", "basculerActif", "supprimerEleve", "profDeconnexion",
+      "traiterSignalement", "validerSignalement", "profFlashNoter", "creerEleve", "changerPin", "retrouverCode", "basculerActif", "supprimerEleve", "profDeconnexion",
       "projetEtat", "projetEnregistrer", "profProjets", "profProjetMaj", "depotListe", "depotEnvoyer", "depotOuvrir", "depotRetirer",
       "profDepots", "profDepotUrl", "profDepotBlob", "profDepotVu", "profDepotSupprimer", "flashLancer", "flashEtat", "flashMontrer", "flashRallonger"].forEach((f) => (api[f] = ko));
     api.profSession = async () => false;

@@ -67,7 +67,15 @@ Tu peux mettre le lien du site dans l'ENT (nati.pf) comme lien externe.
 ## 4. Créer les comptes élèves
 
 `prof.html` → l'espace (Lycée SI, BTS 1 ou BTS 2) → la classe → page **Élèves et codes** → colle un identifiant par ligne (ex. `teva.m`) → **Créer et générer les codes** → **Imprimer** → découpe les coupons.
-Les codes sont chiffrés en base : ils ne sont visibles qu'à la création. Code perdu → « Nouveau code ».
+**Un élève a perdu son code** : même page, colonne **Code** → clique sur **••••** (le code reste caché tant qu'on ne
+clique pas, pour un écran projeté ; « Afficher tous les codes » les montre tous). Pour un compte créé avant le
+27 novembre, le code n'était gardé qu'en empreinte : « Retrouver » le cherche sans le changer (moins d'une minute ;
+« Retrouver les n codes de la classe » les fait tous), et il réapparaît aussi tout seul quand l'élève se connecte.
+« Nouveau code » en donne un autre (l'ancien ne marche plus). « Coupons de toute la classe » imprime les codes connus.
+**À faire une fois** : Supabase → SQL Editor → New query → colle **`supabase/codes.sql`** → Run (colonne `code` de la
+table `eleves`, lisible par le professeur seulement ; connexion, création et « Nouveau code » la remplissent ; fonction
+`prof_retrouver_code`, réservée au professeur, qui essaie les codes 0000 à 9999 contre l'empreinte, 1 000 au plus par
+appel). Tant que ce n'est pas fait, la page le dit.
 5 codes faux d'affilée bloquent le compte 10 minutes.
 Fin d'année : « Désactiver » plutôt que « Supprimer » (supprimer efface tout l'historique).
 
@@ -182,6 +190,7 @@ Limite : la clé publique permet en théorie d'appeler la fonction d'enregistrem
 - **Voltmètre et dépannage (26 novembre, nuit)** : pendant la simulation, un **voltmètre** (pointe rouge, pointe noire) mesure la tension entre deux bornes, comme un vrai : il voit à travers les bobines et les voyants, donne le signe en continu et les tensions partielles. Nouvelle section **Dépannage** dans la fenêtre « Défis » : cinq schémas justes (démarrage direct, voyants, inversion, automate, étoile-triangle) avec une **panne cachée au hasard** (fil coupé, contact ou pôle qui ne conduit plus, bobine, voyant ou fusible coupé, sans que le dessin change) ; les fils ne sont plus en couleur, l'élève mesure puis désigne l'élément en panne (nombre de mesures et d'erreurs, réparation, nouvelle panne).
 - **Dépannage du professeur (27 novembre)** : dans l'atelier schémas, Fichier → « Préparer un dépannage (professeur) » : sur n'importe quel schéma, tu choisis toi-même l'élément en panne, la consigne et le barème (mesures sans pénalité, points en moins par mesure de plus et par mauvaise désignation), puis tu copies le **lien** (ou un fichier) pour la classe : tout le monde a la même panne. La note sur 20 de chaque élève connecté arrive dans l'espace professeur, nouvelle page **Dépannages** dans l'espace de chaque classe (une ligne par élève : note, mesures, erreurs, durée ; qui n'a pas rendu). Une mesure répétée à l'identique ne compte plus.
 - **Espace prof rangé par classe (27 novembre)** : trois espaces, Lycée SI, BTS 1 et BTS 2, avec ADM et STI à part dans chaque BTS ; chaque espace n'a que ses pages (le bac SI n'est plus à côté des devoirs E4). Voir « L'espace prof : trois espaces » plus haut.
+- **Codes des élèves visibles (27 novembre)** : page « Élèves et codes », colonne Code (caché jusqu'au clic) ; « Retrouver » pour les comptes déjà créés, sans changer leur code ; coupons de toute la classe. Une fois : coller `supabase/codes.sql` dans Supabase (voir « Créer les comptes élèves »).
 
 ## Projet planeur — Seconde SI (9 novembre)
 
@@ -446,6 +455,7 @@ assets/prof-projets.js      onglet « Projets BTS 2 » de l'espace prof
 outils/projets-bts2/        sources des 13 projets et générateur des dossiers Word (voir son LISEZMOI)
 supabase/schema.sql   base de données (tables, sécurité, fonctions)
 supabase/signalements.sql   à passer une fois sur une base existante : les signalements d'erreurs
+supabase/codes.sql          à passer une fois sur une base existante (rejouable) : les codes des élèves, visibles dans l'espace prof
 supabase/projets.sql        à passer une fois sur une base existante (rejouable, à repasser après chaque mise à jour) : les projets BTS 2 (attribution, travail des étudiants, validations) et l'espace de dépôt (table depots, stockage privé « depots »)
 ```
 

@@ -14,12 +14,14 @@ create table if not exists public.eleves (
   niveau        text not null check (niveau in ('2SI','1SI','TSI','BTS1-STI','BTS1-ADM','BTS2-STI','BTS2-ADM')),
   nom           text not null,
   pin_hash      text not null,
+  code          text,   -- le code lisible, pour le professeur seulement (voir supabase/codes.sql)
   actif         boolean not null default true,
   echecs        int not null default 0,
   bloque_jusqua timestamptz,
   cree_le       timestamptz not null default now()
 );
 create unique index if not exists eleves_niveau_nom on public.eleves (niveau, lower(nom));
+alter table public.eleves add column if not exists code text;
 
 create table if not exists public.jetons (
   jeton     uuid primary key default gen_random_uuid(),
@@ -142,7 +144,7 @@ begin
     where id = e.id;
     return json_build_object('ok', false, 'erreur', 'IDENTIFIANTS');
   end if;
-  update eleves set echecs = 0, bloque_jusqua = null where id = e.id;
+  update eleves set echecs = 0, bloque_jusqua = null, code = p_pin where id = e.id;   -- le bon code : le professeur pourra le redonner
   delete from jetons where eleve_id = e.id and expire_le < now();
   insert into jetons (eleve_id) values (e.id) returning jeton into j;
   return json_build_object('ok', true, 'jeton', j, 'eleve_id', e.id, 'nom', e.nom, 'niveau', e.niveau);
@@ -215,7 +217,7 @@ returns uuid language plpgsql security definer set search_path = public, extensi
 declare i uuid;
 begin
   if not is_prof() then raise exception 'RESERVE_PROF'; end if;
-  insert into eleves (niveau, nom, pin_hash) values (p_niveau, trim(p_nom), crypt(p_pin, gen_salt('bf')))
+  insert into eleves (niveau, nom, pin_hash, code) values (p_niveau, trim(p_nom), crypt(p_pin, gen_salt('bf')), p_pin)
   returning id into i;
   return i;
 end $$;
@@ -224,8 +226,28 @@ create or replace function public.changer_pin(p_eleve uuid, p_pin text)
 returns void language plpgsql security definer set search_path = public, extensions as $$
 begin
   if not is_prof() then raise exception 'RESERVE_PROF'; end if;
-  update eleves set pin_hash = crypt(p_pin, gen_salt('bf')), echecs = 0, bloque_jusqua = null where id = p_eleve;
+  update eleves set pin_hash = crypt(p_pin, gen_salt('bf')), code = p_pin, echecs = 0, bloque_jusqua = null where id = p_eleve;
   delete from jetons where eleve_id = p_eleve;
+end $$;
+
+-- Retrouver le code d'un compte créé avant la colonne « code » : essaie les codes de p_debut à p_debut + p_n - 1
+-- (4 chiffres, au plus 1 000 par appel). Renvoie le code trouvé (et le garde dans « code »), sinon null.
+create or replace function public.prof_retrouver_code(p_eleve uuid, p_debut int, p_n int)
+returns text language plpgsql security definer set search_path = public, extensions as $$
+declare h text; c text; i int; essai text;
+begin
+  if not is_prof() then raise exception 'RESERVE_PROF'; end if;
+  select pin_hash, code into h, c from eleves where id = p_eleve;
+  if not found then raise exception 'INTROUVABLE'; end if;
+  if c is not null then return c; end if;
+  for i in greatest(coalesce(p_debut, 0), 0) .. least(greatest(coalesce(p_debut, 0), 0) + least(greatest(coalesce(p_n, 0), 0), 1000) - 1, 9999) loop
+    essai := lpad(i::text, 4, '0');
+    if crypt(essai, h) = h then
+      update eleves set code = essai where id = p_eleve;
+      return essai;
+    end if;
+  end loop;
+  return null;
 end $$;
 
 -- ---------------------------------------------------------------------
@@ -240,6 +262,7 @@ grant execute on function public.mon_etat(uuid)                                 
 grant execute on function public.is_prof()                                                              to authenticated;
 grant execute on function public.creer_eleve(text,text,text)                                            to authenticated;
 grant execute on function public.changer_pin(uuid,text)                                                 to authenticated;
+grant execute on function public.prof_retrouver_code(uuid,int,int)                                      to authenticated;
 
 -- ---------------------------------------------------------------------
 -- Signalements d'erreurs (bouton « Signaler une erreur ») — même bloc que supabase/signalements.sql

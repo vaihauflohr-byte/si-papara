@@ -683,9 +683,52 @@
   }
 
   // ---------------- Élèves et codes ----------------
+  // Les codes (27 nov. 2026) : la colonne « code » de la table eleves les garde lisibles pour le professeur (supabase/codes.sql).
+  // Elle se remplit à la création, à chaque « Nouveau code », à chaque connexion de l'élève, et avec « Retrouver » pour les
+  // comptes créés avant : prof_retrouver_code essaie les codes 0000 à 9999 contre l'empreinte, par tranches de 400 (un appel
+  // reste court), trois tranches à la fois. À l'écran, un code reste caché (••••) tant qu'on ne clique pas dessus : l'écran du
+  // professeur est souvent projeté. Rien n'est gardé dans le navigateur.
   const genPin = () => String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+  const codesVus = new Set(), retrouvant = new Map();
+  let codesTous = false, recherche = null;   // recherche : « Retrouver tous les codes » en cours ({ arret, fait, total })
+  const codeConnu = (e) => typeof e.code === "string" && e.code !== "";
+  const colonneCode = () => !!D && D.eleves.some((e) => "code" in e);   // la base a-t-elle reçu supabase/codes.sql ?
+  const MAJ_BASE = "Pour voir les codes, la base doit d'abord être mise à jour, une seule fois : dans Supabase, SQL Editor → New query, colle le fichier supabase/codes.sql du site, puis Run.";
+  const messageErreur = (x) => (/Could not find the function|schema cache|prof_retrouver_code/i.test((x && x.message) || "") ? MAJ_BASE : "Erreur : " + ((x && x.message) || x));
+  function celluleCode(e) {
+    if (retrouvant.has(e.id)) return `<span class="discret">recherche… ${Math.round(100 * retrouvant.get(e.id))} %</span>`;
+    if (codeConnu(e)) {
+      const vu = codesTous || codesVus.has(e.id);
+      return `<button class="code-el${vu ? " vu" : ""}" type="button" data-voir="${esc(e.id)}" title="${vu ? "Cacher le code" : "Voir le code"}" aria-label="${vu ? `Code de ${esc(e.nom)} : ${esc(e.code)}, cliquer pour le cacher` : `Voir le code de ${esc(e.nom)}`}">${vu ? esc(e.code) : "••••"}</button>`;
+    }
+    return `<span class="discret">pas encore connu</span> <button class="btn-lien no-print" type="button" data-retr="${esc(e.id)}" title="Le site essaie les 10 000 codes possibles : moins d'une minute">Retrouver</button>`;
+  }
+  async function retrouver(e, maj) {
+    if (retrouvant.has(e.id) || codeConnu(e)) return { trouve: e.code || null };
+    const N = 400, FIN = 10000; let suivant = 0, fait = 0, trouve = null, erreur = null;
+    const tranche = async (debut, n) => {
+      try { return await SIP.api.retrouverCode(e.id, debut, n); }
+      catch (x) {   // un appel trop long pour le serveur : on recoupe la tranche en deux
+        if (n > 50 && /timeout|statement|canceling/i.test((x && x.message) || "")) { const c = await tranche(debut, Math.floor(n / 2)); return c || tranche(debut + Math.floor(n / 2), n - Math.floor(n / 2)); }
+        throw x;
+      }
+    };
+    retrouvant.set(e.id, 0); maj();
+    const ouvrier = async () => {
+      while (!trouve && !erreur && suivant < FIN && !(recherche && recherche.arret)) {
+        const d = suivant, n = Math.min(N, FIN - d); suivant += n;
+        try { const c = await tranche(d, n); if (c) trouve = c; } catch (x) { erreur = x; }
+        fait += n; if (retrouvant.has(e.id)) retrouvant.set(e.id, fait / FIN); maj();
+      }
+    };
+    await Promise.all([ouvrier(), ouvrier(), ouvrier()]);
+    retrouvant.delete(e.id);
+    if (trouve) { e.code = trouve; codesVus.add(e.id); }
+    maj();
+    return { trouve, erreur };
+  }
   function vueEleves() {
-    const liste = elevesFiltres();
+    const liste = elevesFiltres(), inconnus = liste.filter((e) => !codeConnu(e)), base = colonneCode();
     cadre(`<div class="grille" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
       <div class="carte no-print"><h3>Ajouter des élèves</h3>
         <label for="nv">Classe</label><select id="nv">${espace.classes.map((id) => SIP.niveau(id)).filter(Boolean).map((n) => `<option value="${n.id}" ${n.id === niveau ? "selected" : ""}>${esc(n.nom)}</option>`).join("")}</select>
@@ -693,18 +736,68 @@
         <textarea id="noms" rows="6" placeholder="teva.m&#10;hinano.t&#10;maui.r"></textarea>
         <p class="discret">Conseil : prénom + initiale du nom, sans accent ni espace (pas de nom complet : le site est public).</p>
         <button class="btn" id="creer">Créer et générer les codes</button><div class="erreur" id="err"></div></div>
-      <div class="carte" id="coupons-zone"><h3>Codes à distribuer</h3><p class="discret">Les codes n'apparaissent qu'au moment de leur création (ils sont ensuite chiffrés). Imprime-les et découpe.</p></div>
+      <div class="carte" id="coupons-zone"><h3>Codes à distribuer</h3><p class="discret">Un élève a perdu son code ? Clique sur <b>••••</b> dans la colonne « Code » de la liste : le code s'affiche (il reste caché sinon, pour un écran projeté). Les coupons à imprimer apparaissent ici.</p>
+        <div class="rang no-print"><button class="btn sec" id="coupons-classe"${liste.some(codeConnu) ? "" : " disabled"}>Coupons de toute la classe</button></div></div>
     </div>
-    <h2>Élèves (${liste.length})</h2>
-    ${liste.length ? `<div class="table-defil"><table><thead><tr><th>Identifiant</th><th>Classe</th><th>Créé le</th><th>Statut</th><th class="no-print">Actions</th></tr></thead><tbody>${liste.map((e) =>
-      `<tr><td><b>${esc(e.nom)}</b></td><td>${esc(SIP.niveau(e.niveau).court)}</td><td>${SIP.fmtDate(e.cree_le)}</td><td>${e.actif === false ? '<span class="etiquette">désactivé</span>' : '<span class="etiquette ok">actif</span>'}</td>
-      <td class="no-print"><div class="rang"><button class="btn-lien" data-pin="${e.id}">Nouveau code</button> · <button class="btn-lien" data-act="${e.id}">${e.actif === false ? "Réactiver" : "Désactiver"}</button> · <button class="btn-lien" data-sup="${e.id}" style="color:var(--ko)">Supprimer</button></div></td></tr>`).join("")}</tbody></table></div>` : ""}`);
+    <h2>Élèves (${liste.length}) ${liste.some(codeConnu) ? `<button class="btn sec no-print" id="codes-tous" style="font-size:.9rem">${codesTous ? "Cacher les codes" : "Afficher tous les codes"}</button>` : ""}</h2>
+    <div id="codes-info" class="no-print" aria-live="polite">${infoCodes(inconnus, base)}</div>
+    ${liste.length ? `<div class="table-defil"><table id="tab-eleves"><thead><tr><th>Identifiant</th><th>Code</th><th>Créé le</th><th>Statut</th><th class="no-print">Actions</th></tr></thead><tbody>${liste.map((e) =>
+      `<tr><td><b>${esc(e.nom)}</b></td><td data-cel="${esc(e.id)}" style="white-space:nowrap">${celluleCode(e)}</td><td style="white-space:nowrap">${SIP.fmtDate(e.cree_le)}</td><td>${e.actif === false ? '<span class="etiquette">désactivé</span>' : '<span class="etiquette ok">actif</span>'}</td>
+      <td class="no-print"><div class="rang" style="flex-wrap:nowrap;white-space:nowrap"><button class="btn-lien" data-pin="${e.id}">Nouveau code</button> · <button class="btn-lien" data-act="${e.id}">${e.actif === false ? "Réactiver" : "Désactiver"}</button> · <button class="btn-lien" data-sup="${e.id}" style="color:var(--ko)">Supprimer</button></div></td></tr>`).join("")}</tbody></table></div>` : ""}`);
 
+    const majCellule = (e) => { const td = document.querySelector(`#tab-eleves [data-cel="${CSS.escape(e.id)}"]`); if (td) td.innerHTML = celluleCode(e); };
+    const majInfo = () => { const z = document.getElementById("codes-info"); if (z) { z.innerHTML = infoCodes(liste.filter((e) => !codeConnu(e)), colonneCode()); brancherInfo(); }
+      const c = document.getElementById("coupons-classe"); if (c) c.disabled = !liste.some(codeConnu); };
     const coupons = (paires) => {
       document.getElementById("coupons-zone").innerHTML = `<div class="rang no-print" style="justify-content:space-between"><h3>Codes à distribuer</h3><button class="btn sec" onclick="print()">Imprimer</button></div>
         <div class="coupons">${paires.map((p) => `<div class="coupon"><div class="discret">${esc(SIP.CFG.etablissement || "")} — ${esc(SIP.niveau(p.niveau).nom)}</div>
         <div>Site : <b>${esc(location.origin + location.pathname.replace(/prof\.html$/, ""))}</b></div>
-        <div>Identifiant : <code>${esc(p.nom)}</code></div><div>Code : <code>${p.pin}</code></div></div>`).join("")}</div>`;
+        <div>Identifiant : <code>${esc(p.nom)}</code></div><div>Code : <code>${esc(p.pin)}</code></div></div>`).join("")}</div>`;
+    };
+    function brancherInfo() {
+      const t = document.getElementById("codes-retrouver-tous");
+      if (t) t.onclick = async () => {
+        const L = liste.filter((e) => !codeConnu(e));
+        recherche = { arret: false, fait: 0, total: L.length, erreur: null }; majInfo();
+        for (const e of L) {
+          if (recherche.arret) break;
+          const r = await retrouver(e, () => { majCellule(e); majInfo(); });
+          if (r.erreur) { recherche.erreur = messageErreur(r.erreur); break; }
+          recherche.fait++; majCellule(e); majInfo();
+        }
+        const fin = recherche; recherche = null; majInfo();
+        if (fin.erreur) { const z = document.getElementById("codes-info"); if (z) z.insertAdjacentHTML("beforeend", `<p class="erreur">${esc(fin.erreur)}</p>`); }
+      };
+      const st = document.getElementById("codes-arret"); if (st) st.onclick = () => { if (recherche) recherche.arret = true; st.disabled = true; st.textContent = "Arrêt…"; };
+    }
+    brancherInfo();
+    const tab = document.getElementById("tab-eleves");
+    if (tab) tab.addEventListener("click", async (ev) => {
+      const v = ev.target.closest("[data-voir]"), r = ev.target.closest("[data-retr]");
+      if (v) {   // un clic montre le code, un autre le cache
+        const e = liste.find((x) => x.id === v.dataset.voir); if (!e) return;
+        if (codesTous || codesVus.has(e.id)) {
+          if (codesTous) {   // « tous affichés » : on cache seulement celui-ci
+            codesTous = false; liste.forEach((x) => { if (x.id !== e.id && codeConnu(x)) codesVus.add(x.id); });
+            const bt = document.getElementById("codes-tous"); if (bt) bt.textContent = "Afficher tous les codes";
+          }
+          codesVus.delete(e.id);
+        } else codesVus.add(e.id);
+        majCellule(e); return;
+      }
+      if (r) {
+        const e = liste.find((x) => x.id === r.dataset.retr); if (!e) return;
+        const res = await retrouver(e, () => { majCellule(e); majInfo(); });
+        majCellule(e); majInfo();
+        if (res.erreur) { const z = document.getElementById("codes-info"); if (z) z.insertAdjacentHTML("beforeend", `<p class="erreur">${esc(messageErreur(res.erreur))}</p>`); }
+        else if (!res.trouve) { const td = document.querySelector(`#tab-eleves [data-cel="${CSS.escape(e.id)}"]`); if (td) td.innerHTML = `<span class="discret">introuvable : fais « Nouveau code »</span>`; }
+      }
+    });
+    const ct = document.getElementById("codes-tous");
+    if (ct) ct.onclick = () => { codesTous = !codesTous; if (!codesTous) codesVus.clear(); ct.textContent = codesTous ? "Cacher les codes" : "Afficher tous les codes"; liste.forEach(majCellule); };
+    document.getElementById("coupons-classe").onclick = () => {
+      const L = liste.filter((e) => e.actif !== false && codeConnu(e));
+      if (L.length) coupons(L.map((e) => ({ nom: e.nom, pin: e.code, niveau: e.niveau })));
     };
     document.getElementById("creer").onclick = async () => {
       const nv = document.getElementById("nv").value, err = document.getElementById("err"); err.textContent = "";
@@ -718,7 +811,7 @@
     document.querySelectorAll("[data-pin]").forEach((b) => (b.onclick = async () => {
       const e = D.eleves.find((x) => x.id === b.dataset.pin); const pin = genPin();
       if (!confirm(`Générer un nouveau code pour ${e.nom} ? L'ancien ne marchera plus.`)) return;
-      await SIP.api.changerPin(e.id, pin); coupons([{ nom: e.nom, pin, niveau: e.niveau }]);
+      await SIP.api.changerPin(e.id, pin); e.code = pin; codesVus.add(e.id); majCellule(e); majInfo(); coupons([{ nom: e.nom, pin, niveau: e.niveau }]);
     }));
     document.querySelectorAll("[data-act]").forEach((b) => (b.onclick = async () => {
       const e = D.eleves.find((x) => x.id === b.dataset.act); await SIP.api.basculerActif(e.id, e.actif === false); await charger(); vueEleves();
@@ -728,6 +821,15 @@
       if (!confirm(`Supprimer ${e.nom} ET tout son historique ? (Irréversible — préfère « Désactiver » en fin d'année.)`)) return;
       await SIP.api.supprimerEleve(e.id); await charger(); vueEleves();
     }));
+  }
+  // la ligne au-dessus de la liste : les codes pas encore connus, et comment les retrouver
+  function infoCodes(inconnus, base) {
+    if (!D || !D.eleves.length) return "";
+    if (!base) return `<p class="carte" style="margin:8px 0">${esc(MAJ_BASE)}</p>`;
+    if (recherche) return `<p class="discret">Recherche des codes : ${recherche.fait} / ${recherche.total} élève${recherche.total > 1 ? "s" : ""}… <button class="btn-lien" id="codes-arret">Arrêter</button></p>`;
+    if (!inconnus.length) return "";
+    return `<p class="discret">${inconnus.length} code${inconnus.length > 1 ? "s" : ""} pas encore connu${inconnus.length > 1 ? "s" : ""} (compte${inconnus.length > 1 ? "s" : ""} créé${inconnus.length > 1 ? "s" : ""} avant le 27 novembre) : « Retrouver » le cherche (moins d'une minute), sans le changer ; il apparaît aussi tout seul quand l'élève se connecte.
+      ${inconnus.length > 1 ? `<button class="btn-lien" id="codes-retrouver-tous">Retrouver les ${inconnus.length} codes de la classe</button>` : ""}</p>`;
   }
 
   // ---------------- Devoirs notés BTS 2 (entrainements/bts-e4.html#/devoirs ; listes SIP.DEVOIRS_E4 et SIP.SERIES_E4, contenu/bts2.js) ----------------

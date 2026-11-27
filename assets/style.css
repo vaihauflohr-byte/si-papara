@@ -262,6 +262,11 @@ table.grille-bac td.num .discret { white-space: nowrap; }
 .choix-classe button + button { border-left: 1.5px solid var(--rule); }
 .choix-classe button:hover { color: var(--ink); }
 .choix-classe button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+/* code d'un élève : caché (••••) tant qu'on ne clique pas dessus */
+.code-el { font: 600 1rem/1.2 var(--f-mono); letter-spacing: .14em; padding: 3px 10px; border: 1.5px dashed var(--rule); border-radius: 6px;
+  background: var(--paper-2); color: var(--ink-2); cursor: pointer; min-width: 4.6em; }
+.code-el:hover { border-color: var(--ink-3); color: var(--ink); }
+.code-el.vu { border-style: solid; border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 details.seance { border-bottom: 1px solid var(--rule-2); padding: 8px 0; }
 details.seance summary { cursor: pointer; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; list-style: none; }
 details.seance summary::-webkit-details-marker { display: none; }
