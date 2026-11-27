@@ -86,6 +86,7 @@
   def("contact_th_no", { nom: "Contact du relais thermique 97-98", court: "Thermique 97-98", cat: "rel", pref: "F", lien: true, p: { num: "97-98" }, boite: [-3, -3, 1, 3], bornes: (p) => deuxNum(p, "97", "98") });
 
   // Récepteurs
+  def("electrovanne", { nom: "Électrovanne (bobine de distributeur)", court: "Électrovanne", cat: "rec", pref: "YV", p: { tension: "230~" }, boite: [-1.6, -3, 4.2, 3], bornes: () => deux("A1", "A2") });
   def("voyant", { nom: "Voyant", court: "Voyant", cat: "rec", pref: "H", p: { couleur: "vert", tension: "230~" }, boite: [-1.2, -3, 1.6, 3], bornes: () => deux("X1", "X2") });
   def("moteur", { nom: "Moteur asynchrone triphasé", court: "Moteur M 3~", cat: "rec", pref: "M", boite: [-2.8, -4, 4.4, 3.4],
     bornes: () => [{ id: "U", x: -2, y: -4, d: "n", n: "U" }, { id: "V", x: 0, y: -4, d: "n", n: "V" }, { id: "W", x: 2, y: -4, d: "n", n: "W" }, { id: "PE", x: 4, y: -4, d: "n", n: "PE" }] });
@@ -123,6 +124,8 @@
   // Partie opérative animée (pas de bornes) : elle lit le moteur et actionne les capteurs, par leurs repères
   def("chariot", { nom: "Chariot sur rail (partie opérative)", court: "Chariot", cat: "po", pref: "PO", sansRot: true, boite: [-16, -5, 16, 5],
     p: { moteur: "M1", sens: "1", gauche: "S3", droite: "S4", duree: 4, depart: "gauche" }, bornes: () => [] });
+  def("tri", { nom: "Tapis de tri avec aiguillage (partie opérative)", court: "Tri", cat: "po", pref: "PO", sansRot: true, boite: [-16, -7.4, 20, 10.4],
+    p: { moteur: "M1", sens: "1", capteur: "B1", verin: "YV1", rentre: "S4", sorti: "S5", duree: 6, ecart: 30, caisses: 0, course: 0.5 }, bornes: () => [] });
   def("tapis", { nom: "Tapis roulant et caisses (partie opérative)", court: "Tapis", cat: "po", pref: "PO", sansRot: true, boite: [-16, -7.4, 16.5, 5.4],
     p: { moteur: "M1", sens: "1", capteur: "B1", duree: 6, ecart: 30, caisses: 0 }, bornes: () => [] });
   def("cuve", { nom: "Cuve et pompe (partie opérative)", court: "Cuve", cat: "po", pref: "PO", sansRot: true, boite: [-10, -8.4, 12.5, 8.4],

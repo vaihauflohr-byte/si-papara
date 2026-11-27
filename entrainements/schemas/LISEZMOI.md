@@ -54,7 +54,11 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
      lignes posent les liaisons verticales (le OU). Les fils manquants se posent tout seuls quand c'est évident ;
    - **GRAFCET** : étapes (numéro, initiale, actions continues, conditionnelles « si… », mises à 1 ou à 0 à
      l'activation, comptage, consigne AQ0) et transitions (de, vers, réceptivité : `dcy · a`, `a + b`, `/a`, `↑dcy`,
-     `t/X2/3s`, `%C0.V >= 3`, `1`) ; le GRAFCET est dessiné à côté, boucles à gauche, renvois pour les cas compliqués ;
+     `t/X2/3s`, `%C0.V >= 3`, `1`) ; le GRAFCET est dessiné à côté **avec ses structures** : séquences, choix en OU
+     (trait simple, avec sa convergence), divergence et convergence en ET (double trait, une branche par colonne),
+     reprises de séquence (trait qui remonte à gauche, flèche vers le haut), renvois « vers X… » / « de (…) » quand un
+     trait en croiserait un autre ; les morceaux pas encore reliés sont posés les uns sous les autres. Une transition
+     incomplète ou une forme qu'on ne sait pas ranger : dessin en colonne avec des renvois, comme avant ;
    - **Mnémoniques** : un nom pour chaque adresse (S1 au lieu de %I0.0), proposés d'après le câblage (« Proposer
      d'après le câblage » suit même les contacts de verrouillage jusqu'à la bobine). Renommer met à jour les réceptivités.
    Les erreurs du programme sont listées en haut (variable inconnue, étape absente, bobine écrite deux fois…).
@@ -80,6 +84,13 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
      chaque fois que le tapis a avancé de l'écart réglé (30 % de sa longueur : une caisse toutes les 1,8 s pour un
      tapis de 6 s), passe devant la cellule (aux 6/10 du tapis) puis tombe dans le bac. Le panneau dit combien de
      caisses sont passées devant le capteur, combien sont dans le bac, combien restent dans le magasin (0 : sans fin).
+   - **Tapis de tri** : le même tapis, avec la cellule au bout de la bande et un **aiguillage**. Quand la caisse quitte
+     la cellule, elle tombe : volet pendu, dans le bac 1 ; volet levé, il fait une rampe et la caisse glisse dans le
+     bac 2. Le volet est manœuvré par un vérin double effet piloté par un distributeur 4/2 monostable (dessinés selon
+     l'ISO 1219, dans le coin du dessin) : quand la bobine de l'**électrovanne** YV (catégorie « Récepteurs ») est
+     alimentée, le distributeur bascule (case jaune) et la tige sort en `course` secondes (0,5 s) ; sans courant, le
+     ressort le ramène et la tige rentre. Deux fins de course marquent la tige rentrée (S4) et sortie (S5). Une caisse
+     qui tombe pendant que le volet bouge tombe **à côté** : « ce qui se passe » le dit.
    - **Capteur 3 fils** (catégorie « Commande », PNP ou NPN, sortie NO ou NC, inductif, capacitif ou optique) : BN (marron)
      au +24 V, BU (bleu) au 0 V, BK (noir) : la sortie. En simulation, le losange se colore quand il détecte et le
      contact de sortie se ferme quand la sortie est active. Branché à l'envers : il ne marche pas, et « ce qui se
@@ -108,6 +119,7 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `va-et-vient` | va-et-vient en logique câblée, sur l'inversion de sens : S2 lance KM1 (à droite), S4 (11-12) coupe KM1 et S4 (13-14) lance KM2 (retour, auto-maintien), S3 (11-12) l'arrête ; chariot PO1 |
 | `cuve` | remplissage d'une cuve : pompe M1 (démarrage direct par KM1), niveaux B1 (bas) et B2 (haut) en détecteurs capacitifs 3 fils PNP sur %I0.2 et %I0.3, S1 et S2 (mise hors service, en service) ; Ladder : `S2 → S AUTO`, `/S1 → R AUTO`, `AUTO · /B1 → S KM1`, `B2 + /AUTO → R KM1`, `KM1 → H1` |
 | `tapis` | un lot de 5 caisses : S1 (arrêt), S2 (marche), S3 (acquittement), cellule optique PNP B1 sur %I0.0 à %I0.3, KM1 (tapis) et H1 (lot complet, orange) ; GRAFCET : 0 (R %C0) → S2 → 1 (KM1) → ↑B1 → 2 (KM1, %C0 + 1) → `C0.V < 5` → 1, ou `C0.V >= 5` → 3 (H1) → S3 → 0 ; et 1 → /S1 → 0 |
+| `tri` | tapis de tri, un bac sur deux : S2 (départ), S3 (acquittement), S4 et S5 (vérin rentré, sorti), cellule optique B1 au bout du tapis, sur %I0.0 à %I0.4 ; KM1 (tapis), YV1 (électrovanne du vérin), H1 (lot complet) ; GRAFCET en ET : 0 (R %C0) → `S2 · S4` → {10 (KM1) → `C0.V >= 6` → 11} et {20 → ↓B1 → 21 (%C0 + 1, YV1) → ↓B1 → 22 (%C0 + 1) → `C0.V < 6` → 20, ou `C0.V >= 6` → 23} → {11, 23} → S4 → 30 (H1) → S3 → 0 : 3 caisses dans chaque bac |
 | `api-variateur` | automate et variateur : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz ; 10 V avec S4 : 50 Hz), C0 au +24V du variateur, rampes de 2 s |
 | `variateur-pot` | variateur seul : interrupteurs S2 (LI1) et S3 (LI2) sur son +24V, potentiomètre R1 sur +10V, AI1, COM |
 
@@ -127,6 +139,7 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `d10-potentiometre` | Le potentiomètre de vitesse | S2 : 25 Hz (R1 à 50 %) ; R1 à fond : 50 Hz ; R1 à 20 % : 10 Hz ; S3 : marche arrière |
 | `d11-cuve` | Remplis la cuve (câblage fait, programme vide) | S2 : la pompe attend (cuve à moitié) ; sous B1 : elle démarre, H1 ; à B2 : arrêt, pas de débordement ; l'eau redescend un peu : elle ne repart pas (une bobine « KM1 = /B2 » ferait battre la pompe) ; S1 : hors service, même sous B1 ; S2 : elle repart |
 | `d13-tapis` | Compte les caisses (câblage fait, programme Ladder vide) | repos ; S2 : le tapis démarre ; après la 5e caisse : arrêt, H1 ; S2 ne relance pas un lot complet ; S3 : acquittement ; S2 : 5 nouvelles caisses (10 en tout), arrêt ; S3, S2 : repart ; S1 : arrêt |
+| `d14-tri` | Deux choses en même temps (GRAFCET : étapes et transitions de chaque branche données) | il manque la divergence en ET (0 → 10, 20 : `S2 · S4`) et la convergence en ET (11, 23 → 30 : `S4`) ; repos ; S2 : le tapis avance (étapes 10 et 20) ; 3 caisses : 2 dans le bac 1, 1 dans le bac 2 ; 6 caisses : 3 + 3, arrêt, H1 ; S3 ; S2 : un nouveau lot (6 + 6) |
 | `d12-va-et-vient` | Le chariot revient tout seul (les deux contacts de S4 manquent) | repos : chariot à gauche ; S2 : KM1, sens 1 ; arrivé à droite : KM1 retombe, KM2, sens 2 ; retour : arrêt à gauche sur S3 ; jamais en butée, F1 pas déclenché |
 
 Le défi 8 (GRAFCET) garde des fins de course actionnés à la main (sans chariot) : ses essais cliquent sur S3 et S4.
@@ -158,13 +171,16 @@ la page (« Lire les symboles ») montre chaque symbole avec son numéro.
 | sectionneur porte-fusibles | 07-21-08, 07-13-06 | fusible sur la lame, trait de sectionnement |
 | disjoncteurs | 07-13-05 | croix au bout du contact fixe ; déclencheurs thermique (02-13-25) et magnétique (I>) |
 | relais thermique, fusible, voyant | 07-15-21, 07-21-01, 08-10-01 | |
+| électrovanne | 07-15-01 et vanne | bobine (organe de commande) barrée en diagonale, reliée à la vanne qu'elle manœuvre (deux triangles pointe contre pointe) |
 | moteur, transformateur, potentiomètre | 06-04-01, 06-09-01 (forme 1), 04-01-07 | |
 | repères de potentiel | IEC 61082 | la désignation du conducteur (L, N, +24 V, 0 V) au bout du fil, sans cadre ; PE : symbole de la terre |
 | automate, variateur | boîte avec ses bornes | les voyants de l'automate et l'afficheur du variateur n'apparaissent qu'en simulation ; variateur : symbole du convertisseur (06-14) |
 | cuve (partie opérative) | ISO 10628, ISO 1219 | réservoir à l'air libre, pompe (cercle et triangle plein vers la sortie) et son moteur M, vanne ; interrupteurs de niveau en repère d'instrument (LSL, LSH) |
 
-Le chariot et le tapis restent des dessins de la machine (rail, butées, fins de course à levier et galet ; bande,
-rouleaux, magasin, cellule, bac), pas des symboles.
+| vérin et distributeur (tapis de tri) | ISO 1219-1 | vérin double effet (corps, piston, tige), distributeur 4/2 : deux cases, flèches de passage, pilotage par électroaimant (case barrée) et rappel par ressort, source de pression (cercle et triangle) et échappement |
+
+Le chariot et les tapis restent des dessins de la machine (rail, butées, fins de course à levier et galet ; bande,
+rouleaux, magasin, cellule, bacs, volet), pas des symboles.
 
 ## Les fichiers
 
@@ -279,9 +295,15 @@ Une étape : `{ n, init, com, actions: [{ t: "n" | "s" | "r" | "inc" | "ana", v,
   chariot. La caisse k a son avant à `pos − k·écart` (sur le tapis entre 0 et 1, longueur 0,08) ; la cellule regarde le
   point 0,6 : elle est actionnée quand une caisse est dessous. Le prochain événement est le prochain bord de caisse
   devant la cellule, dans un sens ou dans l'autre : aucun front n'est manqué, même en avançant de plusieurs secondes.
+- **Tapis de tri** (`tri`) : la même bande, cellule au point 1 (le bout). Le vérin a une position `r` de 0 (rentré) à 1
+  (sorti), qui va vers 1 quand la bobine de l'électrovanne (`verin`, une charge comme un voyant : tension prévue,
+  grille au-delà de 25 %) est alimentée, vers 0 sinon, à vitesse constante (`course` secondes pour la course).
+  Fins de course : rentré sous 0,02 (relâché au-delà de 0,04), sorti au-dessus de 0,98 (relâché sous 0,96). Chaque
+  caisse qui quitte la cellule tombe : `r ≤ 0,2` → bac 1, `r ≥ 0,8` → bac 2, entre les deux → à côté (alerte). Le
+  prochain événement est aussi le prochain seuil du vérin.
 - **Défis** : `verifier: { PO1: "gauche" | "droite" | "en-route" }` (chariot ; toute autre valeur : jamais en butée),
   `{ PO1: 60 }` (cuve à 60 % ± 4 ; toute autre valeur : jamais débordé), `{ PO1: 5 }` (tapis : 5 caisses passées devant
-  la cellule), `{ PO1: "arret" }`.
+  la cellule), `{ PO1: [3, 3] }` (tapis de tri : 3 caisses dans chaque bac, aucune à côté), `{ PO1: "arret" }`.
 
 Ce que le moteur ne calcule pas : les courants et les impédances (deux bobines en série ne collent pas, mais sans
 calcul de tension partagée), le verrouillage mécanique, les temps de réponse des contacteurs et le temps de cycle de
@@ -343,7 +365,10 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
 - `t_po.js` (Node) : cycle GRAFCET avec le chariot, va-et-vient câblé, chariot sans fin de course (butée, moteur
   bloqué, F1 déclenche), cuve (démarrage au niveau bas, arrêt au niveau haut, sans consommation), programme naïf qui
   fait battre la pompe, capteurs PNP et NPN (NO, NC, à l'envers), deux chariots sur un moteur, tapis (GRAFCET de
-  l'exemple : 5 puis 10 caisses, arrêt par S1, magasin limité), défis 11, 12 et 13 ;
+  l'exemple : 5 puis 10 caisses, arrêt par S1, magasin limité), tapis de tri (divergence en ET, 3 + 3 puis 6 + 6,
+  vérin trop lent : caisses à côté, électrovanne de mauvaise tension), défis 11 à 14 ;
+- `e2e_tri.py`, `e2e_defi14.py` (Playwright) : volet et tige animés, bacs, carte du tri, bulle de S4, GRAFCET en ET
+  dans la vue en direct ; défi 14 résolu dans l'éditeur GRAFCET (divergence puis convergence ajoutées au clavier) ;
 - `e2e_tapis.py` (Playwright, PC et téléphone) : les caisses avancent, la cellule les voit, GRAFCET en direct, arrêt
   à 5 caisses, carte du tapis, défi 13 refusé au départ ;
 - `e2e_po.py` (Playwright, PC et téléphone) : le chariot avance et actionne ses fins de course, clic sur un capteur

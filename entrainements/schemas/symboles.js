@@ -26,6 +26,8 @@
   /* tapis (mêmes réglages que le moteur de simulation : capteur à 0,6 de la longueur, caisse de 0,08) :
      l'avant de chaque caisse posée sur le tapis (en pixels), le décalage de la bande et l'angle du rouleau */
   const XS_T = 0.6, W_T = 0.08;
+  // tapis de tri : la tige du vérin avance de 30 px ; le volet (pivot sous le bout de la bande) passe de vertical (bac 1) à une rampe vers le bac 2
+  const geoTri = (r) => { const k = Math.min(1, Math.max(0, Number(r) || 0)); return { tige: `translate(${Math.round(300 * k) / 10} 0)`, volet: `rotate(${Math.round(-580 * k) / 10} 114 14)` }; };
   function geoTapis(pos, ecart, nb) {
     const d = Math.max(0.12, Math.min(1, (Number(ecart) || 30) / 100)), N = Math.max(0, Math.round(Number(nb) || 0)), p = Number(pos) || 0;
     const cx = [], kmax = Math.floor(p / d + 1e-9), kmin = Math.max(0, Math.ceil((p - 1 - W_T) / d - 1e-9));
@@ -336,13 +338,17 @@
         if (sim && E.butee) tx.push(T(E.butee < 0 ? -112 : 112, 42, "en butée !", "middle", "alerte"));
         break;
       }
-      case "tapis": {
+      case "tapis": case "tri": {
         // le tapis vu de face : bande sur deux rouleaux (celui de droite est un tambour moteur M), magasin de caisses à gauche,
-        // capteur au-dessus de la bande, bac au bout ; en simulation, la bande et les caisses avancent
+        // capteur au-dessus de la bande, bac au bout ; en simulation, la bande et les caisses avancent.
+        // Tapis de tri : la cellule est au bout de la bande ; un volet, manœuvré par un vérin, envoie la caisse dans le bac 1 ou 2
+        const tri = t === "tri";
         const g = geoTapis(sim ? E.pos : 0, p.ecart, p.caisses), mv = sim && Math.abs(E.vit || 0) * 1000 > 0.02 ? Math.sign(E.vit) : 0;
         const on = sim && !!E.cc, reste = sim ? E.reste : Math.round(Number(p.caisses) || 0) || -1;
-        let hach = ""; for (let x = -144; x <= 160; x += 12) hach += `M${x} 40l-6 6`;
-        h += P(hach, null, "fin") + P("M-150 40H162", null, "rail") + P("M-110 7L-102 40M110 7L102 40", null, "fin2");
+        if (!tri) {
+          let hach = ""; for (let x = -144; x <= 160; x += 12) hach += `M${x} 40l-6 6`;
+          h += P(hach, null, "fin") + P("M-150 40H162", null, "rail") + P("M-110 7L-102 40M110 7L102 40", null, "fin2");
+        }
         // magasin (deux caisses en attente, s'il en reste)
         h += P("M-143 -70V-28M-117 -70V-31", null, "paroi");
         if (reste !== 0) h += R(-139.6, -44, 19.2, 15, "caisse", ` rx="1.5"`) + (reste < 0 || reste > 1 ? R(-139.6, -60, 19.2, 15, "caisse", ` rx="1.5"`) : "");
@@ -355,18 +361,47 @@
         for (let j = 0; j < g.places; j++) { const x = g.cx[j]; h += `<rect data-caisse="${j}" x="${x != null ? n1(x - 19.2) : -200}" y="-25" width="19.2" height="16" rx="1.5" class="caisse"${x == null ? ' style="display:none"' : ""}/>`; }
         h += `</g>`;
         // capteur au-dessus de la bande, et son faisceau
-        const xs = -120 + 240 * XS_T;
+        const xs = -120 + 240 * (tri ? 1 : XS_T);
         if (String(p.capteur || "").trim()) {
           h += P(`M${xs} -70V-48`, null, "fin2") + R(xs - 7, -48, 14, 10, "po-fdc" + (on ? " on" : ""), ` rx="2"`) + P(`M${xs} -38V-10`, null, "faisceau" + (on ? " on" : ""));
           tx.push(T(xs + 10, -43, p.capteur, "start", "ref"));
         }
-        // bac au bout du tapis
-        h += P("M130 14V40H160V14", null, "paroi");
-        if (sim && E.bac) tx.push(T(145, 30, String(E.bac), "middle", "moyen"));
-        if (mv) h += P(mv > 0 ? "M-12 24H12M12 24l-5 -4M12 24l-5 4" : "M12 24H-12M-12 24l5 -4M-12 24l5 4", null, "sens");
-        tx.push(T(-60, -62, ref, "middle", "ref"), T(-60, -50, "tapis · moteur " + (p.moteur || "?"), "middle", "info"), T(97, 20, p.moteur || "?", "end", "ref"));
-        tx.push(T(145, 51, "bac", "middle", "info"));
-        if (sim) tx.push(T(-20, 33, `${E.vues || 0} caisse${(E.vues || 0) > 1 ? "s" : ""} vue${(E.vues || 0) > 1 ? "s" : ""}`, "middle", "info"));
+        if (!tri) {   // bac au bout du tapis
+          h += P("M130 14V40H160V14", null, "paroi");
+          if (sim && E.bac) tx.push(T(145, 30, String(E.bac), "middle", "moyen"));
+          tx.push(T(145, 51, "bac", "middle", "info"));
+          if (sim) tx.push(T(-20, 33, `${E.vues || 0} caisse${(E.vues || 0) > 1 ? "s" : ""} vue${(E.vues || 0) > 1 ? "s" : ""}`, "middle", "info"));
+        } else {
+          const r = sim ? c01(E.r) : 0, ev = sim && !!E.ev, gt = geoTri(r);
+          // volet (pivot sous le bout de la bande) et les deux bacs : volet pendu, la caisse tombe dans le bac 1 ;
+          // volet levé par le vérin, il fait une rampe sous la caisse, qui glisse dans le bac 2
+          h += P("M118 50V78H150V50M156 50V78H190V50", null, "paroi");
+          h += `<g data-volet="${esc(pc.id)}" transform="${gt.volet}">${P("M114 14V60", null, "volet")}</g><circle cx="114" cy="14" r="2.2" class="plein"/>`;
+          tx.push(T(134, 88, "bac 1", "middle", "info"), T(173, 88, "bac 2", "middle", "info"));
+          if (sim) { tx.push(T(134, 66, String(E.bac1 || 0), "middle", "moyen"), T(173, 66, String(E.bac2 || 0), "middle", "moyen")); if (E.cote) tx.push(T(154, 100, `à côté : ${E.cote}`, "middle", "alerte")); }
+          // vérin double effet et distributeur 4/2 monostable (ISO 1219-1) : la tige sort quand l'électrovanne est alimentée
+          h += R(-96, 30, 50, 12, "verin") + `<g data-tige="${esc(pc.id)}" transform="${gt.tige}">${P("M-92 31V41", null, "fin2")}${P("M-92 36H-42", null, "tige")}${P("M-42 33V39", null, "fin2")}</g>`;
+          const marque = (x, rf, act) => { if (!String(rf || "").trim()) return; h += P(`M${x} 21V27`, null, "marque" + (act ? " on" : "")); tx.push(T(x, 16, rf, "middle", "num")); };
+          marque(-42, p.rentre, sim && !!E.cr); marque(-12, p.sorti, sim && !!E.cs);
+          h += P("M-90 42V48H-74V56M-52 42V50H-62V56", null, "fin2");
+          const fl = (x1, y1, x2, y2) => { const a = Math.atan2(y2 - y1, x2 - x1), k = 3.6, e = 0.45; return P(`M${x1} ${y1}L${x2} ${y2}`, null, "fin2") + `<path d="M${x2} ${y2}L${n1(x2 - k * Math.cos(a - e))} ${n1(y2 - k * Math.sin(a - e))}L${n1(x2 - k * Math.cos(a + e))} ${n1(y2 - k * Math.sin(a + e))}Z" class="plein"/>`; };
+          h += `<g transform="translate(${ev ? 24 : 0} 0)">` + R(-104, 56, 24, 16, "dist") + R(-80, 56, 24, 16, "dist")
+            + fl(-98, 72, -98, 56) + fl(-86, 56, -86, 72) + fl(-74, 72, -62, 56) + fl(-74, 56, -62, 72)
+            + R(-112, 56, 8, 16, "dist" + (ev ? " on" : "")) + P("M-112 72L-104 56", null, "fin2") + P("M-56 64H-54L-52.5 60L-50 68L-47.5 60L-46 64H-44", null, "fin2") + `</g>`;
+          h += P("M-74 72V78M-62 72V77", null, "fin2") + `<circle cx="-74" cy="82" r="4" class="dist"/>` + P("M-76.4 83.6L-74 79.4L-71.6 83.6Z", null, "fin2") + P("M-65 77H-59L-62 81Z", null, "fin2");
+          tx.push(T(-114 + (ev ? 24 : 0), 64, p.verin || "?", "end", "ref"));
+        }
+        if (mv) h += tri ? P(mv > 0 ? "M22 24H46M46 24l-5 -4M46 24l-5 4" : "M46 24H22M22 24l5 -4M22 24l5 4", null, "sens") : P(mv > 0 ? "M-12 24H12M12 24l-5 -4M12 24l-5 4" : "M12 24H-12M-12 24l5 -4M-12 24l5 4", null, "sens");
+        tx.push(T(-60, -62, ref, "middle", "ref"), T(-60, -50, (tri ? "tri" : "tapis") + " · moteur " + (p.moteur || "?"), "middle", "info"), T(97, 20, p.moteur || "?", "end", "ref"));
+        break;
+      }
+      case "electrovanne": {
+        // bobine d'électrovanne : organe de commande (07-15-01) barré, relié à la vanne qu'il manœuvre
+        h += P("M0 -30V-8", c.a) + P("M0 30V8", c.b);
+        h += R(-12, -8, 24, 16, "corps-b" + (sim && E.alim ? " alim" : "") + (sim && E.grille ? " grille" : "")) + P("M-9 -7L9 7", null, "fin3");
+        h += P("M12 0H33") + P("M28 -7H38L28 7H38Z", null, "act");
+        if (sim && E.grille) h += P("M-9 -6L9 6M-9 6L9 -6", null, "barre");
+        tx.push(T(-16, 1, ref, "end", "ref"), T(4, -21, "A1", "start"), T(4, 25, "A2", "start"));
         break;
       }
       case "cuve": {
@@ -421,6 +456,7 @@
   const ICONES = {
     chariot: `<svg viewBox="-36 -22 72 44" class="sy" aria-hidden="true" focusable="false"><path d="M-33 13H33" class="rail"/><rect x="-34" y="-2" width="4" height="15" class="butee"/><rect x="30" y="-2" width="4" height="15" class="butee"/><rect x="-30" y="-18" width="9" height="6" class="po-fdc"/><rect x="21" y="-18" width="9" height="6" class="po-fdc"/><path d="M-12 -3L-10 -6H10L12 -3Z" class="came"/><rect x="-14" y="-3" width="28" height="11" rx="2" class="corps-po"/><circle cx="-7" cy="10" r="3" class="roue"/><circle cx="7" cy="10" r="3" class="roue"/><path d="M-8 -12H8M8 -12l-3 -2.5M8 -12l-3 2.5" class="sens"/></svg>`,
     tapis: `<svg viewBox="-36 -22 72 44" class="sy" aria-hidden="true" focusable="false"><path d="M-27 2H27A3 3 0 0 1 27 8H-27A3 3 0 0 1 -27 2Z" class="bande"/><rect x="-18" y="-6" width="9" height="8" rx="1" class="caisse"/><rect x="4" y="-6" width="9" height="8" rx="1" class="caisse"/><rect x="-2" y="-19" width="6" height="5" rx="1" class="po-fdc"/><path d="M1 -14V-7" class="faisceau"/><path d="M-22 16L-26 8M22 16L26 8M-32 16H32" class="fin"/></svg>`,
+    tri: `<svg viewBox="-36 -22 72 44" class="sy" aria-hidden="true" focusable="false"><path d="M-30 -6H14A3 3 0 0 1 14 0H-30A3 3 0 0 1 -30 -6Z" class="bande"/><rect x="-20" y="-13" width="8" height="7" rx="1" class="caisse"/><rect x="0" y="-13" width="8" height="7" rx="1" class="caisse"/><path d="M17 1L24 9" class="volet"/><path d="M12 12V20H22V12M26 12V20H34V12" class="paroi"/><rect x="-30" y="8" width="18" height="7" class="verin"/><path d="M-28 11.5H-6" class="tige"/></svg>`,
     cuve: `<svg viewBox="-34 -24 68 48" class="sy" aria-hidden="true" focusable="false"><rect x="-13" y="-1" width="26" height="20" class="eau"/><path d="M-14 -20V20H14V-20" class="paroi"/><path d="M-13 -10H13M-13 10H13" class="repere"/><path d="M-27 9V-23H-6V-19" class="tuyau"/><circle cx="-27" cy="14" r="5" class="corps-m"/><path d="M-27 9L-29.6 13.4H-24.4Z" class="plein"/><circle cx="21" cy="-10" r="4" class="instr"/><circle cx="21" cy="10" r="4" class="instr"/></svg>`
   };
   /* l'icône d'un symbole pour la palette (repère du symbole, sans texte) */
@@ -435,6 +471,6 @@
     return `<svg viewBox="${x0} ${y0} ${w} ${h}" class="sy" aria-hidden="true" focusable="false">${d.corps}${lab}</svg>`;
   }
 
-  const API = { dessiner, icone, geoChariot, geoCuve, geoTapis, COUL_POT, COUL_VOYANT, NOM_POT };
+  const API = { dessiner, icone, geoChariot, geoCuve, geoTapis, geoTri, COUL_POT, COUL_VOYANT, NOM_POT };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasSymboles = API;
 })(typeof window !== "undefined" ? window : globalThis);

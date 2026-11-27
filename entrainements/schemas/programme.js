@@ -108,11 +108,13 @@
     }
   }
   /* une réceptivité écrite comme dans les livres : a · b, a + b, barre au-dessus pour NON */
-  function receptiviteSvg(txt) {
+  function receptiviteSvg(txt) { return recept2(txt).svg; }
+  function recept2(txt) {
     const brut = String(txt || "").trim();
-    if (!brut) return "?";
-    let T; try { T = SA.lexer(brut); } catch (e) { return esc(court(brut, 28)); }
-    if (T.length === 1 && T[0].k === "nb") return "= " + esc(String(T[0].v));
+    if (!brut) return { svg: "?", n: 1 };
+    const coupe = () => { const c = court(brut, 28); return { svg: esc(c), n: c.length }; };
+    let T; try { T = SA.lexer(brut); } catch (e) { return coupe(); }
+    if (T.length === 1 && T[0].k === "nb") return { svg: "= " + esc(String(T[0].v)), n: 2 + String(T[0].v).length };
     let out = "", n = 0;
     for (let i = 0; i < T.length; i++) {
       const t = T[i];
@@ -121,9 +123,247 @@
       const x = t.k === "et" ? " · " : t.k === "ou" ? " + " : t.k === "fm" ? "↑" : t.k === "fd" ? "↓" : t.k === "tempo" ? `t/X${t.n}/${nf(t.d / 1000, 2)}s` : t.k === "nb" ? nf(t.v, 3) : t.k === "cmp" ? " " + ({ "<=": "≤", ">=": "≥", "<>": "≠" }[t.op] || t.op) + " " : t.k;
       out += esc(x); n += x.length;
     }
-    return n > 30 ? esc(court(brut, 28)) : out;
+    return n > 30 ? coupe() : { svg: out, n };
+  }
+
+  /* ---------- GRAFCET rangé selon ses structures ----------
+     On suit le graphe depuis l'étape initiale et on reconnaît : la séquence, la divergence et la convergence en ET
+     (double trait), le choix en OU (trait simple) avec sa convergence, la reprise de séquence (trait qui remonte,
+     avec une flèche) et les renvois (« vers X… » / « de (…) ») quand un trait croiserait le dessin.
+     Les morceaux pas encore reliés sont posés les uns sous les autres. Si le GRAFCET a une forme qu'on ne sait pas
+     ranger (transition incomplète, structure croisée…), null : on garde le dessin en colonne. */
+  function grafcetRange(P) {
+    const G = P.grafcet, E = G.etapes, T = G.transitions;
+    if (!E.length) return null;
+    const idx = new Map(E.map((e, i) => [e.n, i]));
+    if (idx.size !== E.length) return null;
+    if (T.some((t) => !t.de.length || !t.vers.length || t.de.some((n) => !idx.has(n)) || t.vers.some((n) => !idx.has(n)) || new Set(t.de).size !== t.de.length || new Set(t.vers).size !== t.vers.length)) return null;
+    const sorties = new Map(E.map((e) => [e.n, []]));
+    T.forEach((t, k) => { for (const n of t.de) sorties.get(n).push(k); });
+    const placees = new Set(), prises = new Set(), chaineDe = new Map(), KO = new Error("forme");
+    let chaine = 0;
+    const atteignables = (n0) => {
+      const vu = new Set(), L = [], file = [n0];
+      while (file.length) { const n = file.shift(); if (vu.has(n) || placees.has(n)) continue; vu.add(n); L.push(n); for (const k of sorties.get(n)) for (const x of T[k].vers) file.push(x); }
+      return L;
+    };
+    const boucle = (k, x, ctx) => ({ k: "boucle", t: k, vers: x, retour: chaineDe.get(x) === ctx.ch });
+    function seq(n, ctx) {   // ctx : { joins : étapes où s'arrêter (convergence d'un OU), dansET, ch : la chaîne (l'axe vertical) }
+      const items = [];
+      for (;;) {
+        if (ctx.joins.has(n)) return { items, fin: { k: "join", n } };
+        if (placees.has(n)) throw KO;
+        placees.add(n); chaineDe.set(n, ctx.ch); items.push({ k: "etape", n });
+        const S = sorties.get(n).filter((k) => !prises.has(k));
+        if (!S.length) return { items, fin: { k: "fin" } };
+        if (S.some((k) => T[k].de.length > 1)) {   // convergence en ET : la branche s'arrête là
+          if (S.length > 1 || !ctx.dansET) throw KO;
+          return { items, fin: { k: "et", t: S[0] } };
+        }
+        let b;
+        if (S.length === 1) {
+          const k = S[0]; prises.add(k);
+          if (T[k].vers.length === 1) {
+            const x = T[k].vers[0];
+            if (placees.has(x)) { items.push(boucle(k, x, ctx)); return { items, fin: { k: "boucle" } }; }
+            items.push({ k: "trans", t: k }); n = x; continue;
+          }
+          b = blocET(k, ctx);
+        } else b = blocOU(S, ctx);
+        items.push(b.item);
+        if (b.suite == null) return { items, fin: b.fin };
+        n = b.suite;
+      }
+    }
+    function blocET(k, ctx) {
+      const br = T[k].vers.map((x, i) => { if (placees.has(x)) throw KO; const ch = i ? ++chaine : ctx.ch; return Object.assign(seq(x, { joins: new Set(), dansET: true, ch }), { ch }); });
+      const item = { k: "et", t1: k, br: br.map((b) => b.items), chs: br.map((b) => b.ch), t2: null, boucle: null, retour: false };
+      if (br.every((b) => b.fin.k === "et")) {
+        const kc = br[0].fin.t, de = new Set(T[kc].de);
+        if (br.some((b) => b.fin.t !== kc) || de.size !== br.length || br.some((b) => { const q = b.items[b.items.length - 1]; return !q || q.k !== "etape" || !de.has(q.n); })) throw KO;
+        if (T[kc].vers.length !== 1) throw KO;
+        prises.add(kc); item.t2 = kc;
+        const x = T[kc].vers[0];
+        if (placees.has(x)) { item.boucle = x; item.retour = chaineDe.get(x) === ctx.ch; return { item, suite: null, fin: { k: "boucle" } }; }
+        return { item, suite: x };
+      }
+      if (br.every((b) => b.fin.k === "fin" || b.fin.k === "boucle")) return { item, suite: null, fin: { k: "fin" } };   // branches pas encore refermées
+      throw KO;
+    }
+    function blocOU(S, ctx) {
+      if (S.some((k) => T[k].vers.length !== 1)) throw KO;
+      S.forEach((k) => prises.add(k));
+      const retours = S.filter((k) => placees.has(T[k].vers[0])), suites = S.filter((k) => !placees.has(T[k].vers[0]));
+      if (!suites.length) throw KO;
+      if (suites.length === 1) return { item: { k: "choix", t: suites[0], boucles: retours.map((k) => boucle(k, T[k].vers[0], ctx)) }, suite: T[suites[0]].vers[0] };
+      const R = suites.map((k) => atteignables(T[k].vers[0])), communs = R[0].filter((x) => R.every((r) => r.includes(x)));
+      const join = communs.length ? communs[0] : null, joins = new Set(ctx.joins);
+      if (join != null) joins.add(join);
+      const br = suites.map((k, i) => {
+        const ch = i ? ++chaine : ctx.ch, r = seq(T[k].vers[0], { joins, dansET: ctx.dansET, ch });
+        return { items: [{ k: "trans", t: k }].concat(r.items), fin: r.fin, ch };
+      });
+      for (const k of retours) { const ch = ++chaine; br.push({ items: [boucle(k, T[k].vers[0], { ch })], fin: { k: "boucle" }, ch }); }
+      if (br.some((b) => b.fin.k === "et" || (b.fin.k === "join" && b.fin.n !== join))) throw KO;
+      const item = { k: "ou", br, join };
+      if (join != null) { if (!br.some((b) => b.fin.k === "join")) throw KO; return { item, suite: join }; }
+      return { item, suite: null, fin: { k: "fin" } };
+    }
+    const morceaux = [];
+    try {
+      for (const e of [E.find((q) => q.init) || E[0]].concat(E)) {
+        if (placees.has(e.n)) continue;
+        const ch = ++chaine;
+        morceaux.push({ items: seq(e.n, { joins: new Set(), dansET: false, ch }).items, ch });
+      }
+    } catch (e) { if (e === KO) return null; throw e; }
+    if (prises.size !== T.length || placees.size !== E.length) return null;
+    return morceaux;
+  }
+  function svgGrafcetRange(P, api, morceaux) {
+    const G = P.grafcet, E = G.etapes, T = G.transitions, inv = SA.tableInverse(P.noms);
+    const idx = new Map(E.map((e, i) => [e.n, i]));
+    const actifs = new Set(api ? api.X : []), valides = api ? api.franchissables || [] : [];
+    const diag = SA.analyser(P), errT = new Set(diag.erreurs.filter((e) => e.ou && e.ou.t != null).map((e) => e.ou.t));
+    const S = 34, LT = 42, ECART = 20;
+    const R = T.map((t, k) => (errT.has(k) ? { svg: esc(court(t.r || "?", 28)), n: Math.min(28, String(t.r || "?").length) } : recept2(t.r)));
+    const lR = (k) => 25 + 6.9 * R[k].n;
+    const etp = (n) => E[idx.get(n)];
+    const hE = (n) => Math.max(S, etp(n).actions.length * 15 + 7);
+    const txtA = (e) => e.actions.map((ac) => court(texteAction(P, inv, ac), 30));
+    const lA = (e) => Math.round(Math.min(200, Math.max(64, 18 + 6.3 * Math.max(0, ...txtA(e).map((t) => t.length)))));
+    const wrE = (n) => { const e = etp(n); return e.actions.length ? S / 2 + 20 + lA(e) : e.com ? S / 2 + 12 + 5.9 * Math.min(32, e.com.length) : S / 2; };
+    // 1. les tailles : à gauche de l'axe (wl), à droite (wr), hauteur (h) ; nb : traits de reprise qui passent à gauche
+    const memo = new Map();
+    const mesSeq = (items) => { let wl = 0, wr = 0, h = 0, nb = 0; for (const it of items) { const m = mes(it); wl = Math.max(wl, m.wl); wr = Math.max(wr, m.wr); h += m.h; nb += m.nb || 0; } return { wl: wl + 14 * nb, wr, h }; };
+    function mes(it) {
+      if (memo.has(it)) return memo.get(it);
+      let m;
+      if (it.k === "etape") m = { wl: S / 2 + 2, wr: wrE(it.n), h: hE(it.n) };
+      else if (it.k === "trans") m = { wl: LT, wr: lR(it.t), h: 66 };
+      else if (it.k === "boucle") m = { wl: LT, wr: lR(it.t), h: 72, nb: it.retour ? 1 : 0 };
+      else if (it.k === "choix") {
+        let D = 0; it.dx = it.boucles.map((b) => (D += lR(b.t) + 38));   // la réceptivité de la reprise tient entre les deux traits
+        m = { wl: D + LT, wr: lR(it.t), h: 76, nb: it.boucles.filter((b) => b.retour).length };
+        if (it.boucles.some((b) => !b.retour)) m.h = 80;
+      } else {
+        const ms = (it.k === "ou" ? it.br.map((b) => b.items) : it.br).map(mesSeq), der = ms.length - 1;
+        it.dx = [0]; for (let i = 1; i < ms.length; i++) it.dx.push(it.dx[i - 1] + ms[i - 1].wr + ECART + ms[i].wl);
+        it.hm = Math.max(...ms.map((q) => q.h));
+        if (it.k === "ou") m = { wl: ms[0].wl, wr: it.dx[der] + ms[der].wr, h: 10 + it.hm + (it.join != null ? 12 : 0) };
+        else {
+          let h = 33 + 17 + 4 + 22 + it.hm;
+          if (it.t2 != null) h += 14 + 4 + 20 + (it.boucle == null ? 33 : 38);
+          m = { wl: Math.max(LT, ms[0].wl), wr: Math.max(lR(it.t1), it.dx[der] + Math.max(14, ms[der].wr), it.t2 != null ? lR(it.t2) : 0), h, nb: it.boucle != null && it.retour ? 1 : 0 };
+        }
+      }
+      memo.set(it, m); return m;
+    }
+    // 2. le dessin
+    let h = "";
+    const boites = [], pos = new Map(), reprises = [], renvois = [];
+    const occ = (x1, x2, y1, y2, ch) => boites.push({ x1, x2, y1, y2, ch });
+    const ligne = (x1, y1, x2, y2, ch) => { h += `<line class="gf-l" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`; occ(Math.min(x1, x2) - 1, Math.max(x1, x2) + 1, Math.min(y1, y2), Math.max(y1, y2), ch); };
+    const barre = (x, y, k, ch) => {
+      h += `<line class="gf-bar${errT.has(k) ? " err" : ""}${valides[k] ? " val" : ""}" data-gt="${k}" x1="${x - 13}" y1="${y}" x2="${x + 13}" y2="${y}"/>`
+        + `<text class="gf-rt${errT.has(k) ? " err" : ""}" x="${x + 19}" y="${y}">${R[k].svg}</text><text class="gf-tn" x="${x - 17}" y="${y}">(${k + 1})</text>`;
+      occ(x - LT, x + lR(k), y - 8, y + 8, ch);
+    };
+    const double = (x1, x2, y, ch) => { ligne(x1, y, x2, y, ch); ligne(x1, y + 4, x2, y + 4, ch); };
+    const renvoi = (x, y, k, vers, ch) => {   // y : la barre de la transition
+      ligne(x, y, x, y + 15, ch);
+      h += `<path class="gf-fl" d="M${x - 5} ${y + 12}L${x} ${y + 20}L${x + 5} ${y + 12}"/><text class="gf-renvoi" x="${x}" y="${y + 31}">vers X${vers}</text>`;
+      occ(x - 24, x + 24, y + 20, y + 38, ch); renvois.push({ k, vers });
+    };
+    const reprise = (x, y, k, b, ch) => { ligne(x, y, x, y + 18, ch); reprises.push({ x, y, yB: y + 18, k, vers: b, ch }); };
+    function placerSeq(items, x, y, ch) { for (const it of items) { placer(it, x, y, ch); y += mes(it).h; } return y; }
+    function placer(it, x, y, ch) {
+      mes(it);
+      if (it.k === "etape") {
+        const i = idx.get(it.n), e = E[i], act = actifs.has(e.n), hh = hE(it.n);
+        pos.set(it.n, { x, y, c: ch[ch.length - 1] });
+        h += `<g class="gf-st${act ? " on" : ""}" data-ge="${i}"><rect x="${x - S / 2}" y="${y}" width="${S}" height="${S}"/>${e.init ? `<rect class="int" x="${x - S / 2 + 4}" y="${y + 4}" width="${S - 8}" height="${S - 8}"/>` : ""}<text x="${x}" y="${y + S / 2 + 0.5}">${e.n}</text>${act ? `<circle class="jeton" cx="${x}" cy="${y + S - 6}" r="3.4"/>` : ""}${e.com ? `<title>${esc(e.com)}</title>` : ""}</g>`;
+        if (e.actions.length) {
+          const ax = x + S / 2 + 20;
+          h += `<line class="gf-l" x1="${x + S / 2}" y1="${y + S / 2}" x2="${ax}" y2="${y + S / 2}"/><rect class="gf-act${act ? " on" : ""}" x="${ax}" y="${y}" width="${lA(e)}" height="${hh}"/>`;
+          txtA(e).forEach((t, k) => { h += `<text class="gf-at" x="${ax + 8}" y="${y + 12 + 15 * k}">${esc(t)}</text>`; });
+        } else if (e.com) h += `<text class="gf-com" x="${x + S / 2 + 10}" y="${y + S / 2}">${esc(court(e.com, 32))}</text>`;
+        if (hh > S) ligne(x, y + S, x, y + hh, ch);
+        occ(x - S / 2 - 2, x + wrE(it.n), y, y + hh, ch);
+      } else if (it.k === "trans") { ligne(x, y, x, y + 66, ch); barre(x, y + 33, it.t, ch); }
+      else if (it.k === "boucle") {
+        ligne(x, y, x, y + 33, ch); barre(x, y + 33, it.t, ch);
+        if (it.retour) reprise(x, y + 33, it.t, it.vers, ch); else renvoi(x, y + 33, it.t, it.vers, ch);
+      } else if (it.k === "choix") {
+        const xs = it.dx.map((d) => x - d);
+        ligne(x, y, x, y + 10, ch); if (xs.length) ligne(xs[xs.length - 1], y + 10, x, y + 10, ch);
+        ligne(x, y + 10, x, y + mes(it).h, ch); barre(x, y + 38, it.t, ch);
+        it.boucles.forEach((b, j) => { ligne(xs[j], y + 10, xs[j], y + 38, ch); barre(xs[j], y + 38, b.t, ch); if (b.retour) reprise(xs[j], y + 38, b.t, b.vers, ch); else renvoi(xs[j], y + 38, b.t, b.vers, ch); });
+      } else if (it.k === "ou") {
+        const xs = it.dx.map((d) => x + d), der = xs.length - 1, yJ = y + 10 + it.hm;
+        ligne(x, y, x, y + 10, ch); if (der > 0) ligne(x, y + 10, xs[der], y + 10, ch);
+        const xj = [];
+        it.br.forEach((b, i) => {
+          const chB = i ? ch.concat(b.ch) : ch, yf = placerSeq(b.items, xs[i], y + 10, chB);
+          if (it.join != null && b.fin.k === "join") { if (yf < yJ) ligne(xs[i], yf, xs[i], yJ, chB); xj.push(xs[i]); }
+        });
+        if (it.join != null) { const a = Math.min(x, ...xj), z = Math.max(x, ...xj); if (z > a) ligne(a, yJ, z, yJ, ch); ligne(x, yJ, x, yJ + 12, ch); }
+      } else {   // ET
+        const xs = it.dx.map((d) => x + d), der = xs.length - 1, yD1 = y + 50, yb0 = yD1 + 4 + 22;
+        ligne(x, y, x, yD1, ch); barre(x, y + 33, it.t1, ch);
+        double(x - 12, xs[der] + 12, yD1, ch);
+        const fins = it.br.map((b, i) => { const chB = i ? ch.concat(it.chs[i]) : ch; ligne(xs[i], yD1 + 4, xs[i], yb0, chB); return placerSeq(b, xs[i], yb0, chB); });
+        if (it.t2 != null) {
+          const yD2 = yb0 + it.hm + 14, yT = yD2 + 4 + 20;
+          fins.forEach((yf, i) => ligne(xs[i], yf, xs[i], yD2, i ? ch.concat(it.chs[i]) : ch));
+          double(x - 12, xs[der] + 12, yD2, ch);
+          ligne(x, yD2 + 4, x, yT, ch); barre(x, yT, it.t2, ch);
+          if (it.boucle == null) ligne(x, yT, x, yT + 33, ch);
+          else if (it.retour) reprise(x, yT, it.t2, it.boucle, ch); else renvoi(x, yT, it.t2, it.boucle, ch);
+        }
+      }
+    }
+    let y = 0;
+    for (const m of morceaux) y = placerSeq(m.items, 0, y, [m.ch]) + 40;
+    // 3. les reprises de séquence : le trait remonte à gauche de ce qu'il longe (les plus courtes d'abord)
+    // si son trait en croisait un autre déjà tracé, elle devient un renvoi
+    reprises.sort((a, b) => (a.yB - pos.get(a.vers).y) - (b.yB - pos.get(b.vers).y));
+    const traits = [];
+    const entre = (v, a, b) => v > Math.min(a, b) + 0.5 && v < Math.max(a, b) - 0.5;
+    for (const r of reprises) {
+      const p = pos.get(r.vers), yH = p.y - 11, c = r.ch[r.ch.length - 1];
+      let xm = Math.min(r.x, p.x) - LT;
+      for (const q of boites) if (q.ch.includes(c) && q.y2 >= yH && q.y1 <= r.yB) xm = Math.min(xm, q.x1);
+      const xL = xm - 12, ym = (r.yB + yH) / 2;
+      const croise = traits.some((t) => (entre(t.xL, xL, p.x) && entre(yH, t.yH, t.yB)) || (entre(t.xL, xL, r.x) && entre(r.yB, t.yH, t.yB))
+        || (entre(xL, t.xL, t.px) && entre(t.yH, yH, r.yB)) || (entre(xL, t.xL, t.x) && entre(t.yB, yH, r.yB)));
+      if (croise) {
+        h += `<path class="gf-fl" d="M${r.x - 5} ${r.y + 12}L${r.x} ${r.y + 20}L${r.x + 5} ${r.y + 12}"/><text class="gf-renvoi" x="${r.x}" y="${r.y + 31}">vers X${r.vers}</text>`;
+        occ(r.x - 24, r.x + 24, r.y + 20, r.y + 38, r.ch); renvois.push({ k: r.k, vers: r.vers });
+        continue;
+      }
+      traits.push({ xL, yH, yB: r.yB, x: r.x, px: p.x });
+      h += `<path class="gf-l" d="M${r.x} ${r.yB}H${xL}V${yH}H${p.x}V${p.y}"/><path class="gf-fl" d="M${xL - 5} ${ym + 5}L${xL} ${ym - 3}L${xL + 5} ${ym + 5}"/>`;
+      occ(xL - 1, xL + 1, yH, r.yB, r.ch); occ(xL, Math.max(r.x, p.x), yH - 1, yH + 1, r.ch);
+    }
+    // 4. renvois : à l'arrivée, « de (k) »
+    const de = new Map(); for (const r of renvois) { const L = de.get(r.vers) || []; L.push(r.k); de.set(r.vers, L); }
+    for (const [n, L] of de) {
+      const p = pos.get(n);
+      h += `<line class="gf-l" x1="${p.x}" y1="${p.y - 30}" x2="${p.x}" y2="${p.y}"/><path class="gf-fl" d="M${p.x - 5} ${p.y - 9}L${p.x} ${p.y - 1}L${p.x + 5} ${p.y - 9}"/><text class="gf-renvoi" style="text-anchor:start" x="${p.x + 7}" y="${p.y - 16}">de (${L.map((k) => k + 1).join("), (")})</text>`;
+      occ(p.x, p.x + 7 + 6 * (5 + 5 * L.length), p.y - 32, p.y, [0]);
+    }
+    let x1 = Infinity, x2 = -Infinity, y1 = Infinity, y2 = -Infinity;
+    for (const q of boites) { x1 = Math.min(x1, q.x1); x2 = Math.max(x2, q.x2); y1 = Math.min(y1, q.y1); y2 = Math.max(y2, q.y2); }
+    const dx = Math.round(10 - x1), dy = Math.round(12 - y1), L = Math.ceil(x2 - x1 + 24), H = Math.ceil(y2 - y1 + 26);
+    return `<svg class="gf${api ? " live" : ""}" viewBox="0 0 ${L} ${H}" width="${L}" height="${H}" preserveAspectRatio="xMinYMin meet" role="img" aria-label="GRAFCET"><g transform="translate(${dx} ${dy})">${h}</g></svg>`;
   }
   function svgGrafcet(P, api, o) {
+    const m = grafcetRange(P);
+    if (m) return svgGrafcetRange(P, api, m);
+    return svgGrafcetColonne(P, api, o);
+  }
+  function svgGrafcetColonne(P, api, o) {
     o = o || {};
     const G = P.grafcet, E = G.etapes, T = G.transitions, inv = SA.tableInverse(P.noms);
     const X0 = 74, S = 34, ZONE = 66, AX = X0 + S / 2 + 20, AW = 200, BR = 150;

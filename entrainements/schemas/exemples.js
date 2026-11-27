@@ -244,6 +244,51 @@
     b.p("tapis", 48, 57, "PO1", { moteur: "M1", sens: "1", capteur: "B1", duree: 6, ecart: 30, caisses: 0 });
     return b.s;
   }
+  // tapis de tri : S2 (départ), S3 (acquittement), S4 et S5 (vérin rentré, sorti), B1 (cellule en bout de tapis) ;
+  // KM1 le tapis, YV1 l'électrovanne du vérin (le volet envoie les caisses dans le bac 2), H1 lot complet
+  const NOMS_TRI = { "%I0.0": "S2", "%I0.1": "S3", "%I0.2": "S4", "%I0.3": "S5", "%I0.4": "B1", "%Q0.0": "KM1", "%Q0.1": "YV1", "%Q0.2": "H1", "%C0": "LOT" };
+  function progTri() {
+    return { lang: "grafcet", noms: Object.assign({}, NOMS_TRI), grafcet: {
+      etapes: [
+        { n: 0, init: true, com: "attente, compteur à 0", actions: [{ t: "r", v: "%C0" }] },
+        { n: 10, com: "le tapis avance", actions: [{ t: "n", v: "%Q0.0" }] },
+        { n: 11, com: "tapis arrêté", actions: [] },
+        { n: 20, com: "volet vers le bac 1", actions: [] },
+        { n: 21, com: "+1, volet vers le bac 2", actions: [{ t: "inc", v: "%C0" }, { t: "n", v: "%Q0.1" }] },
+        { n: 22, com: "+1, volet vers le bac 1", actions: [{ t: "inc", v: "%C0" }] },
+        { n: 23, com: "lot trié", actions: [] },
+        { n: 30, com: "lot complet", actions: [{ t: "n", v: "%Q0.2" }] }],
+      transitions: [
+        { de: [0], vers: [10, 20], r: "S2 · S4" }, { de: [10], vers: [11], r: "C0.V >= 6" },
+        { de: [20], vers: [21], r: "↓B1" }, { de: [21], vers: [22], r: "↓B1" }, { de: [22], vers: [20], r: "C0.V < 6" }, { de: [22], vers: [23], r: "C0.V >= 6" },
+        { de: [11, 23], vers: [30], r: "S4" }, { de: [30], vers: [0], r: "S3" }] } };
+  }
+  function exempleTri(defi) {
+    const b = plan(defi ? "Défi · Deux choses en même temps" : "Tapis de tri : un bac sur deux (GRAFCET en ET)");
+    puissanceDirecte(b);
+    const pr = progTri();
+    if (defi) pr.grafcet.transitions = pr.grafcet.transitions.filter((tr) => tr.de.length === 1 && tr.vers.length === 1);
+    automate24(b, 36, pr);
+    // entrées : +24 V en haut (y = 2), 0 V de la cellule juste dessous (y = 4)
+    b.p("alim", 22, -1, "", { pot: "+24" }, 0);
+    b.f([22, 1], [22, 2], [55, 2]).f([25, 18], [25, 2]);
+    b.p("alim", 61, 1, "", { pot: "0V" }, 0);
+    b.f([61, 3], [61, 4], [57, 4], [57, 6]);
+    b.p("bp_no", 31, 9, "S2", { num: "13-14" }); b.p("bp_no", 37, 9, "S3", { num: "13-14" });
+    b.p("fdc_no", 43, 9, "S4", { num: "13-14" }); b.p("fdc_no", 49, 9, "S5", { num: "13-14" });
+    b.p("capteur3", 56, 9, "B1", { type: "PNP", sortie: "NO", detection: "optique" });
+    b.f([31, 6], [31, 2]).f([37, 6], [37, 2]).f([43, 6], [43, 2]).f([49, 6], [49, 2]).f([55, 6], [55, 2]);
+    b.f([31, 12], [31, 18]).f([37, 12], [37, 13], [33, 13], [33, 18]).f([43, 12], [43, 14], [35, 14], [35, 18]).f([49, 12], [49, 15], [37, 15], [37, 18]).f([56, 12], [56, 16], [39, 16], [39, 18]);
+    // sorties : L → F2 → F1 95-96 → C0 ; %Q0.0 → KM1 (tapis), %Q0.1 → YV1 (vérin), %Q0.2 → H1 (lot complet)
+    b.p("alim", 19, 13, "", { pot: "L" }, 0); b.p("fusible", 19, 19, "F2", { cal: 2 }); b.p("contact_th_nf", 19, 26, "F1", { num: "95-96" });
+    b.f([19, 15], [19, 16]).f([19, 22], [19, 23]).f([19, 29], [19, 30], [25, 30]);
+    b.p("bobine", 33, 36, "KM1", { tension: "230~" }); b.p("electrovanne", 39, 36, "YV1", { tension: "230~" }); b.p("voyant", 47, 36, "H1", { couleur: "orange", tension: "230~" });
+    b.f([27, 30], [27, 33], [33, 33]).f([29, 30], [29, 32], [39, 32], [39, 33]).f([31, 30], [31, 31], [47, 31], [47, 33]);
+    b.p("alim", 39, 45, "", { pot: "N" });
+    b.f([33, 39], [33, 41], [47, 41], [47, 39]).f([39, 39], [39, 41]).f([39, 43], [39, 41]);
+    b.p("tri", 46, 60, "PO1", { moteur: "M1", sens: "1", capteur: "B1", verin: "YV1", rentre: "S4", sorti: "S5", duree: 6, ecart: 30, caisses: 0, course: 0.5 });
+    return b.s;
+  }
   // va-et-vient en logique câblée : S2 lance le chariot à droite, S4 le renvoie à gauche, S3 l'arrête
   function exempleVaEtVient(defi) {
     const b = plan(defi ? "Défi · Le chariot revient tout seul" : "Va-et-vient d'un chariot (logique câblée)");
@@ -375,6 +420,9 @@
     { id: "tapis", titre: "Tapis : un lot de 5 caisses (GRAFCET)", niveau: "Partie opérative",
       resume: "S2 lance le tapis ; à chaque caisse vue par la cellule B1, l'étape 2 ajoute 1 au compteur %C0. À 5 caisses, le tapis s'arrête et H1 s'allume ; S3 acquitte, S1 arrête. Un GRAFCET avec un compteur et un choix (divergence en OU).",
       construire() { return exempleTapis(); } },
+    { id: "tri", titre: "Tapis de tri : un bac sur deux (GRAFCET en ET)", niveau: "Partie opérative",
+      resume: "S2 (vérin rentré) : deux branches en même temps. Le tapis avance (étape 10) pendant que l'aiguillage envoie une caisse sur deux dans le bac 2 (étapes 20 à 22 : YV1 sort le vérin, qui bascule le volet). Après 6 caisses, les deux branches se rejoignent : H1, lot complet ; S3 acquitte.",
+      construire() { return exempleTri(); } },
     { id: "api-variateur", titre: "Automate et variateur : deux sens, deux vitesses", niveau: "Variateur",
       resume: "API1 commande U1 : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz, 10 V : 50 Hz avec S4). Rampes de 2 s.",
       construire() { return exempleVariateurApi(); } },
@@ -643,9 +691,23 @@
         { texte: "S2 : un nouveau lot de 5 caisses, puis arrêt", faire: [["appuyer", "S2"], ["relacher", "S2"]], attendre: 9600, verifier: { KM1: false, H1: true, PO1: 10 }, si: "Après l'acquittement, le compte repart de 0 : 5 nouvelles caisses, et le tapis s'arrête." },
         { texte: "S3 puis S2 : le tapis repart", faire: [["appuyer", "S3"], ["relacher", "S3"], ["appuyer", "S2"], ["relacher", "S2"]], attendre: 600, verifier: { KM1: true, H1: false }, si: "Après S3, le compte est à 0 : S2 doit relancer le tapis." },
         { texte: "S1 : le tapis s'arrête tout de suite", faire: [["appuyer", "S1"], ["relacher", "S1"]], attendre: 300, verifier: { KM1: false }, si: "S1 (à ouverture) doit remettre KM1 à 0 : un contact à ouverture S1 sur la bobine R." }
+      ] },
+    { id: "d14-tri", titre: "Deux choses en même temps", niveau: 3,
+      resume: "GRAFCET : divergence et convergence en ET (le tapis et l'aiguillage).",
+      consigne: "<p>Sur ce tapis de tri, deux choses se passent <b>en même temps</b> : le tapis avance (étapes 10 et 11), et l'aiguillage envoie une caisse sur deux dans le bac 2 (étapes 20 à 23 : <b>YV1</b> fait sortir le vérin, qui bascule le volet). Les étapes sont écrites, avec les transitions de chaque branche. Il manque deux transitions dans le GRAFCET de <b>API1</b> :</p><ul><li>la <b>divergence en ET</b> : de l'étape 0 vers les étapes 10 <b>et</b> 20 à la fois, quand on appuie sur <b>S2</b> et que le vérin est rentré (<b>S4</b>) ;</li><li>la <b>convergence en ET</b> : des étapes 11 <b>et</b> 23 vers l'étape 30 (H1, lot complet), quand le vérin est rentré (<b>S4</b>).</li></ul><p class=\"discret\">Une transition peut partir de plusieurs étapes et aller vers plusieurs étapes : écris « 10, 20 » dans la case « vers ».</p>",
+      indice: "Ajoute la transition de 0 vers « 10, 20 » avec la réceptivité S2 · S4 : les deux branches démarrent ensemble. Puis la transition de « 11, 23 » vers 30 avec la réceptivité S4 : on attend que les deux branches aient fini.",
+      depart() { return exempleTri(true); },
+      exige: { API1: "automate", KM1: "contacteur", YV1: "electrovanne", H1: "voyant", S2: "bouton", S3: "bouton", S4: "fdc", S5: "fdc", B1: "capteur", PO1: "tri" },
+      etapes: [
+        { texte: "Au repos : rien ne bouge", verifier: { KM1: false, YV1: false, H1: false }, si: "Au départ, seule l'étape initiale 0 est active." },
+        { texte: "S2 : le tapis avance, et l'aiguillage attend la première caisse", faire: [["appuyer", "S2"], ["relacher", "S2"]], attendre: 300, verifier: { KM1: true, API1: "X20" }, si: "La transition qui part de l'étape 0 doit activer les étapes 10 et 20 en même temps : une seule transition, « vers » = 10, 20, réceptivité S2 · S4." },
+        { texte: "Les caisses tombent une fois dans le bac 1, une fois dans le bac 2", attendre: 11000, verifier: { PO1: [2, 1], KM1: true }, si: "Les deux branches doivent tourner ensemble : pendant que le tapis avance (étape 10), l'aiguillage alterne (étapes 20, 21, 22)." },
+        { texte: "Après 6 caisses : le tapis s'arrête, H1 s'allume (lot complet)", attendre: 5300, verifier: { PO1: [3, 3], KM1: false, H1: true }, si: "Ajoute la convergence en ET : une transition de « 11, 23 » vers 30, réceptivité S4. L'étape 30 ne s'active que quand les deux branches ont fini." },
+        { texte: "S3 : acquittement, H1 s'éteint", faire: [["appuyer", "S3"], ["relacher", "S3"]], attendre: 200, verifier: { H1: false, KM1: false }, si: "La transition 30 → 0 (S3) était déjà là : ne l'efface pas." },
+        { texte: "S2 : un nouveau lot, trié de la même façon", faire: [["appuyer", "S2"], ["relacher", "S2"]], attendre: 12000, verifier: { PO1: [6, 6], KM1: false, H1: true }, si: "Après l'acquittement, le GRAFCET revient à l'étape 0 et S2 relance les deux branches." }
       ] }
   ];
 
-  const API = { EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, progCuve, progTapisGrafcet, progTapisLadder, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot, exempleCuve, exempleVaEtVient, exempleTapis };
+  const API = { EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, progCuve, progTapisGrafcet, progTapisLadder, progTri, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot, exempleCuve, exempleVaEtVient, exempleTapis, exempleTri };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasExemples = API;
 })(typeof window !== "undefined" ? window : globalThis);
