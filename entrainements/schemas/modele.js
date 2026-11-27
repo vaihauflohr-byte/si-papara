@@ -105,8 +105,8 @@
     { id: "L1", nom: "L1", aide: "phase 1" }, { id: "L2", nom: "L2", aide: "phase 2" }, { id: "L3", nom: "L3", aide: "phase 3" },
     { id: "+24", nom: "+24 V", aide: "+24 V continu" }, { id: "0V", nom: "0 V", aide: "0 V continu" }, { id: "PE", nom: "PE", aide: "terre" }];
   const TENSIONS = [{ id: "230~", nom: "230 V ~" }, { id: "24~", nom: "24 V ~" }, { id: "48~", nom: "48 V ~" }, { id: "400~", nom: "400 V ~" }, { id: "24=", nom: "24 V continu" }];
-  const COULEURS = [{ id: "vert", nom: "vert", code: "GN" }, { id: "rouge", nom: "rouge", code: "RD" }, { id: "orange", nom: "orange", code: "YE" },
-    { id: "blanc", nom: "blanc", code: "WH" }, { id: "bleu", nom: "bleu", code: "BU" }];
+  const COULEURS = [{ id: "vert", nom: "vert", code: "GN" }, { id: "rouge", nom: "rouge", code: "RD" }, { id: "orange", nom: "orange", code: "OG" },
+    { id: "jaune", nom: "jaune", code: "YE" }, { id: "blanc", nom: "blanc", code: "WH" }, { id: "bleu", nom: "bleu", code: "BU" }];
 
   function nature(pc) {   // « no » : contact à fermeture, « nf » : à ouverture (pour les symboles à deux bornes qui coupent)
     const t = pc.type;

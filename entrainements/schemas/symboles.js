@@ -50,8 +50,8 @@
   /* pôle d'un appareil de puissance, à l'abscisse x : bornes à y = ±30 */
   function lamePole(x, ferme, cb) { return P(`M${x} 12L${ferme ? x - 2.4 : x - 11} -13`, cb, "lame"); }
 
-  const COUL_VOYANT = { vert: "#2fb344", rouge: "#e03131", orange: "#f59f00", blanc: "#f1f3f5", bleu: "#228be6" };
-  const CODE_VOYANT = { vert: "GN", rouge: "RD", orange: "YE", blanc: "WH", bleu: "BU" };
+  const COUL_VOYANT = { vert: "#2fb344", rouge: "#e03131", orange: "#fd7e14", jaune: "#fcc419", blanc: "#f1f3f5", bleu: "#228be6" };
+  const CODE_VOYANT = { vert: "GN", rouge: "RD", orange: "OG", jaune: "YE", blanc: "WH", bleu: "BU" };   // codes de couleur IEC 60757
   const COUL_POT = { L: "var(--p-l1)", L1: "var(--p-l1)", L2: "var(--p-l2)", L3: "var(--p-l3)", N: "var(--p-n)", PE: "var(--p-pe)", "+24": "var(--p-plus)", "0V": "var(--p-n)" };
   const NOM_POT = { L: "L", N: "N", L1: "L1", L2: "L2", L3: "L3", "+24": "+24 V", "0V": "0 V", PE: "PE" };
   const largeurPot = (pot) => Math.max(28, (NOM_POT[pot] || String(pot)).length * 6.8 + 9);

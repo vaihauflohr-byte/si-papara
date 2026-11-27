@@ -118,6 +118,18 @@
       }
       d.pieces.push(pc); devDe.set(pc.id, d);
     }
+    // bornes et bouts de fils reliés à rien (le réseau peut garder N ou PE libres)
+    {
+      const L = [];
+      for (const l of net.libres) {
+        const pc = pieces.find((q) => q.id === l.piece); if (!pc || pc.type === "reseau") continue;
+        const b = M.bornesLocales(pc).find((q) => q.id === l.borne);
+        if (pc.type === "alim") { const P = M.parametres(pc); L.push("repère " + ((M.POTENTIELS.find((x) => x.id === P.pot) || {}).nom || P.pot)); }
+        else L.push(((pc.ref || M.TYPES[pc.type].court) + " " + ((b && b.n) || "")).trim());
+      }
+      if (L.length) remarques.push({ niveau: "info", texte: `${L.length > 1 ? L.length + " bornes ne sont reliées" : "Une borne n'est reliée"} à rien : ${L.slice(0, 5).join(", ")}${L.length > 5 ? "…" : ""}.`, refs: [] });
+      if (net.bouts.length) remarques.push({ niveau: "info", texte: `${net.bouts.length > 1 ? net.bouts.length + " bouts de fils ne sont reliés" : "Un bout de fil n'est relié"} à rien.`, refs: [] });
+    }
     const appareils = Object.values(dev);
     const bobines = appareils.filter((d) => A_BOBINE.has(d.sorte) || d.sorte === "transfo");
     function actionne(d) {
