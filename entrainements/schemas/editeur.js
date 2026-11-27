@@ -20,6 +20,7 @@
   const QUI = session && session.nom ? String(session.nom) : "local";
   const CLE = { libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
 
+  const DOIGT = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);   // écran tactile sans souris
   const svg = $("sc-svg"), monde = $("sc-monde"), fond = $("sc-fond"), grilleR = $("sc-grille"), pn = $("sc-panneau"), vueEl = $("sc-vue");
 
   /* ---------- état ---------- */
@@ -30,7 +31,7 @@
   let sim = null, simE = null, simSig = "", rafId = 0, tPrec = 0, angles = {}, dernierTap = {};
   let histo = [], hpos = -1;
   let brouillon = null, curseur = null, survolBorne = null, survolPiece = null;
-  let geste = null, espace = false, multi = false;
+  let geste = null, espace = false;
   const pointeurs = new Map(), appuis = new Map();
   let netEdit = null, resultatDefi = null, indiceVu = false;
   const dernierRef = {};
@@ -236,11 +237,11 @@
     }
     return pc;
   }
-  function placer(item, g) {
+  function placer(item, g, encore) {
     const pc = nouvellePiece(item, g, false);
     schema.pieces.push(pc); retenir(pc);
     sel = new Set([pc.id]);
-    if (!multi) choisirOutil("fleche");
+    if (!encore) choisirOutil("fleche");
     commit();
     bulle(M.TYPES[pc.type].lien ? `${pc.ref} posé. Son repère dit à quel appareil il appartient : change-le dans le panneau si besoin.` : `${pc.ref || M.TYPES[pc.type].court} posé. Glisse d'une borne à une autre pour tirer les fils.`, 3500);
   }
@@ -431,7 +432,7 @@
     if (pointeurs.size - appuis.size >= 2) { commencerPinch(); return; }
     if (pointeurs.size - appuis.size > 2) return;
     if (e.button === 1 || e.button === 2 || espace || outil === "main" || sim) { if (e.button === 2 && !sim && brouillon) { brouillon = null; rendre(); return; } commencerPan(e); return; }
-    if (outil === "placer") { if (aPlacer) placer(aPlacer, gp); geste = { type: "rien" }; return; }
+    if (outil === "placer") { if (aPlacer) placer(aPlacer, gp, e.shiftKey); geste = { type: "rien" }; return; }
     const r = rayon(tac ? 20 : 9);
     if (brouillon) { clicFil(w, gp, r); geste = { type: "rien" }; return; }
     if (outil === "fil") {
@@ -448,7 +449,7 @@
     const bo = borneA(w, r);
     if (bo) { geste = { type: "tirer", depart: { x: bo.b.x, y: bo.b.y, d: bo.b.d }, pc: bo.pc, w, tac, sx: e.clientX, sy: e.clientY, bouge: false, clic: false }; return; }
     const pc = pieceA(w, tac ? 4 : 1);
-    const ajout = e.shiftKey || e.ctrlKey || e.metaKey || multi;
+    const ajout = e.shiftKey || e.ctrlKey || e.metaKey;
     if (pc) {
       let basculer = false;
       if (!sel.has(pc.id)) { if (!ajout) sel.clear(); sel.add(pc.id); retenir(pc); } else basculer = true;
@@ -462,7 +463,7 @@
       rendre(); majPanneau(); majBoutons(); return;
     }
     if (!ajout && sel.size) { sel.clear(); majPanneau(); majBoutons(); }
-    if (tac && !multi) {
+    if (tac) {
       commencerPan(e);
       const g0 = geste;
       geste.appuiLong = setTimeout(() => { if (geste === g0 && !g0.bouge) { geste = { type: "rect", a: w, b: w }; if (navigator.vibrate) navigator.vibrate(15); rendre(); } }, 520);
@@ -654,7 +655,7 @@
     outil = o; aPlacer = o === "placer" ? item : null;
     document.querySelectorAll("#sc-barre [data-o]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.o === o)));
     document.querySelectorAll(".pal-i").forEach((b) => b.setAttribute("aria-pressed", String(o === "placer" && item && b.dataset.k === item.k)));
-    if (o === "placer") bulle(`Clique sur la feuille pour poser : ${esc(M.TYPES[item.type].nom.toLowerCase())}. <span class="kbd">R</span> pour le tourner, <span class="kbd">Échap</span> pour arrêter.`, 0);
+    if (o === "placer") bulle(DOIGT ? `Touche la feuille pour poser : ${esc(M.TYPES[item.type].nom.toLowerCase())}. « Choisir » pour arrêter.` : `Clique sur la feuille pour poser : ${esc(M.TYPES[item.type].nom.toLowerCase())}. <span class="kbd">R</span> pour le tourner, <span class="kbd">Maj</span> + clic pour en poser plusieurs, <span class="kbd">Échap</span> pour arrêter.`, 0);
     else if (o === "fil") bulle("Glisse d'une borne à une autre, ou clique borne par borne. Les coins se font tout seuls.", 3500);
     else bulle("");
     svg.style.cursor = o === "main" ? "grab" : o === "fleche" ? "" : "crosshair";
@@ -1154,6 +1155,7 @@
         <tr><td><b>Fil</b> <span class="kbd">F</span></td><td>Clique ou glisse de borne en borne. Un clic dans le vide fait un coin, un double-clic finit le fil là.</td></tr>
         <tr><td><b>Feuille</b> <span class="kbd">H</span></td><td>Déplace la feuille. Aussi : bouton droit, ou <span class="kbd">Espace</span> + glisser. Au doigt : glisser dans le vide ; deux doigts pour zoomer.</td></tr>
         <tr><td><span class="kbd">R</span></td><td>Tourner d'un quart de tour (aussi avant de poser un symbole).</td></tr>
+        <tr><td><span class="kbd">Maj</span> + clic</td><td>Poser plusieurs fois le même symbole ; ajouter à ce qui est déjà choisi.</td></tr>
         <tr><td><span class="kbd">Suppr</span></td><td>Supprimer ce qui est choisi.</td></tr>
         <tr><td><span class="kbd">Ctrl</span> + <span class="kbd">Z</span> / <span class="kbd">Y</span></td><td>Annuler / rétablir.</td></tr>
         <tr><td><span class="kbd">Ctrl</span> + <span class="kbd">D</span></td><td>Dupliquer (copier-coller : <span class="kbd">Ctrl</span> + <span class="kbd">C</span> / <span class="kbd">V</span>).</td></tr>
@@ -1179,8 +1181,7 @@
   ];
   const ITEMS = {};
   function construirePalette() {
-    const doigt = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-    let h = `<p class="pal-astuce">${doigt ? "Touche un symbole, puis touche la feuille à l'endroit où le poser." : "Choisis un symbole, puis clique sur la feuille. Tu peux aussi le glisser."}</p>`;
+    let h = `<p class="pal-astuce">${DOIGT ? "Touche un symbole, puis touche la feuille à l'endroit où le poser." : "Choisis un symbole, puis clique sur la feuille. Tu peux aussi le glisser."}</p>`;
     PALETTE.forEach((c, ci) => {
       const cat = M.CATS.find((x) => x.id === c.cat);
       h += `<div class="pal-cat"><h3>${esc(cat.nom)}</h3><div class="pal-g">${c.items.map((it, i) => { const k = ci + "-" + i; ITEMS[k] = Object.assign({ k }, it); return `<button class="pal-i" type="button" data-k="${k}" title="${esc(M.TYPES[it.type].nom)}" aria-pressed="false">${SY.icone(it.type, it.p)}<span>${esc(it.nom)}</span></button>`; }).join("")}</div></div>`;

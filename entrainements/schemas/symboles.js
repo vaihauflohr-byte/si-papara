@@ -44,7 +44,7 @@
     }
     return h;
   }
-  const X_REF = { "": -13, th: -27, bp: -23, au: -27, rot: -29, man: -19, fdc: -16, prox: -31, "t+": -23, "t-": -23 };
+  const X_REF = { "": -13, th: -27, bp: -23, au: -27, rot: -29, man: -19, fdc: -18, prox: -31, "t+": -25, "t-": -25 };
   const ACT = { bp_no: "bp", bp_nf: "bp", arret_urgence: "au", selecteur: "rot", interrupteur: "man", fdc_no: "fdc", fdc_nf: "fdc", capteur: "prox", contact_th_nf: "th", contact_th_no: "th" };
 
   /* pôle d'un appareil de puissance, à l'abscisse x : bornes à y = ±30 */
