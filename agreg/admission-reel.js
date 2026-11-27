@@ -8,7 +8,10 @@
    démarche par le jury IA, sur 10 (grille tirée des rapports de jury 2024 et 2025).
    Bancs, d'après leurs dossiers techniques : station de pompage SPBE-C (Deltalab), monte-charge
    (DEC Industrie, ATV31 et TWIDO), Harmotris (qualité de l'énergie), portique de levage SLT07
-   (LEDENT : balan et levage). Chaque fiche montre un schéma simplifié du banc et s'imprime
+   (LEDENT : balan et levage), voiture Tamiya TT-02 sur son banc à rouleaux (Créa : démarrage, couple
+   aux roues, régulation de vitesse), TGBT pédagogique communicant (BEMA, automate Twido et centrale
+   A2000 : compensation, sélectivité différentielle, secours et délestage), Créa-Slider (équilibre du
+   travelling sur son pied, vitesse et courant du moteur). Chaque fiche montre un schéma simplifié du banc et s'imprime
    (ou s'enregistre en PDF) en entier. Aucune donnée d'élève.
    Route #admission-reel-<banc> ; fiche dans st.reel[<banc>], enregistrée par save() : elle suit
    d'un appareil à l'autre quand la progression est synchronisée.
@@ -445,6 +448,260 @@
     return X;
   }
 
+  /* ---------- voiture Tamiya TT-02 sur son banc à rouleaux (Créa) ---------- */
+  // dossier technique du groupe de propulsion : rayon de roue et moments d'inertie (kg·m²)
+  const TT = { R: 0.0325, Jrot: 2512e-9, Jarb: 1350e-9, Jdif: 1393e-9, Jaxe: 12e-9, Jroue: 40978e-9 };
+  function moteurTT(R) {
+    const No = pos(nb(R.pl.No), 23400), Cd = pos(nb(R.pl.Cd), 196) / 1000, Id = pos(nb(R.pl.Id), 70), Io = pos(nb(R.pl.Io), 2.4);
+    const Zp = pos(nb(R.pa.Zp), 19), i = (70 / Zp) * (39 / 15), eta = Math.min(1, pos(nb(R.pa.eta), 80) / 100);
+    const w0 = No * Math.PI / 30, Jb = nb(R.pa.Jb), m = pos(nb(R.pa.m), 1.5);
+    // transmission ramenée à l'arbre moteur : rotor, arbre intermédiaire (70/Zp), deux différentiels, quatre axes et quatre roues (i)
+    const Jtr = TT.Jrot + TT.Jarb / (70 / Zp) ** 2 + (2 * TT.Jdif + 4 * TT.Jaxe + 4 * TT.Jroue) / i ** 2;
+    const banc = ok(Jb) && Jb > 0, Jch = banc ? Jb / i ** 2 : m * TT.R ** 2 / i ** 2;
+    return { No, Cd, Id, Io, Zp, i, eta, w0, Jtr, Jch, banc, m, v0: w0 * TT.R / i, tau: (Jtr + Jch) * w0 / Cd, K: R.pa.uv === 'km/h' ? 3.6 : 1, U: R.pa.uv === 'km/h' ? 'km/h' : 'm/s' };
+  }
+  function calcTT02(R) {
+    const M = moteurTT(R), K = M.K, U = M.U, C0m = M.eta * M.i * M.Cd, Pmod = M.eta * M.Cd * M.w0 / 4;
+    const vmod = (t) => M.v0 * (1 - Math.exp(-t / M.tau));                 // m/s, démarrage sans freinage
+    const Cmod = (vs) => C0m * Math.max(0, 1 - vs / M.v0);                  // couple aux quatre roues (N·m), vs en m/s
+    const lA = (r) => { const t = nb(r.t), v = nb(r.v), vs = ok(v) ? v / K : NaN; return { t, v, w: ok(vs) ? vs / TT.R * M.i : NaN, vm: NaN }; };
+    const lP = (r) => { const v = nb(r.v), C = nb(r.C), P = nb(r.P), Pb = nb(r.Pb), vs = ok(v) ? v / K : NaN, wr = ok(vs) ? vs / TT.R : NaN; return { v, vs, C, P, Pb, Pc: ok(C) && ok(wr) ? C * wr : NaN, Cm: ok(vs) ? Cmod(vs) : NaN, eta: ok(P) && ok(Pb) && Pb > 0 ? 100 * P / Pb : NaN }; };
+    const lR = (r) => { const vc = nb(r.vc), v = nb(r.v); return { mode: r.mode || 'boucle ouverte', vc, v, es: ok(vc) && ok(v) && vc > 0 ? Math.abs(vc - v) / vc * 100 : NaN }; };
+    const lD = (r) => ({ tau: nb(r.tau), vf: nb(r.vf), Pm: nb(r.Pm) });
+    const AA = R.tab.acc.map(lA), PP = R.tab.puis.map(lP), RG = R.tab.reg.map(lR), RD = R.tab.repA.map(lD), RR = R.tab.repR.map(lR);
+    const X = base({ acc: AA, puis: PP, reg: RG, repA: RD, repR: RR });
+    const Dt = dispersion(RD.map((x) => x.tau)), Dv = dispersion(RD.map((x) => x.vf)), DP = dispersion(RD.map((x) => x.Pm)), DR = dispersion(RR.map((x) => x.v));
+    X.disp = { tau: Dt, vf: Dv, Pm: DP, reg: DR };
+    X.dispTxt = { repA: [['τ', Dt, 's', 3], ['v finale', Dv, U, 2], ['P max aux roues', DP, 'W', 1]], repR: [['v établie', DR, U, 2]] };
+    X.lignes.push(`Le modèle, d’après le dossier : rapport i = (70/${fx(M.Zp, 0)})·(39/15) = ${fx(M.i, 3)} ; vitesse à vide aux roues ω0·R/i = ${fx(M.v0 * K, 2)} ${U} (ω0 = ${fx(M.w0, 0)} rad/s) ; couple de démarrage aux quatre roues η·i·Cd = ${fx(C0m, 2)} N·m ; puissance maximale aux roues η·Cd·ω0/4 = ${fx(Pmod, 0)} W, à la moitié de la vitesse à vide.`);
+    X.lignes.push(`Inertie ramenée à l’arbre moteur : transmission ${fx(M.Jtr * 1e6, 2)} × 10⁻⁶ kg·m² (rotor, arbre intermédiaire, deux différentiels, quatre roues) + ${M.banc ? `rouleaux du banc ${fx(M.Jch * 1e6, 2)}` : `voiture de ${fx(M.m, 2)} kg sur la piste, m·R²/i² = ${fx(M.Jch * 1e6, 2)}`} × 10⁻⁶ kg·m² ; constante de temps τ = Jéq·ω0/Cd = ${fx(M.tau, 3)} s.`);
+    // A. le démarrage à pleine puissance
+    const pa = AA.filter((x) => ok(x.t) && ok(x.v)).sort((a, b) => a.t - b.t);
+    if (pa.length) {
+      const t0 = pa[0].t, vf = Math.max(...pa.map((x) => x.v)), cible = 0.632 * vf;
+      pa.forEach((x) => { x.vm = vmod(x.t - t0) * K; });
+      let tau = NaN;
+      for (let j = 1; j < pa.length; j++) if (pa[j - 1].v < cible && pa[j].v >= cible) { const a = pa[j - 1], b = pa[j]; tau = a.t + (cible - a.v) * (b.t - a.t) / (b.v - a.v) - t0; break; }
+      X.lignes.push(`Démarrage : ${pa.length} point${pa.length > 1 ? 's' : ''} ; vitesse finale ${fx(vf, 2)} ${U}${ok(tau) ? ` ; 63 % de cette vitesse (${fx(cible, 2)} ${U}) atteints au bout de τ = ${fx(tau, 3)} s` : ''}.`);
+      X.ecarts.push({ l: 'Vitesse finale mesurée face à la vitesse à vide du modèle ω0·R/i', quoi: 'écart', txt: `${fx(vf, 2)} ${U} mesurés pour ${fx(M.v0 * K, 2)} ${U} à vide`, e: ecart(vf / K, M.v0), D: Dv, inc: { v: 1 } });
+      if (ok(tau)) {
+        const Jm = tau * M.Cd / M.w0, Jr = (Jm - M.Jtr) * M.i ** 2;
+        X.lignes.push(`Ton τ donne l’inertie réellement accélérée, ramenée à l’arbre moteur : Jéq = τ·Cd/ω0 = ${fx(Jm * 1e6, 2)} × 10⁻⁶ kg·m²${Jr > 0 ? `, soit ${fx(Jr * 1e3, 3)} × 10⁻³ kg·m² à l’axe des roues en plus de la transmission (rouleaux du banc, et ce que le modèle ignore : courant limité par le variateur, tension de la batterie qui baisse)` : ' : moins que la seule transmission du modèle ; le démarrage réel n’est donc pas limité par l’inertie seule (variateur, courant, batterie)'}.`);
+        if (M.banc) X.ecarts.push({ l: 'Constante de temps mesurée face au modèle Jéq·ω0/Cd', quoi: 'écart', txt: `${fx(tau, 3)} s mesurés pour ${fx(M.tau, 3)} s calculés avec l’inertie des rouleaux`, e: ecart(tau, M.tau), D: Dt });
+        else X.lignes.push('Sans l’inertie des rouleaux (réglage plus haut), le modèle est celui de la voiture sur la piste : il ne se compare pas au τ du banc, où la voiture ne se déplace pas et accélère les rouleaux.');
+      } else if (pa.length >= 2) X.ctrl.push('Pour τ, il faut au moins un point sous 63 % de la vitesse finale et un au-dessus : relève des points serrés au début du démarrage.');
+      const der = pa[pa.length - 1], av = pa.length > 1 ? pa[pa.length - 2] : null;
+      if (av && der.v > av.v * 1.03) X.ctrl.push('La vitesse monte encore au dernier point : prolonge le relevé jusqu’au palier, sinon la vitesse finale et τ sont sous-estimés.');
+      if (pa[0].v > 0.05 * vf) X.ctrl.push('Commence le relevé au départ, voiture arrêtée (v = 0) : τ se compte depuis le démarrage.');
+      if (pa.length < 5) X.ctrl.push('Cinq points au moins sur le démarrage, serrés au début, pour lire τ.');
+      const tm = Math.max(0.5, (der.t - t0) * 1.08, 3 * M.tau);
+      const ser = [{ ligne: courbe((t) => vmod(t) * K, 0, tm, 90), c: CONS, dash: 1, nom: `modèle, τ = ${fx(M.tau, 2)} s (${M.banc ? 'banc' : 'piste'})` }];
+      if (ok(tau)) ser.push({ ligne: courbe((t) => vf * (1 - Math.exp(-t / tau)), 0, tm, 90), c: COUL[0], nom: `premier ordre de tes mesures, τ = ${fx(tau, 2)} s` });
+      ser.push({ pts: pa.map((x) => [x.t - t0, x.v]), c: COUL[0], k: 0, nom: 'mesures' });
+      X.figs.push(graphe({ titre: 'Démarrage à pleine puissance : vitesse en fonction du temps', x: axe(0, tm, 5), y: plage(pa.map((x) => x.v).concat([M.v0 * K])), xl: 't (s)', yl: `v (${U})`, series: ser }));
+    }
+    // B. couple et puissance aux roues
+    const pp = PP.filter((x) => ok(x.vs) && (ok(x.C) || ok(x.P)));
+    const pc = pp.filter((x) => ok(x.C)), pw = pp.filter((x) => ok(x.P));
+    const fit = distincts(pc.map((x) => x.vs)) >= 2 ? lin(pc.map((x) => [x.vs, x.C])) : null;
+    if (fit && fit.a < 0 && fit.b > 0) {
+      const v0e = -fit.b / fit.a;
+      X.lignes.push(`Droite couple-vitesse ajustée sur ${pc.length} points : C ≈ ${fx(fit.b, 3)} N·m − ${fn(Math.abs(fit.a) / K)} N·m par ${U} × v${fit.r2 < 0.95 ? ` (r² = ${fx(fit.r2, 2)} : points dispersés)` : ''} ; elle coupe l’axe des vitesses à ${fx(v0e * K, 2)} ${U}.`);
+      X.ecarts.push({ l: 'Couple de démarrage aux roues extrapolé face au modèle η·i·Cd', quoi: 'écart', txt: `${fx(fit.b, 2)} N·m extrapolés pour ${fx(C0m, 2)} N·m`, e: ecart(fit.b, C0m), D: DP, inc: { C: 1 } });
+      X.ecarts.push({ l: 'Vitesse à vide extrapolée de la droite face à ω0·R/i', quoi: 'écart', txt: `${fx(v0e * K, 2)} ${U} extrapolés pour ${fx(M.v0 * K, 2)} ${U}`, e: ecart(v0e, M.v0), D: Dv, inc: { v: 1, C: 1 } });
+      X.fitC = fit;
+    } else if (fit) X.ctrl.push('Le couple ne baisse pas quand la vitesse monte : vérifie les colonnes (vitesse, couple) et l’unité de la vitesse.');
+    if (pw.length) {
+      const Pmax = Math.max(...pw.map((x) => x.P));
+      X.lignes.push(`Puissance aux roues la plus haute relevée : ${fx(Pmax, 1)} W, pour ${fx(Pmod, 0)} W au plus d’après le modèle.`);
+      X.ecarts.push({ l: 'Puissance maximale aux roues face au modèle η·Cd·ω0/4', quoi: 'écart', txt: `${fx(Pmax, 1)} W relevés pour ${fx(Pmod, 0)} W`, e: ecart(Pmax, Pmod), D: DP, inc: { C: 1, v: 1 } });
+    }
+    if (pp.some((x) => ok(x.Pc) && ok(x.P) && x.P > 0 && Math.abs(x.Pc - x.P) > 0.1 * x.P)) X.ctrl.push('P roues et C·ω roue diffèrent de plus de 10 % : vérifie l’unité de la vitesse, et si le couple affiché vaut pour les quatre roues ou pour une seule.');
+    const et = pp.filter((x) => ok(x.eta));
+    if (et.length) {
+      X.lignes.push(`Rendement de la batterie aux roues : ${et.map((x) => `${fx(x.eta, 0)} % à ${fx(x.v, 2)} ${U}`).join(', ')}.`);
+      if (et.some((x) => x.eta > 100)) X.ctrl.push('Un rendement dépasse 100 % : la puissance de la batterie est sous-estimée (le capteur de courant ACS712 a un calibre de 5 A : saturé ?) ou des colonnes sont inversées.');
+    }
+    if (pc.length >= 2) {
+      const vm = Math.max(M.v0, ...pc.map((x) => x.vs)) * 1.05;
+      X.figs.push(graphe({ titre: 'Couple aux roues en fonction de la vitesse', x: axe(0, vm * K, 5), y: plage(pc.map((x) => x.C).concat([C0m])), xl: `v (${U})`, yl: 'C roues (N·m)',
+        series: [{ ligne: [[0, C0m], [M.v0 * K, 0]], c: CONS, dash: 1, nom: 'modèle η·i·Cd·(1 − v/v0)' }].concat(X.fitC ? [{ ligne: [[0, X.fitC.b], [-X.fitC.b / X.fitC.a * K, 0]], c: COUL[0], nom: 'droite ajustée' }] : [], [{ pts: pc.map((x) => [x.v, x.C]), c: COUL[0], k: 0, nom: 'mesures' }]) }));
+    }
+    if (pw.length >= 2) {
+      const pb = pp.filter((x) => ok(x.Pb)), vm = Math.max(M.v0, ...pw.map((x) => x.vs)) * 1.05;
+      X.figs.push(graphe({ titre: 'Puissances en fonction de la vitesse', x: axe(0, vm * K, 5), y: plage(pw.map((x) => x.P).concat(pb.map((x) => x.Pb), [Pmod])), xl: `v (${U})`, yl: 'P (W)',
+        series: [{ ligne: courbe((v) => Cmod(v / K) * (v / K) / TT.R, 0, M.v0 * K, 90), c: CONS, dash: 1, nom: 'modèle aux roues C·ω' }, { pts: pw.map((x) => [x.v, x.P]), c: COUL[0], k: 0, nom: 'P roues' }].concat(pb.length ? [{ pts: pb.map((x) => [x.v, x.Pb]), c: COUL[3], k: 3, nom: 'P batterie' }] : []) }));
+    }
+    if (et.length >= 2) X.figs2.push(graphe({ titre: 'Rendement de la batterie aux roues', x: axe(0, Math.max(...et.map((x) => x.v)) * 1.1, 5), y: axe(0, 100, 5), xl: `v (${U})`, yl: 'η (%)', series: [{ pts: et.map((x) => [x.v, x.eta]), c: COUL[1], k: 1, nom: 'η = P roues / P batterie' }] }));
+    // C. la régulation sous freinage
+    const rg = RG.filter((x) => ok(x.es));
+    if (rg.length) {
+      const par = {}; rg.forEach((x) => { (par[x.mode] = par[x.mode] || []).push(x.es); });
+      X.lignes.push('Erreur statique sous freinage : ' + Object.entries(par).map(([m, L]) => `${m === 'boucle ouverte' ? 'boucle ouverte' : 'correcteur ' + m} ${L.map((e) => fx(e, 1) + ' %').join(', ')}`).join(' ; ') + '.');
+      ['boucle ouverte', 'P', 'PI'].forEach((m) => { if (par[m]) X.ecarts.push({ l: `Vitesse établie sous freinage, ${m === 'boucle ouverte' ? 'en boucle ouverte' : 'avec le correcteur ' + m}, face à la consigne`, quoi: 'écart moyen', txt: `Sur ${par[m].length} essai${par[m].length > 1 ? 's' : ''}`, e: moy(par[m]), D: DR, inc: { v: 1 } }); });
+      if (par.P && par.PI && moy(par.PI) >= moy(par.P)) X.ctrl.push('L’erreur avec le PI n’est pas plus petite qu’avec le P : vérifie l’action intégrale et lis la vitesse une fois établie.');
+      if (RG.some((x) => ok(x.v) && !ok(x.vc))) X.ctrl.push('Note la consigne de chaque essai de régulation : sans elle, pas d’erreur statique.');
+      X.figs2.push(barres({ titre: 'Erreur statique sous freinage, essai par essai', items: rg.map((x) => ({ l: x.mode === 'boucle ouverte' ? 'BO' : x.mode, v: x.es, c: x.mode === 'PI' ? COUL[1] : x.mode === 'P' ? COUL[0] : COUL[3] })), yl: 'erreur (%)', d: 1, ref: DR ? DR.d : null, refl: DR ? `dispersion des essais identiques (${fx(DR.d, 1)} %)` : '' }));
+    } else if (RG.some((x) => ok(x.v))) X.ctrl.push('Note la consigne de chaque essai de régulation : sans elle, pas d’erreur statique.');
+    if (pa.length && !Dt) X.ctrl.push('Dispersion du démarrage non mesurée : remplis les trois démarrages identiques.');
+    if (rg.length && !DR) X.ctrl.push('Dispersion de la régulation non mesurée : remplis les trois essais identiques.');
+    if (M.Zp < 16 || M.Zp > 25) X.ctrl.push('Le dossier prévoit un pignon moteur de 16 à 25 dents : vérifie le nombre de dents.');
+    return X;
+  }
+
+  /* ---------- TGBT communicant (BEMA « TGBT COMM. TWIDO ») : compensation, différentiels, secours ---------- */
+  function calcTGBT(R) {
+    const U = pos(nb(R.pa.U), 400), Qn = pos(nb(R.pa.Qn), 2.5), Qc0 = Qn * (U / 400) ** 2, cible = nb(R.pa.cible);
+    const lC = (r) => {
+      const P = nb(r.P), Q = nb(r.Q), I = nb(r.I), Q2 = nb(r.Q2), I2 = nb(r.I2);
+      const fp = ok(P) && ok(Q) && Math.hypot(P, Q) > 0 ? P / Math.hypot(P, Q) : NaN, fp2 = ok(P) && ok(Q2) && Math.hypot(P, Q2) > 0 ? P / Math.hypot(P, Q2) : NaN;
+      const Qc = ok(Q) && ok(Q2) ? Q - Q2 : NaN, Im = ok(P) && ok(Q) ? Math.hypot(P, Q - Qc0) * 1000 / (Math.sqrt(3) * U) : NaN;
+      return { ch: r.ch || '', P, Q, I, Q2, I2, fp, fp2, Qc, e: ecart(Qc, Qc0), Im, eI: ecart(I2, Im) };
+    };
+    const lG = (r) => ({ ev: r.ev || 'enclenchement', Q: nb(r.Q), t: nb(r.t), ec: NaN });
+    const lD = (r) => {
+      const In = nb(r.In), Id = nb(r.Id), t = nb(r.t), ret = nb(r.ret), rap = ok(Id) && In > 0 ? Id / In : NaN, inst = !(ret > 0);
+      const okI = ok(rap) ? rap >= 0.5 && rap <= 1 : null, okT = ok(t) && inst ? t <= 300 : null;
+      return { app: String(r.app || '').trim(), pos: r.pos || 'aval', In, Id, t, ret, inst, r: rap, ok: okI === false || okT === false ? 'non' : okI || okT ? 'oui' : '' };
+    };
+    const lS = (r) => { const t = nb(r.t), Pa = nb(r.Pa), Ps = nb(r.Ps); return { cas: r.cas || '', t, Pa, Ps, del: String(r.del || '').trim(), r: ok(Pa) && ok(Ps) && Pa > 0 ? 100 * Ps / Pa : NaN }; };
+    const CC = R.tab.comp.map(lC), GG = R.tab.grad.map(lG), DD = R.tab.dif.map(lD), SS = R.tab.sec.map(lS), RQ = R.tab.repQ.map(lC), RT = R.tab.repT.map(lD);
+    const X = base({ comp: CC, grad: GG, dif: DD, sec: SS, repQ: RQ, repT: RT });
+    const DQ = dispersion(RQ.map((x) => x.Qc)), DI = dispersion(RQ.map((x) => x.I2)), DT = dispersion(RT.map((x) => x.t));
+    X.disp = { Qc: DQ, I2: DI, t: DT };
+    X.dispTxt = { repQ: [['Q compensée', DQ, 'kvar', 2], ['I avec le condensateur', DI, 'A', 2]], repT: [['t à IΔn', DT, 'ms', 0]] };
+    X.lignes.push(`Le condensateur : ${fx(Qn, 2)} kvar sous 400 V, soit Qc = Qn·(U/400)² = ${fx(Qc0, 2)} kvar sous ${fx(U, 0)} V : sa puissance réactive varie comme le carré de la tension.`);
+    // A. la compensation
+    const pc = CC.filter((x) => ok(x.Qc));
+    if (pc.length) {
+      const fps = pc.filter((x) => ok(x.fp) && ok(x.fp2));
+      X.lignes.push(`Compensation : de ${fx(Math.min(...pc.map((x) => x.Qc)), 2)} à ${fx(Math.max(...pc.map((x) => x.Qc)), 2)} kvar compensés${fps.length ? ` ; facteur de puissance ${fps.map((x) => `${fx(x.fp, 2)} → ${fx(x.fp2, 2)}${x.ch ? ` (${x.ch})` : ''}`).join(', ')}` : ''}.`);
+      X.ecarts.push({ l: 'Puissance réactive compensée face à Qn·(U/400)²', quoi: 'écart moyen', txt: `Sur ${pc.length} charge${pc.length > 1 ? 's' : ''}, pour ${fx(Qc0, 2)} kvar attendus`, e: moy(pc.map((x) => x.e)), D: DQ, inc: { Q: 1 } });
+      const pi = CC.filter((x) => ok(x.eI));
+      if (pi.length) X.ecarts.push({ l: 'Courant de ligne avec le condensateur face au modèle √(P² + (Q − Qc)²)/(√3·U)', quoi: 'écart moyen', txt: `Sur ${pi.length} charge${pi.length > 1 ? 's' : ''}`, e: moy(pi.map((x) => x.eI)), D: DI, inc: { P: 1, Q: 1 } });
+      const gain = CC.filter((x) => ok(x.I) && ok(x.I2) && x.I > 0);
+      if (gain.length) X.lignes.push(`Courant de ligne avec le condensateur : ${gain.map((x) => { const g = 100 * (x.I2 - x.I) / x.I; return `${g <= 0 ? '−' : '+'}${fx(Math.abs(g), 0)} %${x.ch ? ` (${x.ch})` : ''}`; }).join(', ')}. Il baisse quand la compensation est juste (moins de pertes Joule dans les câbles, de la place pour d’autres départs) et remonte si l’installation devient capacitive.`);
+      const sur = pc.filter((x) => ok(x.Q2) && x.Q2 < 0);
+      if (sur.length) X.lignes.push(`Avec ${sur.length > 1 ? 'certaines charges' : 'une charge'}, Q devient négative : l’installation est surcompensée (capacitive) ; le gradin aurait dû rester déclenché.`);
+      if (ok(cible) && cible > 0 && cible < 1) {
+        const tg = Math.tan(Math.acos(cible)), ins = pc.filter((x) => ok(x.P) && x.Q2 > x.P * tg);
+        X.lignes.push(ins.length ? `Objectif cos φ ≥ ${fx(cible, 2)} (tan φ ≤ ${fx(tg, 2)}) : ${ins.length} charge${ins.length > 1 ? 's restent' : ' reste'} en dessous avec ce seul gradin ; il manque ${ins.map((x) => fx(x.Q2 - x.P * tg, 2) + ' kvar').join(', ')}.` : `Objectif cos φ ≥ ${fx(cible, 2)} atteint pour toutes les charges relevées.`);
+      }
+      const qm = Math.max(...pc.map((x) => x.Q), Qc0) * 1.1;
+      X.figs.push(graphe({ titre: 'Puissance réactive avec le condensateur en fonction de celle sans', x: axe(0, qm, 5), y: plage(pc.map((x) => x.Q2).concat([qm - Qc0, -0.2])), xl: 'Q sans (kvar)', yl: 'Q avec (kvar)',
+        series: [{ ligne: courbe((q) => q - Qc0, 0, qm, 80), c: CONS, dash: 1, nom: `modèle Q − ${fx(Qc0, 2)} kvar` }, { ligne: courbe((q) => q, 0, qm, 80), c: '#9fb3c2', w: 1.4, nom: 'sans compensation' }, { pts: pc.map((x) => [x.Q, x.Q2]), c: COUL[0], k: 0, nom: 'mesures' }] }));
+      if (fps.length >= 2) X.figs.push(graphe({ titre: 'Facteur de puissance en fonction de la puissance active', x: axe(0, Math.max(...fps.map((x) => x.P)) * 1.1, 5), y: axe(Math.min(0.5, ...fps.map((x) => x.fp)) - 0.05, 1, 5), xl: 'P (kW)', yl: 'cos φ',
+        series: [{ pts: fps.map((x) => [x.P, x.fp]), c: COUL[3], k: 3, nom: 'sans condensateur' }, { pts: fps.map((x) => [x.P, x.fp2]), c: COUL[1], k: 1, nom: 'avec' }].concat(ok(cible) && cible > 0 && cible < 1 ? [{ ligne: [[0, cible], [Math.max(...fps.map((x) => x.P)) * 1.1, cible]], c: CONS, dash: 1, nom: 'objectif' }] : []) }));
+    }
+    // B. le gradin automatique
+    const seuil = nb(R.pl.seuil), hys = nb(R.pl.hys), tempo = nb(R.pl.tempo), ge = GG.filter((x) => ok(x.Q));
+    if (ok(seuil) && ok(hys)) {
+      const bas = seuil - hys;
+      X.lignes.push(`Réglage du gradin : enclenchement au-dessus de ${fx(seuil, 2)} kvar, déclenchement sous ${fx(bas, 2)} kvar${ok(tempo) ? `, après ${fx(tempo, 0)} s` : ''}.`);
+      if (hys <= Qc0) X.ctrl.push(`L’hystérésis (${fx(hys, 2)} kvar) n’est pas plus grande que la puissance du gradin (${fx(Qc0, 2)} kvar) : juste après l’enclenchement, Q mesurée passe sous ${fx(bas, 2)} kvar et le gradin se déclenche, puis se réenclenche : il bat. L’hystérésis doit dépasser la puissance du gradin.`);
+      ge.forEach((x) => { x.ec = x.Q - (x.ev === 'déclenchement' ? bas : seuil); });
+      if (ge.length) X.lignes.push(`Basculements relevés : ${ge.map((x) => `${x.ev} à ${fx(x.Q, 2)} kvar (${x.ec >= 0 ? '+' : '−'}${fx(Math.abs(x.ec), 2)} kvar du réglage)${ok(x.t) ? ` après ${fx(x.t, 1)} s` : ''}`).join(' ; ')}.`);
+    } else if (ge.length) X.ctrl.push('Recopie le seuil et l’hystérésis réglés dans l’A2000 (Prise en main) pour comparer les basculements au réglage.');
+    // C. les différentiels et leur sélectivité
+    const dd = DD.filter((x) => ok(x.In));
+    dd.forEach((x, j) => {
+      const nom = x.app || `appareil ${j + 1}`;
+      X.lignes.push(`${nom} (${x.pos}) : IΔn ${fx(x.In, 0)} mA${ok(x.Id) ? `, déclenche à ${fx(x.Id, 0)} mA (${fx(x.r, 2)} IΔn)` : ''}${ok(x.t) ? `, coupe en ${fx(x.t, 0)} ms` : ''}${x.ret > 0 ? ` (retard réglé ${fx(x.ret, 0)} ms)` : ''}.`);
+      if (ok(x.r) && x.r < 0.5) X.ctrl.push(`${nom} déclenche sous IΔn/2 : trop sensible (déclenchements intempestifs), ou méthode de mesure à revoir.`);
+      if (ok(x.r) && x.r > 1) X.ctrl.push(`${nom} ne déclenche pas à IΔn : appareil à remplacer, ou réglage relevé faux.`);
+      if (x.inst && ok(x.t) && x.t > 300) X.ctrl.push(`${nom} : plus de 300 ms à IΔn pour un différentiel instantané.`);
+      if (x.ret > 0 && ok(x.t) && x.t < x.ret) X.ctrl.push(`${nom} coupe avant son retard réglé : le retard n’est pas celui que tu crois.`);
+    });
+    const am = dd.filter((x) => x.pos === 'amont'), av = dd.filter((x) => x.pos === 'aval');
+    am.forEach((a) => av.forEach((v) => {
+      const okI = a.In >= 2 * v.In, tA = a.ret > 0 ? a.ret : NaN, okT = ok(tA) && ok(v.t) ? tA > v.t : null;
+      const marge = ok(tA) && ok(v.t) ? tA - v.t : NaN;
+      X.lignes.push(`Sélectivité ${a.app || 'amont'} / ${v.app || 'aval'} : sensibilité ${fx(a.In, 0)} mA ${okI ? '≥' : '<'} 2 × ${fx(v.In, 0)} mA${okT == null ? ' ; retard amont ou temps aval à relever' : ` ; retard amont ${fx(tA, 0)} ms ${okT ? '>' : '≤'} coupure aval ${fx(v.t, 0)} ms`} : ${okI && okT ? `sélectivité assurée${DT ? `, avec une marge de ${fx(marge, 0)} ms à comparer à la dispersion de ± ${fx(DT.a, 0)} ms` : ''}` : okI && okT == null ? 'sélectivité ampèremétrique assurée, chronométrique à vérifier' : 'sélectivité non assurée'}.`);
+    }));
+    if (av.length && !am.length && dd.length) X.ctrl.push('Pour la sélectivité, mets au moins une ligne « amont » (Vigi MH de l’arrivée).');
+    const dt = dd.filter((x) => ok(x.t));
+    if (dt.length) X.figs2.push(barres({ titre: 'Temps de coupure à IΔn, appareil par appareil', items: dt.map((x, j) => ({ l: x.app || `n° ${j + 1}`, v: x.t, c: x.pos === 'amont' ? COUL[2] : COUL[0] })), yl: 't (ms)', d: 0, ref: 300, refl: '300 ms : limite d’un différentiel instantané à IΔn' }));
+    // D. le passage sur la source secours
+    const ss = SS.filter((x) => ok(x.t) || ok(x.r));
+    if (ss.length) X.lignes.push('Passage sur la source secours : ' + ss.map((x) => `${x.cas ? x.cas + ' : ' : ''}${ok(x.t) ? `coupure de ${fx(x.t, 1)} s` : 'durée non relevée'}${ok(x.r) ? `, ${fx(x.r, 0)} % de la puissance gardée (${fx(x.Ps, 2)} kW sur ${fx(x.Pa, 2)} kW)` : ''}${x.del ? `, délestés : ${x.del}` : ''}`).join(' ; ') + '.');
+    const Ss = nb(R.pl.Ssec);
+    if (ok(Ss) && SS.some((x) => ok(x.Ps) && x.Ps > Ss)) X.ctrl.push('Sur secours, la puissance gardée dépasse la puissance de la source secours : le délestage ne suffit pas.');
+    if (pc.length && !DQ) X.ctrl.push('Dispersion de la compensation non mesurée : remplis les trois mesures identiques.');
+    if (dt.length && !DT) X.ctrl.push('Dispersion des temps de coupure non mesurée : remplis les trois essais du même différentiel.');
+    return X;
+  }
+
+  /* ---------- Créa-Slider (Créa) : l'équilibre sur le pied, la vitesse et le courant du moteur ---------- */
+  const SL = { D: 0.021, r: 70, pts: 64 };   // poulie, réducteur, points du codeur par tour du moteur (dossier technique)
+  function calcSlider(R) {
+    const M = nb(R.pa.M), MC = pos(nb(R.pa.MC), 0.81), a = nb(R.pa.a), th = ok(nb(R.pa.th)) ? nb(R.pa.th) : 0, k = pos(nb(R.pl.kc), 0.01);
+    const n0 = pos(nb(R.pl.v0), 100), vmax = n0 * Math.PI / 30 * SL.D / 2;           // vitesse du chariot à vide sous 12 V
+    const lE = (r) => { const s = nb(r.s), YA = nb(r.YA), YB = nb(r.YB), YC = nb(r.YC), S = ok(YA) && ok(YB) && ok(YC) ? YA + YB + YC : NaN; return { s, YA, YB, YC, S, eS: ok(M) && M > 0 ? ecart(S, M * G) : NaN }; };
+    const lT = (r) => { const al = nb(r.al), vc = nb(r.vc), v = nb(r.v), I = nb(r.I); return { al: ok(al) ? al : NaN, vc, v, I, ev: ecart(v, vc), wm: ok(v) ? v * SL.r / (SL.D / 2) : NaN }; };
+    const EE = R.tab.eq.map(lE), TT2 = R.tab.trav.map(lT), RE = R.tab.repE.map(lE), RV = R.tab.repV.map(lT);
+    const X = base({ eq: EE, trav: TT2, repE: RE, repV: RV });
+    const DS = dispersion(RE.map((x) => x.S)), DA = dispersion(RE.map((x) => x.YA)), DV = dispersion(RV.map((x) => x.v));
+    X.disp = { S: DS, YA: DA, v: DV };
+    X.dispTxt = { repE: [['somme des efforts', DS, 'N', 2], ['effort du pied rouge', DA, 'N', 2, 1]], repV: [['vitesse', DV, 'm/s', 4]] };
+    X.lignes.push(`Le modèle, d’après le dossier : v = ω moteur·(D/2)/${SL.r} avec D = 21 mm ; à vide sous 12 V, ${fx(n0, 0)} tr/min en sortie du réducteur donnent ${fx(vmax, 3)} m/s au plus. Le codeur compte ${SL.pts} points par tour du moteur, soit ${SL.pts * SL.r} par tour de poulie : ${fx(Math.PI * SL.D * 1000 / (SL.pts * SL.r), 4)} mm de déplacement par point.`);
+    // A. les efforts sur les pieds
+    const pe = EE.filter((x) => ok(x.S));
+    if (pe.length) {
+      X.lignes.push(`Somme des efforts sur les trois pieds : de ${fx(Math.min(...pe.map((x) => x.S)), 1)} à ${fx(Math.max(...pe.map((x) => x.S)), 1)} N${ok(M) && M > 0 ? `, pour un poids M·g = ${fx(M * G, 1)} N` : ''} : elle ne dépend pas de la position du chariot (théorème de la résultante statique).`);
+      if (ok(M) && M > 0) X.ecarts.push({ l: 'Somme des efforts sur les pieds face au poids M·g', quoi: 'écart moyen', txt: `Sur ${pe.length} position${pe.length > 1 ? 's' : ''} du chariot`, e: moy(pe.map((x) => x.eS)), D: DS, inc: { Y: 1 } });
+      const pa = pe.filter((x) => ok(x.s));
+      const fit = distincts(pa.map((x) => x.s)) >= 2 ? lin(pa.map((x) => [x.s, x.YA])) : null;
+      if (fit) {
+        const bmod = ok(a) && a > 0 ? MC * G * Math.cos(th * Math.PI / 180) / a : NaN, span = Math.max(...pa.map((x) => x.s)) - Math.min(...pa.map((x) => x.s));
+        X.lignes.push(`Effort du pied rouge en fonction de la position du chariot : Y_A ≈ ${fx(fit.b, 2)} N ${fit.a < 0 ? '−' : '+'} ${fx(Math.abs(fit.a), 2)} N/m × s${fit.r2 < 0.95 ? ` (r² = ${fx(fit.r2, 2)})` : ''}${ok(bmod) ? ` ; le modèle donne une pente de M_C·g·cos θ/a = ${fx(bmod, 2)} N/m` : ' ; donne a (distance du pied rouge à l’axe des deux autres) pour la comparer au modèle'}.`);
+        if (ok(bmod)) {
+          const Dp = DA && span > 0 ? { m: Math.abs(fit.a), a: Math.SQRT2 * DA.a / span, d: 100 * Math.SQRT2 * DA.a / (span * Math.abs(fit.a)), n: DA.n } : null;
+          X.ecarts.push({ l: 'Pente de l’effort du pied rouge face au modèle M_C·g·cos θ/a', quoi: 'écart', txt: `${fx(Math.abs(fit.a), 2)} N/m mesurés pour ${fx(bmod, 2)} N/m${Dp ? ' ; dispersion des efforts reportée sur la pente' : ''}`, e: ecart(Math.abs(fit.a), bmod), D: Dp });
+        }
+        if (Math.abs(fit.a) > 1e-9) {
+          const sb = -fit.b / fit.a, ext = [Math.min(...pa.map((x) => x.s)), Math.max(...pa.map((x) => x.s))], worst = Math.min(fit.b + fit.a * ext[0], fit.b + fit.a * ext[1]);
+          X.sb = sb;
+          X.lignes.push(`Le pied rouge décollerait (Y_A = 0) pour s = ${fx(sb, 3)} m ; aux positions relevées, il garde au moins ${fx(worst, 2)} N${ok(M) && M > 0 ? `, soit ${fx(100 * worst / (M * G), 0)} % du poids` : ''}. ${worst < 0.05 * (ok(M) && M > 0 ? M * G : 30) ? 'Marge très faible : un smartphone plus lourd ou un choc fait basculer le travelling dans cette orientation.' : 'Le travelling reste stable sur la course relevée.'}`);
+        }
+        X.fitA = fit;
+      } else if (pa.length) X.ctrl.push('Relève les efforts pour au moins deux positions du chariot (prise d’origine, position de repos, l’autre extrémité).');
+      if (pe.some((x) => x.YA < 0 || x.YB < 0 || x.YC < 0)) X.ctrl.push('Un effort négatif : capteur mal taré, ou pied qui ne porte plus (basculement amorcé) ; refais la tare et vérifie que le fil de sécurité ne tire pas.');
+    }
+    // B. le travelling : vitesse et courant
+    const pv = TT2.filter((x) => ok(x.ev));
+    if (pv.length) {
+      const plat = pv.filter((x) => !(Math.abs(x.al) > 0.5)), inc = pv.filter((x) => Math.abs(x.al) > 0.5);
+      X.lignes.push(`Vitesse du chariot face à la consigne : ${pv.map((x) => `${fx(x.v, 3)} m/s pour ${fx(x.vc, 3)} m/s${Math.abs(x.al) > 0.5 ? ` (rail incliné de ${fx(x.al, 0)}°)` : ''}`).join(' ; ')}.`);
+      if (plat.length) X.ecarts.push({ l: 'Vitesse du chariot, rail à plat, face à la consigne', quoi: 'écart moyen', txt: `Sur ${plat.length} travelling${plat.length > 1 ? 's' : ''}`, e: moy(plat.map((x) => x.ev)), D: DV, inc: { v: 1 } });
+      if (inc.length) X.ecarts.push({ l: 'Vitesse du chariot, rail incliné, face à la consigne', quoi: 'écart moyen', txt: `Sur ${inc.length} travelling${inc.length > 1 ? 's' : ''}`, e: moy(inc.map((x) => x.ev)), D: DV, inc: { v: 1 } });
+      if (pv.some((x) => x.vc > vmax)) X.ctrl.push(`Une consigne dépasse la vitesse à vide sous 12 V (${fx(vmax, 3)} m/s) : le moteur ne peut pas la tenir.`);
+    }
+    const pi = TT2.filter((x) => ok(x.I) && ok(x.al));
+    if (distincts(pi.map((x) => x.al)) >= 2) {
+      const fi = lin(pi.map((x) => [Math.sin(Math.abs(x.al) * Math.PI / 180), x.I]));
+      if (fi && fi.a > 0) {
+        const eta = MC * G * (SL.D / 2) / (SL.r * k * fi.a);
+        X.lignes.push(`Courant en fonction de l’inclinaison : I ≈ ${fx(fi.b, 3)} A + ${fx(fi.a, 3)} A × sin α ; avec k = ${fn(k)} N·m/A, la pente donne le rendement du réducteur et de la courroie : η = M_C·g·(D/2)/(${SL.r}·k·pente) = ${fx(100 * eta, 0)} %.`);
+        if (eta > 1) X.ctrl.push('Le rendement identifié dépasse 100 % : k du dossier trop faible pour ton moteur, masse du chariot sous-estimée, ou courant moyen faussé par la MLI.');
+        X.fitI = fi;
+        X.figs.push(graphe({ titre: 'Courant du moteur en fonction de l’inclinaison du rail', x: axe(0, Math.max(...pi.map((x) => Math.sin(Math.abs(x.al) * Math.PI / 180))) * 1.15 || 0.2, 5), y: plage(pi.map((x) => x.I)), xl: 'sin α', yl: 'I (A)',
+          series: [{ ligne: courbe((x) => fi.b + fi.a * x, 0, Math.max(...pi.map((x) => Math.sin(Math.abs(x.al) * Math.PI / 180))) * 1.15, 20), c: COUL[0], nom: 'droite ajustée' }, { pts: pi.map((x) => [Math.sin(Math.abs(x.al) * Math.PI / 180), x.I]), c: COUL[0], k: 0, nom: 'mesures' }] }));
+      }
+    }
+    // les courbes des efforts
+    const pa2 = pe.filter((x) => ok(x.s));
+    if (pa2.length >= 2) {
+      const s0 = Math.min(0, ...pa2.map((x) => x.s)), s1 = Math.max(...pa2.map((x) => x.s)) * 1.08 || 1;
+      const ser = [{ pts: pa2.map((x) => [x.s, x.YA]), c: '#c9483b', k: 0, nom: 'pied rouge Y_A' }, { pts: pa2.map((x) => [x.s, x.YB]), c: '#1f6fb2', k: 1, nom: 'pied bleu Y_B' }, { pts: pa2.map((x) => [x.s, x.YC]), c: '#c99a00', k: 3, nom: 'pied jaune Y_C' }];
+      if (X.fitA) ser.unshift({ ligne: courbe((s) => X.fitA.b + X.fitA.a * s, s0, s1, 30), c: '#c9483b', dash: 1, nom: 'droite ajustée du pied rouge' });
+      X.figs.unshift(graphe({ titre: 'Efforts sur les pieds en fonction de la position du chariot', x: axe(s0, s1, 5), y: plage(pa2.flatMap((x) => [x.YA, x.YB, x.YC])), xl: 's (m)', yl: 'effort (N)', series: ser }));
+    }
+    if (pv.length) X.figs2.push(barres({ titre: 'Écart de vitesse à la consigne, travelling par travelling', items: pv.map((x) => ({ l: Math.abs(x.al) > 0.5 ? `${fx(x.al, 0)}°` : 'à plat', v: x.ev, c: Math.abs(x.al) > 0.5 ? COUL[3] : COUL[0] })), yl: 'écart (%)', d: 1, ref: DV ? DV.d : null, refl: DV ? `dispersion des travellings identiques (${fx(DV.d, 1)} %)` : '' }));
+    if (pe.length && !DS) X.ctrl.push('Dispersion des efforts non mesurée : remplis les trois relevés identiques.');
+    if (pv.length && !DV) X.ctrl.push('Dispersion de la vitesse non mesurée : remplis les trois travellings identiques.');
+    return X;
+  }
+
   /* ---------- les schémas simplifiés des bancs, d'après leurs dossiers ---------- */
   const tx = (x, y, s, o) => T(x, y, s, Object.assign({ fs: 13 }, o || {}));
   const EAU = '#cfe6f3', TR = 'stroke="#183047" stroke-width="2" fill="none"', FL = (x1, y1, x2, y2) => { const a = Math.atan2(y2 - y1, x2 - x1), p = (d, s) => `${(x2 - 9 * Math.cos(a + s * 0.45)).toFixed(1)} ${(y2 - 9 * Math.sin(a + s * 0.45)).toFixed(1)}`; return `<path d="M${x1} ${y1}L${x2} ${y2}" ${TR}/><path d="M${x2} ${y2}L${p(0, 1)}L${p(0, -1)}Z" fill="#183047"/>`; };
@@ -505,6 +762,79 @@
     let b = ''; for (let x = 70; x < 390; x += 16) b += `<rect x="${x}" y="228" width="8" height="5" fill="#f2c200"/><rect x="${x + 8}" y="228" width="8" height="5" fill="#183047"/>`;
     s += `<path d="M8 234H452" stroke="#183047" stroke-width="1.5"/>` + b + tx(230, 250, 'zone balisée au sol (bande jaune et noire)', { a: 'middle', fs: 11.5 });
     return svg(460, 256, s, 'Schéma simplifié du portique SLT07');
+  }
+
+  function synTT02() {
+    let s = '';
+    // les rouleaux du banc sous les roues (vue de dessus), le frein et son capteur de force
+    s += `<rect x="64" y="20" width="62" height="220" rx="6" fill="#e9eef2" stroke="#9fb3c2" stroke-width="1.5"/><rect x="264" y="20" width="62" height="220" rx="6" fill="#e9eef2" stroke="#9fb3c2" stroke-width="1.5"/>`;
+    s += `<rect x="352" y="176" width="100" height="48" rx="4" fill="#fff8ef" stroke="${CONS}" stroke-width="1.5"/>` + tx(402, 195, 'frein du banc', { a: 'middle', fs: 11.5, w: 700, c: CONS }) + tx(402, 212, 'capteur de force', { a: 'middle', fs: 11, c: CONS }) + `<path d="M326 200H352" stroke="${CONS}" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+    // le châssis, les quatre roues motrices, les essieux et les deux différentiels
+    s += `<rect x="72" y="56" width="246" height="148" rx="14" fill="#fff" stroke="#183047" stroke-width="1.8"/>`;
+    [[95, 40], [95, 220], [295, 40], [295, 220]].forEach(([x, y]) => { s += `<rect x="${x - 22}" y="${y - 12}" width="44" height="24" rx="5" fill="#3b4a57"/>`; });
+    s += `<path d="M95 52V208M295 52V208" ${TR}/><rect x="83" y="118" width="24" height="24" rx="3" fill="#eef6ff" stroke="#183047" stroke-width="1.6"/><rect x="283" y="118" width="24" height="24" rx="3" fill="#eef6ff" stroke="#183047" stroke-width="1.6"/>`;
+    // l'arbre de transmission, la roue réceptrice (70 dents), le moteur et son pignon (19 dents), le codeur
+    s += `<path d="M107 130H283" stroke="#183047" stroke-width="3"/><rect x="186" y="108" width="8" height="44" fill="#9fb3c2" stroke="#183047" stroke-width="1.4"/>`;
+    s += `<rect x="138" y="86" width="44" height="22" rx="4" fill="#fff" stroke="#183047" stroke-width="1.8"/><rect x="182" y="91" width="6" height="12" fill="#9fb3c2" stroke="#183047" stroke-width="1.2"/>` + tx(160, 101, 'M', { a: 'middle', w: 700, fs: 12 });
+    s += `<rect x="236" y="121" width="7" height="18" fill="#fff" stroke="${CONS}" stroke-width="1.6"/><path d="M236 125h7M236 130h7M236 135h7" stroke="${CONS}" stroke-width="1.2"/>`;
+    s += tx(160, 80, 'moteur 540', { a: 'middle', fs: 11 }) + tx(198, 100, 'pignon 19 dents', { fs: 11 }) + tx(190, 166, 'roue 70 dents', { a: 'middle', fs: 11 }) + tx(240, 116, 'codeur', { a: 'middle', fs: 11, c: CONS, w: 700 });
+    s += tx(112, 152, '15/39', { fs: 10.5, c: '#42596b' }) + tx(278, 152, '15/39', { a: 'end', fs: 10.5, c: '#42596b' });
+    // la batterie, le variateur, la carte
+    s += `<rect x="128" y="176" width="124" height="20" rx="3" fill="#e3f3ea" stroke="#2f7d4f" stroke-width="1.5"/>` + tx(190, 190, 'batterie 7,2 V', { a: 'middle', fs: 11, w: 700, c: '#1f6a43' });
+    s += `<rect x="206" y="64" width="62" height="20" rx="3" fill="#f4f8fa" stroke="#183047" stroke-width="1.4"/>` + tx(237, 78, 'variateur', { a: 'middle', fs: 10.5 });
+    s += `<rect x="352" y="56" width="100" height="62" rx="4" fill="#f4f8fa" stroke="#183047" stroke-width="1.5"/>` + tx(402, 76, 'carte Arduino', { a: 'middle', fs: 11.5, w: 700 }) + tx(402, 93, 'mesures, MLI,', { a: 'middle', fs: 11 }) + tx(402, 108, 'Wi-Fi', { a: 'middle', fs: 11 }) + `<path d="M318 88H352" stroke="#183047" stroke-width="1.2" stroke-dasharray="5 4"/>`;
+    s += FL(330, 14, 380, 14) + tx(386, 18, 'avant', { fs: 11.5 }) + tx(95, 256, 'rouleaux', { a: 'middle', fs: 11, c: '#587083' }) + tx(295, 256, 'rouleaux', { a: 'middle', fs: 11, c: '#587083' });
+    return svg(460, 262, s, 'Schéma simplifié de la voiture TT-02 sur son banc à rouleaux, vue de dessus');
+  }
+
+  function synTGBT() {
+    const dj = (x, y) => `<rect x="${x - 8}" y="${y - 8}" width="16" height="16" fill="#fff" stroke="#183047" stroke-width="1.8"/><path d="M${x - 5} ${y - 5}L${x + 5} ${y + 5}M${x + 5} ${y - 5}L${x - 5} ${y + 5}" stroke="#183047" stroke-width="1.6"/>`;
+    const inter = (x, y) => `<path d="M${x} ${y - 10}V${y - 6}M${x} ${y + 8}V${y + 12}" ${TR}/><path d="M${x} ${y + 8}L${x - 9} ${y - 6}" stroke="#183047" stroke-width="2"/><circle cx="${x}" cy="${y + 8}" r="2" fill="#183047"/>`;
+    let s = '';
+    // les deux arrivées et l'inverseur de sources
+    s += tx(90, 16, 'réseau 400 V (normal)', { a: 'middle', fs: 11.5, w: 700 }) + tx(262, 16, 'secours (prise 16 A)', { a: 'middle', fs: 11.5, w: 700 });
+    s += `<path d="M90 22V38M90 54V68M90 92V100H262V92M262 54V68M262 22V38" ${TR}/>` + dj(90, 46) + dj(262, 46) + inter(90, 80) + inter(262, 80);
+    s += tx(78, 50, 'QN', { a: 'end', fs: 11.5, w: 700 }) + tx(274, 50, 'QR', { fs: 11.5, w: 700 }) + tx(78, 84, 'QN2', { a: 'end', fs: 11.5, w: 700 }) + tx(274, 84, 'QR2', { fs: 11.5, w: 700 });
+    s += `<path d="M100 80H252" stroke="#a8362b" stroke-width="1.4" stroke-dasharray="5 4"/>` + tx(176, 76, 'verrouillage', { a: 'middle', fs: 10.5, c: '#a8362b' });
+    // le transformateur de courant de la centrale, puis le jeu de barres
+    s += `<path d="M176 100V128" ${TR}/><circle cx="176" cy="113" r="7" fill="none" stroke="${CONS}" stroke-width="1.8"/>` + tx(164, 117, 'TC 100/5', { a: 'end', fs: 10.5, c: CONS });
+    s += `<path d="M26 128H344" stroke="#183047" stroke-width="4"/>`;
+    // les quatre départs et le gradin de condensateurs
+    [[50, 'Q1', '63 A', '300 mA'], [116, 'Q2', '32 A', '1 A S'], [182, 'Q3', '32 A', '1 A S'], [248, 'Q4', '32 A', '300 mA']].forEach(([x, q, c, v], j) => {
+      s += `<path d="M${x} 128V144M${x} 160V184" ${TR}/>` + dj(x, 152) + tx(x + 12, 148, q, { fs: 11, w: 700 }) + tx(x + 12, 162, c, { fs: 10.5 }) + tx(x + 12, 175, v, { fs: 10.5, c: '#42596b' }) + FL(x, 184, x, 200) + tx(x, 214, 'X' + (j + 1), { a: 'middle', fs: 11 });
+    });
+    s += `<path d="M314 128V144M314 160V172" ${TR}/>` + dj(314, 152) + tx(326, 156, 'QCC1', { fs: 10.5, w: 700 });
+    s += `<path d="M314 172V178M314 192V200" ${TR}/><path d="M314 192L306 180" stroke="#183047" stroke-width="2"/>` + tx(326, 190, 'KCC1', { fs: 10.5, w: 700 });
+    s += `<path d="M302 204H326M302 211H326" stroke="#183047" stroke-width="2.4"/><path d="M314 200V204M314 211V218" ${TR}/>` + tx(326, 212, 'C1 2,5 kvar', { fs: 10.5 });
+    // la centrale de mesure et l'automate
+    s += `<rect x="352" y="30" width="100" height="42" rx="4" fill="#fff8ef" stroke="${CONS}" stroke-width="1.5"/>` + tx(402, 48, 'centrale A2000', { a: 'middle', fs: 11, w: 700, c: CONS }) + tx(402, 64, 'P, Q, cos φ, relais', { a: 'middle', fs: 10, c: CONS });
+    s += `<rect x="352" y="96" width="100" height="42" rx="4" fill="#f4f8fa" stroke="#183047" stroke-width="1.5"/>` + tx(402, 114, 'automate Twido', { a: 'middle', fs: 11, w: 700 }) + tx(402, 130, 'délestage, secours', { a: 'middle', fs: 10 });
+    s += `<path d="M402 72V96" stroke="#183047" stroke-width="1.4" stroke-dasharray="4 3"/>` + tx(408, 88, 'Modbus', { fs: 10, c: '#42596b' });
+    s += `<path d="M183 113H200Q220 113 236 100L352 52" stroke="${CONS}" stroke-width="1.2" stroke-dasharray="4 3" fill="none"/>`;
+    s += tx(10, 240, 'Départs télécommandés par l’automate (délestage) ; sélecteurs J−1, H−30, EJP.', { fs: 10.5, c: '#42596b' });
+    return svg(460, 252, s, 'Schéma unifilaire simplifié du TGBT communicant');
+  }
+
+  function synSlider() {
+    let s = '';
+    // vue de côté : le rail, le chariot et le smartphone, la courroie, le moteur, le pied et ses capteurs
+    s += `<rect x="30" y="66" width="300" height="12" rx="3" fill="#dfe7ee" stroke="#183047" stroke-width="1.8"/>`;
+    s += `<path d="M44 84H316" stroke="#183047" stroke-width="1.4"/><circle cx="44" cy="84" r="6" fill="#fff" stroke="#183047" stroke-width="1.6"/><circle cx="316" cy="84" r="6" fill="#fff" stroke="#183047" stroke-width="1.6"/>`;
+    s += `<rect x="318" y="76" width="34" height="18" rx="4" fill="#fff" stroke="#183047" stroke-width="1.8"/>` + tx(335, 89, 'M', { a: 'middle', w: 700, fs: 12 }) + tx(335, 110, 'moteur, réducteur 70', { a: 'middle', fs: 10.5 }) + tx(335, 124, 'codeur, poulie 21 mm', { a: 'middle', fs: 10.5 });
+    s += `<rect x="96" y="46" width="44" height="20" rx="3" fill="#eef6ff" stroke="#183047" stroke-width="1.8"/><rect x="106" y="22" width="24" height="24" rx="3" fill="#3b4a57"/>` + tx(118, 16, 'smartphone', { a: 'middle', fs: 10.5 });
+    s += FL(150, 56, 196, 56) + tx(200, 60, 'chariot, s', { fs: 11 }) + tx(44, 102, 'renvoi', { a: 'middle', fs: 10.5, c: '#42596b' });
+    // le pied : une branche vers l'avant (rouge, A), deux vers l'arrière (bleu et jaune, B et C, l'une derrière l'autre)
+    s += `<path d="M180 78V120M180 120L118 196M180 120L240 196" ${TR}/><path d="M180 120L232 192" stroke="#8aa0b0" stroke-width="2"/>`;
+    s += `<rect x="108" y="196" width="20" height="10" rx="2" fill="#c9483b"/><rect x="230" y="196" width="20" height="10" rx="2" fill="#1f6fb2"/><rect x="222" y="192" width="20" height="10" rx="2" fill="#c99a00" opacity=".55"/>`;
+    s += tx(118, 222, 'pied rouge (A)', { a: 'middle', fs: 11, c: '#a8362b', w: 700 }) + tx(240, 222, 'bleu et jaune (B, C)', { a: 'middle', fs: 11, c: '#1f5d94', w: 700 });
+    s += `<path d="M118 236H240" stroke="#42596b" stroke-width="1.2"/><path d="M118 231V241M240 231V241" stroke="#42596b" stroke-width="1.2"/>` + tx(179, 252, 'a', { a: 'middle', fs: 12, w: 700, c: '#42596b' });
+    s += `<path d="M20 206H300" stroke="#183047" stroke-width="1.5"/>` + tx(304, 210, 'plateau', { fs: 10.5, c: '#42596b' });
+    s += `<path d="M180 30V54" stroke="${CONS}" stroke-width="1.4" stroke-dasharray="4 3"/>` + tx(186, 40, 'fil de sécurité', { fs: 10.5, c: CONS });
+    // vue de dessus du trépied : le rail au-dessus du pied rouge (θ = 0)
+    s += tx(408, 150, 'vue de dessus', { a: 'middle', fs: 10.5, c: '#42596b' });
+    s += `<path d="M408 168L372 230H444Z" fill="none" stroke="#9fb3c2" stroke-width="1.4" stroke-dasharray="4 3"/><circle cx="408" cy="168" r="6" fill="#c9483b"/><circle cx="372" cy="230" r="6" fill="#1f6fb2"/><circle cx="444" cy="230" r="6" fill="#c99a00"/>`;
+    s += `<path d="M408 160V246" stroke="#183047" stroke-width="3"/>` + tx(414, 252, 'rail', { fs: 10.5 });
+    return svg(460, 262, s, 'Schéma simplifié du Créa-Slider sur son pied, vue de côté et vue de dessus');
   }
 
   /* ---------- les bancs, d'après leurs dossiers techniques ---------- */
@@ -646,6 +976,127 @@
       },
       inc: [{ k: 'tn', l: 'Chronomètre', q: 'tn', t: 'per', c: 'tn' }, { k: 'L', l: 'Mesure de la longueur du pendule', q: 'L', t: 'per', c: 'L' }, { k: 'A', l: 'Capteur de balan ou règle', q: 'A', t: 'arret', c: 'A' }, { k: 'v', l: 'Mesure de la vitesse du chariot', q: 'v', t: 'arret', c: 'v' }],
       calc: calcPortique, schema: synPortique,
+    },
+    tt02: {
+      titre: 'Voiture TT-02 sur son banc à rouleaux : démarrage, couple aux roues, régulation', eye: 'voiture Tamiya TT-02 et son banc de mesure (Créa)', duree: 150,
+      court: 'démarrage face au modèle du moteur à courant continu, couple et puissance aux roues, rendement, régulation de vitesse sous freinage',
+      dossier: `<p>La voiture radiocommandée Tamiya <b>TT-02</b> (échelle 1/10, quatre roues motrices) est équipée pour la mesure et posée sur un <b>banc à rouleaux</b> muni d’un frein. Propulsion : moteur à courant continu à aimants permanents <b>MABUCHI 540SH-7520</b> (dossier : 23 400 tr/min et 2,4 A à vide, couple de démarrage 196 mN·m, courant de démarrage 70 A ; résistance mesurée 0,19 Ω, coefficient k mesuré 0,004 N·m/A), alimenté par une batterie de 7,2 V à travers un variateur commandé en MLI. Transmission : <b>pignon moteur de 19 dents</b> (16 à 25 possibles), <b>roue réceptrice de 70 dents</b> sur l’arbre intermédiaire, <b>pignons coniques de 15 dents</b> et <b>couronnes de différentiel de 39 dents</b> (trains avant et arrière), roues de <b>32,5 mm</b> de rayon. Le dossier donne aussi les moments d’inertie : rotor 2 512, arbre intermédiaire 1 350, différentiel 1 393, axe d’accouplement 12, roue complète 40 978 (× 10⁻⁹ kg·m²).</p>
+        <p>Une <b>carte Arduino</b> mesure la vitesse (<b>codeur incrémental optique</b> sur l’arbre de transmission), la force du frein du banc (capteur de force et son amplificateur), le courant de la batterie (circuit <b>ACS712, calibre 5 A</b>), sa tension (pont diviseur 27/74) et, en option, l’accélération (axes X et Y) ; elle commande le variateur et le servomoteur du frein du banc en MLI.</p>
+        <p>L’application web s’ouvre dans un navigateur, en Wi-Fi, sur le point d’accès de la voiture (identifiant et mot de passe dans la notice du constructeur) : pilotage avec télémétrie ; toutes mesures, avec un curseur de freinage qui simule une pente ; flux d’énergie (puissances et énergies de la batterie et aux roues) ; <b>banc de puissance</b> (démarrage automatique à pleine puissance, puis couple aux roues, puissance aux roues et rendement en fonction de la vitesse) ; régulateur ou limiteur de vitesse ; profil de vitesse (fichier « temps ; vitesse ») ; <b>asservissement</b> (boucle ouverte, correcteurs proportionnel et intégral, freinage). Chaque mesure s’enregistre en fichier CSV à points-virgules, qui s’importe directement dans les tableaux de cette fiche.</p>`,
+      probs: ['La voiture démarre-t-elle comme le prévoit le modèle du moteur à courant continu, et quelle inertie le banc ajoute-t-il ?', 'Quels couple et puissance aux roues, et quel rendement, en fonction de la vitesse ? Le moteur suit-il sa droite couple-vitesse ?', 'Le régulateur de vitesse tient-il la consigne quand on freine : boucle ouverte, correcteur P ou PI ?'],
+      secu: ['La voiture reste sur le banc, roues motrices sur les rouleaux, bien maintenue ; rien ne pend près des roues et de la transmission (cheveux attachés, aucun câble libre) : les roues dépassent 20 km/h.',
+        'Le mode banc de puissance démarre seul, à pleine puissance : mains hors des roues et voiture vérifiée sur le banc avant de lancer.',
+        'Le moteur et le variateur chauffent aux démarrages répétés (70 A au démarrage d’après le dossier) : laisser refroidir entre deux essais, ne jamais bloquer les roues moteur alimenté ; arrêter à la moindre odeur ou au moindre bruit anormal.',
+        'Freinage : monter le curseur progressivement, sans caler le moteur.',
+        'Batterie : la charger avec son chargeur et le réglage de son type, sous surveillance ; une batterie gonflée, chaude ou abîmée ne se branche pas ; la débrancher après les essais.',
+        'Réseau : se connecter au point d’accès de la voiture sans modifier sa configuration (adresse fixe, réglages Ethernet).'],
+      jury: ['Rapport de transmission : i = (70/Zp)·(39/15), soit 9,579 pour 19 dents. Le tableau du dossier écrit 9,779 pour 19 dents : coquille (les autres lignes suivent la formule). Le jury aime le candidat qui la repère.',
+        'Le moteur, d’après le dossier : ω0 = 23 400 tr/min ≈ 2 450 rad/s à vide ; droite couple-vitesse ω = ω0·(1 − C/Cd) ; courant I = Io + (Id − Io)·C/Cd. Le dossier écrit U = 17,2 V alors que la batterie fait 7,2 V : compare k = Cd/Id ≈ 2,8 mN·m/A au k mesuré du dossier (4 mN·m/A) et à celui que tu identifies.',
+        'Aux roues : C roues = η·i·C moteur, ω roue = ω moteur/i, v = R·ω roue. Vitesse à vide ω0·R/i (environ 8,3 m/s pour 19 dents), couple de démarrage η·i·Cd, puissance maximale η·Cd·ω0/4 à la moitié de la vitesse à vide.',
+        'Le démarrage : ω(t) = ω0·(1 − Cr/Cd)·(1 − e^(−t/τ)), τ = Jéq·ω0/Cd, Jéq ramenée à l’arbre moteur (rotor, arbre intermédiaire divisé par (70/19)², différentiels, axes et roues divisés par i²). Sur la piste, la masse ajoute m·R²/i² ; sur le banc, la voiture ne se déplace pas : ce sont les rouleaux qu’elle accélère. Le τ mesuré (63 % de la vitesse finale) donne l’inertie réellement accélérée.',
+        'Le banc de puissance : retrouver dans le dossier comment il obtient le couple aux roues (capteur de force du frein, ou inertie et accélération). Le jury pose la question.',
+        'Le courant de la batterie passe par un ACS712 de calibre 5 A : au démarrage à pleine puissance, regarder si la courbe est écrêtée avant de calculer un rendement.',
+        'Régulation : en boucle ouverte, la vitesse chute au freinage (E = U − R·I baisse quand le courant monte) ; avec un correcteur P, il reste une erreur statique, plus petite quand le gain augmente, au risque d’oscillations ; l’action intégrale l’annule. Noter pour chaque essai les gains et la position du curseur de freinage.',
+        'Trois essais identiques pour la dispersion : trois démarrages à pleine puissance au même état de charge (la tension de la batterie baisse au fil des essais), trois essais de régulation au même freinage.',
+        'Causes d’écart : tension de la batterie sous charge, limitation du variateur, frottements et rendement de la transmission, glissement des pneus sur les rouleaux, inertie des rouleaux, échantillonnage et lissage des courbes (case « lisser » de l’application), calibre du capteur de courant.'],
+      plaque: [{ k: 'ref', l: 'Moteur : référence (dossier : MABUCHI 540SH-7520)', txt: 1 }, { k: 'No', l: 'Moteur : fréquence de rotation à vide (dossier : 23 400)', u: 'tr/min' }, { k: 'Cd', l: 'Moteur : couple de démarrage (dossier : 196)', u: 'mN·m' }, { k: 'Id', l: 'Moteur : courant de démarrage (dossier : 70)', u: 'A' }, { k: 'Io', l: 'Moteur : courant à vide (dossier : 2,4)', u: 'A' }, { k: 'bat', l: 'Batterie : tension nominale, type et capacité', txt: 1 }, { k: 'var', l: 'Variateur : modèle et réglages (frein, limitation)', txt: 1 }],
+      params: [{ k: 'uv', l: 'Les vitesses sont relevées en', sel: ['m/s', 'km/h'], def: 'm/s', redessine: 1 }, { k: 'Zp', l: 'Pignon moteur monté : nombre de dents (16 à 25)', u: 'dents', def: '19' }, { k: 'eta', l: 'Rendement de la transmission pris pour le modèle', u: '%', def: '80' }, { k: 'm', l: 'Masse de la voiture pesée (modèle sur la piste)', u: 'kg', def: '1,5' }, { k: 'Jb', l: 'Inertie des rouleaux du banc ramenée à l’axe des roues (vide : modèle de la voiture sur la piste)', u: 'kg·m²' }],
+      tables: {
+        acc: { carte: 'mes', titre: 'A. Le démarrage à pleine puissance', aide: 'Mode « banc de puissance » (ou « toutes mesures », curseur à fond, sans freinage) : des points (t, v) de la courbe, du départ jusqu’au palier, serrés au début ; ou importe le fichier CSV de la mesure.', lignes: 10,
+          cols: [{ k: 't', l: 't', u: 's' }, { k: 'v', l: 'v', u: '@uv' }],
+          out: [{ k: 'vm', l: 'v modèle', u: '@uv', d: 2 }, { k: 'w', l: 'ω moteur', u: 'rad/s', d: 0 }] },
+        puis: { carte: 'mes', titre: 'B. Couple et puissance aux roues', aide: 'Mode « banc de puissance », sur les courbes en fonction de la vitesse : pour quelques vitesses, le couple aux roues, la puissance aux roues et, si tu l’as, la puissance de la batterie (U × I).', lignes: 6,
+          cols: [{ k: 'v', l: 'v', u: '@uv' }, { k: 'C', l: 'C roues', u: 'N·m' }, { k: 'P', l: 'P roues', u: 'W' }, { k: 'Pb', l: 'P batterie', u: 'W' }],
+          out: [{ k: 'Pc', l: 'C·ω roue', u: 'W', d: 1 }, { k: 'Cm', l: 'C modèle', u: 'N·m', d: 3 }, { k: 'eta', l: 'η', u: '%', d: 0 }] },
+        reg: { carte: 'mes', titre: 'C. La régulation sous freinage', aide: 'Mode « asservissement » : un essai par ligne ; la commande, les gains réglés, la position du curseur de freinage, la consigne et la vitesse une fois établie.', lignes: 5,
+          cols: [{ k: 'mode', l: 'Commande', sel: ['boucle ouverte', 'P', 'PI'] }, { k: 'K', l: 'Gains', txt: 1 }, { k: 'fr', l: 'Freinage', txt: 1 }, { k: 'vc', l: 'Consigne', u: '@uv' }, { k: 'v', l: 'v établie', u: '@uv' }],
+          out: [{ k: 'es', l: 'erreur', u: '%', d: 1 }] },
+        repA: { carte: 'rep', titre: 'Trois démarrages identiques', aide: 'Même batterie, même état de charge, sans freinage : pour chacun, la durée pour atteindre 63 % de la vitesse finale, la vitesse finale et la puissance maximale aux roues.', lignes: 3, fixe: 1,
+          cols: [{ k: 'tau', l: 'τ (63 %)', u: 's' }, { k: 'vf', l: 'v finale', u: '@uv' }, { k: 'Pm', l: 'P max roues', u: 'W' }], out: [] },
+        repR: { carte: 'rep', titre: 'Trois essais de régulation identiques', aide: 'Même commande, mêmes gains, même consigne, même freinage.', lignes: 3, fixe: 1, cols: 'reg' },
+      },
+      inc: [{ k: 'v', l: 'Codeur optique (vitesse)', q: 'v', t: 'acc', c: 'v' }, { k: 'C', l: 'Capteur de force du banc (couple aux roues)', q: 'C roues', t: 'puis', c: 'C' }, { k: 'Pb', l: 'Capteurs de la batterie (U et I)', q: 'P batterie', t: 'puis', c: 'Pb' }],
+      calc: calcTT02, schema: synTT02,
+    },
+    tgbt: {
+      titre: 'TGBT communicant : compensation, sélectivité différentielle, secours et délestage', eye: 'TGBT pédagogique communicant (BEMA, automate Twido, centrale A2000)', duree: 150,
+      court: 'facteur de puissance avant et après le condensateur, réglage du gradin, différentiels et sélectivité, reprise sur la source secours',
+      dossier: `<p>Le <b>TGBT pédagogique communicant</b> BEMA (« TGBT COMM. TWIDO ») reproduit un tableau général basse tension 230/400 V, en schéma TT, conçu pour étudier <b>la sélectivité, le secours et le délestage</b>. En tête, l’interrupteur général Q0 (Interpact, poignée rouge) et la coupure d’urgence. Deux arrivées, <b>normal</b> et <b>secours</b> (la source secours se branche sur une prise 16 A) : chacune passe par un disjoncteur Compact <b>NS100N</b> (QN, QR : déclencheur TM100D, bloc <b>Vigi MH réglable de 30 mA à 10 A et de 0 à 310 ms</b>, déclencheur à minimum de tension) puis par un interrupteur Compact NS100NA motorisé (QN2, QR2) ; ces deux interrupteurs, verrouillés mécaniquement et électriquement, forment l’<b>inverseur de sources</b>. Un relais RM4 contrôle la présence et l’ordre des phases.</p>
+        <p>Quatre départs (borniers X1 à X4), chacun avec une <b>télécommande</b> pour le délestage et un contact renvoyé à l’automate : Q1, disjoncteur C60N 63 A courbe C avec Vigi 300 mA ; Q2 et Q3, C60N 32 A avec Vigi 1 A sélectif ; Q4, C60N 32 A avec Vigi 300 mA. Compensation : un <b>condensateur de 2,5 kvar sous 400 V</b> (C1), son contacteur KCC1 et sa protection QCC1.</p>
+        <p>Mesure et communication : la <b>centrale A2000</b> (GMC), avec trois transformateurs de courant de rapport 100/5 A, mesure P, Q, S et cos φ ; son relais commande le gradin de condensateurs selon la puissance réactive (seuil, hystérésis, temporisation), ses sorties analogiques donnent P et Q. Elle dialogue avec l’<b>automate Twido</b> (40 entrées et sorties, Ethernet) en <b>Modbus sur RS485</b>, ou avec un PC (logiciel Metrawin) par sa liaison série, un seul des deux à la fois. Commande : sélecteurs <b>J−1, H−30 et EJP</b> (préavis et période de pointe du tarif à effacement), voyants, colonne lumineuse, balise ; un onduleur secourt la commande. Supervision possible sur PC (PcVue).</p>`,
+      probs: ['De combien le condensateur de 2,5 kvar relève-t-il le facteur de puissance, et le gradin est-il bien réglé ?', 'La sélectivité différentielle entre les arrivées (Vigi MH réglables) et les départs (Vigi C60) est-elle assurée ?', 'Quand la source normale disparaît, en combien de temps la source secours reprend-elle, et quels départs sont délestés ?'],
+      secu: ['Mesures dans le tableau sous tension : habilitation adaptée (mesurage), appareils et cordons de catégorie III au moins, pointes de touche protégées, gants isolants et écran facial ; jamais seul.',
+        'Brancher pinces, tores et cordons hors tension : séparation par l’interrupteur général, condamnation, identification, vérification d’absence de tension (VAT). Le dossier signale des conducteurs qui restent sous tension après sectionnement (manchonnage orange), et l’onduleur garde la commande sous tension.',
+        'Condensateur : après coupure, il reste chargé ; attendre sa décharge et vérifier l’absence de tension à ses bornes avant d’y toucher.',
+        'Essais des différentiels au contrôleur d’installation (défaut entre phase et PE en aval, ou méthode amont-aval), jamais par un défaut improvisé ; prévenir avant chaque essai, qui coupe des départs.',
+        'Inverseur de sources : ne jamais forcer le verrouillage des interrupteurs QN2 et QR2 ; la prise de l’arrivée secours ne se branche que sur la source prévue.',
+        'Après un arrêt d’urgence ou un déclenchement, chercher la cause avant de réarmer.'],
+      jury: ['Compensation : Qc = Qn·(U/400)² (un condensateur fournit une puissance réactive proportionnelle au carré de la tension) ; avec lui, Q’ = Q − Qc, P ne change pas, tan φ’ = Q’/P, et le courant de ligne baisse : I = √(P² + Q’²)/(√3·U). Mesurer P, Q, cos φ et le courant, sans puis avec le condensateur, pour plusieurs charges.',
+        'Le gradin : le relais de l’A2000 l’enclenche au-dessus d’un seuil de puissance réactive et le déclenche sous le seuil moins l’hystérésis, après une temporisation. Si l’hystérésis ne dépasse pas la puissance du gradin, il bat (enclenchement, déclenchement, enclenchement…) : un point que le jury aime voir analysé.',
+        'Le dossier impose la puissance réactive « signée » dans l’A2000, et non le mode DIN où Q = √(S² − P²) reste toujours positive : sans signe, l’automate ne sait pas si l’installation est inductive ou capacitive.',
+        'Sélectivité différentielle : l’appareil amont a une sensibilité au moins double de celle de l’aval et un temps de non-fonctionnement plus long que le temps de coupure de l’aval. D’où les Vigi MH réglables des arrivées (sensibilité et retard) au-dessus des Vigi C60 des départs.',
+        'Les différentiels : un différentiel déclenche entre IΔn/2 et IΔn ; un modèle instantané coupe en moins de 300 ms à IΔn. Relever le courant de déclenchement et le temps de coupure au contrôleur d’installation, et les réglages des Vigi MH.',
+        'Secours : à la perte de la source normale (relais RM4), l’automate ouvre l’arrivée normale, ferme l’arrivée secours après verrouillage et déleste les départs non prioritaires pour tenir dans la puissance de la source secours. Chronométrer la coupure (enregistreur ou oscilloscope différentiel sur une tension de départ, ou horodatage de la supervision).',
+        'Délestage tarifaire : les sélecteurs J−1, H−30 et EJP simulent le préavis et la période de pointe ; noter quels départs l’automate coupe à chaque étape et la puissance appelée avant et après.',
+        'Communication : Modbus sur RS485 entre la centrale et l’automate (9600 bauds, parité paire d’après le dossier) ; relier le PC à la centrale coupe le dialogue avec l’automate.',
+        'Trois mesures identiques pour la dispersion (même charge, avec et sans le condensateur ; trois essais du même différentiel).',
+        'Causes d’écart : tension différente de 400 V (Qc varie comme U²), tolérance du condensateur, harmoniques (le condensateur absorbe plus de courant, risque de résonance), classe des transformateurs de courant et de la centrale, charge qui varie pendant la mesure, cycle de l’automate et temporisations.'],
+      plaque: [{ k: 'C1', l: 'Condensateur C1 : puissance et tension assignées (dossier : 2,5 kvar, 400 V)', txt: 1 }, { k: 'TC', l: 'Transformateurs de courant de la centrale : rapport et classe (dossier : 100/5 A)', txt: 1 }, { k: 'cl', l: 'Centrale A2000 : précision annoncée pour P et Q (notice)', txt: 1 }, { k: 'seuil', l: 'Gradin : seuil d’enclenchement réglé (menu PROG de l’A2000)', u: 'kvar' }, { k: 'hys', l: 'Gradin : hystérésis réglée', u: 'kvar' }, { k: 'tempo', l: 'Gradin : temporisation réglée', u: 's' }, { k: 'vigi', l: 'Vigi MH des arrivées : sensibilité et retard réglés', txt: 1 }, { k: 'Ssec', l: 'Source secours : puissance disponible', u: 'kVA' }],
+      params: [{ k: 'U', l: 'Tension composée mesurée pendant les essais', u: 'V', def: '400' }, { k: 'Qn', l: 'Puissance du condensateur sous 400 V (plaque)', u: 'kvar', def: '2,5' }, { k: 'cible', l: 'Objectif de facteur de puissance (0,93 correspond à tan φ = 0,4, le seuil usuel de facturation de l’énergie réactive)', u: '', def: '0,93' }],
+      tables: {
+        comp: { carte: 'mes', titre: 'A. Sans puis avec le condensateur', aide: 'Une charge par ligne : P, Q et le courant de ligne sans le condensateur, puis Q et le courant avec (forcer le contacteur KCC1, ou régler le seuil du gradin).', lignes: 4,
+          cols: [{ k: 'ch', l: 'Charge', txt: 1 }, { k: 'P', l: 'P', u: 'kW' }, { k: 'Q', l: 'Q sans', u: 'kvar', neg: 1 }, { k: 'I', l: 'I sans', u: 'A' }, { k: 'Q2', l: 'Q avec', u: 'kvar', neg: 1 }, { k: 'I2', l: 'I avec', u: 'A' }],
+          out: [{ k: 'fp', l: 'cos φ sans', u: '', d: 3 }, { k: 'fp2', l: 'cos φ avec', u: '', d: 3 }, { k: 'Qc', l: 'Q compensée', u: 'kvar', d: 2 }, { k: 'e', l: 'écart à Qc', u: '%', d: 1 }] },
+        grad: { carte: 'mes', titre: 'B. Le gradin automatique', aide: 'Fais varier la charge lentement : à chaque basculement du contacteur KCC1, la puissance réactive lue juste avant, et le délai depuis le passage du seuil.', lignes: 4,
+          cols: [{ k: 'ev', l: 'Basculement', sel: ['enclenchement', 'déclenchement'] }, { k: 'Q', l: 'Q juste avant', u: 'kvar', neg: 1 }, { k: 't', l: 'Délai', u: 's' }],
+          out: [{ k: 'ec', l: 'écart au réglage', u: 'kvar', d: 2 }] },
+        dif: { carte: 'mes', titre: 'C. Les différentiels', aide: 'Au contrôleur d’installation, un dispositif par ligne : sa place (amont : Vigi MH d’une arrivée ; aval : Vigi C60 d’un départ), IΔn, le courant de déclenchement, le temps de coupure à IΔn et le retard réglé s’il en a un.', lignes: 5,
+          cols: [{ k: 'app', l: 'Dispositif', txt: 1 }, { k: 'pos', l: 'Place', sel: ['aval', 'amont'] }, { k: 'In', l: 'IΔn', u: 'mA' }, { k: 'Id', l: 'I déclenchement', u: 'mA' }, { k: 't', l: 't à IΔn', u: 'ms' }, { k: 'ret', l: 'Retard réglé', u: 'ms' }],
+          out: [{ k: 'r', l: 'I / IΔn', u: '', d: 2 }, { k: 'ok', l: 'conforme', u: '' }] },
+        sec: { carte: 'mes', titre: 'D. Le passage sur la source secours', aide: 'Coupe la source normale : la durée de la coupure vue par les départs, la puissance avant et sur secours, et les départs délestés.', lignes: 3,
+          cols: [{ k: 'cas', l: 'Essai', txt: 1 }, { k: 't', l: 'Coupure', u: 's' }, { k: 'Pa', l: 'P avant', u: 'kW' }, { k: 'Ps', l: 'P sur secours', u: 'kW' }, { k: 'del', l: 'Délestés', txt: 1 }],
+          out: [{ k: 'r', l: 'P gardée', u: '%', d: 0 }] },
+        repQ: { carte: 'rep', titre: 'Trois fois la même compensation', aide: 'Même charge : trois relevés sans puis avec le condensateur.', lignes: 3, fixe: 1, cols: 'comp' },
+        repT: { carte: 'rep', titre: 'Trois essais du même différentiel', aide: 'Même dispositif, même méthode, même courant d’essai.', lignes: 3, fixe: 1, cols: 'dif' },
+      },
+      inc: [{ k: 'Q', l: 'Centrale A2000 ou analyseur (Q)', q: 'Q', t: 'comp', c: 'Q' }, { k: 'P', l: 'Centrale A2000 ou analyseur (P)', q: 'P', t: 'comp', c: 'P' }, { k: 'Id', l: 'Contrôleur d’installation (courant)', q: 'I déclenchement', t: 'dif', c: 'Id' }, { k: 'tt', l: 'Contrôleur d’installation (temps)', q: 't à IΔn', t: 'dif', c: 't' }],
+      calc: calcTGBT, schema: synTGBT,
+    },
+    slider: {
+      titre: 'Créa-Slider : l’équilibre du travelling sur son pied, la vitesse et le courant du moteur', eye: 'rail de travelling motorisé Créa-Slider (Créa)', duree: 150,
+      court: 'efforts sur les trois pieds face au modèle statique, basculement selon l’orientation du rail, vitesse du chariot et courant du moteur sur un rail incliné',
+      dossier: `<p>Le <b>Créa-Slider</b> est un rail de travelling motorisé pour la prise de vue (un smartphone se clipse sur le chariot) : le chariot se déplace le long du rail à la vitesse réglée, entre deux positions choisies. Le rail est vissé sur un <b>pied à trois branches</b> (rouge, bleu et jaune) posé sur un plateau ; un <b>capteur d’effort dans chaque pied</b> mesure l’action du plateau.</p>
+        <p>Chaîne de translation : <b>motoréducteur Pololu</b> à courant continu de 12 V (réducteur de rapport <b>70</b> ; en sortie, 100 tr/min et 16 kg·cm à 12 V ; 300 mA à vide, 5 A bloqué), <b>poulie de diamètre primitif 21 mm</b>, courroie et poulie de renvoi. Données du moteur pour le modèle : constante k = 0,01 N·m/A, résistance d’induit 4,7 Ω, moment d’inertie du rotor 1,1 × 10⁻⁶ kg·m². <b>Codeur incrémental</b> à effet Hall sur l’arbre moteur (disque magnétique de 16 pôles, deux capteurs en quadrature : 64 points par tour du moteur, et le sens). Commande en MLI par une carte à microcontrôleur.</p>
+        <p>Masses données dans l’activité du constructeur : pied 1,33 kg, rail motorisé 1,19 kg, chariot 0,81 kg. Logiciel dans un navigateur, en Wi-Fi sur le point d’accès du boîtier : prise d’origine, position de repos, travelling (consigne de vitesse entre deux positions L1 et L2, enregistrement des mesures), équilibre (efforts sur les pieds, mesures en manuel). Un modèle Matlab Simulink accompagne le système.</p>`,
+      probs: ['Pour respecter l’exigence de stabilité, le rail doit-il avoir une orientation particulière sur son pied ?', 'Le chariot tient-il la consigne de vitesse du travelling, rail à plat et rail incliné ?', 'Quel courant le moteur demande-t-il quand le rail s’incline, et que vaut le rendement de la transmission ?'],
+      secu: ['Le slider reste retenu par son fil de sécurité, un peu lâche pour ne pas fausser les efforts mesurés (consigne du dossier) ; plateau stable, rien sous les pieds.',
+        'Avant la prise d’origine, le bouton de blocage central du rail est desserré ; mains et câbles hors de la course du chariot et de la courroie pendant un travelling.',
+        'Rail incliné : caler le pied, garder une main près du système, positions L1 et L2 dans la course, pour que le chariot ne dévale pas.',
+        'Le smartphone clipsé sur le chariot ajoute sa masse : la noter, elle compte dans le basculement.',
+        'Couper l’alimentation du boîtier avant de toucher la courroie ou le moteur.'],
+      jury: ['Statique : le système {rail, pied, chariot} subit son poids et trois actions verticales du plateau (contacts ponctuels, liaisons sphère-plan) : Y_A + Y_B + Y_C = M·g quelle que soit la position du chariot. C’est la première vérification, et un test des capteurs (tare, masse de 1 kg posée).',
+        'Moments autour de l’axe des pieds bleu et jaune, rail au-dessus du pied rouge : Y_A·a = Σ m_i·g·x_i, a étant la distance du pied rouge à cet axe. Quand le chariot avance de Δs, Y_A varie de M_C·g·cos θ·Δs/a (θ : angle entre le rail et l’axe du pied rouge) : une droite, dont la pente se compare au modèle.',
+        'Basculement : Y_A = 0. Le polygone de sustentation d’un trépied s’étend jusqu’au pied dans la direction d’un pied, mais seulement jusqu’au côté opposé dans l’autre sens, deux fois plus près du centre : un chariot en porte-à-faux au-dessus d’un pied est bien plus stable que dans la direction opposée. D’où l’orientation du rail.',
+        'Cinématique : v = ω moteur·(D/2)/70 avec D = 21 mm ; à vide sous 12 V, 100 tr/min en sortie donnent 0,11 m/s : une consigne de 0,1 m/s est presque la vitesse maximale, et en montée le moteur peut saturer.',
+        'Le codeur : 64 points par tour du moteur, 4 480 par tour de poulie ; un point vaut π·D/4 480 ≈ 0,015 mm de déplacement du chariot.',
+        'Le courant en montée : I = I0 + M_C·g·sin α·(D/2)/(70·η·k) ; la pente de I en fonction de sin α donne le rendement η du réducteur et de la courroie, avec le k du dossier.',
+        'Vérifier les données avant de s’en servir : les pages du dossier citent deux références de moteur (Pololu 2821 et 2825), et l’inductance donnée (10⁻⁶ H) paraît très faible pour ce moteur. Le jury apprécie le candidat qui le remarque.',
+        'Trois mesures identiques pour la dispersion : trois relevés des efforts à la même position du chariot, trois travellings à la même consigne.',
+        'Causes d’écart : fil de sécurité tendu, smartphone non compté, plateau non horizontal, dérive ou tare des capteurs d’effort, position réelle des centres de gravité, frottements variables le long du rail, tension de la courroie, tension d’alimentation et MLI.'],
+      plaque: [{ k: 'mot', l: 'Motoréducteur : référence, tension et rapport (dossier : Pololu, 12 V, 70)', txt: 1 }, { k: 'v0', l: 'Vitesse de sortie du réducteur à 12 V (dossier : 100)', u: 'tr/min' }, { k: 'kc', l: 'Constante de couple du moteur (dossier : 0,01)', u: 'N·m/A' }, { k: 'I0', l: 'Courant à vide (dossier : 0,3 sous 12 V)', u: 'A' }, { k: 'capt', l: 'Capteurs d’effort des pieds : étendue et précision (notice)', txt: 1 }, { k: 'tel', l: 'Smartphone ou caméra sur le chariot : masse', u: 'kg' }],
+      params: [{ k: 'M', l: 'Masse totale {rail, pied, chariot} pesée (dossier : 1,33 + 1,19 + 0,81 = 3,33)', u: 'kg', def: '3,33' }, { k: 'MC', l: 'Masse du chariot et de ce qu’il porte (dossier : 0,81 sans smartphone)', u: 'kg', def: '0,81' }, { k: 'a', l: 'a : distance du pied rouge à l’axe des pieds bleu et jaune', u: 'm' }, { k: 'th', l: 'θ : angle entre le rail et l’axe du pied rouge (0 : rail au-dessus du pied rouge)', u: '°', def: '0', neg: 1 }],
+      tables: {
+        eq: { carte: 'mes', titre: 'A. Les efforts sur les pieds', aide: 'Page « Équilibre », mesures en manuel : une position du chariot par ligne (lue dans le logiciel ou au mètre, depuis la prise d’origine), et l’effort de chaque pied.', lignes: 5,
+          cols: [{ k: 's', l: 'Position s', u: 'm' }, { k: 'YA', l: 'Y_A rouge', u: 'N', neg: 1 }, { k: 'YB', l: 'Y_B bleu', u: 'N', neg: 1 }, { k: 'YC', l: 'Y_C jaune', u: 'N', neg: 1 }],
+          out: [{ k: 'S', l: 'somme', u: 'N', d: 1 }, { k: 'eS', l: 'écart à M·g', u: '%', d: 1 }] },
+        trav: { carte: 'mes', titre: 'B. Le travelling', aide: 'Page « Travelling » : un essai par ligne ; l’inclinaison du rail (0 à plat), la consigne, la vitesse une fois établie et le courant du moteur sur la même partie de la course.', lignes: 5,
+          cols: [{ k: 'al', l: 'Inclinaison α', u: '°', neg: 1 }, { k: 'vc', l: 'Consigne', u: 'm/s' }, { k: 'v', l: 'v établie', u: 'm/s' }, { k: 'I', l: 'I moteur', u: 'A' }],
+          out: [{ k: 'ev', l: 'écart de vitesse', u: '%', d: 1 }, { k: 'wm', l: 'ω moteur', u: 'rad/s', d: 0 }] },
+        repE: { carte: 'rep', titre: 'Trois relevés identiques des efforts', aide: 'Même position du chariot : refais la mesure manuelle trois fois.', lignes: 3, fixe: 1, cols: 'eq' },
+        repV: { carte: 'rep', titre: 'Trois travellings identiques', aide: 'Même inclinaison, même consigne, mêmes positions L1 et L2.', lignes: 3, fixe: 1, cols: 'trav' },
+      },
+      inc: [{ k: 'Y', l: 'Capteurs d’effort des pieds', q: 'Y_A', t: 'eq', c: 'YA' }, { k: 'v', l: 'Codeur (vitesse du chariot)', q: 'v', t: 'trav', c: 'v' }, { k: 'I', l: 'Mesure du courant du moteur', q: 'I', t: 'trav', c: 'I' }],
+      calc: calcSlider, schema: synSlider,
     },
   };
 
@@ -790,7 +1241,8 @@
     const R = st.reel[id]; reparer(R, B);
     let tSave = 0, tCalc = 0, attente = '';
     const garder = (vite) => { R.maj = Date.now(); clearTimeout(tSave); if (vite) save(); else tSave = setTimeout(save, 500); };
-    const unite = (c) => (c.u === '@uq' ? R.pa.uq || 'L/min' : c.u || '');
+    // unité réglée par un paramètre de la fiche (« @uq » : graduation du débitmètre, « @uv » : unité des vitesses)
+    const unite = (c) => { if (!c.u || c.u[0] !== '@') return c.u || ''; const k = c.u.slice(1), P = (B.params || []).find((x) => x.k === k); return R.pa[k] || (P && P.def) || ''; };
     const probl = () => R.probT.trim() || B.probs[R.prob] || '';
     const sync = !!(window.AGREG_HOOK && AGREG_HOOK.synced && AGREG_HOOK.synced());
     const cartes = (c) => Object.keys(B.tables).filter((k) => B.tables[k].carte === c);
@@ -872,7 +1324,7 @@
     }
     function tableau(k) {
       const T = B.tables[k], cols = colsDe(B, T), outs = outsDe(B, T), L = R.tab[k];
-      return `<div id="rl-tab-${k}"><p class="rl-tt">${T.titre}</p><p class="muted rl-aide">${T.aide}</p><div class="rl-tw"><table class="rl-t"><thead><tr><th>#</th>${cols.map((c) => `<th>${c.l}${unite(c) ? `<br><small>${esc(unite(c))}</small>` : ''}</th>`).join('')}${outs.map((o) => `<th class="c">${o.l}${o.u ? `<br><small>${o.u}</small>` : ''}</th>`).join('')}</tr></thead>
+      return `<div id="rl-tab-${k}"><p class="rl-tt">${T.titre}</p><p class="muted rl-aide">${T.aide}</p><div class="rl-tw"><table class="rl-t"><thead><tr><th>#</th>${cols.map((c) => `<th>${c.l}${unite(c) ? `<br><small>${esc(unite(c))}</small>` : ''}</th>`).join('')}${outs.map((o) => `<th class="c">${o.l}${unite(o) ? `<br><small>${esc(unite(o))}</small>` : ''}</th>`).join('')}</tr></thead>
         <tbody>${L.map((row, i) => `<tr><td class="n">${i + 1}</td>${cols.map((c) => `<td>${cellule(k, i, c, row[c.k])}</td>`).join('')}${outs.map((o) => `<td class="c" id="rl-${k}-${i}-${o.k}">—</td>`).join('')}</tr>`).join('')}</tbody></table></div>
         ${T.fixe ? `<p class="rl-disp" id="rl-disp-${k}"></p><div class="btns"><button type="button" class="b sec" data-imp="${k}">Coller ou importer des relevés</button></div>` : `<div class="btns"><button type="button" class="b sec" data-add="${k}">Ajouter une ligne</button>${L.length > 1 ? `<button type="button" class="b sec" data-del="${k}">Retirer la dernière ligne</button>` : ''}<button type="button" class="b sec" data-imp="${k}">Coller ou importer des relevés</button></div>`}<div id="rl-impo-${k}">${impHtml(k)}</div></div>`;
     }
@@ -1063,7 +1515,7 @@
         L.forEach(([row, i]) => {
           const o = (X.rows[k] || [])[i] || {};
           const e = cols.map((c) => { const v = String(row[c.k] == null ? (c.sel ? c.sel[0] : '') : row[c.k]).trim() || (c.sel ? c.sel[0] : ''); return `${c.l} = ${v || '—'}${v && unite(c) ? ' ' + unite(c) : ''}`; }).join(' ; ');
-          const s = outs.map((c) => `${c.l} = ${typeof o[c.k] === 'string' ? o[c.k] || '—' : fx(o[c.k], c.d)}${c.u && ok(o[c.k]) ? ' ' + c.u : ''}`).join(' ; ');
+          const s = outs.map((c) => `${c.l} = ${typeof o[c.k] === 'string' ? o[c.k] || '—' : fx(o[c.k], c.d)}${unite(c) && ok(o[c.k]) ? ' ' + unite(c) : ''}`).join(' ; ');
           out.push(`  ${i + 1}. ${e}${s ? ' → ' + s : ''}`);
         });
       }
@@ -1363,7 +1815,7 @@ Réponds en JSON : {"vu": "…", "problemes": [{"gravite": "erreur", "texte": "�
       for (const [k, T] of Object.entries(B.tables)) {
         const cols = colsDe(B, T), outs = outsDe(B, T);
         L.push([T.titre]);
-        L.push(['#', ...cols.map((c) => c.l + (unite(c) ? ` (${unite(c)})` : '')), ...outs.map((c) => c.l + (c.u ? ` (${c.u})` : ''))]);
+        L.push(['#', ...cols.map((c) => c.l + (unite(c) ? ` (${unite(c)})` : '')), ...outs.map((c) => c.l + (unite(c) ? ` (${unite(c)})` : ''))]);
         R.tab[k].forEach((row, i) => {
           if (!rempli(row, cols)) return;
           const o = (X.rows[k] || [])[i] || {};

@@ -7,6 +7,7 @@
    - #admission-reel-<banc> : la partie pratique sur les bancs réels du labo (agreg/admission-reel.js) ;
    - #admission-bilan, #admission-expose, #admission-cartes-* : l'oral et le suivi (agreg/admission-oral.js) ;
    - #admission-seance… : les documents de la séance, diapositives, fiche élève Word, grille (agreg/admission-seance.js) ;
+   - #admission-dossier : l'épreuve sur dossier, le dossier industriel (agreg/admission-dossier.js) ;
    - #admission-lecon-<épreuve> : s'entraîner à la leçon. Sujet tiré (support, niveau, séquence imposée,
      résultats des études), trame à remplir au chronomètre, compétences à cocher dans le référentiel du
      niveau, puis correction par l'IA avec la grille du jury, entretien en trois questions à l'écrit ou
@@ -195,6 +196,7 @@
       <p>Ce que disent les rapports de jury 2024 et 2025 (option ingénierie électrique) : le déroulé de chaque épreuve, ce qui est noté, ce qui coûte des points. Puis l’entraînement aux deux moitiés de la note : la partie pratique, sur des bancs simulés puis sur tes bancs du labo, et la leçon, la partie où le jury enlève le plus de points.</p>
       ${window.ADMISSION_ORAL ? ADMISSION_ORAL.carte() : ''}
       ${window.ADMISSION_SEANCE ? ADMISSION_SEANCE.carte() : ''}
+      ${window.ADMISSION_DOSSIER ? ADMISSION_DOSSIER.carte() : ''}
       ${Object.keys(EP).map((k) => `<div class="card" style="margin-top:16px"><h2 style="margin:0 0 6px">${esc(EP[k].nom)}</h2>${frise(EP[k].phases)}<p class="muted" style="margin-top:10px">${esc(EP[k].note)}</p><div class="btns"><a class="b" href="#admission-lecon-${k}">S’entraîner à la leçon de cette épreuve · ${EP[k].min} min</a></div></div>`).join('')}
       ${window.ADMISSION_TP ? ADMISSION_TP.carte() : ''}
       ${window.ADMISSION_REEL ? ADMISSION_REEL.carte() : ''}
@@ -404,6 +406,7 @@ Réponds en JSON : {"reponses": [{"note": 1.5, "commentaire": "…", "attendu": 
     if (m) return lecon(m[1]);
     if (window.ADMISSION_ORAL && ADMISSION_ORAL.gere(h)) { css(); return ADMISSION_ORAL.route(h); }
     if (window.ADMISSION_SEANCE && ADMISSION_SEANCE.gere(h)) { css(); return ADMISSION_SEANCE.route(h); }
+    if (window.ADMISSION_DOSSIER && ADMISSION_DOSSIER.gere(h)) { css(); return ADMISSION_DOSSIER.route(h); }
     accueil();
   }
   window.ADMISSION = { route, NIV, SUP, CHAMPS };

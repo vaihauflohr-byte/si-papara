@@ -122,7 +122,7 @@
       <div class="card" style="margin-top:16px"><h2 style="margin:0 0 8px">Ce qu’il ne faut pas oublier</h2><ul>
         <li>Les horaires des écrits sont donnés à l’heure de Paris : ta convocation indique l’heure et le lieu chez toi.</li>
         <li>Admissible à l’interne : l’épreuve sur dossier demande un dossier envoyé avant les épreuves d’admission ; la date limite et les pièces à déposer sont dans Cyclades (« Mes justificatifs »). Un dépôt hors délai élimine.</li>
-        <li>Admissible à l’externe : le dossier industriel se prépare dès maintenant (support, authenticité, actualité, exploitation pédagogique) ; l’exposé se répète dans <a href="#admission-expose-dos">« Répéter mon exposé »</a>.</li>
+        <li>Le dossier industriel (interne et externe) demande plusieurs mois et ne se prépare pas entre l’admissibilité et l’admission : support, authenticité, mesures, exploitation pédagogique, dans <a href="#admission-dossier">« Le dossier industriel »</a> ; l’exposé se répète dans <a href="#admission-expose-dos">« Répéter mon exposé »</a>.</li>
         <li>Les résultats sont publiés sur le site de résultats de Cyclades.</li></ul>
         <p class="muted" style="margin:8px 0 0">Source : <a href="${SOURCE}" target="_blank" rel="noopener">calendrier des concours du second degré, session 2027</a>.</p></div>`;
     app().onclick = null; app().oninput = null; app().onchange = null;

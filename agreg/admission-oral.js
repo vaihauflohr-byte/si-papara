@@ -441,7 +441,7 @@ Réponds en JSON : {"note": 1.5, "commentaire": "…", "mieux": "…"}`, { cache
       let s = null; try { s = await getSample(); } catch (e) { s = null; }
       if (!s) { out.innerHTML = '<p class="hint">L’analyse par l’IA n’est pas disponible pour l’instant.</p>'; return; }
       const prompt = `Tu es membre du jury de l'agrégation SII, option ingénierie électrique. Le candidat répète l'exposé de l'épreuve « ${P.nom} » (${P.note}). Voici, partie par partie, la durée qu'il a passée et la transcription automatique de ce qu'il a dit (la reconnaissance vocale peut déformer des mots ; ne le pénalise pas pour cela).
-
+${ep === 'dos' && window.ADMISSION_DOSSIER && ADMISSION_DOSSIER.resume() ? `\n## La fiche de son dossier (ce qu'il a écrit de son support)\n${ADMISSION_DOSSIER.resume().slice(0, 6000)}\nVérifie que l'exposé présente bien ce support, son authenticité, ses études et son exploitation, et signale ce qui manque.\n` : ''}
 ${P.parts.map(([t, m], k) => `## ${k + 1}. ${t} (conseillé : ${m} min ; réel : ${mmss(E.parts[k].s)})\n${String(E.parts[k].txt || '').trim().slice(0, 3500) || '(rien de transcrit)'}`).join('\n\n')}
 
 ## Consignes

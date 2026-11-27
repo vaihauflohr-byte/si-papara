@@ -6,19 +6,36 @@
    Prépa du mercredi (agreg/prepa.js) : documents de la préparation aux concours lus dans le compartiment privé
    « agreg-prepa » (supabase/agreg-prepa.sql).
    Sans ce fichier, la page fonctionne seule, avec la progression gardée dans le navigateur.
+   Sans réseau (labo) : panne() le signale, et agreg/hors-ligne.js ouvre la page avec la progression de ce
+   navigateur si le professeur s'y est déjà connecté ; l'IA et la prépa répondent « hors_ligne ».
    ===================================================================== */
 (function () {
   const C = window.SIP_CONFIG || {};
-  if (!C.supabaseUrl || !C.supabaseAnonKey || !window.supabase) { window.AGREG_HOOK = { ready: Promise.resolve(false) }; return; }
+  const ERR = (c) => ({ non_deployee: "La fonction de correction « agreg » n’est pas encore déployée dans Supabase.", cle_absente: "La clé de l’API Claude n’est pas configurée dans Supabase.", session_expired: "Session expirée : reconnecte-toi dans l’espace professeur.", hors_ligne: "Pas de réseau : l’IA reviendra avec la connexion. Le reste de l’entraînement marche hors ligne." }[c]);
+  if (!C.supabaseUrl || !C.supabaseAnonKey || !window.supabase) {
+    // site configuré mais bibliothèque Supabase pas chargée : pas de réseau
+    if (C.supabaseUrl && C.supabaseAnonKey) {
+      const ko = async () => { throw { code: "hors_ligne" }; };
+      const sample = async () => ko(); sample.json = ko; sample.limits = async () => ({ maxPromptBytes: 40000, images: { maxCount: 1 } });
+      window.AGREG_HOOK = { ready: Promise.resolve(false), panne: () => true, synced: () => false, sample, prepa: { programme: ko, textes: ko, liens: ko }, err: ERR };
+    } else window.AGREG_HOOK = { ready: Promise.resolve(false) };
+    return;
+  }
   const sb = window.supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, storageKey: "sip_prof_auth" } });
   const URL_IA = String(C.supabaseUrl).replace(/\/+$/, "") + "/functions/v1/agreg";
-  let uid = null, synchro = false, minuterie = null, dernier = null;
+  let uid = null, synchro = false, minuterie = null, dernier = null, panne = false;
+  const reseau = (e) => !!e && (e.name === "AuthRetryableFetchError" || e.status === 0 || /failed to fetch|networkerror|load failed|network request failed/i.test(String(e.message || "")));
 
-  const session = async () => { const { data } = await sb.auth.getSession(); return data && data.session ? data.session : null; };
+  const session = async () => { const { data, error } = await sb.auth.getSession(); if (error && reseau(error)) panne = true; return data && data.session ? data.session : null; };
   const ready = (async () => {
-    try { const s = await session(); if (!s) return false; const r = await sb.rpc("is_prof"); if (!r.data) return false; uid = s.user.id; return true; }
-    catch (e) { return false; }
+    try {
+      const s = await session(); if (!s) { if (navigator.onLine === false) panne = true; return false; }
+      const r = await sb.rpc("is_prof"); if (r.error && (!r.status || reseau(r.error))) { panne = true; return false; }
+      if (!r.data) return false; uid = s.user.id; return true;
+    }
+    catch (e) { panne = true; return false; }
   })();
+  const horsLigne = () => navigator.onLine === false || panne;
 
   // progression : une ligne par professeur ; si la table n'existe pas encore, on reste sur le navigateur
   async function pull() {
@@ -49,12 +66,12 @@
   }
   async function appel(mode, prompt, opts) {
     opts = opts || {};
-    const s = await session(); if (!s) throw { code: "session_expired" };
+    const s = await session(); if (!s) throw { code: horsLigne() ? "hors_ligne" : "session_expired" };
     const corps = { mode, prompt: String(prompt).slice(0, 40000), image: await image(opts.images && opts.images[0]) };
     let r;
     try {
       r = await fetch(URL_IA, { method: "POST", signal: opts.signal, headers: { "Content-Type": "application/json", apikey: C.supabaseAnonKey, Authorization: "Bearer " + s.access_token }, body: JSON.stringify(corps) });
-    } catch (e) { throw { code: e && e.name === "AbortError" ? "cancelled" : "upstream_error" }; }
+    } catch (e) { throw { code: e && e.name === "AbortError" ? "cancelled" : horsLigne() ? "hors_ligne" : "upstream_error" }; }
     let d = null; try { d = await r.json(); } catch (e) { /* réponse vide */ }
     if (!r.ok) throw { code: r.status === 401 ? "session_expired" : r.status === 404 ? "non_deployee" : r.status === 429 ? "rate_limited" : d && d.erreur === "CLE_ABSENTE" ? "cle_absente" : d && d.erreur === "JSON" ? "invalid_json" : "upstream_error" };
     return d;
@@ -84,8 +101,5 @@
     },
   };
 
-  window.AGREG_HOOK = {
-    ready, pull, push, sample, prepa, synced: () => synchro,
-    err: (c) => ({ non_deployee: "La fonction de correction « agreg » n’est pas encore déployée dans Supabase.", cle_absente: "La clé de l’API Claude n’est pas configurée dans Supabase.", session_expired: "Session expirée : reconnecte-toi dans l’espace professeur." }[c]),
-  };
+  window.AGREG_HOOK = { ready, pull, push, sample, prepa, synced: () => synchro, panne: () => panne, err: ERR };
 })();
