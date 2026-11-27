@@ -130,6 +130,19 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    triangle, l'absence de pointe sur variateur, 6 In moteur bloqué (le relais thermique déclenche). La ligne « Pince »
    du chronogramme trace le courant mesuré. Chaque moteur a une puissance utile (réglage « Puissance utile (kW) »,
    2,2 kW par défaut : In ≈ 4,8 A) ; les pompes de la station ont 0,75 et 0,37 kW, comme au labo.
+   **Ohmmètre et consignation** (bouton « Ohmmètre », pendant la simulation ; il range le voltmètre, comme le sélecteur
+   d'un multimètre) : deux pointes (rouge Ω, noire COM), l'afficheur bleu donne la résistance entre les deux bornes, avec
+   les contacts dans leur état du moment : 0,0 Ω pour un contact fermé, un fil, un fusible bon ; OL (l'infini) pour un
+   contact ouvert, un fil coupé, un fusible fondu ; 661 Ω pour une bobine de contacteur 230 V ~, 6,0 Ω entre deux bornes
+   d'un moteur de 2,2 kW. Mesurée en place, une bobine se lit en parallèle avec ce qui la touche (étoile-triangle : KM1
+   « fait » 3,0 Ω avec KM2 et le relais temporisé). **Seulement hors tension** : la carte « Consignation » du panneau
+   donne les trois étapes, **Séparer** (« Couper » : l'alimentation générale, réseau et repères, est coupée ; les fils
+   deviennent gris), **Condamner** (« Cadenas » : dessiné sur le réseau et le repère L) et **Vérifier l'absence de
+   tension** (VAT : au voltmètre, 0 V entre deux bornes où il y avait une tension avant la coupure). Une mesure à
+   l'ohmmètre sur un circuit sous tension (« ⚠ DANGER »), sans consigner, sans cadenas ou sans VAT, ou le courant remis
+   avec l'ohmmètre branché, est une **faute de sécurité** : message, compteur de la carte, et dans le dépannage,
+   des points en moins. Hors tension, « ✋ KM1 » enfonce un contacteur (ou un relais) à la main pour mesurer ses pôles et
+   ses contacts ; on les relâche en remettant le courant. « Tout remettre à zéro » remet aussi sous tension.
 10. **Lecture de schéma** (fenêtre « Défis », en bas) : des questions sur un schéma du cours (« Clique sur le contact
    d'auto-maintien », « Clique sur le contacteur qui fait le couplage étoile »…) ; on répond en cliquant sur l'appareil
    (n'importe quel morceau : pôles, bobine ou contact d'un contacteur). Juste du premier coup : 1 point, au deuxième :
@@ -141,19 +154,28 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    `[repère, type]`).
 11. **Dépannage** (fenêtre « Défis », en bas) : un schéma juste avec une **panne cachée**, tirée au hasard parmi celles que
    l'essai du dépannage fait voir : un fil coupé, un contact (ou un pôle) qui ne conduit plus, une bobine, un voyant ou
-   un fusible coupé. Le dessin ne change pas (le contact bouge, le fusible a l'air intact), les fils ne sont plus en
-   couleur, aucun message ne trahit la panne : l'élève essaie, mesure, puis « Désigner la panne » et touche l'élément.
+   un fusible coupé, et des pannes **réalistes** : un contact (ou un pôle) **soudé** qui reste fermé (S1 n'arrête plus,
+   S2 démarre tout seul, le verrouillage de l'inversion ne protège plus…), une bobine **en court-circuit** (S2 fait
+   fondre F2 : désigner F2, c'est « une conséquence » ; à l'ohmmètre, la bobine fait 0 Ω au lieu de 661 Ω), un relais
+   thermique **réglé trop bas** (il déclenche après 4 s de marche alors que la pince lit un courant normal), deux
+   **phases inversées** au bornier du moteur (il tourne à l'envers). Le dessin ne change pas (le contact bouge, le
+   fusible a l'air intact), les fils ne sont plus en couleur ni le chemin d'un court-circuit, aucun message ne trahit
+   la panne : l'élève essaie, mesure (voltmètre sous tension, ohmmètre après la consignation), puis « Désigner la
+   panne » et touche l'élément.
    Bonne réponse : l'élément est marqué en rouge, le nombre de mesures et d'erreurs est donné, « Réparer et essayer »
    relance le schéma sans panne. Mauvaise réponse : l'élément montré en vert, « en bon état ». Un fil compte aussi
    s'il est équivalent (le couper sépare les mêmes bornes). « Nouvelle panne » en tire une autre ; la barre d'outils dit
    « Quitter ». Le schéma de l'élève n'est pas touché (le dépannage n'est pas enregistré à sa place).
    La carte donne aussi une note sur 20, pour s'entraîner (même barème que ci-dessous, par défaut) ; une mesure
-   identique à la précédente (mêmes pointes, même valeur : une pointe reposée là où elle est) ne compte pas.
+   identique à la précédente (mêmes pointes, même valeur : une pointe reposée là où elle est) ne compte pas, la mesure
+   de la VAT non plus (elle fait partie de la sécurité).
 12. **Dépannage du professeur** (Fichier → « Préparer un dépannage (professeur) ») : sur le schéma ouvert (un
    exemple ou le sien), le professeur choisit l'élément en panne (outil « panne » : il touche un fil, un contact, un
-   fusible, une bobine, un voyant ; pour un appareil à plusieurs pôles, il choisit le pôle), un titre, ce qui doit se
-   passer (prérempli quand le schéma est un exemple ou un dépannage connu) et le barème : mesures sans pénalité (10),
-   points en moins par mesure de plus (0,5), par mauvaise désignation (3). Puis « Copier le lien » (à coller dans
+   fusible, une bobine, un voyant, un moteur ; pour un appareil à plusieurs pôles, il choisit le pôle ; puis la sorte de
+   panne quand il y en a plusieurs : coupée ou en court-circuit, ne conduit plus ou soudé, élément coupé ou réglé trop
+   bas, phases inversées pour un moteur), un titre, ce qui doit se passer (prérempli quand le schéma est un exemple ou un
+   dépannage connu) et le barème : mesures sans pénalité (10), points en moins par mesure de plus (0,5), par mauvaise
+   désignation (3), par faute de sécurité (4). Puis « Copier le lien » (à coller dans
    Pronote ou l'ENT), « Fichier pour les élèves » (`.json`), « Essayer comme un élève ». Chez l'élève : même panne
    pour toute la classe, pas de « Nouvelle panne », « Abandonner (note 0) » en deux temps, la note quand il a
    trouvé ; s'il est connecté au site, le résultat part tout seul dans son suivi (sinon la carte le prévient dès le
@@ -219,8 +241,9 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `p4-automate` | marche-arrêt par automate (Ladder) | repos, S2, lâché (maintien, H1), S1, S2, surcharge, réarmement |
 | `p5-etoile-triangle` | démarrage étoile-triangle (24 V) | S2 étoile, 3,3 s plus tard triangle, S1, S2, surcharge |
 
-Chaque essai passe sur le schéma sans panne ; sur ces cinq schémas, toutes les pannes possibles se voient sauf le fil PE
-(35 à 71 pannes possibles par schéma). Les tirer toutes au sort et les essayer prend moins de 0,2 s. La panne en cours,
+Chaque essai passe sur le schéma sans panne ; sur ces cinq schémas, toutes les pannes simples se voient sauf le fil PE
+(35 à 71 pannes possibles par schéma) ; des pannes réalistes, seules celles que l'essai montre sont tirées (un pôle de
+contacteur soudé, par exemple, ne se voit pas : le moteur s'arrête quand même, sur une seule phase). Les tirer toutes au sort et les essayer prend moins de 0,2 s. La panne en cours,
 les mesures et les erreurs sont gardées (`schemas:dep:<élève>:<id>`, la panne un peu cachée en base 64), les réussites
 à part (`schemas:depannage:<élève>`) : le compteur « n / 15 défis » du tableau de bord ne les compte pas.
 
@@ -243,11 +266,12 @@ les mesures et les erreurs sont gardées (`schemas:dep:<élève>:<id>`, la panne
 - **Le résultat** : `backend.js` (et `config.js`, et Supabase si configuré) n'est chargé qu'au moment d'envoyer, puis
   `SIP.ecrire("enregistrer", …)` : module `schemas-prof-<empreinte>`, titre `Dépannage · <titre>`, type `externe`,
   note sur 20, durée ; `details[0]` : la panne (`attendu`), les désignations, la note (`pts` / `bareme`), et les champs
-  `mesures`, `mauvaises`, `abandon`, `designations` ; `details[1]` : la liste des mesures. Pas connecté, session
+  `mesures`, `mauvaises`, `abandon`, `designations`, `fautes`, `securite` (les fautes de sécurité) ; `details[1]` : la
+  liste des mesures. Pas connecté, session
   expirée, réseau : la carte le dit, avec « Envoyer mon résultat » ; hors ligne, la file d'attente du site s'en charge.
 - **Page « Dépannages » de l'espace professeur** (`assets/prof.js`, `vueDepannages`, dans chaque espace, pour la classe choisie) : un menu par dépannage rendu
   (titre, date, nombre d'élèves), la panne cachée, moyenne, médiane des mesures, trouvée du premier coup ; une ligne
-  par élève (note, mesures, mauvaises désignations, durée, date ; « +n essais » si l'élève a recommencé ailleurs : le
+  par élève (note, mesures, mauvaises désignations, fautes de sécurité, durée, date ; « +n essais » si l'élève a recommencé ailleurs : le
   premier compte) ; avec une classe choisie, ceux qui n'ont pas encore rendu. Un clic ouvre le détail de l'élève.
 
 ## Les défis (`exemples.js`, `DEFIS`)
@@ -520,14 +544,35 @@ fréquence), la charge mécanique (le chariot va à la même vitesse à vide ou 
 - `simulation(schema, { panne })` : `{ fil: id }` (la liste des liaisons est refaite sans ce fil ; celle du dessin,
   `sim.netlist`, et les remarques « borne reliée à rien » restent celles du schéma dessiné), `{ piece: id }` ou
   `{ piece: id, i }` (le contact, ou le pôle i, bouge comme d'habitude mais ne conduit plus ; une bobine, un voyant, une
-  électrovanne coupés ne s'alimentent jamais, sans message). `scenario(…, { panne })` rejoue un essai avec la panne.
+  électrovanne coupés ne s'alimentent jamais, sans message). Pannes réalistes, avec `sorte` : `{ piece, i?, sorte:
+  "soude" }` (le contact reste fermé ; dessiné comme d'habitude), `{ piece, sorte: "court" }` (la bobine n'attire plus
+  et relie ses deux bornes : un conducteur de plus, le court-circuit fait fondre la protection), `{ piece, sorte:
+  "reglage" }` (relais thermique : quand le moteur qu'il protège tourne normalement, il déclenche au bout de 4 s ; le
+  journal dit seulement « F1 a déclenché »), `{ piece, sorte: "phases" }` (moteur : son sens est inversé).
+  `scenario(…, { panne })` rejoue un essai avec la panne.
 - `pannesPossibles(schema)` : chaque fil, chaque contact, fusible, bobine, voyant, électrovanne, chaque pôle d'un
-  sectionneur, d'un contacteur, d'un relais thermique ou d'un disjoncteur. `panneVisible(schema, panne, essai)` : l'essai
+  sectionneur, d'un contacteur, d'un relais thermique ou d'un disjoncteur ; puis les pannes réalistes : chaque contact
+  et chaque pôle de contacteur soudé, chaque bobine (et électrovanne) en court-circuit, chaque relais thermique réglé
+  trop bas, chaque moteur aux phases inversées. `panneVisible(schema, panne, essai)` : l'essai
   (sans ses vérifications de protection et de terre) ne passe plus.
 - `sim.mesurer({ piece, borne }, { piece, borne })` → `{ v, ac, texte }`. Un point relié à une source donne son potentiel ;
   un point « en l'air » regarde à travers les récepteurs (bobines, voyants, électrovannes, primaires, capteurs 3 fils,
   enroulements des moteurs, entrées et alimentation des automates, entrées LI des variateurs) : un seul potentiel
   trouvé, c'est le sien ; plusieurs, la moyenne de leurs tensions complexes (récepteurs supposés égaux) ; aucun, 0 V.
+- **Consignation** : `sim.couper(true)` coupe les sources « réseau » et « repère » (tout ce qui en dépend s'éteint :
+  transformateurs, variateurs, automates) et garde les potentiels d'avant ; `sim.mesurerAvant(a, b)` donne ce que le
+  voltmètre lisait juste avant la coupure (la VAT : 0 V maintenant, une tension avant) ; `sim.couper(false)` remet le
+  courant et relâche les contacteurs enfoncés. `sim.pousser("KM1", v)` : un contacteur ou un relais enfoncé à la main
+  (ses contacts et ses pôles bougent, sa bobine n'est pas alimentée). `etat().coupe`, `etat().appareils.KM1.main`.
+- **Ohmmètre** : `sim.resistance(a, b)` → `{ r, texte, sousTension, v, texteV }`. Les conducteurs fermés (fils, contacts,
+  pôles, fusibles bons, pôles des relais thermiques) réunissent les nœuds, comme les repères de même nom (deux « N »,
+  le N du réseau : le même conducteur) ; les récepteurs sont des résistances : bobine de contacteur 0,1·U²/8 VA en
+  alternatif (661 Ω en 230 V, 7,2 Ω en 24 V), U²/8 en continu (72 Ω en 24 V) ; de relais ou de temporisation 3 VA ;
+  voyant (filament froid) U²/1,5 W/8 (4,4 kΩ en 230 V) ; électrovanne 0,2·U²/5 VA (U²/5 en continu) ; transformateur
+  0,04·U²/100 VA au primaire (64 Ω en 400 V) et au secondaire (0,2 Ω en 24 V) ; enroulement de moteur 6,6 Ω / P (kW)
+  (3,0 Ω pour 2,2 kW ; entre deux bornes d'un moteur 3 bornes, l'étoile : 6,0 Ω). Capteurs 3 fils, automates,
+  variateurs : rien (OL). Résistance équivalente : méthode des nœuds (1 A injecté, Gauss), OL si rien ne relie les deux
+  bornes. `sousTension` : une pointe touche un point relié à une source (directement ou à travers des récepteurs).
 
 ### Piloter la simulation depuis ailleurs
 
@@ -608,6 +653,15 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   suivi intacte, détail de l'élève, téléphone ;
 - `t_folio.js` (Node, dans `/tmp/folio`) : colonnes, numéros de fils (une équipotentielle = un nom), renvois de KM1 avec
   leurs colonnes, nomenclature triée (relais temporisé, transformateur), bornier de la station, CSV, feuille vide ;
+- `t_ohm.js` (Node, dans `/tmp/ohm`) : sous tension vu par l'ohmmètre, consignation et VAT (`mesurerAvant`), valeurs
+  (bobine 661 Ω, moteur 6,0 Ω, contacts, fusible, renvois), la commande vue de L et N, contacteur enfoncé à la main,
+  étoile-triangle (3,0 Ω, transformateur, KM2 étoile 6,0 Ω, KM3 triangle 2,0 Ω, bobines en parallèle), les quatre
+  pannes réalistes, pannes possibles et visibles, remise à zéro ;
+- `e2e_ohm.py` (Playwright, PC et téléphone) : l'outil, DANGER et faute sous tension, Couper, Cadenas (dessiné), VAT,
+  661 Ω, 6,0 Ω, OL, ✋ KM1, mesures en place (S2 court-circuité par 13-14), courant remis avec l'ohmmètre branché,
+  remise à zéro, arrêt ; le professeur cache une bobine en court-circuit (choix de la sorte, barème) ; l'élève : F2
+  fond, F2 désigné = « une conséquence », faute de sécurité comptée, consignation, 0,0 Ω, trouvé, note 13 / 20 et
+  détails envoyés ; au téléphone, consigner au doigt et mesurer ;
 - `t_pince.js` (Node, dans `/tmp/pince`) : démarrage direct (pointe puis 0,8 In, les trois phases ensemble 0, le fil
   du moteur), bobine 35 mA et tout à zéro à l'arrêt, étoile (le tiers) et triangle (√3), les pompes de la station dans
   le rapport de leurs puissances, variateur (pas de pointe, le réseau fournit moins), automate (0,15 A, 5 mA, continu) ;

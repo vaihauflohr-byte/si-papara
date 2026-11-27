@@ -50,6 +50,29 @@
   const POT_ALIM = { L: "L1", N: "N", L1: "L1", L2: "L2", L3: "L3", "+24": "+24", "0V": "0V", PE: "PE" };
   function lireTension(t) { const m = /^(\d+)([~=])$/.exec(String(t || "")); return m ? { v: +m[1], ac: m[2] === "~" } : { v: 230, ac: true }; }
   const txtTension = (u) => `${u.v} V${u.ac ? " ~" : " continu"}`;
+  /* résistance équivalente entre ra et rb d'un réseau de résistances E = [[x, y, R]] : on injecte 1 A en ra, rb à 0 V,
+     et on résout les tensions des nœuds (méthode des nœuds, Gauss) ; Infinity si rien ne relie ra à rb */
+  function resEquivalente(E, ra, rb) {
+    const adj = new Map(), lien = (x, y, g) => { if (!adj.has(x)) adj.set(x, []); adj.get(x).push([y, g]); };
+    for (const [x, y, R] of E) { lien(x, y, 1 / R); lien(y, x, 1 / R); }
+    const vus = new Set([ra]), file = [ra];
+    while (file.length) { const x = file.pop(); for (const [y] of adj.get(x) || []) if (!vus.has(y)) { vus.add(y); file.push(y); } }
+    if (!vus.has(rb)) return Infinity;
+    const L = [...vus].filter((x) => x !== rb), idx = new Map(L.map((x, i) => [x, i])), n = L.length;
+    const G = L.map(() => new Float64Array(n + 1));
+    for (const x of L) { const i = idx.get(x); for (const [y, g] of adj.get(x) || []) { G[i][i] += g; if (y !== rb) G[i][idx.get(y)] -= g; } }
+    G[idx.get(ra)][n] = 1;
+    for (let c = 0; c < n; c++) {
+      let p = c; for (let k = c + 1; k < n; k++) if (Math.abs(G[k][c]) > Math.abs(G[p][c])) p = k;
+      if (Math.abs(G[p][c]) < 1e-15) continue;
+      if (p !== c) { const z = G[c]; G[c] = G[p]; G[p] = z; }
+      for (let k = 0; k < n; k++) if (k !== c && G[k][c]) { const f = G[k][c] / G[c][c]; for (let j = c; j <= n; j++) G[k][j] -= f * G[c][j]; }
+    }
+    const i = idx.get(ra); return G[i][n] / G[i][i];
+  }
+  const nfD = (x, d) => x.toFixed(d).replace(".", ",");
+  const txtOhm = (r) => (r == null ? "—" : r === Infinity ? "OL" : r < 0.05 ? "0,0 Ω" : r < 9.95 ? nfD(r, 1) + " Ω" : r < 999.5 ? Math.round(r) + " Ω"
+    : r < 9995 ? nfD(r / 1000, 2) + " kΩ" : r < 999500 ? nfD(r / 1000, 1) + " kΩ" : nfD(r / 1e6, 2) + " MΩ");
 
   class UF {
     constructor(n) { this.p = new Int32Array(n); for (let i = 0; i < n; i++) this.p[i] = i; }
@@ -58,7 +81,11 @@
   }
 
   /* options.panne (dépannage) : { fil: id } un fil coupé, { piece: id, i } un contact (ou un pôle i) qui ne conduit plus,
-     une bobine ou un voyant coupé. Le dessin ne change pas : seuls les mesures et le fonctionnement le montrent. */
+     une bobine ou un voyant coupé. Pannes « réalistes » (sorte) : { piece, i, sorte: "soude" } un contact (ou un pôle) soudé,
+     qui reste fermé ; { piece, sorte: "court" } une bobine en court-circuit (elle relie ses deux bornes : le fusible fond) ;
+     { piece, sorte: "reglage" } un relais thermique réglé trop bas (il déclenche alors que le moteur tire son courant
+     normal) ; { piece, sorte: "phases" } deux phases inversées au bornier d'un moteur (il tourne à l'envers).
+     Le dessin ne change pas : seuls les mesures et le fonctionnement le montrent. */
   function simulation(schema, options) {
     const opt = options || {}, panne = opt.panne && (opt.panne.fil || opt.panne.piece) ? opt.panne : null;
     const s = schema, pieces = s.pieces || [], netR = M.netlist(s);   // netR : le schéma tel qu'il est dessiné
@@ -71,6 +98,7 @@
     const nomPot = (p) => (INFO[p] ? INFO[p].nom : p);
 
     let t = 0, sale = true, defaut = null;
+    let coupe = false, avant = null;   // consignation : l'alimentation générale coupée ; avant : les potentiels juste avant la coupure
     const journal = [], courts = [];
     const dev = {}, devDe = new Map(), remarques = [];
     let vibrentAvant = new Set();
@@ -80,7 +108,7 @@
       const P = d.principal ? M.parametres(d.principal) : {};
       switch (d.sorte) {
         case "contacteur": case "relais": case "travail": case "repos":
-          Object.assign(d, { alim: false, depuis: -1e12, jamais: true, grille: false, delai: Math.max(100, Math.min(600000, Math.round((Number(P.delai) || 3) * 1000))) }); break;
+          Object.assign(d, { alim: false, depuis: -1e12, jamais: true, grille: false, main: false, delai: Math.max(100, Math.min(600000, Math.round((Number(P.delai) || 3) * 1000))) }); break;
         case "transfo": Object.assign(d, { alim: false, grille: false }); break;
         case "voyant": case "electrovanne": Object.assign(d, { alim: false, grille: false }); break;
         case "thermique": d.declenche = false; break;
@@ -88,7 +116,7 @@
         case "disjoncteur": case "disj_moteur": Object.assign(d, { ferme: true, declenche: false }); break;
         case "fusible": d.fondu = false; break;
         case "bouton": Object.assign(d, { appuye: false, maintenu: false }); break;
-        case "moteur": Object.assign(d, { w: 0, sens: 0, etatM: "arret", couplage: null, chauffe: 0, tente: false, grille: false, var: null, bloque: false }); break;
+        case "moteur": Object.assign(d, { w: 0, sens: 0, etatM: "arret", couplage: null, chauffe: 0, tente: false, grille: false, var: null, bloque: false, regleBas: false }); break;
         case "chariot": Object.assign(d, { pos: P.depart === "droite" ? 1 : P.depart === "milieu" ? 0.5 : 0, vit: 0, butee: 0, butees: 0 }); break;
         case "tapis": Object.assign(d, { pos: 0, vit: 0, vues: 0, bac: 0, entrees: 0 }); break;
         case "tri": Object.assign(d, { pos: 0, vit: 0, vues: 0, bac: 0, entrees: 0, r: 0, bac1: 0, bac2: 0, cote: 0, tombees: 0, coince: false }); break;
@@ -159,7 +187,8 @@
     const bobines = appareils.filter((d) => A_BOBINE.has(d.sorte) || d.sorte === "transfo");
     function actionne(d) {
       switch (d.sorte) {
-        case "contacteur": case "relais": case "travail": case "repos": return d.alim;
+        case "contacteur": case "relais": return d.alim || !!d.main;   // main : poussé à la main (hors tension, pour mesurer)
+        case "travail": case "repos": return d.alim;
         case "thermique": return d.declenche;
         case "sectionneur": case "disjoncteur": case "disj_moteur": return d.ferme;
         case "bouton": return d.appuye || d.maintenu;
@@ -209,16 +238,18 @@
         cond.push({ pc, i: 1, n1: nd(pc, "PE"), n2: nd(pc, "PE2"), b1: "PE", b2: "PE2", ferme: () => true });   // la borne de terre traverse le variateur
       }
     }
-    // panne : le contact (ou le pôle) bouge comme d'habitude, mais il ne conduit plus
-    if (panne && panne.piece) for (const c of cond) if (c.pc.id === panne.piece && (panne.i == null || panne.i === c.i)) { c.meca = c.ferme; c.ferme = () => false; }
+    // panne : le contact (ou le pôle) bouge comme d'habitude, mais il ne conduit plus (soudé : il reste fermé)
+    if (panne && panne.piece && (!panne.sorte || panne.sorte === "soude")) for (const c of cond) if (c.pc.id === panne.piece && (panne.i == null || panne.i === c.i)) {
+      const conduit = panne.sorte === "soude"; c.meca = c.ferme; c.ferme = () => conduit;
+    }
     const condValides = cond.filter((c) => c.n1 >= 0 && c.n2 >= 0);
 
     /* ----- les sources ----- */
     const sources = [], analog = [];   // analog : sources de tension 0-10 V (sortie AQ0, +10 V, curseur d'un potentiomètre)
     for (const pc of pieces) {
       const P = M.parametres(pc);
-      if (pc.type === "alim") sources.push({ n: nd(pc, "a"), pot: POT_ALIM[P.pot] || "L1", actif: () => true });
-      else if (pc.type === "reseau") for (const id of ["L1", "L2", "L3", "N", "PE"]) sources.push({ n: nd(pc, id), pot: id, actif: () => true });
+      if (pc.type === "alim") sources.push({ n: nd(pc, "a"), pot: POT_ALIM[P.pot] || "L1", actif: () => !coupe, renvoi: true });
+      else if (pc.type === "reseau") for (const id of ["L1", "L2", "L3", "N", "PE"]) sources.push({ n: nd(pc, id), pot: id, actif: () => !coupe, renvoi: true });
       else if (pc.type === "transfo") {
         const d = devDe.get(pc.id), k = "T:" + d.cle, sec = Number(P.sec) || 24;
         INFO[k + "+"] = { chaud: true, net: k, v: sec, nom: `${d.ref} ${sec} V` };
@@ -258,7 +289,13 @@
       else if (pc.type === "transfo") charges.push({ pc, d, n1: nd(pc, "p1"), n2: nd(pc, "p2"), b1: "p1", b2: "p2", cote: { v: Number(P.prim) || 400, ac: true }, sorte: "transfo" });
       else if (pc.type === "capteur3") charges.push({ pc, d, n1: nd(pc, "BN"), n2: nd(pc, "BU"), b1: "BN", b2: "BU", cote: { v: 24, ac: false }, sorte: "capteur3" });
     }
-    if (panne && panne.piece) for (const ch of charges) if (ch.pc.id === panne.piece) ch.coupee = true;   // bobine ou voyant coupé
+    if (panne && panne.piece && !panne.sorte) for (const ch of charges) if (ch.pc.id === panne.piece) ch.coupee = true;   // bobine ou voyant coupé
+    if (panne && panne.sorte === "court") for (const ch of charges) if (ch.pc.id === panne.piece) {   // spires en court-circuit : elle n'attire plus, et relie ses bornes
+      ch.coupee = true; ch.court = true;
+      if (ch.n1 >= 0 && ch.n2 >= 0) condValides.push({ pc: ch.pc, i: 0, n1: ch.n1, n2: ch.n2, b1: ch.b1, b2: ch.b2, ferme: () => true, court: true });
+    }
+    const inversees = panne && panne.sorte === "phases" ? panne.piece : null;   // deux phases inversées au bornier de ce moteur
+    const thBas = panne && panne.sorte === "reglage" ? devDe.get(panne.piece) || null : null;   // relais thermique réglé trop bas
     const moteurs = pieces.filter((pc) => (pc.type === "moteur" || pc.type === "moteur6") && devDe.get(pc.id)).map((pc) => ({ pc, d: devDe.get(pc.id) }));
 
     /* ----- calcul des nœuds ----- */
@@ -410,6 +447,7 @@
       // moteurs
       for (const mo of moteurs) analyserMoteur(mo, uf, m);
       dernier = { uf, m };
+      if (thBas) for (const mo of moteurs) mo.d.regleBas = mo.d.etatM === "marche" && !mo.d.bloque && condValides.some((c) => c.therm === thBas && c.ferme() && cheminMoteur(mo, c));
     }
 
     /* ----- automates et variateurs : mis à jour après chaque point fixe ----- */
@@ -857,13 +895,14 @@
         }
         if (avecAutre(h) && toutes > 0) detail = "branchement";
       }
+      if (inversees === pc.id) sens = -sens;
       if (vr === "mixte") { etatM = "arret"; niveau = 0; vr = null; }
       if (d.grille) { etatM = "grille"; niveau = 0; sens = 0; }
       d.etatM = etatM; d.couplage = couplage; d.niveau = niveau; d.detail = detail; d.var = vr;
       if (etatM === "marche" || etatM === "surtension") d.sens = sens;
       d.terre = potDe(uf, m, nd(pc, "PE")) === "PE";
     }
-    const chauffant = (d) => !d.grille && (d.etatM === "2ph" || d.etatM === "couplage" || d.etatM === "surtension" || (d.bloque && d.etatM === "marche"));
+    const chauffant = (d) => !d.grille && (d.etatM === "2ph" || d.etatM === "couplage" || d.etatM === "surtension" || (d.etatM === "marche" && (d.bloque || d.regleBas)));
     function integrer(dt) {
       for (const d of variateurs) rampe(d, dt);
       for (const { d } of moteurs) {
@@ -888,6 +927,14 @@
       for (const mo of moteurs) {
         const d = mo.d;
         if (!chauffant(d)) continue;
+        if (d.regleBas && d.etatM === "marche" && !d.bloque) {   // le relais thermique, réglé trop bas, déclenche (le moteur, lui, ne chauffe pas)
+          if (d.chauffe >= SEUIL_TH - 1e-6) {
+            if (thBas.sorte === "thermique") thBas.declenche = true; else { thBas.ferme = false; thBas.declenche = true; }
+            log("erreur", `${thBas.ref} a déclenché pendant que ${d.ref} tournait.`, { refs: [thBas.ref, d.ref], thermique: true });
+            d.chauffe = 0; d.regleBas = false; sale = true;
+          }
+          continue;
+        }
         const pourquoi = d.bloque && d.etatM === "marche" ? "est bloqué (le chariot force contre la butée)" : d.etatM === "2ph" ? "marche sur deux phases" : d.etatM === "surtension" ? "a ses enroulements sous une tension trop forte" : "est mal couplé";
         if (d.chauffe >= SEUIL_TH - 1e-6 && !d.tente) {
           d.tente = true;
@@ -964,6 +1011,11 @@
         const v = clamp(Number(valeur) || 0, 0, 1);
         if (S === "potentiometre") d.pos = v; else if (S === "variateur") d.molette = v; else if (S === "cuve" || S === "station") d.conso = v; else return false;
       } else if (quoi === "run" || quoi === "stop") { if (S !== "automate") return false; d.run = quoi === "run"; }
+      else if (quoi === "pousser") {   // hors tension, on enfonce l'équipage mobile d'un contacteur (ou d'un relais) pour mesurer ses contacts
+        if (S !== "contacteur" && S !== "relais") return false;
+        const v = valeur == null ? !d.main : !!valeur; if (v === d.main) return true;
+        d.main = v; log("info", v ? `${d.ref} enfoncé à la main.` : `${d.ref} relâché.`, { refs: [d.ref] });
+      }
       else if (quoi === "basculer") {
         if (S === "automate") d.run = !d.run;
         else if (S === "bouton") d.maintenu = !d.maintenu;
@@ -997,7 +1049,7 @@
     function reinitialiser() {
       for (const d of appareils) etatInitial(d);
       appliquerCapteurs();
-      defaut = null; t = 0; journal.length = 0; courts.length = 0; vibrentAvant = new Set(); oscilleAvant = false; evaluer(); return api;
+      defaut = null; coupe = false; avant = null; t = 0; journal.length = 0; courts.length = 0; vibrentAvant = new Set(); oscilleAvant = false; evaluer(); return api;
     }
 
     /* ----- ce que la page (ou un essai) lit ----- */
@@ -1084,6 +1136,7 @@
         for (let i = 0; i < NB; i++) { const e = m.get(uf.find(i)); noeuds[i] = e ? (e.size === 1 ? e.values().next().value : "!") : null; }
       }
       for (const c of condValides) {
+        if (c.court) continue;
         const o = pieceEtat[c.pc.id] || (pieceEtat[c.pc.id] = {});
         if (!o.fermes) o.fermes = [];
         o.fermes[c.i] = (c.meca || c.ferme)();
@@ -1126,7 +1179,7 @@
         for (const k of ["alim", "grille", "declenche", "ferme", "fondu", "fondus", "appuye", "maintenu", "actionne", "etatM", "sens", "couplage", "w", "terre", "delai",
           "run", "actif", "entrees", "sorties", "aq", "fs", "cible", "defaut", "LI", "ai1", "ordre", "fRef", "origine", "pos", "molette", "deux",
           "vit", "butee", "butees", "niv", "conso", "deborde", "debords", "vide", "envers", "piloteRef", "bloque", "vues", "bac", "entrees", "r", "bac1", "bac2", "cote", "coince",
-          "passees", "chocs", "surVoiture", "porte", "dangers", "danger", "brusques"]) if (d[k] !== undefined) o[k] = Array.isArray(d[k]) ? d[k].slice() : d[k];
+          "passees", "chocs", "surVoiture", "porte", "dangers", "danger", "brusques", "main"]) if (d[k] !== undefined) o[k] = Array.isArray(d[k]) ? d[k].slice() : d[k];
         if (d.sorte === "barriere") o.voitures = d.voitures.length;
         if (d.sorte === "station") o.pompes = d.mots.map((m) => pompeSt(m, false) > 0);
         if (A_BOBINE.has(d.sorte)) o.prog = progression(d);
@@ -1136,7 +1189,7 @@
       }
       const recents = new Set();
       for (const c of courts) if (t - c.t < 2500) for (const n of c.noeuds) recents.add(n);
-      return { t, defaut: !!defaut, noeuds, court: [...recents], pieces: pieceEtat, appareils: appareilsEtat, messages: messages(), journal: journal.slice() };
+      return { t, defaut: !!defaut, coupe, noeuds, court: [...recents], pieces: pieceEtat, appareils: appareilsEtat, messages: messages(), journal: journal.slice() };
     }
     /* ----- le voltmètre (haute impédance) : ce qu'il lit entre deux bornes ----- */
     const voit = [];   // il « voit à travers » les récepteurs, les enroulements des moteurs, les entrées des automates
@@ -1218,6 +1271,56 @@
       const iv = info(A.p) && info(A.p).var ? info(A.p).var : info(B.p) && info(B.p).var ? info(B.p).var : null;
       if (iv) v = Math.round(400 * clamp(Math.abs(iv.fs || 0) / 50, 0, 1));   // sortie d'un variateur : la tension suit la fréquence
       return { v, ac: true, texte: `${v} V ~` };
+    }
+    /* ----- consignation : couper l'alimentation générale (réseau et repères), et la remettre -----
+       La vérification d'absence de tension (VAT) se fait au voltmètre : mesurerAvant(a, b) dit ce qu'on lisait juste avant la coupure. */
+    function couper(v) {
+      v = !!v; if (v === coupe) return false;
+      if (v) avant = dernier; else { avant = null; for (const d of appareils) if (d.main) d.main = false; }
+      coupe = v; log("info", v ? "Alimentation coupée (consignation)." : "Alimentation remise.");
+      evaluer(); return true;
+    }
+    function mesurerAvant(a, b) {
+      if (!avant) return { v: null, texte: "—" };
+      const cur = dernier; dernier = avant;
+      try { return mesurer(a, b); } finally { dernier = cur; }
+    }
+    /* ----- l'ohmmètre : la résistance entre deux bornes, avec les contacts dans leur état du moment -----
+       Les contacts fermés, les fils et les fusibles bons : 0 Ω ; un contact ouvert ou coupé : OL (l'infini). Les récepteurs :
+       bobine de contacteur 0,1·U²/8 VA en alternatif (661 Ω en 230 V), U²/8 en continu (72 Ω en 24 V) ; de relais, 3 VA ;
+       voyant (filament froid) U²/1,5 W/8 ; électrovanne 0,2·U²/5 VA (U²/5 en continu) ; transformateur 0,04·U²/100 VA au
+       primaire et au secondaire ; enroulement de moteur 6,6 Ω / P (kW) : 3 Ω pour 2,2 kW (6 Ω entre deux bornes, en étoile).
+       Capteurs 3 fils, automates, variateurs (l'électronique) : OL. Deux bornes reliées au même repère (N, L1, +24 V…) sont
+       sur le même conducteur. sousTension : une pointe touche un point relié à une source (ce qu'il ne faut jamais faire). */
+    function rCharge(ch) {
+      const c = ch.cote || { v: 230, ac: true }, U = c.v || 230;
+      if (ch.sorte === "bobine") { const S = ch.d.sorte === "contacteur" ? 8 : 3; return (c.ac ? 0.1 : 1) * U * U / S; }
+      if (ch.sorte === "voyant") return U * U / 1.5 / 8;
+      if (ch.sorte === "ev") return (c.ac ? 0.2 : 1) * U * U / 5;
+      if (ch.sorte === "transfo") return 0.04 * U * U / 100;
+      return Infinity;
+    }
+    function resistance(a, b) {
+      const n1 = a ? nd({ id: a.piece }, a.borne) : -1, n2 = b ? nd({ id: b.piece }, b.borne) : -1;
+      if (n1 < 0 || n2 < 0) return { r: null, texte: "—", sousTension: false };
+      const sous = vu(n1).k !== "air" || vu(n2).k !== "air", u = sous ? mesurer(a, b) : { v: 0 };
+      const uf = unir(null), rep = new Map();
+      for (const src of sources) if (src.renvoi && src.n >= 0) { if (rep.has(src.pot)) uf.union(rep.get(src.pot), src.n); else rep.set(src.pot, src.n); }
+      const ra = uf.find(n1), rb = uf.find(n2);
+      let r = 0;
+      if (ra !== rb) {
+        const E = [];
+        const ajoute = (x, y, R) => { if (x < 0 || y < 0 || !(R < Infinity)) return; const p = uf.find(x), q = uf.find(y); if (p !== q) E.push([p, q, Math.max(R, 1e-6)]); };
+        for (const ch of charges) if (!ch.coupee && !ch.d.grille) ajoute(ch.n1, ch.n2, rCharge(ch));
+        for (const pc of pieces) if (pc.type === "transfo" && devDe.get(pc.id)) { const sec = Number(M.parametres(pc).sec) || 24; ajoute(nd(pc, "s1"), nd(pc, "s2"), 0.04 * sec * sec / 100); }
+        for (const { pc } of moteurs) {
+          const Rw = 6.6 / (Number(M.parametres(pc).puissance) || 2.2);
+          if (pc.type === "moteur") for (const [x, y] of [["U", "V"], ["V", "W"], ["W", "U"]]) ajoute(nd(pc, x), nd(pc, y), 3 * Rw);   // l'étoile, vue comme un triangle de 3 Rw
+          else for (const k of ["U", "V", "W"]) ajoute(nd(pc, k + "1"), nd(pc, k + "2"), Rw);
+        }
+        r = resEquivalente(E, ra, rb);
+      }
+      return { r, texte: txtOhm(r), sousTension: sous, v: u.v || 0, texteV: u.texte || "0 V" };
     }
     function enChemin(refProt, refMoteur) {   // les pôles de refProt portent-ils le courant de refMoteur ?
       const mo = moteurs.find((x) => x.d.ref === refMoteur); if (!mo) return false;
@@ -1336,6 +1439,7 @@
     }
     const api = {
       action, avancer, evaluer: () => { evaluer(); return api; }, etat, reinitialiser, rearmerAlimentation, enChemin, courants,
+      couper, mesurerAvant, resistance, coupe: () => coupe, pousser: (r, v) => action(r, "pousser", v),
       appuyer: (r) => action(r, "appuyer"), relacher: (r) => action(r, "relacher"), basculer: (r) => action(r, "basculer"),
       surcharge: (r) => action(r, "surcharge"), rearmer: (r) => action(r, "rearmer"),
       temps: () => t, journal: () => journal.slice(), netlist: netR, mesurer, appareils: () => appareils.map((d) => ({ ref: d.ref, sorte: d.sorte })),
@@ -1464,7 +1568,7 @@
   }
 
   /* ---------- dépannage : les pannes qu'on peut cacher dans un schéma ---------- */
-  function pannesPossibles(schema) {
+  function pannesPossibles(schema) {   // d'abord les pannes « simples » (coupé, ne conduit plus), puis les pannes réalistes
     const L = [];
     for (const f of schema.fils || []) L.push({ fil: f.id });
     for (const pc of schema.pieces || []) {
@@ -1472,6 +1576,11 @@
       if (M.nature(pc) || t === "fusible" || M.BOBINES.indexOf(t) >= 0 || t === "voyant" || t === "electrovanne") L.push({ piece: pc.id });
       else if (t === "poles" || t === "sectionneur" || t === "thermique" || t === "disj_moteur") for (let i = 0; i < 3; i++) L.push({ piece: pc.id, i });
       else if (t === "disjoncteur") { const n = clamp(M.parametres(pc).poles | 0, 1, 3); for (let i = 0; i < n; i++) L.push({ piece: pc.id, i }); }
+      if (M.nature(pc)) L.push({ piece: pc.id, sorte: "soude" });
+      else if (t === "poles") for (let i = 0; i < 3; i++) L.push({ piece: pc.id, i, sorte: "soude" });
+      if (M.BOBINES.indexOf(t) >= 0 || t === "electrovanne") L.push({ piece: pc.id, sorte: "court" });
+      if (t === "thermique") L.push({ piece: pc.id, sorte: "reglage" });
+      if (t === "moteur" || t === "moteur6") L.push({ piece: pc.id, sorte: "phases" });
     }
     return L;
   }

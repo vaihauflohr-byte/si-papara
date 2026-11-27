@@ -208,7 +208,7 @@
     const abandon = d.abandon != null ? !!d.abandon : d.rep === "abandon";
     return { note: note20(t.score, t.score_max), abandon, panne: d.attendu || "",
       mesures: d.mesures != null ? Number(d.mesures) : Number((/\((\d+)\)/.exec(m.q || "") || [])[1] || 0),
-      mauvaises: d.mauvaises != null ? Number(d.mauvaises) : Math.max(0, (Number(d.erreurs) || 0) - (abandon ? 1 : 0)) };
+      mauvaises: d.mauvaises != null ? Number(d.mauvaises) : Math.max(0, (Number(d.erreurs) || 0) - (abandon ? 1 : 0)), fautes: Number(d.fautes) || 0 };
   }
   function vueDepannages() {
     const S = depannagesProf();
@@ -232,10 +232,10 @@
         <div class="carte"><span class="discret">Mesures (médiane)</span><b>${SIP.nb(med(L.map((l) => l.i.mesures)), 3)}</b></div>
         <div class="carte"><span class="discret">Trouvée du premier coup</span><b>${L.filter((l) => !l.i.abandon && !l.i.mauvaises).length}</b></div>
       </div>
-      <div class="table-defil"><table><thead><tr><th>Élève</th>${niveau ? "" : "<th>Classe</th>"}<th class="num">Note</th><th class="num">Mesures</th><th class="num">Mauvaises désignations</th><th class="num">Durée</th><th>Rendu le</th></tr></thead><tbody>${L.map((l) =>
+      <div class="table-defil"><table><thead><tr><th>Élève</th>${niveau ? "" : "<th>Classe</th>"}<th class="num">Note</th><th class="num">Mesures</th><th class="num">Mauvaises désignations</th><th class="num" title="Ohmmètre sous tension, ou sans consigner (couper, cadenas, VAT)">Fautes de sécurité</th><th class="num">Durée</th><th>Rendu le</th></tr></thead><tbody>${L.map((l) =>
         `<tr class="cliquable" data-id="${esc(l.e.id)}"><td><b>${esc(l.e.nom)}</b>${l.essais.length > 1 ? ` <span class="discret" title="Le premier essai compte. Les autres : ${l.essais.slice(1).map((t) => SIP.nb(note20(t.score, t.score_max), 3) + "/20").join(", ")}">+${l.essais.length - 1} essai${l.essais.length > 2 ? "s" : ""}</span>` : ""}</td>${niveau ? "" : `<td>${esc(SIP.niveau(l.e.niveau).court)}</td>`}
-        <td class="num">${l.i.abandon ? `<span class="etiquette ko">abandon</span> ` : ""}${tagNote(l.i.note)}</td><td class="num">${l.i.mesures}</td><td class="num">${l.i.mauvaises}</td><td class="num">${duree(l.essais[0])}</td><td>${SIP.fmtDate(l.essais[0].fait_le, true)}</td></tr>`).join("")}${absents.map((e) =>
-        `<tr><td>${esc(e.nom)}</td><td class="discret" colspan="5">pas encore rendu</td></tr>`).join("")}</tbody></table></div>
+        <td class="num">${l.i.abandon ? `<span class="etiquette ko">abandon</span> ` : ""}${tagNote(l.i.note)}</td><td class="num">${l.i.mesures}</td><td class="num">${l.i.mauvaises}</td><td class="num">${l.i.fautes ? `<span class="etiquette ko">${l.i.fautes}</span>` : "0"}</td><td class="num">${duree(l.essais[0])}</td><td>${SIP.fmtDate(l.essais[0].fait_le, true)}</td></tr>`).join("")}${absents.map((e) =>
+        `<tr><td>${esc(e.nom)}</td><td class="discret" colspan="6">pas encore rendu</td></tr>`).join("")}</tbody></table></div>
       <p class="discret">Clique sur un élève pour voir ses mesures et ses désignations. La panne est la même pour toute la classe : une très bonne note avec très peu de mesures, en très peu de temps, mérite une question.</p>`);
     document.getElementById("dp-vu").onchange = (e) => { depVu = e.target.value; vueDepannages(); };
     document.querySelectorAll("tr[data-id]").forEach((tr) => (tr.onclick = () => vueDetail(tr.dataset.id)));

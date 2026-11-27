@@ -30,9 +30,11 @@
   let doc = { type: "libre" };
   // voltmètre (pointes rouge et noire posées sur des bornes) ; dépannage (la panne cachée, les mesures) ; marques sur le dessin
   let sondes = { a: null, b: null, prochaine: "a" }, depEtat = null, marques = [], lecEtat = null;
+  // ohmmètre (ses pointes) ; consignation : le cadenas, la VAT faite, les fautes de sécurité de la simulation en cours
+  let sondesO = { a: null, b: null, prochaine: "a" }, consig = { cadenas: false, vat: false, fautes: 0 };
   // dépannage préparé par le professeur : prep (pendant qu'il le prépare), depProf (chez l'élève qui l'a reçu)
   let prep = null, depProf = null;
-  const BAREME = { libres: 10, parMesure: 0.5, parErreur: 3 };
+  const BAREME = { libres: 10, parMesure: 0.5, parErreur: 3, parFaute: 4 };
   let sel = new Set(), outil = "fleche", aPlacer = null;
   const vue = { x: 40, y: 40, z: 1.3 };
   let sim = null, simE = null, simSig = "", rafId = 0, tPrec = 0, angles = {}, dernierTap = {};
@@ -510,9 +512,9 @@
         pince = { fil: fh.f.id, x, y }; majPince(true); dessiner(); geste = { type: "rien" }; return;
       }
     }
-    if (sim && e.button !== 1 && outil === "volt") {
+    if (sim && e.button !== 1 && (outil === "volt" || outil === "ohm")) {
       const bo = borneA(w, rayon(tac ? 22 : 10));
-      if (bo) { e.preventDefault(); poserSonde(bo.pc, bo.b); geste = { type: "rien" }; return; }
+      if (bo) { e.preventDefault(); (outil === "ohm" ? poserSondeO : poserSonde)(bo.pc, bo.b); geste = { type: "rien" }; return; }
     }
     if (sim && e.button !== 1 && outil === "designer") {
       const c = cibleDesignation(w, tac);
@@ -582,7 +584,7 @@
     }
     if (!geste) {
       if (sim) {
-        if (outil === "volt") {
+        if (outil === "volt" || outil === "ohm") {
           const bo = borneA(w, rayon(tac ? 22 : 10)), sb = bo ? { x: bo.b.x, y: bo.b.y } : null;
           if (JSON.stringify(sb) !== JSON.stringify(survolBorne)) { survolBorne = sb; rendre(); }
           if (bo) { svg.style.cursor = "crosshair"; return; }
@@ -756,8 +758,10 @@
     if (sel.size) { sel.clear(); rendre(); majPanneau(); majBoutons(); }
   }
   function choisirOutil(o, item) {
-    if (sim && !/^(main|fleche|volt|designer|pince)$/.test(o)) return;
-    if (!sim && (o === "volt" || o === "designer" || o === "pince")) return;
+    if (sim && !/^(main|fleche|volt|designer|pince|ohm)$/.test(o)) return;
+    if (!sim && (o === "volt" || o === "designer" || o === "pince" || o === "ohm")) return;
+    if (o === "ohm" && outil !== "ohm") sondes = { a: null, b: null, prochaine: "a" };   // un seul multimètre : on passe de V à Ω
+    if (o === "volt" && outil !== "volt") sondesO = { a: null, b: null, prochaine: "a" };
     if (o === "panne" && (sim || !prep)) return;
     if (brouillon && !(o === "fil" && outil === "fil")) brouillon = null;
     outil = o; aPlacer = o === "placer" ? item : null;
@@ -766,14 +770,17 @@
     if (o === "placer") bulle(DOIGT ? `Touche la feuille pour poser : ${esc(M.TYPES[item.type].nom.toLowerCase())}. « Choisir » pour arrêter.` : `Clique sur la feuille pour poser : ${esc(M.TYPES[item.type].nom.toLowerCase())}. <span class="kbd">R</span> pour le tourner, <span class="kbd">Maj</span> + clic pour en poser plusieurs, <span class="kbd">Échap</span> pour arrêter.`, 0);
     else if (o === "fil") bulle("Glisse d'une borne à une autre, ou clique borne par borne. Les coins se font tout seuls.", 3500);
     else if (o === "volt") bulle(`Voltmètre : ${DOIGT ? "touche" : "clique sur"} une borne pour la pointe <b style="color:var(--p-l1)">rouge</b>, puis une autre pour la pointe <b>noire</b> (COM). Les boutons du schéma marchent toujours.`, 5000);
+    else if (o === "ohm") bulle(consigne() ? `Ohmmètre : ${DOIGT ? "touche" : "clique sur"} une borne pour la pointe <b style="color:var(--p-l1)">rouge</b>, puis une autre pour la pointe <b>noire</b>.`
+      : `<b>Ohmmètre : seulement hors tension.</b> Consigne d'abord (carte « Consignation », à droite) : couper, cadenas, vérifier l'absence de tension.`, 6000);
     else if (o === "pince") { bulle(`Pince : ${DOIGT ? "touche" : "clique sur"} un fil pour lire son courant, ou un appareil (moteur, bobine…) pour le courant de chacune de ses bornes.`, 5500); majPince(); }
     else if (o === "designer") bulle(`${DOIGT ? "Touche" : "Clique sur"} l'élément que tu crois en panne : un fil, un contact, une bobine, un fusible…`, 6000);
     else if (o === "panne") bulle(`${DOIGT ? "Touche" : "Clique sur"} l'élément à mettre en panne : un fil, un contact, un fusible, une bobine, un voyant…`, 5000);
     else bulle("");
     svg.style.cursor = o === "main" ? "grab" : o === "fleche" ? "" : o === "designer" || o === "panne" ? "help" : "crosshair";
     const bp = $("pp-choisir"); if (bp) bp.setAttribute("aria-pressed", String(o === "panne"));
-    majBoutons(); rendre(); majVoltmetre();
+    majBoutons(); rendre(); majVoltmetre(); majOhmmetre();
     const bv = $("dp-volt"); if (bv) bv.setAttribute("aria-pressed", String(o === "volt"));
+    const bo = $("dp-ohm"); if (bo) bo.setAttribute("aria-pressed", String(o === "ohm"));
     const bd = $("dp-designer"); if (bd) bd.setAttribute("aria-pressed", String(o === "designer"));
   }
 
@@ -793,11 +800,94 @@
     sondes.prochaine = k === "a" ? "b" : "a";
     if (sondes.a && sondes.b && sim) {
       const r = sim.mesurer(sondes.a, sondes.b);
+      let vat = false;   // vérification d'absence de tension : 0 V là où, avant la coupure, il y avait une tension
+      if (simE && simE.coupe && !consig.vat && r.v === 0) {
+        const av = sim.mesurerAvant(sondes.a, sondes.b);
+        if (av && av.v) {
+          vat = consig.vat = true; majConsig();
+          bulle(`<b>VAT faite</b> : 0 V ici, alors qu'il y avait ${esc(av.texte)} avant la coupure. ${consig.cadenas ? "L'installation est consignée : tu peux prendre l'ohmmètre." : "Pose aussi le cadenas."}`, 6000);
+        }
+      }
       const der = depEtat && depEtat.mesures[depEtat.mesures.length - 1];
-      if (doc.type === "depannage" && depEtat && !(der && der.a === sondes.a.nom && der.b === sondes.b.nom && der.t === r.texte)) { depEtat.mesures.push({ a: sondes.a.nom, b: sondes.b.nom, t: r.texte }); garderDep(); majCarteDep(); }
+      if (!vat && doc.type === "depannage" && depEtat && !(der && der.a === sondes.a.nom && der.b === sondes.b.nom && der.t === r.texte)) { depEtat.mesures.push({ a: sondes.a.nom, b: sondes.b.nom, t: r.texte }); garderDep(); majCarteDep(); }
     }
     majVoltmetre(); rendre();
   }
+  /* ---------- ohmmètre et consignation ----------
+     L'ohmmètre se branche hors tension seulement : on consigne d'abord (séparer : couper l'alimentation générale ;
+     condamner : le cadenas ; VAT : au voltmètre, 0 V là où il y avait une tension). Une mesure à l'ohmmètre sans
+     consignation est une faute de sécurité (comptée, et notée dans le dépannage). */
+  const consigne = () => !!(sim && simE && simE.coupe) && consig.cadenas && consig.vat;
+  const ohmVide = () => ({ a: null, b: null, prochaine: "a" });
+  function faute(txt) {
+    consig.fautes++;
+    if (doc.type === "depannage" && depEtat && !depEtat.trouve) { depEtat.fautes = (depEtat.fautes || 0) + 1; (depEtat.securite = depEtat.securite || []).push(txt); garderDep(); majCarteDep(); }
+    bulle(`<b class="bulle-ko">⚠ Faute de sécurité.</b> ${esc(txt)}`, 8000); majConsig();
+  }
+  function poserSondeO(pc, b) {
+    const k = sondesO.prochaine, autre = k === "a" ? sondesO.b : sondesO.a;
+    if (autre && autre.piece === pc.id && autre.borne === b.id) return;
+    sondesO[k] = { piece: pc.id, borne: b.id, x: b.x, y: b.y, nom: nomBorne(pc, b) };
+    sondesO.prochaine = k === "a" ? "b" : "a";
+    if (sondesO.a && sondesO.b && sim) {
+      const r = sim.resistance(sondesO.a, sondesO.b), texte = r.sousTension ? "⚠ sous tension" : r.texte;
+      if (r.sousTension) faute(`${r.v ? `Ohmmètre sous tension (${r.texteV} entre ses pointes)` : "Ohmmètre sur un circuit sous tension"} : on ne mesure une résistance que hors tension. Consigne d'abord : couper, cadenas, VAT.`);
+      else if (!consigne()) faute(!simE.coupe ? "Mesure à l'ohmmètre sans consigner : ici il n'y a pas de tension, mais l'installation est sous tension et quelqu'un peut la remettre en marche."
+        : !consig.cadenas ? "Mesure à l'ohmmètre sans cadenas : quelqu'un peut remettre le courant pendant que tu mesures."
+        : "Mesure à l'ohmmètre sans avoir vérifié l'absence de tension (VAT) au voltmètre.");
+      const der = depEtat && depEtat.mesures[depEtat.mesures.length - 1];
+      if (doc.type === "depannage" && depEtat && !(der && der.a === sondesO.a.nom && der.b === sondesO.b.nom && der.t === texte)) { depEtat.mesures.push({ a: sondesO.a.nom, b: sondesO.b.nom, t: texte }); garderDep(); majCarteDep(); }
+    }
+    majOhmmetre(); rendre();
+  }
+  function majOhmmetre() {
+    const z = $("sc-ohm"); if (!z) return;
+    const voir = !!sim && (outil === "ohm" || !!sondesO.a || !!sondesO.b);
+    z.hidden = !voir; document.body.classList.toggle("ohm", voir); if (!voir) return;
+    const r = sondesO.a && sondesO.b ? sim.resistance(sondesO.a, sondesO.b) : null;
+    const ecran = !r ? "— Ω" : r.sousTension ? "⚠ DANGER" : r.texte;
+    const etat = !r ? (consigne() ? "hors tension : consigné ✓" : "seulement hors tension (consigne d'abord)")
+      : r.sousTension ? "circuit sous tension !" : consigne() ? "hors tension : consigné ✓" : "pas consigné !";
+    const h = `<div class="sv-ecran">${esc(ecran)}</div><div class="sv-p"><i class="r"></i>${sondesO.a ? esc(sondesO.a.nom) : "pointe rouge : touche une borne"}</div><div class="sv-p"><i class="n"></i>${sondesO.b ? esc(sondesO.b.nom) : "pointe noire (COM)"}</div><div class="sv-p so-etat${!r || consigne() ? "" : " ko"}">${esc(etat)}</div>`;
+    z.classList.toggle("danger", !!(r && r.sousTension));
+    if (z.dataset.h !== h) { z.dataset.h = h; z.innerHTML = h; }
+  }
+  const contacteursSim = () => (simE ? Object.entries(simE.appareils).filter(([r, a]) => (a.sorte === "contacteur" || a.sorte === "relais") && r && r[0] !== "?").map(([r]) => r).sort((a, b) => a.localeCompare(b, "fr", { numeric: true })) : []);
+  function carteConsig() {
+    const coupe = !!(simE && simE.coupe), cad = consig.cadenas, vat = consig.vat;
+    const etape = (fait, titre, txt, bouton) => `<li class="${fait ? "cg-fait" : ""}"><span><b>${titre}</b> ${txt}</span>${fait ? `<em aria-label="fait">✓</em>` : bouton}</li>`;
+    let h = !coupe ? `<p class="cg-etat on">⚡ Sous tension</p>` : cad && vat ? `<p class="cg-etat ok">🔒 Consigné : tu peux mesurer à l'ohmmètre</p>` : `<p class="cg-etat">Courant coupé${cad ? ", cadenas posé" : ""} : pas encore consigné</p>`;
+    h += `<ol class="cg-etapes">${etape(coupe, "Séparer :", "couper l'alimentation générale.", `<button class="btn sec" type="button" data-k="separer">Couper</button>`)}`
+      + etape(cad, "Condamner :", "le cadenas, pour que personne ne remette le courant.", `<button class="btn sec" type="button" data-k="cadenas"${coupe ? "" : " disabled"}>Cadenas</button>`)
+      + etape(vat, "Vérifier l'absence de tension (VAT) :", "au voltmètre, 0 V là où il y avait une tension.", `<button class="btn sec" type="button" data-k="volt"${coupe ? "" : " disabled"}>Voltmètre</button>`) + `</ol>`;
+    if (coupe) {
+      const L = contacteursSim();
+      if (L.length) h += `<p class="discret cg-txt">Hors tension, on peut enfoncer un contacteur à la main pour mesurer ses contacts :</p><div class="rang cg-main">${L.map((r) => `<button class="btn sec" type="button" data-k="main" data-ref="${esc(r)}" aria-pressed="${!!(simE.appareils[r] || {}).main}">✋ ${esc(r)}</button>`).join("")}</div>`;
+      h += `<div class="rang"><button class="btn sec" type="button" data-k="remettre">${cad ? "Retirer le cadenas et remettre le courant" : "Remettre le courant"}</button></div>`;
+    }
+    if (consig.fautes) h += `<p class="cg-fautes">⚠ ${consig.fautes} faute${consig.fautes > 1 ? "s" : ""} de sécurité</p>`;
+    return h;
+  }
+  function majConsig() {
+    const z = $("sm-consig"); if (!z || !sim) return;
+    const h = carteConsig(); if (z.dataset.h !== h) { z.dataset.h = h; z.innerHTML = h; }
+    majOhmmetre();
+  }
+  function actionConsig(k, ref) {
+    if (!sim) return;
+    if (k === "separer") { sim.couper(true); consig.vat = false; bulle("Courant coupé. Pose le <b>cadenas</b>, puis vérifie l'absence de tension au <b>voltmètre</b> (VAT).", 5500); }
+    else if (k === "cadenas") { if (!simE.coupe) return; consig.cadenas = true; bulle(consig.vat ? "Cadenas posé : l'installation est consignée. Tu peux prendre l'<b>ohmmètre</b>." : "Cadenas posé. Vérifie maintenant l'absence de tension au <b>voltmètre</b> (VAT) : 0 V là où il y avait une tension.", 5500); }
+    else if (k === "volt") { choisirOutil("volt"); return; }
+    else if (k === "main") { if (!simE.coupe) return; sim.pousser(ref); }
+    else if (k === "remettre") {
+      const branche = !!(sondesO.a && sondesO.b);
+      consig.cadenas = false; consig.vat = false; sim.couper(false);
+      if (branche) { sondesO = ohmVide(); faute("Tu as remis le courant avec l'ohmmètre branché : retire toujours l'appareil de mesure avant."); }
+      else bulle("Courant remis.", 2500);
+    }
+    majSim(true); majConsig(); rendre();
+  }
+  function cadenasSvg(x, y) { return `<g class="cadenas" transform="translate(${x} ${y})"><path d="M3.5 8V5.6a3.5 3.5 0 017 0V8"/><rect x="1" y="8" width="12" height="9" rx="2"/></g>`; }
   /* ---------- pince ampèremétrique : un fil (son courant), ou un appareil (le courant de chaque borne, et tous ensemble) ---------- */
   const PINCE_APP = /^(moteur|moteur6|bobine|relais|tempo_travail|tempo_repos|voyant|electrovanne|transfo|automate|variateur|capteur3)$/;
   let pince = null, pinceC = null, pinceT = 0;   // pince : { fil, x, y } (pas de la grille) ou { piece } ; pinceC : les courants
@@ -859,7 +949,8 @@
   function surcouches() {
     let h = "";
     for (const m of marques) h += marqueDe(m);
-    if (outil === "volt" && survolBorne) h += `<circle class="sonde-vise" cx="${survolBorne.x * G}" cy="${survolBorne.y * G}" r="7"/>`;
+    if ((outil === "volt" || outil === "ohm") && survolBorne) h += `<circle class="sonde-vise" cx="${survolBorne.x * G}" cy="${survolBorne.y * G}" r="7"/>`;
+    if (sim && consig.cadenas && simE && simE.coupe) for (const pc of schema.pieces) if (pc.type === "reseau" || (pc.type === "alim" && /^(L|L1|L2|L3|\+24)$/.test(M.parametres(pc).pot))) { const b = M.boiteAbs(pc); h += cadenasSvg(b[0] * G - 18, b[1] * G - 2); }
     if (pince && pince.fil) {
       const f = filParId(pince.fil), x = pince.x * G, y = pince.y * G, r = lirePince();
       if (f) h += `<g class="pince-g"><path class="pince-m" d="M${x - 7} ${y - 5}A8.6 8.6 0 1 1 ${x - 7} ${y + 5}"/><text class="pince-t" x="${x + 11}" y="${y - 10}" data-pince-t="1">${esc(r ? r.texte : "")}</text></g>`;
@@ -867,10 +958,10 @@
       const pc = pieceParId(pince.piece);
       if (pc) { const b = M.boiteAbs(pc); h += `<rect class="pince-c" x="${b[0] * G - 7}" y="${b[1] * G - 7}" width="${(b[2] - b[0]) * G + 14}" height="${(b[3] - b[1]) * G + 14}" rx="6"/>`; }
     }
-    for (const [k, c] of [["a", "r"], ["b", "n"]]) {
-      const q = sondes[k]; if (!q) continue;
+    for (const [P, lab] of [[sondes, "+"], [sondesO, "Ω"]]) for (const [k, c] of [["a", "r"], ["b", "n"]]) {
+      const q = P[k]; if (!q) continue;
       const sx = k === "a" ? 1 : -1;   // la pointe rouge penche à droite, la noire à gauche
-      h += `<g class="sonde ${c}"><line x1="${q.x * G}" y1="${q.y * G}" x2="${q.x * G + 9 * sx}" y2="${q.y * G - 16}"/><circle cx="${q.x * G}" cy="${q.y * G}" r="4.2"/><text x="${q.x * G + 11 * sx}" y="${q.y * G - 19}">${k === "a" ? "+" : "COM"}</text></g>`;
+      h += `<g class="sonde ${c}"><line x1="${q.x * G}" y1="${q.y * G}" x2="${q.x * G + 9 * sx}" y2="${q.y * G - 16}"/><circle cx="${q.x * G}" cy="${q.y * G}" r="4.2"/><text x="${q.x * G + 11 * sx}" y="${q.y * G - 19}">${k === "a" ? lab : "COM"}</text></g>`;
     }
     return h;
   }
@@ -878,7 +969,7 @@
   function garderDep() {
     if (doc.type !== "depannage" || !depEtat) return;
     garder(CLE.dep(doc.dep), Object.assign({ p: btoa(JSON.stringify(depEtat.panne)), mesures: depEtat.mesures.slice(-40), erreurs: depEtat.erreurs, trouve: depEtat.trouve, repare: depEtat.repare,
-      debut: depEtat.debut, fin: depEtat.fin, abandon: depEtat.abandon, designations: depEtat.designations, envoi: depEtat.envoi }, depProf && depProf.id === doc.dep ? { code: depProf.code } : {}));
+      debut: depEtat.debut, fin: depEtat.fin, abandon: depEtat.abandon, designations: depEtat.designations, envoi: depEtat.envoi, fautes: depEtat.fautes || 0, securite: (depEtat.securite || []).slice(-20) }, depProf && depProf.id === doc.dep ? { code: depProf.code } : {}));
   }
   function nouvellePanne(D, sauf) {   // au hasard, parmi les pannes que l'essai montre
     const s = D.base(), L = MO.pannesPossibles(s);
@@ -894,10 +985,10 @@
     if (doc.type === "defi") sauver(); else if (doc.type === "libre") { sauver(); copieAuto(); }
     doc = { type: "depannage", dep: id };
     let e = null;
-    if (!neuve) { const r = lire(CLE.dep(id)) || (D.prof ? reprendreLocal(id) : null); if (r && r.p) { try { e = { panne: JSON.parse(atob(r.p)), mesures: r.mesures || [], erreurs: r.erreurs || 0, trouve: !!r.trouve, repare: !!r.repare, debut: r.debut || Date.now(), fin: r.fin || null, abandon: !!r.abandon, designations: r.designations || [], envoi: r.envoi || "" }; } catch (x) { e = null; } } }
+    if (!neuve) { const r = lire(CLE.dep(id)) || (D.prof ? reprendreLocal(id) : null); if (r && r.p) { try { e = { panne: JSON.parse(atob(r.p)), mesures: r.mesures || [], erreurs: r.erreurs || 0, trouve: !!r.trouve, repare: !!r.repare, debut: r.debut || Date.now(), fin: r.fin || null, abandon: !!r.abandon, designations: r.designations || [], envoi: r.envoi || "", fautes: r.fautes || 0, securite: r.securite || [] }; } catch (x) { e = null; } } }
     if (e && !MO.pannesPossibles(D.base()).some((q) => JSON.stringify(q) === JSON.stringify(e.panne))) e = null;   // une panne qui n'existe plus : on en tire une autre
     if (e && D.prof && JSON.stringify(e.panne) !== JSON.stringify(D.panne)) e = null;
-    depEtat = e || { panne: D.prof ? D.panne : nouvellePanne(D, neuve), mesures: [], erreurs: 0, trouve: false, repare: false, debut: Date.now(), fin: null, abandon: false, designations: [], envoi: "" };
+    depEtat = e || { panne: D.prof ? D.panne : nouvellePanne(D, neuve), mesures: [], erreurs: 0, trouve: false, repare: false, debut: Date.now(), fin: null, abandon: false, designations: [], envoi: "", fautes: 0, securite: [] };
     marques = depEtat.trouve ? [Object.assign(depEtat.panne.fil ? { fil: depEtat.panne.fil } : { piece: depEtat.panne.piece }, { cls: "panne" })] : [];
     garderDep();
     chargerSchema(D.base());
@@ -952,6 +1043,10 @@
     }
     const pc = pieceParId(p.piece); if (!pc) return "";
     const r = pc.ref || "", t = pc.type, pole = p.i != null ? `${2 * p.i + 1}-${2 * p.i + 2}` : "";
+    if (p.sorte === "soude") return `${t === "poles" ? `le pôle ${pole} de ${r}` : nomPiece(pc)} ${etait} soudé (${present ? "il reste" : "il restait"} fermé)`;
+    if (p.sorte === "court") return `${t === "electrovanne" ? `la bobine de l'électrovanne ${r}` : `la bobine de ${r}`} ${etait} en court-circuit`;
+    if (p.sorte === "reglage") return `le relais thermique ${r} ${etait} réglé trop bas (il déclenche alors que le moteur tire son courant normal)`;
+    if (p.sorte === "phases") return `deux phases ${present ? "sont" : "étaient"} inversées au bornier du moteur ${r}`;
     if (t === "poles" || t === "disjoncteur" || t === "disj_moteur") return `le pôle ${pole} de ${r} ${cond}`;
     if (t === "sectionneur") return `le fusible ${pole} du sectionneur ${r} ${etait} fondu (sans que ça se voie)`;
     if (t === "thermique") return `l'élément ${pole} du relais thermique ${r} ${etait} coupé`;
@@ -997,7 +1092,10 @@
       marques = marques.filter((x) => x.cls !== "bon").concat([m]);
       setTimeout(() => { marques = marques.filter((x) => x !== m); rendre(); }, 2200);
       choisirOutil("volt");
-      bulle(`Non : ${c.fil ? "ce fil" : esc(nomPiece(c.piece))} ${c.fil ? "est" : "est"} en bon état. Mesure encore : cherche où la tension s'arrête.`, 5000);
+      const A = c.piece && simE && simE.appareils[c.piece.ref];
+      if (A && (A.fondu || (A.fondus && A.fondus.some(Boolean)))) bulle(`Non : ${esc(c.piece.ref)} a fondu, mais il n'est pas en panne : c'est une conséquence. Remplace-le, et cherche pourquoi il fond (à l'ohmmètre, hors tension).`, 7000);
+      else if (A && A.declenche && c.piece.type !== "thermique") bulle(`Non : ${esc(c.piece.ref)} a déclenché, mais il n'est pas en panne. Réarme-le, et cherche ce qui le fait déclencher.`, 6500);
+      else bulle(`Non : ${c.fil ? "ce fil" : esc(nomPiece(c.piece))} est en bon état. Mesure encore : au voltmètre (sous tension), ou à l'ohmmètre (hors tension).`, 5500);
     }
     majCarteDep(); rendre();
   }
@@ -1008,21 +1106,22 @@
       <h2>${esc(D.titre)}</h2>
       ${D.prof ? (session && session.nom ? `<p class="dp-qui ok">Connecté(e) : <b>${esc(session.nom)}</b>. Ta note partira au professeur dès que tu auras trouvé.</p>`
         : `<p class="dp-qui ko">Tu n'es pas connecté(e) au site : ta note ne partira pas au professeur. <a href="../index.html">Connecte-toi d'abord</a>, puis rouvre ce lien.</p>`) : ""}
-      <p>Le schéma est juste, mais une <b>panne</b> y est cachée : un fil coupé, un contact qui ne conduit plus, une bobine, un voyant ou un fusible coupé… Ici, les fils ne montrent pas la tension : il faut <b>mesurer</b>.</p>
+      <p>Le schéma est juste, mais une <b>panne</b> y est cachée : un fil coupé, un contact qui ne conduit plus ou qui reste collé (soudé), une bobine coupée ou en court-circuit, un voyant ou un fusible, un relais thermique mal réglé, deux phases inversées… Ici, les fils ne montrent pas la tension : il faut <b>mesurer</b>.</p>
       <details class="dp-ok" open><summary>Ce qui doit se passer</summary>${D.fonctionnement}</details>
-      <ol class="dp-etapes"><li>Essaie le schéma : qu'est-ce qui ne marche pas ?</li><li>Prends le <b>voltmètre</b> : pointe rouge sur une borne, pointe noire sur une autre (par exemple N ou 0 V). Cherche où la tension s'arrête.</li><li>Désigne l'élément en panne.</li></ol>
-      <div class="rang"><button class="btn" type="button" id="dp-volt" aria-pressed="${outil === "volt"}">Voltmètre</button><button class="btn sec" type="button" id="dp-designer" aria-pressed="${outil === "designer"}"${depEtat.trouve || depEtat.repare ? " disabled" : ""}>Désigner la panne</button></div>
+      <ol class="dp-etapes"><li>Essaie le schéma : qu'est-ce qui ne marche pas ?</li><li>Sous tension, prends le <b>voltmètre</b> : pointe rouge sur une borne, pointe noire sur une autre (par exemple N ou 0 V). Cherche où la tension s'arrête.</li><li>Hors tension seulement, l'<b>ohmmètre</b> : <button class="lien" type="button" id="dp-consig">consigne</button> d'abord (couper, cadenas, VAT), puis mesure une bobine, un contact, un enroulement.</li><li>Désigne l'élément en panne.</li></ol>
+      <div class="rang"><button class="btn" type="button" id="dp-volt" aria-pressed="${outil === "volt"}">Voltmètre</button><button class="btn sec" type="button" id="dp-ohm" aria-pressed="${outil === "ohm"}">Ohmmètre</button><button class="btn sec" type="button" id="dp-designer" aria-pressed="${outil === "designer"}"${depEtat.trouve || depEtat.repare ? " disabled" : ""}>Désigner la panne</button></div>
       <div id="dp-suivi">${suiviDep()}</div>
-      <p class="discret dp-bareme">Note sur 20 : −${nf((D.bareme || BAREME).parMesure)} par mesure au-delà de ${(D.bareme || BAREME).libres}, −${nf((D.bareme || BAREME).parErreur)} par mauvaise désignation.</p>
+      <p class="discret dp-bareme">Note sur 20 : −${nf((D.bareme || BAREME).parMesure)} par mesure au-delà de ${(D.bareme || BAREME).libres}, −${nf((D.bareme || BAREME).parErreur)} par mauvaise désignation, −${nf(baremeDe(D).parFaute)} par faute de sécurité (ohmmètre sans consigner).</p>
       <div class="rang">${D.prof ? `<button class="btn sec" type="button" id="dp-abandon"${depEtat.trouve ? " hidden" : ""}>Abandonner (note 0)</button>` : `<button class="btn sec" type="button" id="dp-nouvelle">Nouvelle panne</button>`}<button class="btn sec" type="button" id="dp-quitter">Quitter le dépannage</button></div></div>`;
   }
   function suiviDep() {
     const n = depEtat.mesures.length, e = depEtat.erreurs;
-    let h = `<p class="dp-cpt">${n} mesure${n > 1 ? "s" : ""}${e ? ` · ${e} erreur${e > 1 ? "s" : ""}` : ""}</p>`;
+    const f = depEtat.fautes || 0;
+    let h = `<p class="dp-cpt">${n} mesure${n > 1 ? "s" : ""}${e ? ` · ${e} erreur${e > 1 ? "s" : ""}` : ""}${f ? ` · <span class="dp-faute">${f} faute${f > 1 ? "s" : ""} de sécurité</span>` : ""}</p>`;
     if (n) h += `<ul class="dp-mesures">${depEtat.mesures.slice(-6).reverse().map((m) => `<li><span><i class="r"></i>${esc(m.a)} <i class="n"></i>${esc(m.b)}</span><b>${esc(m.t)}</b></li>`).join("")}</ul>`;
     if (depEtat.trouve) {
       h += depEtat.abandon ? `<div class="bravo ko">Abandon : ${esc(decrirePanne(depEtat.panne))}. Note : 0 / 20.</div>`
-        : `<div class="bravo">Trouvé : ${esc(decrirePanne(depEtat.panne))}. ${n} mesure${n > 1 ? "s" : ""}, ${e ? `${e} erreur${e > 1 ? "s" : ""}` : "aucune erreur"}. <b>Note : ${nf(noteDep())} / 20</b>.</div>`;
+        : `<div class="bravo">Trouvé : ${esc(decrirePanne(depEtat.panne))}. ${n} mesure${n > 1 ? "s" : ""}, ${e ? `${e} erreur${e > 1 ? "s" : ""}` : "aucune erreur"}${f ? `, ${f} faute${f > 1 ? "s" : ""} de sécurité` : ""}. <b>Note : ${nf(noteDep())} / 20</b>.</div>`;
       if (depProf) {
         const E = depEtat.envoi, nom = session && session.nom ? esc(session.nom) : "";
         h += E === "envoye" ? `<p class="dp-envoi ok">Résultat envoyé au professeur ✓${nom ? ` (${nom})` : ""}</p>`
@@ -1035,10 +1134,11 @@
     return h;
   }
   function majCarteDep() { const z = $("dp-suivi"); if (!z || !depEtat) return; z.innerHTML = suiviDep(); brancherSuivi(); const bd = $("dp-designer"); if (bd) bd.disabled = depEtat.trouve || depEtat.repare; const ab = $("dp-abandon"); if (ab) ab.hidden = depEtat.trouve; }
+  const baremeDe = (D) => Object.assign({}, BAREME, (D && D.bareme) || {});
   function noteDep() {
-    const D = depParId(doc.dep), b = (D && D.bareme) || BAREME;
+    const D = depParId(doc.dep), b = baremeDe(D);
     if (!depEtat || depEtat.abandon) return 0;
-    const pen = Math.max(0, depEtat.mesures.length - b.libres) * b.parMesure + depEtat.erreurs * b.parErreur;
+    const pen = Math.max(0, depEtat.mesures.length - b.libres) * b.parMesure + depEtat.erreurs * b.parErreur + (depEtat.fautes || 0) * b.parFaute;
     return Math.max(0, Math.round((20 - pen) * 4) / 4);
   }
 
@@ -1057,7 +1157,7 @@
     throw new Error("code");
   }
   const hacher = (t) => { let h = 0x811c9dc5; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36); };
-  const lireBareme = (b) => { const n = (v, d, a, z) => (Number.isFinite(+v) ? Math.min(z, Math.max(a, +v)) : d); b = b || {}; return { libres: Math.round(n(b.libres, BAREME.libres, 0, 99)), parMesure: n(b.parMesure, BAREME.parMesure, 0, 5), parErreur: n(b.parErreur, BAREME.parErreur, 0, 20) }; };
+  const lireBareme = (b) => { const n = (v, d, a, z) => (v != null && v !== "" && Number.isFinite(+v) ? Math.min(z, Math.max(a, +v)) : d); b = b || {}; return { libres: Math.round(n(b.libres, BAREME.libres, 0, 99)), parMesure: n(b.parMesure, BAREME.parMesure, 0, 5), parErreur: n(b.parErreur, BAREME.parErreur, 0, 20), parFaute: n(b.parFaute, BAREME.parFaute, 0, 20) }; };
   const enHtml = (t) => String(t || "").split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("");
   async function ouvrirCodeProf(code, silencieux) {
     let o, s;
@@ -1095,9 +1195,10 @@
   function detailsDep(bareme) {
     const n = depEtat.mesures.length, note = noteDep();
     return [
-      { q: "Panne cachée", rep: depEtat.abandon ? "abandon" : `trouvée après ${n} mesure${n > 1 ? "s" : ""} et ${depEtat.erreurs} mauvaise${depEtat.erreurs > 1 ? "s" : ""} désignation${depEtat.erreurs > 1 ? "s" : ""}` + (depEtat.designations && depEtat.designations.length ? " : " + depEtat.designations.join(" ; ") : ""),
+      { q: "Panne cachée", rep: (depEtat.abandon ? "abandon" : `trouvée après ${n} mesure${n > 1 ? "s" : ""} et ${depEtat.erreurs} mauvaise${depEtat.erreurs > 1 ? "s" : ""} désignation${depEtat.erreurs > 1 ? "s" : ""}` + (depEtat.designations && depEtat.designations.length ? " : " + depEtat.designations.join(" ; ") : ""))
+          + (depEtat.fautes ? `. Fautes de sécurité (${depEtat.fautes}) : ${(depEtat.securite || []).map((x) => x.split(" : ")[0].split(" (")[0]).join(" ; ")}` : ""),
         attendu: decrirePanne(depEtat.panne, true), bareme: 20, pts: note, erreurs: depEtat.erreurs + (depEtat.abandon ? 1 : 0),
-        mesures: n, mauvaises: depEtat.erreurs, abandon: !!depEtat.abandon, designations: (depEtat.designations || []).slice(0, 30) },
+        mesures: n, mauvaises: depEtat.erreurs, abandon: !!depEtat.abandon, designations: (depEtat.designations || []).slice(0, 30), fautes: depEtat.fautes || 0, securite: (depEtat.securite || []).slice(0, 20) },
       { q: `Mesures (${n})`, rep: depEtat.mesures.map((m) => `${m.a} → ${m.b} : ${m.t}`).join(" ; ").slice(0, 2000) || "aucune", attendu: `${bareme.libres} sans pénalité`, erreurs: 0 }];
   }
   const dureeDep = () => Math.round(((depEtat.fin || Date.now()) - (depEtat.debut || Date.now())) / 1000);
@@ -1247,11 +1348,19 @@
     fermerDialogues(); sel.clear(); majPanneau(); ouvrirPanneau(true);
     choisirOutil(prep.panne ? "fleche" : "panne"); rendre();
   }
+  function nomSorte(x, pc) {   // le nom d'une sorte de panne, pour le professeur
+    const t = pc ? pc.type : "";
+    if (x === "soude") return "Soudé (reste fermé)";
+    if (x === "court") return "En court-circuit";
+    if (x === "reglage") return "Réglé trop bas";
+    if (x === "phases") return "Phases inversées";
+    return t === "fusible" ? "Fondu" : t === "voyant" ? "Grillé" : M.BOBINES.indexOf(t) >= 0 || t === "electrovanne" ? "Coupée" : t === "thermique" ? "Élément coupé" : t === "sectionneur" ? "Fusible fondu" : "Ne conduit plus";
+  }
   function choisirPannePrep(c) {
     if (c.fil) prep.panne = { fil: c.fil.id };
     else {
       const L = MO.pannesPossibles({ pieces: [c.piece], fils: [] });
-      if (!L.length) { bulle(`On ne peut pas cacher de panne dans ${esc(nomPiece(c.piece))} : choisis un fil, un contact, un fusible, une bobine, un voyant…`, 5000); return; }
+      if (!L.length) { bulle(`On ne peut pas cacher de panne dans ${esc(nomPiece(c.piece))} : choisis un fil, un contact, un fusible, une bobine, un voyant, un moteur…`, 5000); return; }
       prep.panne = L[0];
     }
     garderPrep(); choisirOutil("fleche"); majPanneau(); rendre();
@@ -1259,16 +1368,18 @@
   }
   function cartePrep() {
     if (prep.panne && !MO.pannesPossibles(schema).some((q) => JSON.stringify(q) === JSON.stringify(prep.panne))) prep.panne = null;   // l'élément n'existe plus
-    const p = prep.panne, poles = p && p.piece ? MO.pannesPossibles({ pieces: [pieceParId(p.piece)], fils: [] }) : [], b = prep.bareme;
+    const p = prep.panne, V = p && p.piece ? MO.pannesPossibles({ pieces: [pieceParId(p.piece)], fils: [] }) : [], b = prep.bareme;
+    const so = (q) => q.sorte || "", sortes = [...new Set(V.map(so))], poles = V.filter((q) => p && so(q) === so(p) && q.i != null);
     return `<div class="pn-carte pn-defi pn-prep"><div class="eyebrow">Préparer un dépannage · professeur</div><h2>Cache une panne</h2>
       <p>Choisis l'élément en panne, écris ce qui doit se passer, puis donne le <b>lien</b> (ou le fichier) aux élèves. Ils auront tous la même panne ; ceux qui sont connectés au site t'envoient leur note sur 20, que tu retrouves dans ton espace professeur : l'espace de la classe, puis la page « Dépannages ».</p>
       <div class="rang"><button class="btn${p ? " sec" : ""}" type="button" id="pp-choisir" aria-pressed="${outil === "panne"}">${p ? "Changer l'élément en panne" : "Choisir l'élément en panne"}</button></div>
       <p class="pp-panne">${p ? `Panne : <b>${esc(decrirePanne(p, true))}</b>` : `Pas encore de panne : ${DOIGT ? "touche" : "clique sur"} un fil, un contact, une bobine…`}</p>
+      ${sortes.length > 1 ? `<div class="rang pp-sortes">${sortes.map((x) => `<button class="btn sec" type="button" data-sorte="${x}" aria-pressed="${x === so(p)}">${esc(nomSorte(x, pieceParId(p.piece)))}</button>`).join("")}</div>` : ""}
       ${poles.length > 1 ? `<div class="rang pp-poles">${poles.map((q) => `<button class="btn sec" type="button" data-pole="${q.i}" aria-pressed="${q.i === p.i}">Pôle ${2 * q.i + 1}-${2 * q.i + 2}</button>`).join("")}</div>` : ""}
       <label class="ch" for="pp-titre">Titre</label><input type="text" id="pp-titre" maxlength="80" value="${esc(prep.titre)}">
       <label class="ch" for="pp-consigne">Ce qui doit se passer (l'élève le lit)</label><textarea id="pp-consigne" rows="5" maxlength="1500" placeholder="Par exemple : S2 met le moteur en marche, S1 l'arrête…">${esc(prep.consigne)}</textarea>
       <p class="ch">Note sur 20</p>
-      <div class="pp-bareme"><label>Mesures sans pénalité<input type="number" id="pp-libres" min="0" max="99" step="1" value="${b.libres}"></label><label>Points en moins par mesure de plus<input type="number" id="pp-parmesure" min="0" max="5" step="0.25" value="${b.parMesure}"></label><label>Points en moins par mauvaise désignation<input type="number" id="pp-parerreur" min="0" max="20" step="0.5" value="${b.parErreur}"></label></div>
+      <div class="pp-bareme"><label>Mesures sans pénalité<input type="number" id="pp-libres" min="0" max="99" step="1" value="${b.libres}"></label><label>Points en moins par mesure de plus<input type="number" id="pp-parmesure" min="0" max="5" step="0.25" value="${b.parMesure}"></label><label>Points en moins par faute de sécurité<input type="number" id="pp-parfaute" min="0" max="20" step="0.5" value="${b.parFaute}"></label><label>Points en moins par mauvaise désignation<input type="number" id="pp-parerreur" min="0" max="20" step="0.5" value="${b.parErreur}"></label></div>
       <div class="rang"><button class="btn" type="button" id="pp-lien"${p ? "" : " disabled"}>Copier le lien</button><button class="btn sec" type="button" id="pp-fichier"${p ? "" : " disabled"}>Fichier pour les élèves</button></div>
       <div class="rang"><button class="btn sec" type="button" id="pp-essayer"${p ? "" : " disabled"}>Essayer comme un élève</button><button class="btn sec" type="button" id="pp-fermer">Fermer</button></div>
       <div id="pp-sortie"></div>
@@ -1281,7 +1392,12 @@
     for (const x of pn.querySelectorAll("[data-pole]")) x.onclick = () => { prep.panne = Object.assign({}, prep.panne, { i: +x.dataset.pole }); garderPrep(); majPanneau(); rendre(); };
     $("pp-titre").oninput = (e) => { prep.titre = e.target.value.slice(0, 80); garderPrep(); };
     $("pp-consigne").oninput = (e) => { prep.consigne = e.target.value.slice(0, 1500); garderPrep(); };
-    for (const [id, k] of [["pp-libres", "libres"], ["pp-parmesure", "parMesure"], ["pp-parerreur", "parErreur"]]) $(id).onchange = (e) => { const b = Object.assign({}, prep.bareme); b[k] = e.target.value; prep.bareme = lireBareme(b); e.target.value = prep.bareme[k]; garderPrep(); };
+    for (const x of pn.querySelectorAll("[data-sorte]")) x.onclick = () => {
+      const V = MO.pannesPossibles({ pieces: [pieceParId(prep.panne.piece)], fils: [] }), s2 = x.dataset.sorte;
+      prep.panne = V.find((q) => (q.sorte || "") === s2 && (q.i == null || q.i === prep.panne.i)) || V.find((q) => (q.sorte || "") === s2) || prep.panne;
+      garderPrep(); majPanneau(); rendre();
+    };
+    for (const [id, k] of [["pp-libres", "libres"], ["pp-parmesure", "parMesure"], ["pp-parerreur", "parErreur"], ["pp-parfaute", "parFaute"]]) $(id).onchange = (e) => { const b = Object.assign({}, prep.bareme); b[k] = e.target.value; prep.bareme = lireBareme(b); e.target.value = prep.bareme[k]; garderPrep(); };
     $("pp-lien").onclick = async () => {
       const l = await lienPrep();
       let copie = false; try { await navigator.clipboard.writeText(l); copie = true; } catch (e) { copie = false; }
@@ -1307,6 +1423,8 @@
   function brancherDep() {
     const v = $("dp-volt"); if (!v) return;
     v.onclick = () => choisirOutil(outil === "volt" ? "fleche" : "volt");
+    $("dp-ohm").onclick = () => choisirOutil(outil === "ohm" ? "fleche" : "ohm");
+    $("dp-consig").onclick = () => { const c = $("sm-consig"); if (c) { c.scrollIntoView({ block: "nearest", behavior: "smooth" }); c.classList.add("flash"); setTimeout(() => c.classList.remove("flash"), 900); } };
     $("dp-designer").onclick = () => choisirOutil(outil === "designer" ? "volt" : "designer");
     $("dp-quitter").onclick = quitterDepannage;
     const ab = $("dp-abandon");
@@ -1331,11 +1449,12 @@
      ===================================================================== */
   function basculerSim() { if (sim) { if (doc.type === "depannage") quitterDepannage(); else if (doc.type === "lecture") quitterLecture(); else arreterSim(); } else demarrerSim(); }
   const avecPanne = () => doc.type === "depannage" && depEtat && depEtat.panne && !depEtat.repare;
-  function masquer(E) { if (doc.type === "depannage") E.noeuds = E.noeuds.map(() => null); return E; }   // en dépannage, on mesure
+  function masquer(E) { if (doc.type === "depannage") { E.noeuds = E.noeuds.map(() => null); E.court = []; } return E; }   // en dépannage, on mesure (pas de tension ni de chemin du court-circuit sur les fils)
   function demarrerSim() {
     brouillon = null; if (outil === "placer" || outil === "fil") choisirOutil("fleche");
     sel.clear(); geste = null; survolPiece = null;
     sim = MO.simulation(M.cloner(schema), avecPanne() ? { panne: depEtat.panne } : {}); simE = masquer(sim.etat()); simSig = ""; angles = {}; tPrec = 0;
+    sondesO = ohmVide(); consig = { cadenas: false, vat: false, fautes: 0 };
     CH.demarrer(schema, simE);
     document.body.classList.add("simu"); document.body.classList.toggle("depannage", doc.type === "depannage");
     const b = $("sc-simuler"); b.querySelector("span").textContent = doc.type === "depannage" || doc.type === "lecture" ? "Quitter" : "Arrêter"; b.querySelector("svg").innerHTML = '<rect x="6" y="6" width="12" height="12" rx="1.5"/>';
@@ -1352,8 +1471,8 @@
   }
   function arreterSim() {
     sim = null; simE = null; cancelAnimationFrame(rafId); appuis.clear(); survolPiece = null; PR.live.fermer(); CH.arreter();
-    sondes = { a: null, b: null, prochaine: "a" }; survolBorne = null; pince = null; pinceC = null; majPince();
-    if (outil === "volt" || outil === "designer" || outil === "pince") { outil = "fleche"; document.querySelectorAll("#sc-barre [data-o]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.o === "fleche"))); }
+    sondes = { a: null, b: null, prochaine: "a" }; sondesO = ohmVide(); consig = { cadenas: false, vat: false, fautes: 0 }; survolBorne = null; pince = null; pinceC = null; majPince(); majOhmmetre();
+    if (outil === "volt" || outil === "designer" || outil === "pince" || outil === "ohm") { outil = "fleche"; document.querySelectorAll("#sc-barre [data-o]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.o === "fleche"))); }
     document.body.classList.remove("simu", "depannage"); majVoltmetre();
     const b = $("sc-simuler"); b.querySelector("span").textContent = "Simuler"; b.querySelector("svg").innerHTML = '<path d="M7 4.5v15l12-7.5z"/>';
     bulle(""); majBoutons(); dessiner(); majPanneau();
@@ -1382,6 +1501,7 @@
     $("sc-horloge").textContent = "t = " + nf(sim.temps() / 1000) + " s";
     majVoltmetre(); majPince(force);
     const sig = signature(simE);
+    if (force || sig !== simSig) majOhmmetre();
     if (sig !== simSig) { simSig = sig; dessiner(); majPanneauSim(); PR.live.maj(simE); } else { majRotors(); majSystemes(); }
   }
   function actionSim(pc, e) {
@@ -1444,11 +1564,13 @@
       <div class="rang"><button class="btn sec" type="button" id="sm-raz">Tout remettre à zéro</button><button class="btn" type="button" id="sm-courant" hidden>Remettre le courant</button></div>
       <h3>Commandes</h3><div class="cmd-l" id="sm-cmd">${commandesSim().map((c) => `<div class="cmd" data-ref="${esc(c.ref)}"><div><b>${esc(c.ref)}</b><small>${esc(DESCR_CMD[c.pc.type] || "")}</small><span class="etat"></span></div><div class="bt">${boutonsCmd(c)}</div></div>`).join("") || `<p class="discret">Aucun bouton, interrupteur ni protection à actionner.</p>`}</div>
       ${cartesSim()}
+      <h3>Consignation</h3><div class="consig" id="sm-consig"></div>
       <h3>Ce qui se passe</h3><ul class="msgs" id="sm-msgs"></ul>
       <h3>Journal</h3><ul class="msgs" id="sm-journal"></ul>`;
     pn.innerHTML = h;
     brancherPoignee(); brancherDefi(); brancherDep(); brancherCartes();
-    $("sm-raz").onclick = () => { sim.reinitialiser(); angles = {}; pinceC = null; majSim(true); };
+    $("sm-raz").onclick = () => { sim.reinitialiser(); angles = {}; pinceC = null; consig.cadenas = false; consig.vat = false; sondesO = ohmVide(); majSim(true); majConsig(); rendre(); };
+    $("sm-consig").onclick = (e) => { const b = e.target.closest("button[data-k]"); if (b && !b.disabled) actionConsig(b.dataset.k, b.dataset.ref); };
     $("sm-courant").onclick = () => { sim.rearmerAlimentation(); majSim(true); };
     for (const b of pn.querySelectorAll("#sm-cmd button[data-c]")) {
       const ref = b.closest(".cmd").dataset.ref, c = b.dataset.c;
@@ -1501,7 +1623,7 @@
       }
       et.textContent = txt; et.className = "etat " + (ok ? "ok" : "ko");
     }
-    majCartes();
+    majCartes(); majConsig();
     const ms = simE.messages;
     $("sm-msgs").innerHTML = ms.length ? ms.map((m) => `<li class="${m.niveau}">${esc(m.texte)}</li>`).join("") : `<li class="info">Tout va bien. ${moteursTxt()}</li>`;
     const J = simE.journal.slice(-8).reverse();
@@ -2192,6 +2314,7 @@
       <h3 style="margin-top:14px">Le voltmètre et le dépannage</h3>
       <p class="discret"><b>Chronogramme</b> (pendant la simulation) : une ligne par élément, au fil du temps — boutons et capteurs (1 = actionné), bobines (1 = alimentée), contacts temporisés (1 = fermé), voyants, vitesse et couplage des moteurs, étapes du GRAFCET, fréquence du variateur, position du chariot, niveau de la cuve. ${DOIGT ? "Touche" : "Clique sur"} le tracé pour poser un repère : l'écart de temps avec le curseur s'affiche (pratique pour une temporisation). « Lignes » choisit ce qui est tracé, « Image » l'enregistre pour un compte rendu.</p>
       <p class="discret">Pendant la simulation, le bouton <b>Voltmètre</b> remplace « Fil » dans la barre d'outils. ${DOIGT ? "Touche" : "Clique sur"} une borne pour la pointe <b style="color:#e03131">rouge</b>, puis une autre pour la pointe <b>noire</b> (COM) : l'écran donne la tension entre les deux, et la suit quand le schéma change (appuie sur S2 en gardant les pointes). En continu, le signe dit dans quel sens tu mesures (−24 V : pointes inversées). Comme un vrai voltmètre, il « voit à travers » une bobine ou un voyant : derrière un contact ouvert, on retrouve le neutre.</p>
+      <p class="discret"><b>Ohmmètre et consignation</b> : l'ohmmètre mesure une résistance (une bobine : quelques centaines d'ohms ; un contact fermé : 0 Ω ; un contact ouvert ou un fil coupé : OL, l'infini), <b>seulement hors tension</b>. Avant, on consigne (carte « Consignation » du panneau) : <b>séparer</b> (couper l'alimentation), <b>condamner</b> (le cadenas), <b>vérifier l'absence de tension</b> au voltmètre (0 V là où il y avait une tension). Une mesure à l'ohmmètre sans consigner est une <b>faute de sécurité</b>. Hors tension, on peut enfoncer un contacteur à la main (✋) pour mesurer ses pôles. Mesurée en place, une bobine se lit en parallèle avec ce qui la touche.</p>
       <p class="discret"><b>Pince</b> (pendant la simulation, à côté du Voltmètre) : ${DOIGT ? "touche" : "clique sur"} un fil pour lire le courant qui le traverse, ou un appareil (moteur, bobine…) pour le courant de chacune de ses bornes. Les trois phases d'un moteur prises ensemble donnent 0 A : il faut pincer <b>un seul</b> fil. Au démarrage direct, le moteur tire près de 6 fois son courant nominal (In) ; en marche, un peu moins que In. La ligne « Pince » du chronogramme trace la mesure.</p>
       <p class="discret"><b>Lecture de schéma</b> (fenêtre « Défis », en bas) : une question sur le schéma (« Clique sur le contact d'auto-maintien »…), tu réponds en cliquant sur l'appareil. Deux essais par question ; après deux erreurs, la bonne réponse est entourée en vert. Ta note sur 20 part dans ton suivi si tu es connecté(e).</p>
       <p class="discret"><b>Dépannage</b> (fenêtre « Défis ») : un schéma juste, avec une panne cachée au hasard (un fil coupé, un contact qui ne conduit plus, une bobine, un voyant ou un fusible coupé). Les fils ne sont plus en couleur : on essaie, on mesure pour trouver où la tension s'arrête, puis « Désigner la panne ». La méthode : pointe noire sur le neutre (ou le 0 V), pointe rouge de borne en borne en partant de la phase ; ou bien les deux pointes aux bornes d'un même élément (un contact fermé qui conduit donne 0 V).</p>
@@ -2272,6 +2395,7 @@
     for (const o of ["fil"]) document.querySelector(`#sc-barre [data-o="${o}"]`).disabled = !!sim;
     document.querySelector('#sc-barre [data-o="volt"]').disabled = !sim;
     { const p = document.querySelector('#sc-barre [data-o="pince"]'); if (p) p.disabled = !sim; }
+    { const p = document.querySelector('#sc-barre [data-o="ohm"]'); if (p) p.disabled = !sim; }
   }
   let tBulle = 0;
   function bulle(html, ms) {

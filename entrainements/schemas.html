@@ -186,6 +186,32 @@ body:not(.simu) [data-o="pince"]{display:none}
 .pince-t{font-family:var(--f-mono);font-size:10px;font-weight:700;fill:#e8590c;paint-order:stroke;stroke:var(--sc-feuille);stroke-width:3px}
 .pince-c{fill:none;stroke:#f08c00;stroke-width:2;stroke-dasharray:5 3}
 @media (max-width:980px){.sc-pince{right:8px;bottom:58px;top:auto}}
+/* ohmmètre (à la place du voltmètre) ; consignation : les étapes, le cadenas sur la feuille */
+.sc-ohm .sv-ecran{background:#0b2137;color:#74c0fc}
+.sc-ohm.danger{border-color:var(--bad)}
+.sc-ohm.danger .sv-ecran{background:#3b0b0b;color:#ff8787}
+.sc-ohm .so-etat{font-weight:600;color:var(--good)} .sc-ohm .so-etat.ko{color:var(--bad)}
+body:not(.simu) [data-o="ohm"]{display:none}
+/* en simulation, les outils de dessin (désactivés) laissent la place aux appareils de mesure */
+body.simu #sc-barre [data-a="tourner"],body.simu #sc-barre [data-a="supprimer"],body.simu #sc-barre [data-a="annuler"],body.simu #sc-barre [data-a="refaire"],body.simu #sc-barre [data-a="refaire"] + .sc-sep{display:none}
+body.ohm .sc-legende{display:none}
+.consig .cg-etat{margin:2px 0 6px;font-weight:700;font-size:.92rem}
+.consig .cg-etat.on{color:var(--bad)} .consig .cg-etat.ok{color:var(--good)}
+.consig .cg-etapes{margin:0 0 8px;padding-left:1.3em;font-size:.86rem}
+.consig .cg-etapes li{margin:5px 0}
+.consig .cg-etapes li > span{display:inline}
+.consig .cg-etapes li .btn{margin-left:8px;padding:3px 10px;min-height:0;font-size:.8rem;vertical-align:middle}
+.consig .cg-etapes li em{margin-left:6px;font-style:normal;font-weight:700;color:var(--good)}
+.consig .cg-etapes li.cg-fait{color:var(--ink-3)}
+.consig .cg-txt{margin:4px 0}
+.consig .cg-main .btn{padding:4px 10px;min-height:0;font-size:.82rem}
+.consig .cg-main .btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.consig .cg-fautes,.dp-faute{color:var(--bad);font-weight:700}
+.consig.flash{outline:3px solid var(--accent);outline-offset:3px;border-radius:8px}
+.cadenas path{fill:none;stroke:#c92a2a;stroke-width:2.2;stroke-linecap:round}
+.cadenas rect{fill:#c92a2a;stroke:#fff;stroke-width:1}
+.bulle-ko{color:var(--bad)}
+button.lien{background:none;border:0;padding:0;margin:0;font:inherit;color:var(--accent);text-decoration:underline;cursor:pointer;min-height:0}
 .pn-dep .dp-ok summary{cursor:pointer;font-weight:600;margin:4px 0}
 .pn-dep .dp-etapes{margin:6px 0 8px;padding-left:1.3em;font-size:.9rem}
 .pn-dep [aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:1px}
@@ -563,6 +589,7 @@ table.raccourcis td:first-child{white-space:nowrap;width:1%}
   <button class="sc-b" type="button" data-o="fil" aria-pressed="false" title="Tracer des fils (F)"><svg viewBox="0 0 24 24"><path d="M4 18h6V6h10"/><circle cx="4" cy="18" r="1.8" fill="currentColor"/><circle cx="20" cy="6" r="1.8" fill="currentColor"/></svg><span>Fil</span></button>
   <button class="sc-b" type="button" data-o="main" aria-pressed="false" title="Déplacer la feuille (H, ou glisser avec le bouton droit)"><svg viewBox="0 0 24 24"><path d="M8 12V6.5a1.5 1.5 0 013 0V11m0-5.5V5a1.5 1.5 0 013 0v6m0-4.5a1.5 1.5 0 013 0V14c0 3.6-2.4 6-6 6-2.6 0-4.2-1.4-5.6-3.6L4.2 13a1.5 1.5 0 012.5-1.6L8 13"/></svg><span>Feuille</span></button>
   <button class="sc-b" type="button" data-o="volt" aria-pressed="false" disabled title="Voltmètre : mesurer la tension entre deux bornes (pendant la simulation)"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><rect x="8" y="6" width="8" height="4.5" rx="1"/><circle cx="12" cy="15.5" r="2.6"/><path d="M12 15.5l1.6-1.6"/></svg><span>Voltmètre</span></button>
+  <button class="sc-b" type="button" data-o="ohm" aria-pressed="false" disabled title="Ohmmètre : la résistance entre deux bornes, hors tension seulement (pendant la simulation, après la consignation)"><svg viewBox="0 0 24 24"><path d="M4.5 19.5h4.6v-2.4A6.6 6.6 0 1 1 14.9 17.1v2.4h4.6"/></svg><span>Ohmmètre</span></button>
   <button class="sc-b" type="button" data-o="pince" aria-pressed="false" disabled title="Pince ampèremétrique : le courant dans un fil, ou dans chaque borne d'un appareil (pendant la simulation)"><svg viewBox="0 0 24 24"><path d="M9.5 13.5a5.5 5.5 0 117 1.4"/><path d="M16.5 14.9l-1.6 5.6H9.6l-.6-7"/><path d="M12 8v3.2"/></svg><span>Pince</span></button>
   <button class="sc-b" type="button" data-a="chrono" aria-pressed="false" title="Chronogramme : l'état de chaque élément au fil du temps (pendant la simulation)"><svg viewBox="0 0 24 24"><path d="M3 18h3.5V7H11v11h3.5V7H19v11h2"/></svg><span>Chronogramme</span></button>
   <button class="sc-b" type="button" data-a="folio" aria-pressed="false" title="Repérage du folio : colonnes, numéros de fils, renvois des contacts sous les bobines (la nomenclature est dans Fichier)"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 9h16M9.3 9v10M14.7 9v10"/><path d="M6.4 7h.01M12 7h.01M17.4 7h.01"/></svg><span>Repérage</span></button>
@@ -595,6 +622,7 @@ table.raccourcis td:first-child{white-space:nowrap;width:1%}
     <div class="sc-horloge" id="sc-horloge"></div>
     <div class="sc-volt" id="sc-volt" hidden aria-live="polite"></div>
     <div class="sc-volt sc-pince" id="sc-pince" hidden aria-live="polite"></div>
+    <div class="sc-volt sc-ohm" id="sc-ohm" hidden aria-live="polite"></div>
     <div class="sc-live" id="sc-live" hidden aria-live="off"></div>
     <div id="sc-bulle"></div>
   </div>
