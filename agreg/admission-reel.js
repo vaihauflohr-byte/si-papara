@@ -684,6 +684,7 @@
     }
     if (!Array.isArray(R.hist)) R.hist = [];
     if (!NIVS.some((n) => n[0] === R.niv)) R.niv = 'btsET';
+    if (!Array.isArray(R.comp)) R.comp = [];
     if (!R.inc || typeof R.inc !== 'object') R.inc = {};
     for (const k of Object.keys(R.inc)) if (!R.inc[k] || typeof R.inc[k] !== 'object') delete R.inc[k];
     ['photo', 'modele', 'ent', 'ep'].forEach((k) => { if (R[k] != null && typeof R[k] !== 'object') R[k] = null; });
@@ -771,6 +772,7 @@
 .rl-inc{display:grid;gap:12px;margin:8px 0}.rl-incl{font-size:14px}.rl-incf{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:flex-end;margin-top:4px}.rl-incf label{display:flex;flex-direction:column;font-size:12px;color:#587083}.rl-incf input{font:inherit;font-size:14px;width:84px;padding:6px;border:1px solid #bbccd8;border-radius:6px}.rl-incf select{font:inherit;font-size:14px;padding:6px;border:1px solid #bbccd8;border-radius:6px;max-width:100%;background:#fff}.rl-incu{font-weight:700;color:#12566f;font-size:14px;padding-bottom:7px}
 .rl-entc{margin-top:18px;border-top:1px solid #dfe7ee;padding-top:4px}.rl-mod h3{font-size:15px}
 .rl-arch{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.rl-comp{display:grid;gap:5px;margin:8px 0 4px}.rl-comp label{display:flex;gap:8px;align-items:flex-start;font-size:14px;font-weight:400}.rl-comp input{margin-top:3px}
 @media(max-width:640px){.rl-c.card{padding:18px 16px}}
 @media print{.rl-nav,.rl-chr,.rl-c .btns,.rl-fin,.back,.rl-c textarea,.rl-opt:not(.on),.rl-photo .rl-file,.rl-impo,.or-mic,.or-voix,.or-rep{display:none!important}
 .rl-imp{display:block!important;white-space:pre-wrap;border:1px solid #c8d3dc;border-radius:6px;padding:8px 10px;margin:4px 0 10px;font-size:11pt}
@@ -917,7 +919,8 @@
         <div class="card rl-c" id="rl-s8"><h2>${N()}. Les résultats et les écarts</h2><p class="muted rl-aide">Calculés à partir de tes relevés ; à toi de les interpréter dans ta conclusion. Écart relatif = |mesure − référence| / référence × 100.</p><div id="rl-res"></div></div>
         <div class="card rl-c" id="rl-s9"><h2>${N()}. La conclusion</h2>${zone('concl', 6)}</div>
         <div class="card rl-c" id="rl-s10"><h2>${N()}. La séance</h2><div class="fields"><div class="fld"><label for="rl-niv">Niveau visé</label><select id="rl-niv" data-p="niv">${NIVS.map(([k, l]) => `<option value="${k}"${R.niv === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></div></div>
-          <p class="muted rl-aide" id="rl-nivc">${nivConseil()}</p>${zone('seance', 7)}</div>
+          <p class="muted rl-aide" id="rl-nivc">${nivConseil()}</p><div id="rl-comp">${compHtml()}</div>${zone('seance', 7)}
+          ${window.ADMISSION_SEANCE && !ep ? `<p class="muted" style="margin-top:10px"><a href="#admission-seance-reel-${id}">Préparer les documents de cette séance</a> : plan de tableau et diapositives, fiche élève en Word, grille d’évaluation.</p>` : ''}</div>
         <div class="card rl-c" id="rl-s11"><h2>Le jury IA</h2><div id="rl-jury" aria-live="polite">${juryHtml()}</div></div>
         <div class="btns rl-fin" style="margin-top:18px"><button class="b sec" type="button" data-imprimer="1">Imprimer la fiche ou l’enregistrer en PDF</button></div>
         ${ep ? '' : `<p class="muted rl-fin"><button class="b sec" type="button" data-raz="1">Effacer la fiche</button> La fiche effacée est archivée, et tes notes passées restent dans l’historique.</p>${archHtml()}`}`;
@@ -927,6 +930,13 @@
       if (!A.length) return '';
       return `<div class="rl-arch muted rl-fin"><b>Fiches archivées :</b>${A.map((a, i) => { const k = a && a.fiche ? nbRemplies(B, a.fiche) : 0; return `<button type="button" class="b sec" data-arch="${i}">Reprendre la fiche du ${date(a.t)}${k ? ` (${k} ligne${k > 1 ? 's' : ''} de relevés)` : ''}</button>`; }).join('')}</div>`;
     }
+    // le référentiel du niveau (intitulés officiels, agreg/admission.js) : les compétences visées par la séance
+    function compHtml() {
+      const N = window.ADMISSION && ADMISSION.NIV && ADMISSION.NIV[R.niv]; if (!N) return '';
+      const C = Array.isArray(R.comp) ? R.comp : [];
+      return `<details class="rl-dos"${C.length ? ' open' : ''}><summary>${compTitre(N, C)}</summary><div class="rl-comp">${N.ref.map((r) => `<label><input type="checkbox" data-comp="${esc(r[0])}"${C.includes(r[0]) ? ' checked' : ''}><span><b>${esc(r[0])}</b> · ${esc(r[1])}</span></label>`).join('')}</div></details>`;
+    }
+    const compTitre = (N, C) => `Les compétences visées, dans le référentiel ${esc(N.nom)}${C.length ? ` : ${C.length} cochée${C.length > 1 ? 's' : ''}` : ''}`;
     function nivConseil() {
       if (R.niv === 'btsET') return 'BTS Électrotechnique : la séance peut viser C13 (mesurer les grandeurs caractéristiques), C16 (appliquer un protocole pour mettre en service) ou C17 (réaliser un diagnostic de performance, y compris énergétique).';
       return 'Appuie-toi sur le référentiel du niveau : les compétences visées, avec leur intitulé officiel.';
@@ -1115,7 +1125,7 @@ Contrôle des relevés : ${X.ctrl.map(brut).join(' ; ') || 'rien à signaler'}
 ${cap(R.txt.concl, 2500)}
 
 ## Sa séance (niveau visé : ${niv})
-${cap(R.txt.seance, 3500)}
+${compVisees()}${cap(R.txt.seance, 3500)}
 
 ## Consignes
 1. Note chaque critère par pas de 0,5 : "obj" sur 1 (objectif de l'activité) ; "proto" sur 2 (protocole, choix des appareils, sécurité et mise en œuvre conformes au dossier) ; "mes" sur 2 (conduite des mesures : nombre et répartition des points, unités, répétition, cohérence des relevés) ; "exp" sur 2 (exploitation : grandeurs calculées, courbes, point remarquable, réponse chiffrée à la problématique) ; "ecart" sur 2 (écarts quantifiés et comparés à la dispersion, causes argumentées, solutions) ; "seance" sur 1 (séance au niveau visé, protocole différent, activités des élèves). Une rubrique vide vaut 0. Ne note que ce qui est écrit ou relevé.
@@ -1126,6 +1136,11 @@ ${cap(R.txt.seance, 3500)}
 Réponds en JSON : {"criteres": {"obj": {"note": 1, "commentaire": "…"}, "proto": {"note": 1.5, "commentaire": "…"}, "mes": {"note": 1, "commentaire": "…"}, "exp": {"note": 1, "commentaire": "…"}, "ecart": {"note": 1, "commentaire": "…"}, "seance": {"note": 0.5, "commentaire": "…"}}, "points_forts": ["…"], "a_corriger": ["…"], "questions": ["…"]}`;
     }
     const liste = (x, n) => (Array.isArray(x) ? x : []).map((y) => String(y == null ? '' : y).trim()).filter(Boolean).slice(0, n);
+    function compVisees() {
+      const N = window.ADMISSION && ADMISSION.NIV && ADMISSION.NIV[R.niv], C = Array.isArray(R.comp) ? R.comp : [];
+      if (!N || !C.length) return '';
+      return `Compétences visées, cochées dans le référentiel : ${C.map((k) => { const r = N.ref.find((x) => x[0] === k); return r ? `${r[0]} (${r[1]})` : k; }).join(' ; ')}.\n`;
+    }
     async function relire() {
       if (R.txt.proto.trim().length < 80) { put('rl-relu', '<p class="rl-al">Écris d’abord ton protocole, en quelques lignes au moins.</p>'); return; }
       put('rl-relu', '<div class="think">Le jury relit ton protocole… (jusqu’à une minute)</div>');
@@ -1424,12 +1439,22 @@ Réponds en JSON : {"vu": "…", "problemes": [{"gravite": "erreur", "texte": "�
       const el = e.target, d = el.dataset || {};
       if (d.i) { const [k, f] = d.i.split('.'); if (!R.inc[k]) R.inc[k] = {}; R.inc[k][f] = el.value; garder(); if (f !== 'm') planifier(); return; }
       if (d.collage) { const k = d.collage, v = el.value; clearTimeout(tColle); tColle = setTimeout(() => analyser(k, v), 250); return; }
-      if (d.p) { const [a, c] = d.p.split('.'); if (c == null) R[a] = el.value; else R[a][c] = el.value; garder(); if (a === 'pa') planifier(); if (a === 'niv') put('rl-nivc', nivConseil()); }
+      if (d.p) {
+        const [a, c] = d.p.split('.'); if (c == null) R[a] = el.value; else R[a][c] = el.value; garder(); if (a === 'pa') planifier();
+        if (a === 'niv') { put('rl-nivc', nivConseil()); const N = window.ADMISSION && ADMISSION.NIV && ADMISSION.NIV[R.niv]; if (Array.isArray(R.comp) && N) R.comp = R.comp.filter((k) => N.ref.some((r) => r[0] === k)); put('rl-comp', compHtml()); }
+      }
       else if (d.t) { const L = R.tab[d.t]; if (!L || !L[+d.r]) return; L[+d.r][d.c] = el.value; garder(); planifier(); }
     };
     app().onchange = (e) => {
       const el = e.target, d = el.dataset || {};
       if (d.photo) { const f = el.files && el.files[0]; if (f) verifierMontage(f); el.value = ''; return; }
+      if (d.comp) {
+        const N = window.ADMISSION && ADMISSION.NIV && ADMISSION.NIV[R.niv]; if (!N) return;
+        const C = (Array.isArray(R.comp) ? R.comp : []).filter((k) => k !== d.comp); if (el.checked) C.push(d.comp);
+        R.comp = N.ref.map((r) => r[0]).filter((k) => C.includes(k)); garder(true);
+        const sm = app().querySelector('#rl-comp summary'); if (sm) sm.innerHTML = compTitre(N, R.comp);
+        return;
+      }
       if (d.fichier) { const f = el.files && el.files[0]; if (f) lireFichier(d.fichier, f); el.value = ''; return; }
       if (d.mapc) { const [k, c] = d.mapc.split('.'); const I = IMP[k]; if (!I) return; if (el.value === '') delete I.map[c]; else I.map[c] = +el.value; put('rl-map-' + k, mapHtml(k)); return; }
       if (d.i) {
@@ -1469,5 +1494,15 @@ Réponds en JSON : {"vu": "…", "problemes": [{"gravite": "erreur", "texte": "�
       <ul class="rl-carte">${Object.keys(BANCS).map((id) => { const B = BANCS[id], x = S[id], n = x && typeof x === 'object' ? nbRemplies(B, x) : 0, ev = x && x.ev; return `<li><a class="b" href="#admission-reel-${id}">${esc(B.titre)}</a><span class="muted">${esc(B.court)}${n ? ` · ${n} ligne${n > 1 ? 's' : ''} de relevés` : ''}${ev && isFinite(ev.note) ? ` · dernière évaluation ${fn(ev.note)} / 10` : ''}${x && x.ep && !x.ep.fin ? ' · épreuve en cours' : ''}</span></li>`; }).join('')}</ul></div>`;
   }
 
-  window.ADMISSION_REEL = { route: vue, carte, BANCS };
+  // le résumé d'une fiche, pour les documents de la séance (agreg/admission-seance.js)
+  function resume(id) {
+    const B = BANCS[id], R = typeof st === 'object' && st && st.reel && st.reel[id];
+    if (!B || !R || typeof R !== 'object') return '';
+    reparer(R, B);
+    let X = null; try { X = B.calc(R); } catch (e) { X = null; }
+    const p = (x, n) => String(x || '').trim().slice(0, n) || '—';
+    return [`Banc réel du labo : ${B.titre}`, `Problématique de l'étude : ${p(R.probT || B.probs[R.prob], 400)}`, `Objectif de l'étude : ${p(R.txt.obj, 600)}`,
+      `Protocole de l'étude (la séance doit en proposer un différent) : ${p(R.txt.proto, 1200)}`, `Résultats de l'étude : ${X && X.lignes.length ? X.lignes.map(brut).join(' ').slice(0, 1500) : '—'}`, `Conclusion de l'étude : ${p(R.txt.concl, 800)}`].join('\n');
+  }
+  window.ADMISSION_REEL = { route: vue, carte, BANCS, resume };
 })();

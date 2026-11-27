@@ -6,6 +6,7 @@
    - #admission-tp-<banc> : la partie pratique, sur bancs simulés (agreg/admission-tp.js) ;
    - #admission-reel-<banc> : la partie pratique sur les bancs réels du labo (agreg/admission-reel.js) ;
    - #admission-bilan, #admission-expose, #admission-cartes-* : l'oral et le suivi (agreg/admission-oral.js) ;
+   - #admission-seance… : les documents de la séance, diapositives, fiche élève Word, grille (agreg/admission-seance.js) ;
    - #admission-lecon-<épreuve> : s'entraîner à la leçon. Sujet tiré (support, niveau, séquence imposée,
      résultats des études), trame à remplir au chronomètre, compétences à cocher dans le référentiel du
      niveau, puis correction par l'IA avec la grille du jury, entretien en trois questions à l'écrit ou
@@ -193,6 +194,7 @@
     app().innerHTML = `<a class="back" href="#accueil">← Accueil</a><div class="eyebrow">Agrégation SII · épreuves d’admission</div><h1>Le TP et son exploitation pédagogique</h1>
       <p>Ce que disent les rapports de jury 2024 et 2025 (option ingénierie électrique) : le déroulé de chaque épreuve, ce qui est noté, ce qui coûte des points. Puis l’entraînement aux deux moitiés de la note : la partie pratique, sur des bancs simulés puis sur tes bancs du labo, et la leçon, la partie où le jury enlève le plus de points.</p>
       ${window.ADMISSION_ORAL ? ADMISSION_ORAL.carte() : ''}
+      ${window.ADMISSION_SEANCE ? ADMISSION_SEANCE.carte() : ''}
       ${Object.keys(EP).map((k) => `<div class="card" style="margin-top:16px"><h2 style="margin:0 0 6px">${esc(EP[k].nom)}</h2>${frise(EP[k].phases)}<p class="muted" style="margin-top:10px">${esc(EP[k].note)}</p><div class="btns"><a class="b" href="#admission-lecon-${k}">S’entraîner à la leçon de cette épreuve · ${EP[k].min} min</a></div></div>`).join('')}
       ${window.ADMISSION_TP ? ADMISSION_TP.carte() : ''}
       ${window.ADMISSION_REEL ? ADMISSION_REEL.carte() : ''}
@@ -282,7 +284,7 @@ Note de la trame par le jury : ${fmt(R.corr.total, 3)} / 10. À corriger : ${(R.
         <p class="muted">Correction rédigée par une IA d’après les attentes des rapports de jury : prends-la comme l’avis d’un collègue exigeant, pas comme une note officielle.</p></div>
         ${entretien()}
         ${window.ADMISSION_ORAL && (c.questions || []).length ? `<div class="card" style="margin-top:16px"><div class="eyebrow">L’entretien en direct</div><h2 style="margin:4px 0 8px">Le jury pose ses questions et relance</h2><div id="ad-live"></div></div>` : ''}
-        <div class="btns" style="margin-top:16px"><button class="b" type="button" data-nv="1">Un autre sujet</button><a class="b sec" href="#admission">Les épreuves d’admission</a></div>`;
+        <div class="btns" style="margin-top:16px"><button class="b" type="button" data-nv="1">Un autre sujet</button>${window.ADMISSION_SEANCE ? '<a class="b sec" href="#admission-seance-lecon">Les documents de cette séance</a>' : ''}<a class="b sec" href="#admission">Les épreuves d’admission</a></div>`;
     }
     function autoGrille() {
       return `<p><b>Note-toi avec la grille du jury :</b></p><table class="ad-g"><tbody>${GRILLE.map((g) => `<tr><td><b>${esc(g[1])}</b><br><span class="muted">${esc(g[3])}</span></td><td class="n">/ ${fmt(g[2], 2)}</td></tr>`).join('')}</tbody></table>`;
@@ -401,7 +403,8 @@ Réponds en JSON : {"reponses": [{"note": 1.5, "commentaire": "…", "attendu": 
     const m =/^admission-lecon-(e1|e2|int)$/.exec(h);
     if (m) return lecon(m[1]);
     if (window.ADMISSION_ORAL && ADMISSION_ORAL.gere(h)) { css(); return ADMISSION_ORAL.route(h); }
+    if (window.ADMISSION_SEANCE && ADMISSION_SEANCE.gere(h)) { css(); return ADMISSION_SEANCE.route(h); }
     accueil();
   }
-  window.ADMISSION = { route };
+  window.ADMISSION = { route, NIV, SUP, CHAMPS };
 })();
