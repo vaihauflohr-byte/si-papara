@@ -196,6 +196,10 @@ body:not(.simu) .sc-horloge{display:none}
 .sy .fin2{stroke-width:1.1}
 .ecran-t{fill:#69db7c;font-family:var(--f-mono);font-size:11px;font-weight:700;stroke:none}
 /* parties opératives (chariot, cuve) et capteur 3 fils */
+.sy .fin3{stroke-width:1.1}
+.sy .detecte{fill:var(--accent-soft)}
+.sy .instr{fill:var(--sc-feuille)}
+.sy .instr.on{fill:var(--good-soft);stroke:var(--good);stroke-width:2}
 .sy .rail{stroke-width:2.6}
 .sy .butee{fill:var(--paper-2)}
 .sy .butee.on{fill:var(--bad-soft);stroke:var(--bad);stroke-width:2.2}
@@ -394,6 +398,11 @@ dialog.sc-d::backdrop{background:rgba(10,15,25,.45)}
 .aide-g figure{margin:0;border:1px solid var(--rule);border-radius:10px;padding:10px;background:var(--paper-2)}
 .aide-g figure svg{display:block;width:100%;height:auto;color:var(--ink)}
 .aide-g figcaption{font-size:.88rem;margin-top:6px}
+.sym-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+.sym-g figure{margin:0;display:flex;gap:8px;align-items:center;border:1px solid var(--rule);border-radius:8px;padding:5px 8px;background:var(--paper-2)}
+.sym-g svg{width:54px;height:54px;flex:none}
+.sym-g figcaption{font-size:.8rem;line-height:1.3}
+.sym-g small{display:block;color:var(--ink-3);font-family:var(--f-mono);font-size:.72rem}
 table.raccourcis{border-collapse:collapse;width:100%;font-size:.88rem;margin-top:8px}
 table.raccourcis td{border-top:1px solid var(--rule);padding:5px 6px;vertical-align:top}
 table.raccourcis td:first-child{white-space:nowrap;width:1%}

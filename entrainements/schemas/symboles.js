@@ -24,35 +24,53 @@
   function geoChariot(pos) { const xc = n1(-122 + 244 * c01(pos)); return { xc, a: n1((xc * 11.459) % 360) }; }
   function geoCuve(niv) { const h = n1(113 * c01(niv)); return { y: n1(57 - h), h }; }
 
-  /* contact à deux bornes, vertical, bornes a (haut, y = -30) et b (bas, y = +30)
+  /* contact à deux bornes, vertical, bornes a (haut, y = -30) et b (bas, y = +30), dessiné selon EN 60617-7
      o : { nat: "no"|"nf", ferme, ca, cb, act: null|"bp"|"au"|"rot"|"man"|"fdc"|"prox"|"th"|"t+"|"t-", pousse } */
   function contact(o) {
-    let h = "", tip, mid;
-    if (o.nat === "no") {
+    let h = "", tip;
+    if (o.nat === "no") {   // 07-02-01 contact à fermeture
       h += P("M0 -30V-12", o.ca) + P("M0 30V12", o.cb);
       tip = o.ferme ? [-2.6, -13] : [-11, -13];
-    } else {
+    } else {                // 07-02-03 contact à ouverture
       h += P("M0 -30V-12H8", o.ca) + P("M0 30V12", o.cb);
       tip = o.ferme ? [10, -14.6] : [-8, -12];
     }
     h += P(`M0 12L${tip[0]} ${tip[1]}`, o.cb, "lame");
-    mid = [n1(tip[0] / 2), n1((12 + tip[1]) / 2)];
-    const dx = o.pousse ? 3 : 0, lien = (x) => P(`M${mid[0]} ${mid[1]}L${x + dx} ${mid[1]}`, null, "lien");
-    const y = mid[1];
+    const mid = [n1(tip[0] / 2), n1((12 + tip[1]) / 2)], y = mid[1];
+    const dx = o.pousse ? 3 : 0, lien = (x) => P(`M${mid[0]} ${y}L${x + dx} ${y}`, null, "lien");
+    const surLame = (f) => [n1(tip[0] * f), n1(12 + (tip[1] - 12) * f)];   // un point de la lame (0 : pivot, 1 : bout)
     switch (o.act) {
-      case "bp": h += lien(-16) + P(`M${-16 + dx} ${y - 6}V${y + 6}M${-16 + dx} ${y - 6}H${-20 + dx}M${-16 + dx} ${y + 6}H${-20 + dx}`, null, "act"); break;
-      case "au": h += lien(-16) + `<path class="act plein" d="M${-16 + dx} ${y - 8}A8 8 0 0 0 ${-16 + dx} ${y + 8}Z"/>` + P(`M-9 ${y - 4}L-7 ${y}L-9 ${y + 4}`, null, "act"); break;
-      case "rot": h += lien(-16) + P(`M-16 ${y}H-19L-22 ${y - 6}H-27`, null, "act"); break;
-      case "man": h += lien(-16) + P(`M-16 ${y - 6}V${y + 6}`, null, "act"); break;
-      case "fdc": h += `<path class="act" d="M${mid[0] - 1} ${y}L${mid[0] - 9} ${y - 5}L${mid[0] - 9} ${y + 5}Z"/>`; break;
-      case "prox": h += lien(-16) + P(`M-16 ${y}L-22 ${y - 6}L-28 ${y}L-22 ${y + 6}Z`, null, "act") + P(`M-24.5 ${y + 2}h5M-24.5 ${y - 2}h5`, null, "act fin"); break;
-      case "th": h += lien(-15) + P(`M-15 ${y}H-17V${y - 5}H-22V${y}H-24`, null, "act"); break;
-      case "t+": h += P(`M${mid[0]} ${y - 2}H-13M${mid[0]} ${y + 2}H-13`, null, "act") + P(`M-13 ${y - 7}A7 7 0 0 0 -13 ${y + 7}`, null, "act"); break;
-      case "t-": h += P(`M${mid[0]} ${y - 2}H-13M${mid[0]} ${y + 2}H-13`, null, "act") + P(`M-20 ${y - 7}A7 7 0 0 1 -20 ${y + 7}`, null, "act"); break;
+      case "bp":   // 02-13-05 commande par poussoir (crochet tourné vers le contact)
+        h += lien(-16) + P(`M${-11 + dx} ${y - 6}H${-16 + dx}V${y + 6}H${-11 + dx}`, null, "act"); break;
+      case "au": { // 07-07-06 arrêt d'urgence : coup de poing (02-13-08), crantage (02-12-08), manœuvre positive d'ouverture (07-01-09)
+        const xa = -20 + dx;
+        h += P(`M${mid[0]} ${y}L${-9 + dx} ${y}M${-14 + dx} ${y}L${xa} ${y}`, null, "lien")
+          + P(`M${-14 + dx} ${y}L${-11.5 + dx} ${y + 3}L${-9 + dx} ${y}`, null, "act")
+          + P(`M${xa} ${y - 6}V${y + 6}M${xa} ${y - 6}A4.5 6 0 0 0 ${xa} ${y + 6}`, null, "act")
+          + `<circle cx="-15.5" cy="-14.5" r="4.6" class="act fin3"/>` + P("M-18.6 -14.5H-12.6M-14.6 -16.5L-12.6 -14.5L-14.6 -12.5", null, "act fin3");
+        break;
+      }
+      case "rot":  // 02-13-04 commande rotative
+        h += lien(-16) + P(`M${-11 + dx} ${y - 6}H${-16 + dx}V${y + 6}H${-21 + dx}`, null, "act"); break;
+      case "man":  // 02-13-01 commande manuelle, symbole général
+        h += lien(-16) + P(`M${-16 + dx} ${y - 6}V${y + 6}`, null, "act"); break;
+      case "fdc": { // 07-08-01 / 07-08-02 interrupteur de position : petit triangle rectangle posé sur la lame
+        const U = surLame(0.64), L = surLame(0.3), ln = Math.hypot(tip[0], tip[1] - 12) || 1;
+        let nx = (tip[1] - 12) / ln, ny = -tip[0] / ln; if (nx > 0) { nx = -nx; ny = -ny; }
+        h += P(`M${U[0]} ${U[1]}L${n1(U[0] + nx * 4.6)} ${n1(U[1] + ny * 4.6)}L${L[0]} ${L[1]}`, null, "act"); break;
+      }
+      case "prox": // 02-13-06 commande par effet de proximité : losange, deux traits parallèles au contact
+        h += lien(-16) + P(`M-28 ${y}L-22 ${y - 6}L-16 ${y}L-22 ${y + 6}Z`, null, "act") + P(`M-23.3 ${n1(y - 4.7)}V${n1(y + 4.7)}M-20.7 ${n1(y - 4.7)}V${n1(y + 4.7)}`, null, "act fin3"); break;
+      case "th":   // 02-13-25 actionné par un dispositif thermique
+        h += lien(-17) + P(`M-24 ${n1(y - 7)}V${n1(y - 3.5)}H-17V${n1(y + 3.5)}H-24V${n1(y + 7)}`, null, "act"); break;
+      case "t+":   // 07-05-01 / 07-05-03 : retardé quand l'organe de commande est actionné (temporisé travail)
+        h += P(`M${mid[0]} ${y - 2}H-19M${mid[0]} ${y + 2}H-19`, null, "act") + P(`M-13 ${y - 7}A7 7 0 0 0 -13 ${y + 7}`, null, "act"); break;
+      case "t-":   // 07-05-02 / 07-05-04 : retardé quand il n'est plus actionné (temporisé repos)
+        h += P(`M${mid[0]} ${y - 2}H-13M${mid[0]} ${y + 2}H-13`, null, "act") + P(`M-20 ${y - 7}A7 7 0 0 1 -20 ${y + 7}`, null, "act"); break;
     }
     return h;
   }
-  const X_REF = { "": -13, th: -27, bp: -23, au: -27, rot: -29, man: -19, fdc: -18, prox: -31, "t+": -25, "t-": -25 };
+  const X_REF = { "": -13, th: -27, bp: -19, au: -28, rot: -24, man: -19, fdc: -14, prox: -31, "t+": -24, "t-": -24 };
   const ACT = { bp_no: "bp", bp_nf: "bp", arret_urgence: "au", selecteur: "rot", interrupteur: "man", fdc_no: "fdc", fdc_nf: "fdc", capteur: "prox", contact_th_nf: "th", contact_th_no: "th" };
 
   /* pôle d'un appareil de puissance, à l'abscisse x : bornes à y = ±30 */
@@ -62,7 +80,6 @@
   const CODE_VOYANT = { vert: "GN", rouge: "RD", orange: "OG", jaune: "YE", blanc: "WH", bleu: "BU" };   // codes de couleur IEC 60757
   const COUL_POT = { L: "var(--p-l1)", L1: "var(--p-l1)", L2: "var(--p-l2)", L3: "var(--p-l3)", N: "var(--p-n)", PE: "var(--p-pe)", "+24": "var(--p-plus)", "0V": "var(--p-n)" };
   const NOM_POT = { L: "L", N: "N", L1: "L1", L2: "L2", L3: "L3", "+24": "+24 V", "0V": "0 V", PE: "PE" };
-  const largeurPot = (pot) => Math.max(28, (NOM_POT[pot] || String(pot)).length * 6.8 + 9);
 
   function dessiner(pc, e, opt) {
     const p = M.parametres(pc), E = e || {}, c = E.c || {}, sim = !!e, o = opt || {};
@@ -74,7 +91,7 @@
 
     if (M.AVEC_NUM.indexOf(t) >= 0) {
       let act = ACT[t] || "";
-      if (t === "contact_tno" || t === "contact_tnf") { const repos = o.sorteTempo === "repos"; act = ((t === "contact_tno") !== repos) ? "t+" : "t-"; }
+      if (t === "contact_tno" || t === "contact_tnf") act = o.sorteTempo === "repos" ? "t-" : "t+";   // 07-05-01 à 07-05-04
       const nat = M.nature(pc);
       const ferme = sim ? !!E.ferme : nat === "nf";
       h += contact({ nat, ferme, ca: c.a, cb: c.b, act, pousse: sim && !!E.actionne && (t === "bp_no" || t === "bp_nf" || t === "arret_urgence") });
@@ -138,7 +155,7 @@
         });
         const my = -0.5, x0 = xs[0] + (ouvert ? -5.5 : -1.2), xl = xs[0] - 17;
         h += P(`M${x0} ${my}H${xs[n - 1] + (ouvert ? -5.5 : -1.2)}`, null, "lien") + P(`M${x0} ${my}H${xl}`, null, "lien");
-        h += P(`M${xl} ${my}H${xl - 2}V${my - 5}H${xl - 7}V${my}H${xl - 9}`, null, "act") + R(xl - 22, my - 6, 11, 12, "act boite");
+        h += P(`M${xl - 7} ${my - 7}V${my - 3.5}H${xl}V${my + 3.5}H${xl - 7}V${my + 7}`, null, "act") + P(`M${xl - 7} ${my}H${xl - 11}`, null, "lien") + R(xl - 22, my - 6, 11, 12, "act boite");
         tx.push(T(xl - 16.5, my + 0.5, "I>", "middle", "petit"), T(xl - 26, 1, ref, "end", "ref"), T(xl - 26, 13, (t === "disj_moteur" ? "Ir " : "") + p.cal + " A", "end", "info"));
         nums(["1", "2", "3", "4", "5", "6"].slice(0, 2 * n));
         break;
@@ -155,7 +172,7 @@
         const F = E.fermes || [];
         [-20, 0, 20].forEach((x, k) => {
           const cA = c[String(2 * k + 1)], cB = c[String(2 * k + 2)];
-          h += P(`M${x} -30V-12.5`, cA) + P(`M${x - 3.5} -9A3.5 3.5 0 0 1 ${x + 3.5} -9`, cA) + P(`M${x} 30V12`, cB) + lamePole(x, sim && !!F[k], cB);
+          h += P(`M${x} -30V-12`, cA) + P(`M${x} -16.5A3 3 0 0 0 ${x} -10.5`, cA) + P(`M${x} 30V12`, cB) + lamePole(x, sim && !!F[k], cB);   // 07-13-02
         });
         const off = sim && F[0] ? -1.2 : -5.5;
         h += P(`M${-20 + off} -0.5H${20 + off}`, null, "lien");
@@ -200,7 +217,7 @@
       case "alim": {
         const col = COUL_POT[p.pot] || "currentColor";
         if (p.pot === "PE") { h += P("M0 20V2", c.a) + `<path d="M-9 2H9M-6 -2H6M-3 -6H3" style="stroke:${col}"/>`; tx.push(T(12, -2, "PE", "start", "pot")); }
-        else { const lab = NOM_POT[p.pot] || p.pot, lw = largeurPot(p.pot); h += P("M0 20V7", c.a) + R(-lw / 2, -9, lw, 16, "pot-boite", ` rx="3" style="stroke:${col}"`); tx.push(T(0, -1, lab, "middle", "pot", col)); }
+        else { h += P("M0 20V6", c.a); tx.push(T(0, -1, NOM_POT[p.pot] || p.pot, "middle", "pot", col)); }
         break;
       }
       case "reseau": {
@@ -218,15 +235,17 @@
           h += P(haut ? `M${x} -60V-50` : `M${x} 60V50`, c[b.id]);
           h += vert(x, haut ? -46 : 46, b.n, haut ? "end" : "start");
           const k = /^I(\d)$/.exec(b.id) || /^Q(\d)$/.exec(b.id);
-          if (k) {
-            const on = sim && (b.id[0] === "I" ? E.alim && E.entrees && E.entrees[+k[1]] : E.actif && E.sorties && E.sorties[+k[1]]);
+          if (k && sim) {
+            const on = b.id[0] === "I" ? E.alim && E.entrees && E.entrees[+k[1]] : E.actif && E.sorties && E.sorties[+k[1]];
             h += R(x - 3, haut ? -18 : 13, 6, 5, "led" + (on ? (b.id[0] === "I" ? " on-e" : " on-s") : "") + (sim && b.id[0] === "I" && E.ko && E.ko.indexOf(+k[1]) >= 0 ? " ko" : ""), ` rx="1"`);
           }
         }
         // voyant RUN et état
         const run = sim && E.actif, stop = sim && E.alim && !E.run;
-        h += `<circle cx="-104" cy="0" r="4" class="led${run ? " on-e" : stop ? " on-s" : sim && E.grille ? " ko" : ""}"/>`;
-        tx.push(T(-96, 0.5, sim ? (E.grille ? "détruit" : run ? "RUN" : stop ? "STOP" : E.alim ? "" : "hors tension") : "RUN", "start", "petit"));
+        if (sim) {
+          h += `<circle cx="-104" cy="0" r="4" class="led${run ? " on-e" : stop ? " on-s" : E.grille ? " ko" : ""}"/>`;
+          tx.push(T(-96, 0.5, E.grille ? "détruit" : run ? "RUN" : stop ? "STOP" : E.alim ? "" : "hors tension", "start", "petit"));
+        }
         tx.push(T(-10, 0.5, ref, "middle", "ref"));
         const mil = [];
         if (sim && run && E.X && E.X.length) mil.push(E.X.map((n) => "X" + n).join(" "));
@@ -248,8 +267,10 @@
         }
         // afficheur
         const f = sim ? (E.f || 0) : 0, af = Math.abs(f);
-        const ecran = !sim ? "ATV" : E.grille ? "----" : E.defaut ? E.defaut : !E.alim ? "" : af >= 0.05 ? (Math.round(af * 10) / 10).toFixed(1) : "rdY";
-        h += R(-22, -24, 44, 20, "ecran", ` rx="2"`) + `<text x="0" y="-13.5" class="ecran-t" text-anchor="middle" dominant-baseline="central">${ecran}</text>`;
+        if (sim) {
+          const ecran = E.grille ? "----" : E.defaut ? E.defaut : !E.alim ? "" : af >= 0.05 ? (Math.round(af * 10) / 10).toFixed(1) : "rdY";
+          h += R(-22, -24, 44, 20, "ecran", ` rx="2"`) + `<text x="0" y="-13.5" class="ecran-t" text-anchor="middle" dominant-baseline="central">${ecran}</text>`;
+        }
         if (sim && af >= 0.05) tx.push(T(0, 6, f > 0 ? "▶ avant" : "◀ arrière", "middle", "info"));
         // symbole du convertisseur de fréquence (IEC) : carré barré, ~ fixe en haut, ~ variable en bas
         h += R(-22, 22, 40, 40, "fin2") + P("M-22 62L18 22", null, "fin2");
@@ -259,16 +280,21 @@
         break;
       }
       case "capteur3": {
-        // capteur de proximité 3 fils : BN (marron) au +24 V, BU (bleu) au 0 V, BK (noir) la sortie
-        const pnp = p.type !== "NPN", sortieOn = sim && !!E.ferme;
-        h += P("M-10 -30V-12", c.BN) + P("M10 -30V-12", c.BU) + P("M0 30V12", c.BK);
-        h += R(-16, -12, 34, 24, "corps-b" + (sim && E.grille ? " grille" : ""), ` rx="2"`);
-        h += P("M-12 3L-7 -2L-2 3L-7 8Z", null, "act" + (sim && E.actionne ? " plein" : ""));
-        h += `<circle cx="-11" cy="-7" r="1.9" class="led${sim && E.alim ? " on-e" : ""}"/><circle cx="-5.5" cy="-7" r="1.9" class="led${sortieOn ? " on-s" : ""}"/>`;
-        if (sim && E.grille) h += P("M-12 -9L12 9M-12 9L12 -9", null, "barre");
-        tx.push(T(9, -4, pnp ? "PNP" : "NPN", "middle", "petit"), T(9, 5.5, p.sortie === "NC" ? "NC" : "NO", "middle", "petit"));
-        tx.push(T(-14, -22, "BN", "end", "num", "#9c6b3c"), T(14, -22, "BU", "start", "num", "#1c7ed6"), T(4, 23, "BK", "start"));
-        tx.push(T(-20, 1, ref, "end", "ref"));
+        // EN 60617 07-19-02 (dispositif sensible à une proximité, symbole fonctionnel) : boîte avec le losange de détection
+        // (02-13-06), le contact de sortie et le principe de détection (inductif : bobine ; capacitif : condensateur).
+        // BN (marron) au +, BU (bleu) au −, BK (noir) : la sortie.
+        const nc = p.sortie === "NC", ferme = sim ? !!E.ferme : nc;
+        h += P("M-10 -30V-15", c.BN) + P("M10 -30V-15", c.BU) + P("M0 30V15", c.BK);
+        h += R(-20, -15, 40, 30, "corps-b" + (sim && E.grille ? " grille" : ""));
+        h += P("M-18 -2L-9 -11L0 -2L-9 7Z", null, "act" + (sim && E.actionne && !E.grille ? " detecte" : "")) + P("M-11 -9V5M-7 -9V5", null, "act fin3");
+        // contact de sortie, couché ; dessiné fermé quand la sortie est active
+        h += nc ? P(`M3 -7H7V-3.8M17 -7H14L${ferme ? "6 -4.6" : "6.4 -11"}`) : P(`M3 -7H7M17 -7H14L${ferme ? "6.6 -8.3" : "6.4 -11"}`);
+        h += p.detection === "capacitif" ? P("M3 6H8.5M8.5 2.2V9.8M11.5 2.2V9.8M11.5 6H17") : P("M3 6H5A2 2 0 0 1 9 6A2 2 0 0 1 13 6A2 2 0 0 1 17 6");
+        if (sim && E.grille) h += P("M-17 -12L17 12M-17 12L17 -12", null, "barre");
+        tx.push(T(-4.5, -21.5, "+", "middle", "moyen"), T(4.5, -21.5, "−", "middle", "moyen"));
+        tx.push(T(-14, -24, "BN", "end", "num", "#9c6b3c"), T(14, -24, "BU", "start", "num", "#1c7ed6"), T(4, 24, "BK", "start"), T(-4, 24, p.type === "NPN" ? "NPN" : "PNP", "end", "info"));
+        tx.push(T(-24, 1, ref, "end", "ref"));
+        if (sim && !E.alim && !E.grille) tx.push(T(0, 38, "non alimenté", "middle", "info"));
         break;
       }
       case "chariot": {
@@ -283,7 +309,7 @@
           if (!String(r || "").trim()) return "";
           const bx = sx < 0 ? -154 : 134, px = 140 * sx, rx = 133 * sx;
           tx.push(T(144 * sx, -47, r, "middle", "ref"));
-          return R(bx, -41, 20, 13, "po-fdc" + (on ? " on" : ""), ` rx="2"`) + `<circle cx="${149 * sx}" cy="-34.5" r="2.3" class="led${on ? " on-e" : ""}"/>`
+          return R(bx, -41, 20, 13, "po-fdc" + (on ? " on" : ""), ` rx="2"`)
             + `<g${leve ? ` transform="rotate(${16 * sx} ${px} -28)"` : ""}>${P(`M${px} -28L${rx} -14`, null, "levier" + (on ? " on" : ""))}<circle cx="${rx}" cy="-14" r="3" class="galet${on ? " on" : ""}"/></g>`
             + `<circle cx="${px}" cy="-28" r="1.5" class="plein"/>`;
         };
@@ -300,35 +326,32 @@
         break;
       }
       case "cuve": {
-        // cuve ouverte en haut, pompe à gauche, flotteurs à droite (niveau bas 20 %, niveau haut 80 %), sortie en bas
+        // schéma de procédé (ISO 10628, ISO 1219) : réservoir à l'air libre, pompe (cercle, triangle plein vers la sortie)
+        // entraînée par son moteur M, vanne de sortie ; interrupteurs de niveau en repère d'instrument : LSL (bas, 20 %), LSH (haut, 80 %)
         const niv = sim ? E.niv : c01((Number(p.niveau) || 0) / 100), ge = geoCuve(niv);
         const pompe = sim && !!E.pompe, conso = sim ? E.conso || 0 : c01((Number(p.conso) || 0) / 100);
         h += R(-36, ge.y, 72, ge.h, "eau", ` data-eau="${esc(pc.id)}"`);
         h += P("M-38 -60V58H38V-60", null, "paroi");
-        // levé : le flotteur est dans l'eau ; on : actionné en simulation (voyant vert)
-        const flot = (r, y, leve, on, nom) => {
+        const instr = (r, y, on, code, nom) => {
           h += P(`M-36 ${y}H36`, null, "repere");
           if (!String(r || "").trim()) return;
-          h += R(38, y - 5, 10, 10, "po-fdc" + (on ? " on" : ""), ` rx="2"`) + `<circle cx="43" cy="${y}" r="2.2" class="led${on ? " on-e" : ""}"/>`;
-          const fy = n1(y + (leve ? -6 : 6));
-          h += P(`M38 ${y}L28 ${fy}`, null, "levier" + (on ? " on" : "")) + `<circle cx="24" cy="${fy}" r="4.5" class="flotteur${on ? " on" : ""}"/>`;
-          tx.push(T(52, y - 1, r, "start", "ref"), T(52, y + 10, nom, "start", "info"));
+          h += P(`M38 ${y}H45`, null, "fin") + `<circle cx="55" cy="${y}" r="10" class="instr${on ? " on" : ""}"/>` + texte(55, n1(y + 0.4), code, "petit");
+          tx.push(T(68, y - 1, r, "start", "ref"), T(68, y + 10, nom, "start", "info"));
         };
-        const lh = sim ? !!E.ch : niv >= 0.8, lb = sim ? !!E.cb : niv >= 0.22;
-        flot(p.haut, -33.4, lh, sim && lh, "niveau haut");
-        flot(p.bas, 34.4, lb, sim && lb, "niveau bas");
-        // pompe et tuyaux
-        h += P("M-100 64H-84V50", null, "tuyau" + (pompe ? " on" : "")) + P("M-84 30V-70H-22V-58", null, "tuyau" + (pompe ? " on" : ""));
-        h += `<circle cx="-84" cy="40" r="10" class="corps-m${pompe ? " tourne" : ""}"/>` + P("M-84 30L-92.7 45H-75.3Z", null, "fin2");
+        instr(p.haut, -33.4, sim && !!E.ch, "LSH", "niveau haut");
+        instr(p.bas, 34.4, sim && !!E.cb, "LSL", "niveau bas");
+        h += P("M-100 40H-94", null, "tuyau" + (pompe ? " on" : "")) + P("M-84 30V-70H-22V-58", null, "tuyau" + (pompe ? " on" : ""));
+        h += `<circle cx="-84" cy="40" r="10" class="corps-m${pompe ? " tourne" : ""}"/><path d="M-84 30L-89 38.7H-79Z" class="plein"/>`;
+        h += P("M-74 38.6H-66M-74 41.4H-66") + `<circle cx="-58" cy="40" r="8" class="corps-m${pompe ? " tourne" : ""}"/>` + texte(-58, 40.6, "M", "moyen");
         if (pompe) h += P("M-22 -56V-38", null, "jet");
         const sort = sim && conso > 0 && niv > 0.001;
         h += P("M0 58V77", null, "tuyau" + (sort ? " on" : "")) + P("M-5 62H5L-5 72H5Z", null, "vanne");
         if (sort) h += P("M0 78V86", null, "jet");
         if (sim && E.deborde) h += P("M-40 -58q-7 9 -6 28M40 -58q7 9 6 28", null, "jet");
         h += texte(0, -46, Math.round(niv * 100) + " %", "moyen", "middle", ` data-nivt="${esc(pc.id)}"`);
-        tx.push(T(-70, 37, p.moteur || "?", "start", "ref"), T(-70, 48, "pompe", "start", "info"));
+        tx.push(T(-58, 56, p.moteur || "?", "middle", "ref"), T(-84, 56, "pompe", "middle", "info"));
         tx.push(T(9, 67, "sortie " + Math.round(conso * 100) + " %", "start", "info"), T(4, -73, ref, "start", "ref"));
-        if (sim && E.deborde) tx.push(T(42, -66, "déborde !", "start", "alerte"));
+        if (sim && E.deborde) tx.push(T(44, -66, "déborde !", "start", "alerte"));
         else if (sim && E.vide) tx.push(T(0, 46, "vide", "middle", "alerte"));
         break;
       }
@@ -353,16 +376,16 @@
   /* icônes simplifiées des parties opératives (le vrai dessin est trop large pour la palette) */
   const ICONES = {
     chariot: `<svg viewBox="-36 -22 72 44" class="sy" aria-hidden="true" focusable="false"><path d="M-33 13H33" class="rail"/><rect x="-34" y="-2" width="4" height="15" class="butee"/><rect x="30" y="-2" width="4" height="15" class="butee"/><rect x="-30" y="-18" width="9" height="6" class="po-fdc"/><rect x="21" y="-18" width="9" height="6" class="po-fdc"/><path d="M-12 -3L-10 -6H10L12 -3Z" class="came"/><rect x="-14" y="-3" width="28" height="11" rx="2" class="corps-po"/><circle cx="-7" cy="10" r="3" class="roue"/><circle cx="7" cy="10" r="3" class="roue"/><path d="M-8 -12H8M8 -12l-3 -2.5M8 -12l-3 2.5" class="sens"/></svg>`,
-    cuve: `<svg viewBox="-34 -24 68 48" class="sy" aria-hidden="true" focusable="false"><rect x="-13" y="-1" width="26" height="20" class="eau"/><path d="M-14 -20V20H14V-20" class="paroi"/><path d="M-13 -10H13M-13 10H13" class="repere"/><path d="M-27 14V-23H-6V-19" class="tuyau"/><circle cx="-27" cy="14" r="5" class="corps-m"/><circle cx="19" cy="-10" r="2.6" class="flotteur"/><circle cx="19" cy="10" r="2.6" class="flotteur"/></svg>`
+    cuve: `<svg viewBox="-34 -24 68 48" class="sy" aria-hidden="true" focusable="false"><rect x="-13" y="-1" width="26" height="20" class="eau"/><path d="M-14 -20V20H14V-20" class="paroi"/><path d="M-13 -10H13M-13 10H13" class="repere"/><path d="M-27 9V-23H-6V-19" class="tuyau"/><circle cx="-27" cy="14" r="5" class="corps-m"/><path d="M-27 9L-29.6 13.4H-24.4Z" class="plein"/><circle cx="21" cy="-10" r="4" class="instr"/><circle cx="21" cy="10" r="4" class="instr"/></svg>`
   };
   /* l'icône d'un symbole pour la palette (repère du symbole, sans texte) */
-  function icone(type, p) {
+  function icone(type, p, opt) {
     if (ICONES[type]) return ICONES[type];
     const pc = { id: "ic", type, x: 0, y: 0, rot: 0, ref: "", p: p || {} };
     const T0 = M.TYPES[type]; if (!T0) return "";
     const b = M.boiteLocale(pc), m = 4;
     const x0 = b[0] * 10 - m, y0 = b[1] * 10 - m - (type === "reseau" ? 6 : 0), w = (b[2] - b[0]) * 10 + 2 * m, h = (b[3] - b[1]) * 10 + 2 * m + (type === "reseau" ? 6 : 0);
-    const d = dessiner(pc, null, {});
+    const d = dessiner(pc, null, opt || {});
     const lab = type === "alim" ? `<text x="${(p || {}).pot === "PE" ? 12 : 0}" y="${(p || {}).pot === "PE" ? -2 : -1}" class="sy-t pot" text-anchor="${(p || {}).pot === "PE" ? "start" : "middle"}" dominant-baseline="central" style="fill:${COUL_POT[(p || {}).pot] || "currentColor"}">${NOM_POT[(p || {}).pot] || ""}</text>` : type === "reseau" ? ["L1", "L2", "L3", "N", "PE"].map((id, i) => `<text x="${20 * i}" y="2" class="sy-t pot" text-anchor="middle" dominant-baseline="central">${id}</text>`).join("") : (type === "moteur" || type === "moteur6") ? `<text x="0" y="8" class="sy-t gros" text-anchor="middle" dominant-baseline="central">M</text>` : "";
     return `<svg viewBox="${x0} ${y0} ${w} ${h}" class="sy" aria-hidden="true" focusable="false">${d.corps}${lab}</svg>`;
   }

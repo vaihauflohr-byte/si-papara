@@ -737,7 +737,7 @@
     if (t === "automate") { if (PR.live.ref() === ref) PR.live.fermer(); else PR.live.ouvrir(pc, simE); geste = { type: "rien" }; return; }
     if (A.piloteRef && /^(fdc_no|fdc_nf|capteur|capteur3)$/.test(t)) {
       const cuve = (simE.appareils[A.piloteRef] || {}).sorte === "cuve";
-      bulle(cuve ? `${esc(ref)} est un flotteur de la cuve ${esc(A.piloteRef)} : c'est l'eau qui le fait basculer, pas toi.` : `${esc(ref)} est actionné par le chariot ${esc(A.piloteRef)} : c'est lui qui le pousse en roulant, pas toi.`, 3500);
+      bulle(cuve ? `${esc(ref)} est un capteur de niveau de la cuve ${esc(A.piloteRef)} : c'est l'eau qui le fait basculer, pas toi.` : `${esc(ref)} est actionné par le chariot ${esc(A.piloteRef)} : c'est lui qui le pousse en roulant, pas toi.`, 3500);
       geste = { type: "rien" }; return;
     }
     if (t === "variateur" || t === "potentiometre" || PO.test(t)) { ouvrirPanneau(true); const c = pn.querySelector(`#sm-elec [data-ref="${CSS.escape(ref)}"]`); if (c) { c.scrollIntoView({ block: "nearest", behavior: "smooth" }); c.classList.add("flash"); setTimeout(() => c.classList.remove("flash"), 900); } geste = { type: "rien" }; return; }
@@ -985,9 +985,9 @@
     fdc_no: "Actionné par la partie mobile de la machine. En simulation, clique pour l'actionner.",
     fdc_nf: "Actionné par la partie mobile de la machine. En simulation, clique pour l'actionner.",
     capteur: "Il détecte un objet sans le toucher. En simulation, clique pour simuler une détection.",
-    capteur3: "Un capteur de proximité à 3 fils, comme dans les machines : BN (marron) au +24 V, BU (bleu) au 0 V, BK (noir) c'est sa sortie. PNP : la sortie donne du +24 V quand il détecte (vers une entrée d'automate). NPN : elle donne du 0 V.",
+    capteur3: "Un détecteur de proximité à 3 fils (symbole EN 60617 : boîte, losange de détection, contact de sortie, bobine si inductif ou condensateur si capacitif). BN (marron) au +24 V, BU (bleu) au 0 V, BK (noir) : sa sortie. PNP : la sortie donne du +24 V quand il détecte (vers une entrée d'automate). NPN : elle donne du 0 V.",
     chariot: "La partie opérative : un chariot sur un rail, entraîné par le moteur choisi. En simulation, il roule et actionne tout seul ses deux fins de course. S'il dépasse un fin de course, il force contre la butée : le moteur se bloque et chauffe.",
-    cuve: "La partie opérative : une cuve remplie par une pompe (le moteur choisi, sens 1), avec deux flotteurs : niveau bas (20 %) et niveau haut (80 %). L'eau sort en continu par le bas ; si la pompe ne s'arrête pas, la cuve déborde.",
+    cuve: "La partie opérative, dessinée comme un schéma de procédé : une cuve remplie par une pompe (entraînée par le moteur choisi, sens 1) et deux interrupteurs de niveau, LSL (niveau bas, 20 %) et LSH (niveau haut, 80 %). L'eau sort en continu par la vanne du bas ; si la pompe ne s'arrête pas, la cuve déborde.",
     bobine: "Quand elle est alimentée, tous les contacts qui portent le même repère changent d'état.",
     relais: "Comme un contacteur, mais pour les petits courants de la commande.",
     tempo_travail: "Ses contacts temporisés changent d'état après le retard, quand la bobine est alimentée. Ils reviennent tout de suite quand on la coupe.",
@@ -1084,6 +1084,7 @@
         <p class="discret">R1A-R1C : contact fermé quand le variateur est prêt (sous tension, sans défaut). Le +24V et le COM du variateur alimentent ses entrées LI.</p>`;
     }
     if (pc.type === "capteur3") h += `<label class="ch" for="pc-ctype">Type de sortie</label><select id="pc-ctype" data-ch="type">${option("PNP", "PNP : sortie au +24 V quand il détecte", P.type)}${option("NPN", "NPN : sortie au 0 V quand il détecte", P.type)}</select>
+      <label class="ch" for="pc-cdet">Principe de détection</label><select id="pc-cdet" data-ch="detection">${option("inductif", "inductif : détecte les métaux", P.detection)}${option("capacitif", "capacitif : détecte aussi l'eau, le bois, le plastique…", P.detection)}</select>
       <label class="ch" for="pc-csortie">Fonction de sortie</label><select id="pc-csortie" data-ch="sortie">${option("NO", "NO : sortie active quand il détecte", P.sortie)}${option("NC", "NC : sortie active quand il ne détecte rien", P.sortie)}</select>
       <p class="discret">PNP : relie BK à une entrée de l'automate. NPN : la charge va du +24 V à BK.</p>`;
     if (T.cat === "po") {
@@ -1097,7 +1098,7 @@
         + nb("duree", "Durée d'une course complète (s)", 0.5, 120, 0.5) + `<label class="ch" for="pc-depart">Au départ, le chariot est</label><select id="pc-depart" data-ch="depart">${option("gauche", "à gauche", P.depart)}${option("milieu", "au milieu", P.depart)}${option("droite", "à droite", P.depart)}</select>`;
       else h += champRef("moteur", "Moteur de la pompe", motL) + champRef("bas", "Flotteur du niveau bas (20 %)", capL) + champRef("haut", "Flotteur du niveau haut (80 %)", capL)
         + nb("duree", "Durée pour remplir la cuve vide, sans sortie (s)", 1, 600, 1) + nb("conso", "Eau consommée au départ (% du débit de la pompe)", 0, 100, 5) + nb("niveau", "Niveau d'eau au départ (%)", 0, 100, 5);
-      h += `<p class="discret">Les fins de course et les flotteurs se relient par leur repère : ce sont eux que ${pc.type === "chariot" ? "le chariot actionne" : "l'eau fait basculer"} pendant la simulation.</p>`;
+      h += `<p class="discret">Les fins de course et les capteurs de niveau se relient par leur repère : ce sont eux que ${pc.type === "chariot" ? "le chariot actionne" : "l'eau fait basculer"} pendant la simulation.</p>`;
     }
     if (pc.type === "potentiometre") h += `<label class="ch" for="pc-pos">Position du curseur au départ (%)</label><input type="number" id="pc-pos" data-ch="pos" value="${esc(P.pos)}" min="0" max="100" step="5" inputmode="numeric">`;
     h += `<div class="rang">${T.sansRot ? "" : `<button class="btn sec" type="button" data-pa="tourner">Tourner</button>`}<button class="btn sec" type="button" data-pa="dupliquer">Dupliquer</button><button class="btn sec" type="button" data-pa="supprimer">Supprimer</button></div>`;
@@ -1315,7 +1316,7 @@
 .fil{stroke:#15202b;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}.jonction{fill:#15202b}
 .sy .corps-a{fill:#fff}.sy .led{fill:#fff;stroke:#77838f;stroke-width:.8}.sy .ecran{fill:#17261c}.ecran-t{fill:#69db7c;font-family:Consolas,monospace;font-size:11px;font-weight:700}.sy .fin2{stroke-width:1.1}
 .sy .rail{stroke-width:2.6}.sy .butee{fill:#f1f3f5}.sy .po-fdc,.sy .galet,.sy .roue,.sy .vanne,.sy .flotteur{fill:#fff}.sy .came{fill:#77838f}.sy .corps-po{fill:#e7f0ff}
-.sy .paroi{stroke-width:2.6}.sy .eau{fill:#a5d8ff;stroke:none}.sy .repere{stroke:#77838f;stroke-width:.9;stroke-dasharray:4 3}.sy .tuyau{stroke:#77838f;stroke-width:3.4;stroke-linecap:butt}.sy .jet{stroke:none}
+.sy .fin3{stroke-width:1.1}.sy .instr{fill:#fff}.sy .paroi{stroke-width:2.6}.sy .eau{fill:#a5d8ff;stroke:none}.sy .repere{stroke:#77838f;stroke-width:.9;stroke-dasharray:4 3}.sy .tuyau{stroke:#77838f;stroke-width:3.4;stroke-linecap:butt}.sy .jet{stroke:none}
 .ca{font-family:Arial,Helvetica,sans-serif;fill:#15202b}.ca-l{stroke:#15202b;stroke-width:1;fill:none}`;
   let logoURI = null;
   async function logo() {
@@ -1347,6 +1348,24 @@
   }
 
   /* ---------- aide ---------- */
+  // les symboles expliqués dans l'aide : [type, paramètres, nom, référence NF EN 60617, options de dessin]
+  const SYMBOLES_AIDE = [
+    ["contact_no", {}, "Contact à fermeture (NO)", "07-02-01"], ["contact_nf", {}, "Contact à ouverture (NF)", "07-02-03"],
+    ["bp_no", {}, "Bouton poussoir (retour automatique)", "07-07-02"],
+    ["arret_urgence", {}, "Arrêt d'urgence : coup de poing, accrochage, ouverture positive", "07-07-06"],
+    ["selecteur", {}, "Sélecteur (commande rotative)", "02-13-04"], ["interrupteur", {}, "Interrupteur (commande manuelle)", "07-07-01"],
+    ["fdc_no", {}, "Fin de course (interrupteur de position)", "07-08-01, 07-08-02"],
+    ["capteur", {}, "Détecteur de proximité 2 fils", "07-20-02 · losange 02-13-06"],
+    ["capteur3", { type: "PNP" }, "Détecteur 3 fils (inductif : bobine ; capacitif : condensateur)", "07-19-02"],
+    ["contact_tno", {}, "Contact temporisé travail : retardé quand la bobine est alimentée", "07-05-01, 07-05-03", { sorteTempo: "travail" }],
+    ["contact_tno", {}, "Contact temporisé repos : retardé quand on la coupe", "07-05-02, 07-05-04", { sorteTempo: "repos" }],
+    ["contact_th_nf", {}, "Contact du relais thermique", "02-13-25"],
+    ["bobine", {}, "Bobine de contacteur ou de relais", "07-15-01"], ["tempo_travail", {}, "Bobine de relais temporisé travail", "07-15-08"],
+    ["tempo_repos", {}, "Bobine de relais temporisé repos", "07-15-07"], ["poles", {}, "Contacts principaux d'un contacteur", "07-13-02"],
+    ["sectionneur", {}, "Sectionneur porte-fusibles", "07-21-08, 07-13-06"], ["disj_moteur", {}, "Disjoncteur moteur (magnétique et thermique)", "07-13-05"],
+    ["thermique", {}, "Relais thermique", "07-15-21"], ["fusible", {}, "Fusible", "07-21-01"], ["voyant", {}, "Voyant", "08-10-01"],
+    ["moteur", {}, "Moteur triphasé", "06-04-01"], ["transfo", {}, "Transformateur", "06-09-01"], ["potentiometre", {}, "Potentiomètre", "04-01-07"]
+  ];
   function ouvrirAide() {
     const mini = (s) => apercu(s, 130);
     const b1 = X.plan("aide"); b1.p("bp_no", 2, 3, "S1"); b1.p("voyant", 10, 4, "H1"); b1.f([2, 6], [2, 8], [10, 8], [10, 7]);
@@ -1374,8 +1393,11 @@
       <p class="discret"><b>L'automate (API)</b> s'alimente en 24 V continu. Une entrée (%I0.0…) vaut 1 quand elle reçoit le +24 V (le COM des entrées va au 0 V). Ses sorties à relais (%Q0.0…) ferment un contact entre leur commun (C0, C1) et la sortie : on y branche les bobines, les voyants, ou les entrées d'un variateur. Clique sur l'automate, puis <b>Programmer</b> : en <b>Ladder</b> (des contacts et des bobines) ou en <b>GRAFCET</b> (des étapes et des transitions). En simulation, clique sur l'automate pour voir son programme en direct.</p>
       <p class="discret"><b>Le variateur</b> reçoit le réseau sur L1, L2, L3 et fait tourner le moteur branché sur U, V, W. LI1 (marche avant) et LI2 (marche arrière) s'activent avec son +24V ; la vitesse vient de AI1 (0-10 V : potentiomètre ou sortie AQ0 d'un automate), de sa molette, ou des vitesses présélectionnées (LI3, LI4). Il accélère et ralentit suivant ses rampes (ACC, DEC).</p>
       <h3 style="margin-top:14px">La partie opérative et les capteurs 3 fils</h3>
-      <p class="discret"><b>Le chariot</b> et <b>la cuve</b> (catégorie « Partie opérative ») montrent la machine elle-même. On choisit le moteur qui l'entraîne et les repères de ses capteurs : en simulation, le chariot roule et actionne tout seul ses fins de course ; l'eau monte, descend et fait basculer les flotteurs. Si rien n'arrête le moteur, le chariot force contre la butée (le moteur chauffe) ou la cuve déborde.</p>
+      <p class="discret"><b>Le chariot</b> et <b>la cuve</b> (catégorie « Partie opérative ») montrent la machine elle-même. On choisit le moteur qui l'entraîne et les repères de ses capteurs : en simulation, le chariot roule et actionne tout seul ses fins de course ; l'eau monte, descend et fait basculer les interrupteurs de niveau (LSL : niveau bas, LSH : niveau haut). Si rien n'arrête le moteur, le chariot force contre la butée (le moteur chauffe) ou la cuve déborde.</p>
       <p class="discret"><b>Le capteur 3 fils</b> se branche comme dans les machines : BN (marron) au +24 V, BU (bleu) au 0 V, et BK (noir), sa sortie, sur une entrée de l'automate. Un capteur PNP donne du +24 V sur BK quand il détecte ; un NPN donne du 0 V (la charge va alors du +24 V à BK).</p>
+      <h3 style="margin-top:14px">Lire les symboles</h3>
+      <p class="discret">Les symboles suivent la norme <b>NF EN 60617</b> (le numéro de chaque symbole est noté dessous). Ce qui compte, c'est le petit signe à gauche du contact : il dit <b>qui l'actionne</b>.</p>
+      <div class="sym-g">${SYMBOLES_AIDE.map(([t, p, nom, ref, o]) => `<figure>${SY.icone(t, p, o)}<figcaption>${esc(nom)}<small>${esc(ref)}</small></figcaption></figure>`).join("")}</div>
       <h3 style="margin-top:14px">Les repères</h3>
       <p class="discret">Une bobine et ses contacts portent le <b>même repère</b> (KM1) : c'est comme ça que la simulation sait quels contacts bougent quand KM1 est alimenté. Les numéros des bornes suivent les règles : 13-14 et 43-44 pour les contacts à fermeture, 21-22 et 31-32 pour les contacts à ouverture, 95-96 et 97-98 pour le relais thermique, 55-56 et 67-68 pour les contacts temporisés, A1-A2 pour les bobines.</p>`;
     ouvrirDialogue("d-aide");

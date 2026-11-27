@@ -71,12 +71,15 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
      pour toute la course ; sa came soulève le levier des deux fins de course (gauche, droite), qui s'allument en vert.
      S'il dépasse un fin de course, il force contre la butée (rouge) : le moteur se bloque, chauffe, et le relais
      thermique finit par déclencher.
-   - **Cuve et pompe** : la pompe (le moteur choisi, en sens 1) remplit la cuve ; l'eau sort en continu par le bas
-     (curseur « Eau consommée » dans le panneau de simulation) ; deux flotteurs, niveau bas (20 %) et niveau haut
-     (80 %), basculent quand l'eau les atteint. Si la pompe ne s'arrête pas, la cuve déborde.
-   - **Capteur 3 fils** (catégorie « Commande », PNP ou NPN, sortie NO ou NC) : BN (marron) au +24 V, BU (bleu) au
-     0 V, BK (noir) : la sortie. Deux voyants sur le boîtier : vert, alimenté ; orange, sortie active. Branché à
-     l'envers : il ne marche pas, et « ce qui se passe » le dit.
+   - **Cuve et pompe**, dessinée comme un schéma de procédé : la pompe (cercle et triangle plein, entraînée par le
+     moteur choisi, en sens 1) remplit la cuve ; l'eau sort en continu par la vanne du bas (curseur « Eau consommée »
+     dans le panneau de simulation) ; deux interrupteurs de niveau en repère d'instrument, LSL (niveau bas, 20 %) et
+     LSH (niveau haut, 80 %), basculent quand l'eau les atteint (le cercle passe au vert). Si la pompe ne s'arrête
+     pas, la cuve déborde.
+   - **Capteur 3 fils** (catégorie « Commande », PNP ou NPN, sortie NO ou NC, inductif ou capacitif) : BN (marron)
+     au +24 V, BU (bleu) au 0 V, BK (noir) : la sortie. En simulation, le losange se colore quand il détecte et le
+     contact de sortie se ferme quand la sortie est active. Branché à l'envers : il ne marche pas, et « ce qui se
+     passe » le dit.
    Le panneau de simulation montre où est le chariot, le niveau de la cuve, l'état de leurs capteurs.
 9. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
    fichier `.json` (à rendre au professeur, à rouvrir sur un autre appareil), image PNG ou SVG avec un cartouche
@@ -99,7 +102,7 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `api-ladder` | marche-arrêt par automate : S1, S2, F1 95-96 sur %I0.0 à %I0.2, KM1 et H1 sur %Q0.0 et %Q0.1 ; programme en Ladder avec auto-maintien |
 | `api-grafcet` | aller-retour d'un chariot : dcy, a, b sur les entrées, KM1 et KM2 (verrouillage câblé en plus) ; GRAFCET 0 → 1 (KM1) → 2 (pause, `t/X2/3s`) → 3 (KM2) → 0 ; le chariot PO1 (M1, course de 4 s) actionne lui-même S3 (a) et S4 (b) |
 | `va-et-vient` | va-et-vient en logique câblée, sur l'inversion de sens : S2 lance KM1 (à droite), S4 (11-12) coupe KM1 et S4 (13-14) lance KM2 (retour, auto-maintien), S3 (11-12) l'arrête ; chariot PO1 |
-| `cuve` | remplissage d'une cuve : pompe M1 (démarrage direct par KM1), flotteurs B1 (bas) et B2 (haut) en capteurs 3 fils PNP sur %I0.2 et %I0.3, S1 et S2 (mise hors service, en service) ; Ladder : `S2 → S AUTO`, `/S1 → R AUTO`, `AUTO · /B1 → S KM1`, `B2 + /AUTO → R KM1`, `KM1 → H1` |
+| `cuve` | remplissage d'une cuve : pompe M1 (démarrage direct par KM1), niveaux B1 (bas) et B2 (haut) en détecteurs capacitifs 3 fils PNP sur %I0.2 et %I0.3, S1 et S2 (mise hors service, en service) ; Ladder : `S2 → S AUTO`, `/S1 → R AUTO`, `AUTO · /B1 → S KM1`, `B2 + /AUTO → R KM1`, `KM1 → H1` |
 | `api-variateur` | automate et variateur : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz ; 10 V avec S4 : 50 Hz), C0 au +24V du variateur, rampes de 2 s |
 | `variateur-pot` | variateur seul : interrupteurs S2 (LI1) et S3 (LI2) sur son +24V, potentiomètre R1 sur +10V, AI1, COM |
 
@@ -125,6 +128,36 @@ Le défi 8 (GRAFCET) garde des fins de course actionnés à la main (sans chario
 Pour chaque défi, on vérifie aussi qu'il n'y a eu **aucun court-circuit** pendant l'essai, et que les appareils du
 départ sont toujours là (sinon : « ne supprime pas et ne renomme pas les appareils du départ »).
 La réussite est gardée par élève (nom de la session du site, sinon « local ») : clé `schemas:progres:<nom>`.
+
+## Les symboles et la norme
+
+Les symboles suivent **NF EN 60617** (IEC 60617). Ils ont été revus le 26 novembre, élément par élément, contre la
+bibliothèque EN 60617 de QElectroTech (dossier `10_electric/91_en_60617`, rangé par numéro de la norme). L'aide de
+la page (« Lire les symboles ») montre chaque symbole avec son numéro.
+
+| Symbole de l'atelier | Référence | Ce qui le caractérise |
+|---|---|---|
+| contact à fermeture, à ouverture | 07-02-01, 07-02-03 | lame inclinée ; à ouverture : crochet du contact fixe |
+| bouton poussoir | 07-07-02 (poussoir 02-13-05) | crochet ouvert **vers** le contact (ouvert vers l'extérieur, c'est une tirette, 02-13-03) |
+| arrêt d'urgence | 07-07-06 | contact à ouverture, tête « coup de poing » (02-13-08), crantage en V sur la liaison (02-12-08), manœuvre positive d'ouverture (cercle et flèche, 07-01-09) |
+| sélecteur | 02-13-04 | commande rotative (trait et deux retours opposés) |
+| interrupteur | 07-07-01 | commande manuelle, symbole général |
+| fin de course | 07-08-01, 07-08-02 | petit triangle rectangle posé sur la lame, du côté de la came |
+| détecteur 2 fils | 07-20-02 (02-13-06) | losange et deux traits parallèles au contact, liaison en pointillé |
+| détecteur 3 fils | 07-19-02 | boîte : losange de détection, contact de sortie, bobine (inductif) ou condensateur (capacitif) ; BN +, BU −, BK |
+| contacts temporisés | 07-05-01 à 07-05-04 | « parachute » : ouvert vers le contact pour le travail (retardé à l'action), à l'opposé pour le repos ; même sens pour un contact à fermeture ou à ouverture |
+| contact du relais thermique | 02-13-25 | décrochement du dispositif thermique |
+| bobines | 07-15-01, 07-15-07 (repos : case noircie), 07-15-08 (travail : case avec une croix) | |
+| pôles de contacteur | 07-13-02 | demi-cercle (fonction contacteur) au bout du contact fixe, côté lame |
+| sectionneur porte-fusibles | 07-21-08, 07-13-06 | fusible sur la lame, trait de sectionnement |
+| disjoncteurs | 07-13-05 | croix au bout du contact fixe ; déclencheurs thermique (02-13-25) et magnétique (I>) |
+| relais thermique, fusible, voyant | 07-15-21, 07-21-01, 08-10-01 | |
+| moteur, transformateur, potentiomètre | 06-04-01, 06-09-01 (forme 1), 04-01-07 | |
+| repères de potentiel | IEC 61082 | la désignation du conducteur (L, N, +24 V, 0 V) au bout du fil, sans cadre ; PE : symbole de la terre |
+| automate, variateur | boîte avec ses bornes | les voyants de l'automate et l'afficheur du variateur n'apparaissent qu'en simulation ; variateur : symbole du convertisseur (06-14) |
+| cuve (partie opérative) | ISO 10628, ISO 1219 | réservoir à l'air libre, pompe (cercle et triangle plein vers la sortie) et son moteur M, vanne ; interrupteurs de niveau en repère d'instrument (LSL, LSH) |
+
+Le chariot reste un dessin de la machine (rail, butées, fins de course à levier et galet), pas un symbole.
 
 ## Les fichiers
 

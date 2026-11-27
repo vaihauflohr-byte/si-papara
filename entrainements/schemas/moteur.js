@@ -507,7 +507,7 @@
     // Elle lit l'état d'un moteur (sens, vitesse) et actionne des fins de course ou des capteurs, par leurs repères.
     const systemes = appareils.filter((d) => (d.sorte === "chariot" || d.sorte === "cuve") && d.principal);
     // seuils des capteurs, avec un peu d'hystérésis : un fin de course est actionné à 4 % du bout et relâché à 5 % ;
-    // le flotteur bas retombe sous 20 % (et remonte à 22 %), le flotteur haut monte à 80 % (et retombe sous 78 %)
+    // le capteur de niveau bas retombe sous 20 % (et remonte à 22 %), le capteur haut monte à 80 % (et retombe sous 78 %)
     const SEUILS_CH = [0, 0.04, 0.05, 0.95, 0.96, 1], SEUILS_CU = [0, 0.2, 0.22, 0.78, 0.8, 1], TAU_CH = 120;
     for (const s of systemes) {
       const P = M.parametres(s.principal), ch = s.sorte === "chariot", nom = `${ch ? "Le chariot" : "La cuve"} ${s.ref}`;

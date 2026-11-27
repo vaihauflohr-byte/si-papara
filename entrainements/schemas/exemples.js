@@ -168,7 +168,7 @@
     }
     return b.s;
   }
-  // cuve : pompe M1 par KM1, flotteurs B1 (bas) et B2 (haut) en capteurs 3 fils PNP, automate en Ladder (S et R)
+  // cuve : pompe M1 par KM1, niveaux B1 (bas) et B2 (haut) en détecteurs capacitifs 3 fils PNP, automate en Ladder (S et R)
   function progCuve() {
     return { lang: "ladder", noms: { "%I0.0": "S1", "%I0.1": "S2", "%I0.2": "B1", "%I0.3": "B2", "%Q0.0": "KM1", "%Q0.1": "H1", "%M0": "AUTO" }, ladder: [
       { com: "S2 : mise en service", l: [{ c: [ct("no", "%I0.1"), N, N, N, N], s: { t: "s", v: "%M0" } }], v: [] },
@@ -188,7 +188,7 @@
     b.p("alim", 55, 1, "", { pot: "0V" }, 0);
     b.f([55, 3], [55, 4], [45, 4]);
     b.p("bp_nf", 31, 9, "S1", { num: "11-12" }); b.p("bp_no", 37, 9, "S2", { num: "13-14" });
-    b.p("capteur3", 44, 9, "B1", { type: "PNP", sortie: "NO" }); b.p("capteur3", 51, 9, "B2", { type: "PNP", sortie: "NO" });
+    b.p("capteur3", 44, 9, "B1", { type: "PNP", sortie: "NO", detection: "capacitif" }); b.p("capteur3", 51, 9, "B2", { type: "PNP", sortie: "NO", detection: "capacitif" });
     b.f([31, 6], [31, 2]).f([37, 6], [37, 2]).f([43, 6], [43, 2]).f([50, 6], [50, 2]).f([45, 6], [45, 4]).f([52, 6], [52, 4]);
     b.f([31, 12], [31, 18]).f([37, 12], [37, 15], [33, 15], [33, 18]).f([44, 12], [44, 16], [35, 16], [35, 18]).f([51, 12], [51, 17], [37, 17], [37, 18]);
     // sorties : L → F2 → F1 95-96 → C0 ; %Q0.0 → KM1 (pompe), %Q0.1 → H1
@@ -327,7 +327,7 @@
       resume: "S2 : le chariot part à droite (KM1). Arrivé sur S4, KM1 retombe et KM2 le ramène ; il s'arrête sur S3. Les fins de course sont actionnés par le chariot.",
       construire() { return exempleVaEtVient(); } },
     { id: "cuve", titre: "Remplissage d'une cuve (automate, capteurs PNP)", niveau: "Partie opérative",
-      resume: "S2 met en service : la pompe M1 démarre sous le niveau bas (B1) et s'arrête au niveau haut (B2). Programme en Ladder avec S et R ; flotteurs en capteurs 3 fils PNP.",
+      resume: "S2 met en service : la pompe M1 démarre sous le niveau bas (B1) et s'arrête au niveau haut (B2). Programme en Ladder avec S et R ; niveaux détectés par des capteurs capacitifs 3 fils PNP.",
       construire() { return exempleCuve(); } },
     { id: "api-variateur", titre: "Automate et variateur : deux sens, deux vitesses", niveau: "Variateur",
       resume: "API1 commande U1 : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz, 10 V : 50 Hz avec S4). Rampes de 2 s.",
@@ -556,7 +556,7 @@
       ] },
     { id: "d11-cuve", titre: "Remplis la cuve", niveau: 3,
       resume: "Programmer un remplissage automatique avec S et R.",
-      consigne: "<p>Le câblage est fait : <b>S1</b> (arrêt, à ouverture) sur %I0.0, <b>S2</b> (marche) sur %I0.1, le flotteur du niveau bas <b>B1</b> sur %I0.2 et celui du niveau haut <b>B2</b> sur %I0.3 ; la pompe <b>KM1</b> sur %Q0.0 et le voyant <b>H1</b> sur %Q0.1. Programme <b>API1</b> en Ladder :</p><ul><li><b>S2</b> met l'installation en service, <b>S1</b> la met hors service ;</li><li>en service, la pompe <b>démarre</b> quand l'eau descend sous B1, et <b>s'arrête</b> quand elle atteint B2 — elle ne repart pas avant d'être redescendue sous B1 ;</li><li>H1 est allumé quand la pompe tourne.</li></ul><p class=\"discret\">B1 vaut 1 quand l'eau est au-dessus du niveau bas, B2 quand elle atteint le niveau haut. L'eau est consommée en continu.</p>",
+      consigne: "<p>Le câblage est fait : <b>S1</b> (arrêt, à ouverture) sur %I0.0, <b>S2</b> (marche) sur %I0.1, le capteur du niveau bas <b>B1</b> sur %I0.2 et celui du niveau haut <b>B2</b> sur %I0.3 ; la pompe <b>KM1</b> sur %Q0.0 et le voyant <b>H1</b> sur %Q0.1. Programme <b>API1</b> en Ladder :</p><ul><li><b>S2</b> met l'installation en service, <b>S1</b> la met hors service ;</li><li>en service, la pompe <b>démarre</b> quand l'eau descend sous B1, et <b>s'arrête</b> quand elle atteint B2 — elle ne repart pas avant d'être redescendue sous B1 ;</li><li>H1 est allumé quand la pompe tourne.</li></ul><p class=\"discret\">B1 vaut 1 quand l'eau est au-dessus du niveau bas, B2 quand elle atteint le niveau haut. L'eau est consommée en continu.</p>",
       indice: "Un bit %M0 (AUTO) : S2 le met à 1 (bobine S), S1 le remet à 0 (bobine R, avec un contact à ouverture car S1 est à ouverture). Puis : AUTO et non B1 → S KM1 ; B2 → R KM1. Une bobine simple « KM1 = non B2 » ferait repartir la pompe dès que l'eau baisse un peu.",
       depart() { return exempleCuve(true); },
       exige: { API1: "automate", KM1: "contacteur", H1: "voyant", S1: "bouton", S2: "bouton", B1: "capteur", B2: "capteur", PO1: "cuve" },
