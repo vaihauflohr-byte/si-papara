@@ -39,7 +39,7 @@
   const tagPct = (p) => `<span class="etiquette ${p >= 75 ? "ok" : p >= 50 ? "alerte" : "ko"}">${p} %</span>`;
   const LIB = { entrainement: "Entraînement", revision_hebdo: "Révision hebdo", externe: "Exercice externe", revision_jour: "Révision du jour (bac)" };
   const HORS_MOYENNE = new Set(["revision_hebdo", "revision_jour"]);
-  const ATELIER_LIBRE = /^schemas-(defi|dep)-/;   // défis et dépannages d'entraînement de l'atelier schémas : comptés, pas notés
+  const ATELIER_LIBRE = /^schemas-(defi|dep|lecture)-/;   // défis, dépannages d'entraînement et lectures de l'atelier schémas : comptés, pas dans la moyenne
 
   document.getElementById("banniere").innerHTML = SIP.api.mode === "demo"
     ? `<div class="demo-banniere">Mode démo : mot de passe prof <b>demo</b>. Les données sont celles des élèves de ce navigateur.</div>` : "";
@@ -276,12 +276,12 @@
       .sort((a, b) => a.fait_le.localeCompare(b.fait_le));
     const C = catalogueAtelier(R), parE = {};
     R.forEach((t) => {
-      const x = (parE[t.eleve_id] = parE[t.eleve_id] || { defis: {}, deps: [] });
-      if (/^schemas-defi-/.test(t.module)) { const id = t.module.slice(13); if (!x.defis[id]) x.defis[id] = t; } else x.deps.push(t);
+      const x = (parE[t.eleve_id] = parE[t.eleve_id] || { defis: {}, deps: [], lec: [] });
+      if (/^schemas-defi-/.test(t.module)) { const id = t.module.slice(13); if (!x.defis[id]) x.defis[id] = t; } else if (/^schemas-lecture-/.test(t.module)) x.lec.push(t); else x.deps.push(t);
     });
     const E = elevesFiltres().filter((e) => e.actif !== false || parE[e.id]);
-    const aide = `<p class="discret">Les <b>défis</b> de l'<a href="entrainements/schemas.html">atelier schémas</a> réussis par tes élèves connectés, et les pannes qu'ils ont trouvées en <b>dépannage d'entraînement</b>. Un défi compte à sa première réussite : <span class="at-c ok">✓</span> du premier coup, sans indice ; <span class="at-c moyen">✓</span> après des essais ratés ou avec l'indice. Ces notes ne comptent pas dans la moyenne.</p>`;
-    if (!R.length) return cadre(`<div class="carte"><p>Aucun défi ni dépannage d'entraînement${niveau ? " dans cette classe" : ""} pour l'instant.</p>${aide}</div>`);
+    const aide = `<p class="discret">Les <b>défis</b> de l'<a href="entrainements/schemas.html">atelier schémas</a> réussis par tes élèves connectés, les pannes qu'ils ont trouvées en <b>dépannage d'entraînement</b> et leurs <b>lectures de schéma</b> (questions auxquelles on répond en cliquant sur l'appareil). Un défi compte à sa première réussite : <span class="at-c ok">✓</span> du premier coup, sans indice ; <span class="at-c moyen">✓</span> après des essais ratés ou avec l'indice. Ces notes ne comptent pas dans la moyenne.</p>`;
+    if (!R.length) return cadre(`<div class="carte"><p>Aucun défi, dépannage d'entraînement ni lecture de schéma${niveau ? " dans cette classe" : ""} pour l'instant.</p>${aide}</div>`);
     const nbDefis = Object.values(parE).reduce((a, x) => a + Object.keys(x.defis).length, 0);
     const premierCoup = Object.values(parE).reduce((a, x) => a + Object.values(x.defis).filter((t) => { const i = infoDefi(t); return i.essais === 1 && !i.indice; }).length, 0);
     const nbDeps = Object.values(parE).reduce((a, x) => a + x.deps.length, 0), actifs = E.filter((e) => parE[e.id]).length;
@@ -295,6 +295,11 @@
       const moy = x.deps.reduce((a, t) => a + note20(t.score, t.score_max), 0) / x.deps.length, n = new Set(x.deps.map((t) => t.module)).size;
       return `<td class="num" title="${esc(x.deps.map((t) => `${String(t.titre || "").replace(/^Atelier schémas · Dépannage : /, "")} : ${SIP.nb(note20(t.score, t.score_max), 3)}/20 (${SIP.fmtDate(t.fait_le)})`).join("\n"))}">${x.deps.length} panne${x.deps.length > 1 ? "s" : ""}${n > 1 ? ` <span class="discret">(${n} schémas)</span>` : ""} ${tagNote(moy)}</td>`;
     };
+    const lecDe = (x) => {
+      if (!x || !x.lec.length) return `<td class="num discret">—</td>`;
+      const moy = x.lec.reduce((a, t) => a + note20(t.score, t.score_max), 0) / x.lec.length;
+      return `<td class="num" title="${esc(x.lec.map((t) => `${String(t.titre || "").replace(/^Atelier schémas · Lecture : /, "")} : ${SIP.nb(note20(t.score, t.score_max), 3)}/20 (${SIP.fmtDate(t.fait_le)})`).join("\n"))}">${x.lec.length} ${tagNote(moy)}</td>`;
+    };
     const par = C.defis.map((d) => E.filter((e) => parE[e.id] && parE[e.id].defis[d.id]).length);
     cadre(`<div class="carte">${aide}</div>
       <div class="stats">
@@ -303,10 +308,10 @@
         <div class="carte"><span class="discret">Du premier coup</span><b>${nbDefis ? Math.round((100 * premierCoup) / nbDefis) : 0} %</b></div>
         <div class="carte"><span class="discret">Pannes trouvées</span><b>${nbDeps}</b></div>
       </div>
-      <div class="table-defil"><table class="atelier"><thead><tr><th>Élève</th>${niveau ? "" : "<th>Classe</th>"}${C.defis.map((d) => `<th class="at-c" title="Défi ${d.num} : ${esc(d.titre)}${d.niveau ? " · " + "●".repeat(d.niveau) : ""}">${d.num}</th>`).join("")}<th class="num">Défis</th><th class="num">Dépannages</th></tr></thead><tbody>${E.map((e) => {
+      <div class="table-defil"><table class="atelier"><thead><tr><th>Élève</th>${niveau ? "" : "<th>Classe</th>"}${C.defis.map((d) => `<th class="at-c" title="Défi ${d.num} : ${esc(d.titre)}${d.niveau ? " · " + "●".repeat(d.niveau) : ""}">${d.num}</th>`).join("")}<th class="num">Défis</th><th class="num">Dépannages</th><th class="num">Lectures</th></tr></thead><tbody>${E.map((e) => {
         const x = parE[e.id], n = x ? Object.keys(x.defis).length : 0;
-        return `<tr class="cliquable" data-id="${esc(e.id)}"><td><b>${esc(e.nom)}</b></td>${niveau ? "" : `<td>${esc(e.niveau)}</td>`}${C.defis.map((d) => cellule(d, x && x.defis[d.id])).join("")}<td class="num"><b>${n}</b> / ${C.defis.length}</td>${depsDe(x)}</tr>`;
-      }).join("")}</tbody><tfoot><tr><td>Réussi par</td>${niveau ? "" : "<td></td>"}${par.map((n) => `<td class="at-c">${n}</td>`).join("")}<td></td><td></td></tr></tfoot></table></div>
+        return `<tr class="cliquable" data-id="${esc(e.id)}"><td><b>${esc(e.nom)}</b></td>${niveau ? "" : `<td>${esc(e.niveau)}</td>`}${C.defis.map((d) => cellule(d, x && x.defis[d.id])).join("")}<td class="num"><b>${n}</b> / ${C.defis.length}</td>${depsDe(x)}${lecDe(x)}</tr>`;
+      }).join("")}</tbody><tfoot><tr><td>Réussi par</td>${niveau ? "" : "<td></td>"}${par.map((n) => `<td class="at-c">${n}</td>`).join("")}<td></td><td></td><td></td></tr></tfoot></table></div>
       <p class="discret">Passe la souris sur une case pour la date, les essais et l'indice ; clique sur un élève pour tout le détail.</p>`);
     document.querySelectorAll("tr[data-id]").forEach((tr) => (tr.onclick = () => vueDetail(tr.dataset.id)));
   }
@@ -719,7 +724,7 @@
     }).join("");
     const seances = x.E.map((t) => {
       const det = Array.isArray(t.details) ? t.details : [];
-      return `<details class="seance"><summary><b>${SIP.fmtDate(t.fait_le, true)}</b> ${esc(t.titre || t.module)} <span class="etiquette">${/^fiche-/.test(t.module) ? "Vérification de fiche" : /^flash-/.test(t.module) ? "Flash" : /^schemas-prof-/.test(t.module) ? "Dépannage (atelier schémas)" : /^schemas-defi-/.test(t.module) ? "Défi (atelier schémas)" : /^schemas-dep-/.test(t.module) ? "Dépannage d'entraînement" : /^dsb-/.test(t.module) ? "DS blanc" : /^prep-/.test(t.module) ? "Préparation du DS" : /^bac-/.test(t.module) ? "Bac SI" : LIB[t.type] || t.type}</span>
+      return `<details class="seance"><summary><b>${SIP.fmtDate(t.fait_le, true)}</b> ${esc(t.titre || t.module)} <span class="etiquette">${/^fiche-/.test(t.module) ? "Vérification de fiche" : /^flash-/.test(t.module) ? "Flash" : /^schemas-prof-/.test(t.module) ? "Dépannage (atelier schémas)" : /^schemas-defi-/.test(t.module) ? "Défi (atelier schémas)" : /^schemas-dep-/.test(t.module) ? "Dépannage d'entraînement" : /^schemas-lecture-/.test(t.module) ? "Lecture de schéma" : /^dsb-/.test(t.module) ? "DS blanc" : /^prep-/.test(t.module) ? "Préparation du DS" : /^bac-/.test(t.module) ? "Bac SI" : LIB[t.type] || t.type}</span>
         ${tagNote(note20(t.score, t.score_max))} ${det.length ? `<span class="discret">${det.reduce((a, d) => a + nbErreurs(d), 0)} erreur(s)</span>` : ""} ${t.duree_s ? `<span class="discret">${Math.round(t.duree_s / 60)} min</span>` : ""}</summary>
         ${det.length ? `<div class="table-defil"><table><thead><tr><th>#</th><th>Question</th><th>Réponse élève</th><th>Attendu</th><th class="num">Points</th></tr></thead><tbody>${det.map((d, k) =>
           `<tr><td>${k + 1}</td><td>${esc(d.q)}</td><td>${esc(d.rep)}${d.essais > 1 ? ` <span class="discret">(${d.essais} essais)</span>` : ""}</td><td>${esc(d.attendu)}</td><td class="num">${d.bareme != null ? `${nbErreurs(d) ? "" : "✓ "}${SIP.nb(d.pts, 3)} / ${SIP.nb(d.bareme, 3)}` : nbErreurs(d) ? `✗ −${SIP.PENALITE * nbErreurs(d)}` : "✓"}</td></tr>`).join("")}</tbody></table></div>` : `<p class="discret">Pas de détail.</p>`}

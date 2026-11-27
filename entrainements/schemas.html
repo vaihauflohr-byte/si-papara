@@ -503,6 +503,14 @@ table.raccourcis{border-collapse:collapse;width:100%;font-size:.88rem;margin-top
 table.raccourcis td{border-top:1px solid var(--rule);padding:5px 6px;vertical-align:top}
 table.raccourcis td:first-child{white-space:nowrap;width:1%}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:8px;font-size:.9rem;z-index:100;box-shadow:var(--sc-ombre);max-width:90vw}
+/* lecture de schéma : une pastille par question */
+.lc-points{display:flex;gap:5px;margin:6px 0 10px}
+.lc-points i{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--rule);background:var(--paper-2)}
+.lc-points i.cur{border-color:var(--accent);background:var(--accent-soft)}
+.lc-points i.ok{background:var(--good);border-color:var(--good)}
+.lc-points i.moyen{background:var(--warn);border-color:var(--warn)}
+.lc-points i.ko{background:var(--bad);border-color:var(--bad)}
+.lc-q{font-size:1.02rem;line-height:1.4}
 /* repérage du folio : colonnes, numéros de fils, renvois (folio.js) */
 .fo-c{fill:none;stroke:var(--ink-3);stroke-width:.8}
 .fo-n{font-family:var(--f-mono);font-weight:600;font-size:10px;fill:var(--ink-2);text-anchor:middle;dominant-baseline:central}

@@ -184,7 +184,8 @@
       const d = devDe.get(pc.id), P = M.parametres(pc), T = pc.type, nat = M.nature(pc);
       if (nat && d) {
         const tempo = T === "contact_tno" || T === "contact_tnf";
-        cond.push({ pc, i: 0, n1: nd(pc, "a"), n2: nd(pc, "b"), ferme: () => (nat === "no") === (tempo ? actionneRetarde(d) : actionne(d)) });
+        // d.transit : un organe qu'on manœuvre a, un instant, tous ses contacts ouverts (coupure avant fermeture)
+        cond.push({ pc, i: 0, n1: nd(pc, "a"), n2: nd(pc, "b"), ferme: () => !d.transit && (nat === "no") === (tempo ? actionneRetarde(d) : actionne(d)) });
       } else if (T === "poles" && d) {
         for (let k = 0; k < 3; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), ferme: () => actionne(d) });
       } else if (T === "sectionneur" && d) {
@@ -946,6 +947,10 @@
         if (v !== d.porte) { d.porte = v; log("info", `Porte du monte-charge ${d.ref} ${v ? "fermée" : "ouverte"}.`, { refs: [d.ref] }); }
         appliquerCapteurs(); evaluer(); return true;
       }
+      // un bouton (ou un autre organe) manœuvré coupe avant de fermer : ses contacts qui s'ouvrent s'ouvrent d'abord, puis ceux
+      // qui se ferment se ferment. Entre les deux, une bobine qui perd son alimentation a le temps de retomber : c'est ce qui
+      // fait marcher la marche par à-coups (le 21-22 de S3 dans l'auto-maintien), comme en vrai.
+      const org = S === "bouton" || MULTI.has(S), av = org ? { a: d.appuye, m: d.maintenu, x: d.actionne, act: actionne(d) } : null;
       if (quoi === "appuyer") { if (S === "bouton") d.appuye = true; else if (MULTI.has(S)) d.actionne = true; else return false; }
       else if (quoi === "relacher") { if (S === "bouton") d.appuye = false; else if (S !== "au" && MULTI.has(S)) d.actionne = false; else return false; }
       else if (quoi === "maintenir") { if (S !== "bouton") return false; d.maintenu = valeur == null ? !d.maintenu : !!valeur; }
@@ -980,6 +985,11 @@
         else if (S === "sectionneur") { d.fondus = [false, false, false]; d.ferme = true; }
         else return false;
       } else return false;
+      if (org && actionne(d) !== av.act) {
+        const ap = { a: d.appuye, m: d.maintenu, x: d.actionne };
+        Object.assign(d, { appuye: av.a, maintenu: av.m, actionne: av.x, transit: true }); evaluer();
+        Object.assign(d, { appuye: ap.a, maintenu: ap.m, actionne: ap.x, transit: false });
+      }
       evaluer();
       return true;
     }

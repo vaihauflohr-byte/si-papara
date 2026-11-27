@@ -121,7 +121,16 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    inversées). Comme un vrai voltmètre, il « voit à travers » les bobines, les voyants, les enroulements et les entrées
    d'automate : derrière un contact ouvert, on retrouve le neutre ; un point relié à deux phases par des récepteurs
    donne une tension partielle (aux bornes d'un pôle coupé : 345 V). Deux circuits séparés (24 V et réseau) : 0 V.
-10. **Dépannage** (fenêtre « Défis », en bas) : un schéma juste avec une **panne cachée**, tirée au hasard parmi celles que
+10. **Lecture de schéma** (fenêtre « Défis », en bas) : des questions sur un schéma du cours (« Clique sur le contact
+   d'auto-maintien », « Clique sur le contacteur qui fait le couplage étoile »…) ; on répond en cliquant sur l'appareil
+   (n'importe quel morceau : pôles, bobine ou contact d'un contacteur). Juste du premier coup : 1 point, au deuxième :
+   ½ ; après deux erreurs, la bonne réponse est entourée en vert. Une pastille par question (vert, orange, rouge), une
+   explication après chaque réponse, la note sur 20 à la fin ; connecté, elle part dans le suivi (module
+   `schemas-lecture-<id>`, hors moyenne) et le professeur la voit dans la page « Atelier schémas ». Le schéma est figé
+   (comme en simulation). Lien direct : `#lecture=<id>`. Cinq lectures : démarrage direct, inversion, étoile-triangle,
+   station de pompage, barrière (`exemples.js`, `LECTURES` : `bon` donne les réponses acceptées, `[repère]` ou
+   `[repère, type]`).
+11. **Dépannage** (fenêtre « Défis », en bas) : un schéma juste avec une **panne cachée**, tirée au hasard parmi celles que
    l'essai du dépannage fait voir : un fil coupé, un contact (ou un pôle) qui ne conduit plus, une bobine, un voyant ou
    un fusible coupé. Le dessin ne change pas (le contact bouge, le fusible a l'air intact), les fils ne sont plus en
    couleur, aucun message ne trahit la panne : l'élève essaie, mesure, puis « Désigner la panne » et touche l'élément.
@@ -131,7 +140,7 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    « Quitter ». Le schéma de l'élève n'est pas touché (le dépannage n'est pas enregistré à sa place).
    La carte donne aussi une note sur 20, pour s'entraîner (même barème que ci-dessous, par défaut) ; une mesure
    identique à la précédente (mêmes pointes, même valeur : une pointe reposée là où elle est) ne compte pas.
-11. **Dépannage du professeur** (Fichier → « Préparer un dépannage (professeur) ») : sur le schéma ouvert (un
+12. **Dépannage du professeur** (Fichier → « Préparer un dépannage (professeur) ») : sur le schéma ouvert (un
    exemple ou le sien), le professeur choisit l'élément en panne (outil « panne » : il touche un fil, un contact, un
    fusible, une bobine, un voyant ; pour un appareil à plusieurs pôles, il choisit le pôle), un titre, ce qui doit se
    passer (prérempli quand le schéma est un exemple ou un dépannage connu) et le barème : mesures sans pénalité (10),
@@ -141,10 +150,10 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    trouvé ; s'il est connecté au site, le résultat part tout seul dans son suivi (sinon la carte le prévient dès le
    début, et le résultat part quand il revient connecté). Les notes arrivent dans l'espace professeur, page
    « Dépannages » de la classe (dans l'espace Lycée SI, BTS 1 ou BTS 2) (une ligne par élève, le premier essai compte, ceux de la classe qui n'ont pas rendu).
-12. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
+13. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
    fichier `.json` (à rendre au professeur, à rouvrir sur un autre appareil), image PNG ou SVG avec un cartouche
    (logo du lycée, titre, nom de l'élève connecté, date), impression A4 paysage.
-13. **Chronogramme** (pendant la simulation, bouton de la barre d'outils, `chrono.js`) : une ligne par élément, au fil
+14. **Chronogramme** (pendant la simulation, bouton de la barre d'outils, `chrono.js`) : une ligne par élément, au fil
    du temps de la simulation. Commandes (boutons, arrêt d'urgence, sélecteurs, fins de course, capteurs : 1 = actionné),
    bobines (1 = alimentée) et contact temporisé (1 = fermé), protections (la ligne apparaît quand elle change),
    voyants, électrovannes, moteurs (vitesse avec son sens, couplage étoile ou triangle), automate (entrées et sorties
@@ -153,13 +162,13 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    Fenêtre de 10 s à 2 min, « Figer », « Effacer », « Lignes » (choisir ce qui est tracé), « Image » (PNG pour un
    compte rendu). En bas de la feuille sur PC (poignée pour l'agrandir), en haut au téléphone. Rouvert tout seul à la
    simulation suivante s'il l'était.
-14. **Repérage du folio** (bouton « Repérage » de la barre d'outils, `folio.js`) : comme sur un vrai folio, des
+15. **Repérage du folio** (bouton « Repérage » de la barre d'outils, `folio.js`) : comme sur un vrai folio, des
    **colonnes** de 10 pas numérotées en haut de la feuille ; des **numéros de fils** (une équipotentielle reliée à un
    repère de potentiel ou au réseau garde son nom : L, N, +24, 0V, PE, L1, L2, L3 ; les autres sont numérotées 1, 2, 3…
    colonne par colonne, de haut en bas) ; sous chaque bobine, les **renvois** de ses contacts (pôles 1-2 3-4 5-6, 13-14
    NO, 21-22 NF…) avec leur colonne, à droite de chaque relais thermique ceux de ses 95-96 / 97-98, et près de chaque
    contact la colonne de sa bobine (« /4 »). Il reste affiché en simulation et dans les images, l'impression et le PDF.
-15. **Nomenclature et bornier** (Fichier) : un appareil par repère (désignation, caractéristiques : calibre, tension
+16. **Nomenclature et bornier** (Fichier) : un appareil par repère (désignation, caractéristiques : calibre, tension
    de bobine, contacts utilisés, rôle dans une partie opérative ; colonnes où il apparaît) et le **bornier X1** des
    appareils du terrain (moteurs, capteurs, fins de course, électrovannes) : borne, numéro de fil, côté armoire, côté
    terrain. « Copier » (pour un tableur), « Télécharger (CSV) », « Imprimer ».
@@ -251,6 +260,14 @@ les mesures et les erreurs sont gardées (`schemas:dep:<élève>:<id>`, la panne
 | `d14-tri` | Deux choses en même temps (GRAFCET : étapes et transitions de chaque branche données) | il manque la divergence en ET (0 → 10, 20 : `S2 · S4`) et la convergence en ET (11, 23 → 30 : `S4`) ; repos ; S2 : le tapis avance (étapes 10 et 20) ; 3 caisses : 2 dans le bac 1, 1 dans le bac 2 ; 6 caisses : 3 + 3, arrêt, H1 ; S3 ; S2 : un nouveau lot (6 + 6) |
 | `d15-defaut` | Le vérin se bloque (tout est fait, sauf la surveillance) | il manque 50 → 51 (`t/X21/1s · /S5`), 51 → 50 (`↑S3`) et « si /X51 » sur KM1 ; S2 ; la tige se bloque (action `coincer`) ; après la 1re caisse : étape 51, tapis arrêté, H2 allumé puis éteint 0,5 s plus tard ; tige débloquée : S5, le défaut reste ; S3 : acquitté, le tapis repart ; fin du lot : 3 + 3, H1 |
 | `d12-va-et-vient` | Le chariot revient tout seul (les deux contacts de S4 manquent) | repos : chariot à gauche ; S2 : KM1, sens 1 ; arrivé à droite : KM1 retombe, KM2, sens 2 ; retour : arrêt à gauche sur S3 ; jamais en butée, F1 pas déclenché |
+| `d16-deux-postes` | Deux postes de commande (S3 et S4 posés, pas câblés) | S2 marche ; S3 arrête ; S4 redémarre ; S1 arrête ; S3 tenu : S2 ne démarre pas ; S1 tenu : S4 ne démarre pas |
+| `d17-a-coups` | Marche continue et marche par à-coups (S3 13-14 et S3 21-22 posés) | S3 tenu : KM1 ; S3 lâché : arrêt (l'auto-maintien coupé par S3 21-22) ; S2 : marche continue ; S1 ; S3 : à-coups de nouveau |
+| `d18-etoile-triangle` | Le passage en triangle (les deux contacts temporisés de KA1 manquent) | S2 : KM1, KM2, moteur en étoile ; 3 s : KM2 retombe, KM3, triangle ; S1 ; S2 : de nouveau en étoile |
+| `d19-cascade` | Deux tapis en cascade (M2 ne doit tourner que si M1 tourne) | S4 seul : rien ; S2 : M1 ; S4 : M2 ; S3 : M2 s'arrête, M1 continue ; S4 ; S1 : les deux s'arrêtent ; les deux en marche, surcharge de F1 : les deux s'arrêtent |
+| `d20-feux` | Les feux du carrefour (câblage fait, GRAFCET vide) | repos : tout éteint ; S2 : H1 + H6 ; 5 s : H2 + H6 ; 2 s : H3 + H4 ; 5 s : H3 + H5 ; 2 s : H1 + H6 ; S1 : tout éteint |
+| `d21-barriere` | La barrière du parking (câblage du labo, GRAFCET vide) | repos : H2 ; badge sans voiture : rien ; voiture sur B1, badge : KM1 ; S3 : arrêt ; voiture partie de B2 : KM2 ; S4 : arrêt, 1 voiture passée sans choc ; deux voitures, un badge : 3 passées, jamais de choc |
+| `d22-monte-charge` | Le monte-charge ralentit (câblage du labo, GRAFCET vide) | S2 : 40 Hz ; arrivée en haut « douce » (jamais trop vite, jamais en butée) ; S3 : descente douce ; porte ouverte : S2 ne fait rien ; porte ouverte en route : arrêt |
+| `d23-station` | Les pompes en renfort (câblage du labo, Ladder vide) | S2 ; sous B2 : P1 ; à B3 : arrêt ; S3 : P3 principale ; sous B1 : P2 en renfort ; arrêt à B3 ; consommation 100 % : H1 ; S1 : tout s'arrête |
 
 Le défi 8 (GRAFCET) garde des fins de course actionnés à la main (sans chariot) : ses essais cliquent sur S3 et S4.
 
@@ -458,6 +475,10 @@ Une étape : `{ n, init, com, actions: [{ t: "n" | "s" | "r" | "inc" | "ana", v,
   une pompe ne débite qu'en sens 1) ; `duree` : temps pour remplir la bâche vide avec une petite pompe ; `conso` en %
   du débit des trois pompes ensemble (4). Électrodes `tbas`, `bas`, `haut`, `thaut` à 10, 30, 70 et 90 % : dans l'eau
   à 1 % au-dessus, hors de l'eau à 1 % dessous. Débordement, bâche vide, pompe à l'envers : comme la cuve.
+- **Coupure avant fermeture** : un bouton (ou tout organe : sélecteur, fin de course…) qu'on manœuvre ouvre d'abord
+  les contacts qui doivent s'ouvrir, puis ferme ceux qui doivent se fermer (`transit` : tous ouverts, le temps d'une
+  évaluation). Une bobine qui perd son alimentation retombe entre les deux : c'est ce qui fait marcher la marche par
+  à-coups (S3 21-22 dans l'auto-maintien), comme en vrai.
 - **Automate** : `%S6` vaut 1 quand `t mod 1000 < 500` ; si le programme l'utilise, `prochain()` donne la
   demi-seconde suivante.
 - **Défis** : `verifier: { PO1: "gauche" | "droite" | "en-route" }` (chariot ; toute autre valeur : jamais en butée),
@@ -567,6 +588,11 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   suivi intacte, détail de l'élève, téléphone ;
 - `t_folio.js` (Node, dans `/tmp/folio`) : colonnes, numéros de fils (une équipotentielle = un nom), renvois de KM1 avec
   leurs colonnes, nomenclature triée (relais temporisé, transformateur), bornier de la station, CSV, feuille vide ;
+- `t_defis.js` (Node, dans `/tmp/defis2`) : pour les défis 16 à 23, le départ échoue et une solution réussit (les
+  solutions sont dans `solutions.js`, reprises par `t_moteur2.js`) ;
+- `e2e_lecture.py` (Playwright, PC et téléphone) : la fenêtre Défis (23 défis, 5 dépannages, 5 lectures), une lecture
+  entière (juste, deuxième essai, deux erreurs et réponse montrée, note 15/20 envoyée au suivi), quitter, le défi des
+  feux, la page du professeur (23 colonnes, la lecture de l'élève), le lien `#lecture=` au doigt ;
 - `e2e_folio.py` (Playwright, PC et téléphone) : le bouton « Repérage » (colonnes, fils, renvois, gardé au
   rechargement et en simulation), la nomenclature et le bornier (marche-arrêt, barrière), le CSV, l'image exportée ;
 - `e2e_chrono.py` (Playwright) : marche-arrêt (impulsion de S2, KM1 qui reste collé, vitesse du moteur), repère et

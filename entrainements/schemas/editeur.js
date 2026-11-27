@@ -20,7 +20,7 @@
   const session = lire("sip_session");
   const QUI = session && session.nom ? String(session.nom) : "local";
   const FO = window.SchemasFolio || null;   // repérage du folio et nomenclature (folio.js)
-  const CLE = { folio: "schemas:folio", libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, dep: (id) => "schemas:dep:" + QUI + ":" + id, depProgres: "schemas:depannage:" + QUI, prep: "schemas:prep:" + QUI, defiStats: "schemas:defistats:" + QUI, envois: "schemas:envois:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
+  const CLE = { folio: "schemas:folio", lec: (id) => "schemas:lecture:" + QUI + ":" + id, lecProgres: "schemas:lectures:" + QUI, libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, dep: (id) => "schemas:dep:" + QUI + ":" + id, depProgres: "schemas:depannage:" + QUI, prep: "schemas:prep:" + QUI, defiStats: "schemas:defistats:" + QUI, envois: "schemas:envois:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
 
   const DOIGT = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);   // écran tactile sans souris
   const svg = $("sc-svg"), monde = $("sc-monde"), fond = $("sc-fond"), grilleR = $("sc-grille"), pn = $("sc-panneau"), vueEl = $("sc-vue");
@@ -29,7 +29,7 @@
   let schema = M.nouveau();
   let doc = { type: "libre" };
   // voltmètre (pointes rouge et noire posées sur des bornes) ; dépannage (la panne cachée, les mesures) ; marques sur le dessin
-  let sondes = { a: null, b: null, prochaine: "a" }, depEtat = null, marques = [];
+  let sondes = { a: null, b: null, prochaine: "a" }, depEtat = null, marques = [], lecEtat = null;
   // dépannage préparé par le professeur : prep (pendant qu'il le prépare), depProf (chez l'élève qui l'a reçu)
   let prep = null, depProf = null;
   const BAREME = { libres: 10, parMesure: 0.5, parErreur: 3 };
@@ -237,6 +237,7 @@
   function chargerSchema(s, garderVue) {
     prep = null; if (outil === "panne") outil = "fleche";
     schema = s; sel.clear(); brouillon = null; geste = null; netEdit = null; resultatDefi = null; indiceVu = false;
+    if (doc.type !== "depannage" && doc.type !== "lecture") marques = [];
     histo = [JSON.stringify(schema)]; hpos = 0;
     if (!garderVue) ajusterVue();
     sauverBientot(); rendre(); majPanneau(); majBoutons();
@@ -245,10 +246,11 @@
   function refaire() { if (sim || hpos >= histo.length - 1) return; hpos++; schema = JSON.parse(histo[hpos]); sel.clear(); netEdit = null; sauverBientot(); rendre(); majPanneau(); majBoutons(); }
   let tSauve = 0;
   function sauverBientot() { clearTimeout(tSauve); tSauve = setTimeout(sauver, 250); }
-  function sauver() { clearTimeout(tSauve); if (doc.type !== "depannage") garder(doc.type === "defi" ? CLE.defi(doc.defi) : CLE.libre, schema); garder(CLE.dernier, doc); }
+  function sauver() { clearTimeout(tSauve); if (doc.type !== "depannage" && doc.type !== "lecture") garder(doc.type === "defi" ? CLE.defi(doc.defi) : CLE.libre, schema); garder(CLE.dernier, doc); }
   function quitterDoc() {   // avant d'ouvrir un autre schéma
     if (doc.type === "defi") { sauver(); doc = { type: "libre" }; }
     else if (doc.type === "depannage") { depEtat = null; marques = []; depProf = null; doc = { type: "libre" }; }
+    else if (doc.type === "lecture") { lecEtat = null; marques = []; doc = { type: "libre" }; }
     else copieAuto();
   }
 
@@ -492,6 +494,10 @@
       const c = cibleDesignation(w, tac);
       if (c) { e.preventDefault(); choisirPannePrep(c); geste = { type: "rien" }; return; }
     }
+    if (sim && e.button !== 1 && doc.type === "lecture") {   // lecture de schéma : le clic sur un appareil est la réponse
+      const pc = pieceA(w, tac ? 7 : 2);
+      if (pc) { e.preventDefault(); repondreLecture(pc); geste = { type: "rien" }; return; }
+    }
     if (sim && e.button !== 1 && outil === "volt") {
       const bo = borneA(w, rayon(tac ? 22 : 10));
       if (bo) { e.preventDefault(); poserSonde(bo.pc, bo.b); geste = { type: "rien" }; return; }
@@ -570,6 +576,7 @@
           if (bo) { svg.style.cursor = "crosshair"; return; }
         } else if (survolBorne) { survolBorne = null; rendre(); }
         if (outil === "designer") { svg.style.cursor = cibleDesignation(w, tac) ? "help" : "grab"; return; }
+        if (doc.type === "lecture") { svg.style.cursor = pieceA(w, tac ? 7 : 2) ? "help" : "grab"; return; }
         const pc = pieceA(w, tac ? 7 : 2), act = actionnable(pc) ? pc : null; if (act !== survolPiece) { survolPiece = act; rendre(); } svg.style.cursor = act ? "pointer" : "grab"; return;
       }
       const r = rayon(tac ? 20 : 9);
@@ -1072,6 +1079,98 @@
       }
     } finally { envoiDefis = false; }
   }
+  /* ---------- lecture de schéma : une question, un clic sur l'appareil ; 1 point du premier coup, ½ au deuxième ---------- */
+  const lectureParId = (id) => (X.LECTURES || []).find((L) => L.id === id) || null;
+  const garderLec = () => { if (lecEtat && doc.type === "lecture") garder(CLE.lec(doc.lecture), lecEtat); };
+  const noteLecture = () => (lecEtat ? Math.round((200 * lecEtat.points) / lecEtat.n) / 10 : 0);
+  function ouvrirLecture(id, silencieux) {
+    const L = lectureParId(id); if (!L) return;
+    if (sim) arreterSim();
+    if (doc.type === "defi") sauver(); else if (doc.type === "libre") { sauver(); copieAuto(); } else if (doc.type === "depannage") { depEtat = null; depProf = null; }
+    doc = { type: "lecture", lecture: id };
+    const r = lire(CLE.lec(id));
+    lecEtat = r && !r.fini && r.n === L.questions.length ? r : { n: L.questions.length, k: 0, essais: 0, points: 0, reponses: [], clics: [], attente: null, fini: false, debut: Date.now(), fin: null, envoi: "" };
+    marques = [];
+    chargerSchema(L.base());
+    garder(CLE.dernier, doc); garderLec();
+    fermerDialogues();
+    if (history.replaceState) history.replaceState(null, "", "#lecture=" + id);
+    demarrerSim();
+    if (!silencieux) ouvrirPanneau(true);
+  }
+  function quitterLecture() {
+    if (sim) arreterSim();
+    lecEtat = null; marques = []; doc = { type: "libre" };
+    let s = null; const sv = lire(CLE.libre); if (sv) { try { s = M.valider(sv); } catch (e) { s = null; } }
+    chargerSchema(s || M.nouveau());
+    if (history.replaceState) history.replaceState(null, "", location.pathname + location.search);
+    garder(CLE.dernier, doc);
+  }
+  const estBon = (Q, pc) => Q.bon.some(([r, t]) => pc.ref === r && (!t || pc.type === t));
+  function repondreLecture(pc) {
+    const L = lectureParId(doc.lecture), E = lecEtat; if (!L || !E || E.fini || E.attente) return;
+    const Q = L.questions[E.k];
+    E.clics = (E.clics || []).concat(pc.ref || M.TYPES[pc.type].court);
+    if (estBon(Q, pc)) {
+      const pts = E.essais ? 0.5 : 1;
+      E.points += pts; E.reponses.push({ ok: true, essais: E.essais + 1, pts, clics: E.clics });
+      marques = [{ piece: pc.id, cls: "bon" }]; E.attente = "bon";
+    } else {
+      E.essais++;
+      marques = [{ piece: pc.id, cls: "panne" }];
+      if (E.essais >= 2) {   // deux erreurs : la bonne réponse en vert, on passe
+        marques = marques.concat(schema.pieces.filter((q) => estBon(Q, q)).map((q) => ({ piece: q.id, cls: "bon" })));
+        E.reponses.push({ ok: false, essais: 2, pts: 0, clics: E.clics }); E.attente = "montre";
+      }
+    }
+    garderLec(); majCarteLecture(); dessiner();
+  }
+  function questionSuivante() {
+    const E = lecEtat; if (!E || !E.attente) return;
+    E.k++; E.essais = 0; E.clics = []; E.attente = null; marques = [];
+    if (E.k >= E.n) {
+      E.fini = true; E.fin = Date.now();
+      const L = lectureParId(doc.lecture), P = lire(CLE.lecProgres) || {}, note = noteLecture();
+      if (!P[L.id] || note > P[L.id].note) { P[L.id] = { note, t: Date.now() }; garder(CLE.lecProgres, P); }
+      envoyerLecture();
+    }
+    garderLec(); majCarteLecture(); dessiner();
+  }
+  async function envoyerLecture() {   // chaque lecture terminée part dans le suivi (s'il est connecté)
+    const L = lectureParId(doc.lecture), E = lecEtat; if (!session || !L || !E || !E.fini || E.envoi) return;
+    E.envoi = "en cours"; majCarteLecture();
+    const r = await envoyerAuSite({ module: "schemas-lecture-" + L.id, titre: "Atelier schémas · Lecture : " + L.titre, type: "externe", score: noteLecture(), score_max: 20,
+      duree_s: Math.round(((E.fin || Date.now()) - (E.debut || Date.now())) / 1000),
+      details: L.questions.map((Q, i) => { const R = E.reponses[i] || { ok: false, essais: 0, pts: 0, clics: [] }; return { q: Q.q, rep: (R.clics || []).join(", ") || "—", attendu: [...new Set(Q.bon.map((b) => b[0]))].join(" ou "), pts: R.pts, bareme: 1, erreurs: R.ok ? R.essais - 1 : 2, essais: R.essais }; }) });
+    E.envoi = r; if (E === lecEtat) { garderLec(); majCarteLecture(); }
+  }
+  function carteLecture() {
+    const L = lectureParId(doc.lecture), E = lecEtat; if (!L || !E) return "";
+    const k = X.LECTURES.indexOf(L);
+    let h = `<div class="pn-carte pn-lecture"><div class="eyebrow">Lecture de schéma ${k + 1} sur ${X.LECTURES.length} · ${"●".repeat(L.niveau)}${"○".repeat(3 - L.niveau)}</div><h2>${esc(L.titre)}</h2>
+      <div class="lc-points" aria-hidden="true">${L.questions.map((_, i) => { const R = E.reponses[i]; return `<i class="${R ? (R.ok ? (R.essais === 1 ? "ok" : "moyen") : "ko") : i === E.k && !E.fini ? "cur" : ""}"></i>`; }).join("")}</div>`;
+    if (!E.fini) {
+      const Q = L.questions[E.k];
+      h += `<p class="lc-q"><b>Question ${E.k + 1} sur ${E.n}.</b> ${esc(Q.q)}</p>`;
+      if (E.attente === "bon") h += `<div class="bravo">${E.essais ? "Oui, au deuxième essai." : "Oui !"} ${esc(Q.expl)}</div>`;
+      else if (E.attente === "montre") h += `<div class="bravo ko">Non : c'était l'appareil entouré en vert. ${esc(Q.expl)}</div>`;
+      else if (E.essais) h += `<p class="dp-envoi ko">Non, pas celui-là (en rouge). Encore un essai.</p>`;
+      else h += `<p class="discret">${DOIGT ? "Touche" : "Clique sur"} l'appareil, sur le schéma.</p>`;
+      if (E.attente) h += `<div class="rang"><button class="btn" type="button" id="lc-suivant">${E.k + 1 < E.n ? "Question suivante →" : "Voir ma note"}</button></div>`;
+    } else {
+      const net = E.reponses.filter((r) => r.ok && r.essais === 1).length;
+      h += `<div class="bravo">Terminé : <b>${nf(noteLecture())} / 20</b>. ${net} sur ${E.n} du premier coup.</div>`
+        + `<p class="discret">${!session ? "Connecte-toi au site (Mon espace) : ton professeur verra ta note." : E.envoi === "envoye" || E.envoi === "file" ? "Ton professeur le voit dans son suivi ✓" : E.envoi === "en cours" ? "Envoi au professeur…" : E.envoi ? "Ta note n'est pas partie : reconnecte-toi sur la page d'accueil, puis recommence." : ""}</p>`
+        + `<div class="rang"><button class="btn" type="button" id="lc-encore">Recommencer</button></div>`;
+    }
+    return h + `<div class="rang"><button class="btn sec" type="button" id="lc-quitter">Quitter la lecture</button></div></div>`;
+  }
+  function brancherLecture() {
+    const s = $("lc-suivant"); if (s) s.onclick = questionSuivante;
+    const e = $("lc-encore"); if (e) e.onclick = () => { try { localStorage.removeItem(CLE.lec(doc.lecture)); } catch (x) { /* rien */ } ouvrirLecture(doc.lecture); };
+    const q = $("lc-quitter"); if (q) q.onclick = quitterLecture;
+  }
+  function majCarteLecture() { const z = $("lc-carte"); if (z) { z.innerHTML = carteLecture(); brancherLecture(); } }
   /* ---------- préparer un dépannage (professeur) ---------- */
   const sansBalises = (h) => String(h || "").replace(/<br\s*\/?>/g, "\n").replace(/<\/p>\s*<p[^>]*>/g, "\n\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
   function garderPrep() { if (prep) garder(CLE.prep, Object.assign({ h: hacher(JSON.stringify(schema.pieces) + JSON.stringify(schema.fils)), ts: schema.titre || "" }, prep)); }
@@ -1168,7 +1267,7 @@
   /* =====================================================================
      SIMULATION
      ===================================================================== */
-  function basculerSim() { if (sim) { if (doc.type === "depannage") quitterDepannage(); else arreterSim(); } else demarrerSim(); }
+  function basculerSim() { if (sim) { if (doc.type === "depannage") quitterDepannage(); else if (doc.type === "lecture") quitterLecture(); else arreterSim(); } else demarrerSim(); }
   const avecPanne = () => doc.type === "depannage" && depEtat && depEtat.panne && !depEtat.repare;
   function masquer(E) { if (doc.type === "depannage") E.noeuds = E.noeuds.map(() => null); return E; }   // en dépannage, on mesure
   function demarrerSim() {
@@ -1177,13 +1276,14 @@
     sim = MO.simulation(M.cloner(schema), avecPanne() ? { panne: depEtat.panne } : {}); simE = masquer(sim.etat()); simSig = ""; angles = {}; tPrec = 0;
     CH.demarrer(schema, simE);
     document.body.classList.add("simu"); document.body.classList.toggle("depannage", doc.type === "depannage");
-    const b = $("sc-simuler"); b.querySelector("span").textContent = doc.type === "depannage" ? "Quitter" : "Arrêter"; b.querySelector("svg").innerHTML = '<rect x="6" y="6" width="12" height="12" rx="1.5"/>';
+    const b = $("sc-simuler"); b.querySelector("span").textContent = doc.type === "depannage" || doc.type === "lecture" ? "Quitter" : "Arrêter"; b.querySelector("svg").innerHTML = '<rect x="6" y="6" width="12" height="12" rx="1.5"/>';
     fermerPalette();
     majBoutons(); construirePanneauSim(); dessiner();
     cancelAnimationFrame(rafId); rafId = requestAnimationFrame(boucle);
     const api = schema.pieces.find((pc) => pc.type === "automate" && pc.ref);
     majVoltmetre();
-    if (doc.type === "depannage") bulle(depEtat && depEtat.repare ? "Réparé : essaie le schéma, il marche de nouveau." : "Essaie le schéma : qu'est-ce qui ne marche pas ? Puis prends le <b>Voltmètre</b> pour trouver la panne.", 5500);
+    if (doc.type === "lecture") bulle("Lis la question à droite, puis clique sur l'appareil sur le schéma.", 4500);
+    else if (doc.type === "depannage") bulle(depEtat && depEtat.repare ? "Réparé : essaie le schéma, il marche de nouveau." : "Essaie le schéma : qu'est-ce qui ne marche pas ? Puis prends le <b>Voltmètre</b> pour trouver la panne.", 5500);
     else if (!schema.pieces.some((pc) => actionnable(pc))) bulle("Rien à actionner dans ce schéma : ajoute des boutons ou des interrupteurs.", 4000);
     else if (api) bulle(`Clique sur les boutons du schéma. Clique sur <b>${esc(api.ref)}</b> pour voir son programme en direct.`, 5000);
     else bulle("Clique sur les boutons du schéma (ou dans la liste « Commandes »). Double-clic : le bouton reste appuyé.", 4500);
@@ -1274,6 +1374,7 @@
   }
   function construirePanneauSim() {
     let h = poignee();
+    if (doc.type === "lecture") { pn.innerHTML = h + `<div id="lc-carte">${carteLecture()}</div>`; brancherPoignee(); brancherLecture(); return; }
     if (doc.type === "defi") h += carteDefi();
     if (doc.type === "depannage") h += carteDepannage();
     h += `<h2>Simulation</h2><p class="discret">${doc.type === "depannage" ? "Les fils ne montrent pas la tension : mesure-la avec le voltmètre. Les bobines collées sont en jaune." : "Les fils sous tension sont en couleur, les bobines alimentées en jaune."} Clique sur les organes de commande du schéma, ou ici :</p>
@@ -1849,6 +1950,10 @@
     const PD = lire(CLE.depProgres) || {};
     $("d-defis-c").insertAdjacentHTML("beforeend", `<h3 style="margin-top:18px">Dépannage : trouve la panne</h3><p class="discret">Un schéma juste, avec une panne cachée au hasard (fil coupé, contact, bobine, fusible…). Les fils ne montrent pas la tension : on cherche avec le <b>voltmètre</b>, comme en vrai.</p>
       <div class="cartes">${X.DEPANNAGES.map((d, k) => `<button class="carte-x" type="button" data-dp="${d.id}"><div class="ap">${apercu(d.base())}</div><span class="etq${PD[d.id] ? " fait" : ""}">${PD[d.id] ? "Trouvé ✓" : "Dépannage " + (k + 1)} · ${"●".repeat(d.niveau)}${"○".repeat(3 - d.niveau)}</span><b>${esc(d.titre)}</b><small>${esc(d.resume)}</small></button>`).join("")}</div>`);
+    const PL = lire(CLE.lecProgres) || {};
+    $("d-defis-c").insertAdjacentHTML("beforeend", `<h3 style="margin-top:18px">Lecture de schéma : clique pour répondre</h3><p class="discret">Des questions sur un schéma du cours (« Clique sur le contact d'auto-maintien »…) : tu réponds en cliquant sur l'appareil. Deux essais par question.</p>
+      <div class="cartes">${X.LECTURES.map((L, k) => `<button class="carte-x" type="button" data-lc="${L.id}"><div class="ap">${apercu(L.base())}</div><span class="etq${PL[L.id] ? " fait" : ""}">${PL[L.id] ? `Meilleure note : ${nf(PL[L.id].note)}/20` : "Lecture " + (k + 1)} · ${"●".repeat(L.niveau)}${"○".repeat(3 - L.niveau)}</span><b>${esc(L.titre)}</b><small>${L.questions.length} questions</small></button>`).join("")}</div>`);
+    for (const b of $("d-defis-c").querySelectorAll("[data-lc]")) b.onclick = () => ouvrirLecture(b.dataset.lc);
     for (const b of $("d-defis-c").querySelectorAll("[data-df]")) b.onclick = () => ouvrirDefi(b.dataset.df);
     for (const b of $("d-defis-c").querySelectorAll("[data-dp]")) b.onclick = () => ouvrirDepannage(b.dataset.dp);
     ouvrirDialogue("d-defis");
@@ -2022,6 +2127,7 @@
       <h3 style="margin-top:14px">Le voltmètre et le dépannage</h3>
       <p class="discret"><b>Chronogramme</b> (pendant la simulation) : une ligne par élément, au fil du temps — boutons et capteurs (1 = actionné), bobines (1 = alimentée), contacts temporisés (1 = fermé), voyants, vitesse et couplage des moteurs, étapes du GRAFCET, fréquence du variateur, position du chariot, niveau de la cuve. ${DOIGT ? "Touche" : "Clique sur"} le tracé pour poser un repère : l'écart de temps avec le curseur s'affiche (pratique pour une temporisation). « Lignes » choisit ce qui est tracé, « Image » l'enregistre pour un compte rendu.</p>
       <p class="discret">Pendant la simulation, le bouton <b>Voltmètre</b> remplace « Fil » dans la barre d'outils. ${DOIGT ? "Touche" : "Clique sur"} une borne pour la pointe <b style="color:#e03131">rouge</b>, puis une autre pour la pointe <b>noire</b> (COM) : l'écran donne la tension entre les deux, et la suit quand le schéma change (appuie sur S2 en gardant les pointes). En continu, le signe dit dans quel sens tu mesures (−24 V : pointes inversées). Comme un vrai voltmètre, il « voit à travers » une bobine ou un voyant : derrière un contact ouvert, on retrouve le neutre.</p>
+      <p class="discret"><b>Lecture de schéma</b> (fenêtre « Défis », en bas) : une question sur le schéma (« Clique sur le contact d'auto-maintien »…), tu réponds en cliquant sur l'appareil. Deux essais par question ; après deux erreurs, la bonne réponse est entourée en vert. Ta note sur 20 part dans ton suivi si tu es connecté(e).</p>
       <p class="discret"><b>Dépannage</b> (fenêtre « Défis ») : un schéma juste, avec une panne cachée au hasard (un fil coupé, un contact qui ne conduit plus, une bobine, un voyant ou un fusible coupé). Les fils ne sont plus en couleur : on essaie, on mesure pour trouver où la tension s'arrête, puis « Désigner la panne ». La méthode : pointe noire sur le neutre (ou le 0 V), pointe rouge de borne en borne en partant de la phase ; ou bien les deux pointes aux bornes d'un même élément (un contact fermé qui conduit donne 0 V).</p>
       <p class="discret"><b>Dépannage du professeur</b> : ton professeur peut te donner un lien (ou un fichier, à ouvrir avec Fichier → Ouvrir un fichier). Toute la classe a la même panne, et ta note sur 20 lui est envoyée : connecte-toi au site <b>avant</b> de commencer. Chaque mesure au-delà de celles qui sont gratuites et chaque mauvaise désignation enlèvent des points ; reposer une pointe là où elle est déjà ne compte pas.</p>
       <p class="discret"><b>Ton suivi</b> : si tu es connecté(e) au site (Mon espace), chaque défi réussi et chaque panne trouvée partent dans ton suivi : ton professeur les voit. Un défi réussi du premier coup, sans indice, vaut 20 ; chaque essai raté enlève 2 points, l'indice 3 (jamais moins de 10). Ces notes ne comptent pas dans ta moyenne.</p>
@@ -2123,14 +2229,16 @@
   if (session && session.nom) $("sc-qui").textContent = session.nom;
   new ResizeObserver(() => appliquerVue()).observe(vueEl);
   function depart() {
-    const h = location.hash.replace(/^#/, ""), m = /^(defi|exemple|depannage)=([\w-]+)$/.exec(h), mp = /^panne=([\w-]+)$/.exec(h);
+    const h = location.hash.replace(/^#/, ""), m = /^(defi|exemple|depannage|lecture)=([\w-]+)$/.exec(h), mp = /^panne=([\w-]+)$/.exec(h);
     if (mp) { ouvrirCodeProf(mp[1], true).then((ok) => { if (!ok) departSans(); }); return; }
     if (m && m[1] === "defi" && defiParId(m[2])) { ouvrirDefi(m[2], true); return; }
     if (m && m[1] === "depannage" && depParId(m[2])) { ouvrirDepannage(m[2], true); return; }
+    if (m && m[1] === "lecture" && lectureParId(m[2])) { ouvrirLecture(m[2], true); return; }
     if (m && m[1] === "exemple" && X.EXEMPLES.some((e) => e.id === m[2])) { doc = { type: "libre" }; chargerSchema(X.EXEMPLES.find((e) => e.id === m[2]).construire()); return; }
     const d = lire(CLE.dernier);
     if (d && d.type === "defi" && defiParId(d.defi)) { ouvrirDefi(d.defi, true); return; }
     if (d && d.type === "depannage" && depParId(d.dep)) { ouvrirDepannage(d.dep, true); return; }
+    if (d && d.type === "lecture" && lectureParId(d.lecture)) { ouvrirLecture(d.lecture, true); return; }
     if (d && d.type === "depannage" && /^prof-/.test(d.dep)) { const r = lire(CLE.dep(d.dep)) || lire("schemas:dep:local:" + d.dep); if (r && r.code) { ouvrirCodeProf(r.code, true).then((ok) => { if (!ok) departSans(); }); return; } }
     departSans();
   }
@@ -2138,7 +2246,7 @@
     let s = null; const sv = lire(CLE.libre); if (sv) { try { s = M.valider(sv); } catch (e) { s = null; } }
     doc = { type: "libre" }; chargerSchema(s || M.nouveau());
   }
-  window.addEventListener("hashchange", () => { const mp = /^#panne=([\w-]+)$/.exec(location.hash); if (mp) { if (!depProf || depProf.code !== mp[1]) ouvrirCodeProf(mp[1]); return; } const m = /^#(defi|exemple|depannage)=([\w-]+)$/.exec(location.hash); if (m) { if (m[1] === "defi") ouvrirDefi(m[2]); else if (m[1] === "depannage") ouvrirDepannage(m[2]); else ouvrirExemple(m[2]); } });
+  window.addEventListener("hashchange", () => { const mp = /^#panne=([\w-]+)$/.exec(location.hash); if (mp) { if (!depProf || depProf.code !== mp[1]) ouvrirCodeProf(mp[1]); return; } const m = /^#(defi|exemple|depannage|lecture)=([\w-]+)$/.exec(location.hash); if (m) { if (m[1] === "defi") ouvrirDefi(m[2]); else if (m[1] === "depannage") ouvrirDepannage(m[2]); else if (m[1] === "lecture") { if (doc.type !== "lecture" || doc.lecture !== m[2]) ouvrirLecture(m[2]); } else ouvrirExemple(m[2]); } });
   window.addEventListener("beforeunload", () => { if (!sim) sauver(); });
   if (session) setTimeout(envoyerDefis, 2500);   // défis réussis avant de se connecter, ou hors ligne : ils partent maintenant
   depart();
@@ -2149,7 +2257,7 @@
     schema: () => schema, simulation: () => sim, etat: () => simE, vue: () => Object.assign({}, vue), choix: () => [...sel], outil: () => outil, doc: () => Object.assign({}, doc),
     versEcran: (gx, gy) => { const r = svg.getBoundingClientRect(); return [r.left + vue.x + gx * G * vue.z, r.top + vue.y + gy * G * vue.z]; },
     charger: (s) => chargerSchema(M.valider(s)), ouvrirExemple, ouvrirDefi, verifierDefi, simuler: basculerSim, dessiner, svgExport,
-    ouvrirDepannage, ouvrirCodeProf, preparation: () => (prep ? JSON.parse(JSON.stringify(prep)) : null), lienPreparation: () => (prep && prep.panne ? lienPrep() : null), depannage: () => (depEtat ? JSON.parse(JSON.stringify(depEtat)) : null), sondes: () => JSON.parse(JSON.stringify(sondes)), outilV: choisirOutil,
+    ouvrirDepannage, ouvrirCodeProf, ouvrirLecture, lecture: () => (lecEtat ? JSON.parse(JSON.stringify(lecEtat)) : null), preparation: () => (prep ? JSON.parse(JSON.stringify(prep)) : null), lienPreparation: () => (prep && prep.panne ? lienPrep() : null), depannage: () => (depEtat ? JSON.parse(JSON.stringify(depEtat)) : null), sondes: () => JSON.parse(JSON.stringify(sondes)), outilV: choisirOutil,
     programmer: (ref) => ouvrirProgramme(schema.pieces.find((q) => q.type === "automate" && (!ref || q.ref === ref)))
   };
 })();

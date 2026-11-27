@@ -280,7 +280,7 @@
   // les défis réussis de l'atelier schémas restent dans le navigateur de l'élève (clé schemas:progres:<nom>, écrite par entrainements/schemas/editeur.js)
   function defisSchemas(s) { try { return Object.keys(JSON.parse(localStorage.getItem("schemas:progres:" + ((s && s.nom) || "local"))) || {}).length; } catch (e) { return 0; } }
   function outilSchemas(s) {
-    const n = defisSchemas(s), tot = +localStorage.getItem("schemas:nbdefis") || 15;
+    const n = defisSchemas(s), tot = +localStorage.getItem("schemas:nbdefis") || 23;
     return tuileOutil({ href: "entrainements/schemas.html", ic: "schema", t: "t-elec", sur: "commande · puissance · automate", titre: "Atelier schémas", sous: "dessiner un schéma, puis le simuler",
       info: n ? `${n} / ${tot} défis réussis` : "exemples, défis, dépannages", etat: n >= tot ? "fait" : "" });
   }
