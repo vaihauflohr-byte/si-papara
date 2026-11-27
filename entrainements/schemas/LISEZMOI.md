@@ -126,8 +126,8 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    Pronote ou l'ENT), « Fichier pour les élèves » (`.json`), « Essayer comme un élève ». Chez l'élève : même panne
    pour toute la classe, pas de « Nouvelle panne », « Abandonner (note 0) » en deux temps, la note quand il a
    trouvé ; s'il est connecté au site, le résultat part tout seul dans son suivi (sinon la carte le prévient dès le
-   début, et le résultat part quand il revient connecté). Les notes arrivent dans l'espace professeur, onglet
-   « Dépannages » (une ligne par élève, le premier essai compte, ceux de la classe qui n'ont pas rendu).
+   début, et le résultat part quand il revient connecté). Les notes arrivent dans l'espace professeur, page
+   « Dépannages » de la classe (dans l'espace Lycée SI, BTS 1 ou BTS 2) (une ligne par élève, le premier essai compte, ceux de la classe qui n'ont pas rendu).
 12. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
    fichier `.json` (à rendre au professeur, à rouvrir sur un autre appareil), image PNG ou SVG avec un cartouche
    (logo du lycée, titre, nom de l'élève connecté, date), impression A4 paysage.
@@ -192,7 +192,7 @@ les mesures et les erreurs sont gardées (`schemas:dep:<élève>:<id>`, la panne
   note sur 20, durée ; `details[0]` : la panne (`attendu`), les désignations, la note (`pts` / `bareme`), et les champs
   `mesures`, `mauvaises`, `abandon`, `designations` ; `details[1]` : la liste des mesures. Pas connecté, session
   expirée, réseau : la carte le dit, avec « Envoyer mon résultat » ; hors ligne, la file d'attente du site s'en charge.
-- **Onglet « Dépannages » de l'espace professeur** (`assets/prof.js`, `vueDepannages`) : un menu par dépannage rendu
+- **Page « Dépannages » de l'espace professeur** (`assets/prof.js`, `vueDepannages`, dans chaque espace, pour la classe choisie) : un menu par dépannage rendu
   (titre, date, nombre d'élèves), la panne cachée, moyenne, médiane des mesures, trouvée du premier coup ; une ligne
   par élève (note, mesures, mauvaises désignations, durée, date ; « +n essais » si l'élève a recommencé ailleurs : le
   premier compte) ; avec une classe choisie, ceux qui n'ont pas encore rendu. Un clic ouvre le détail de l'élève.
@@ -470,7 +470,7 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   élève pas connecté, abandon, fichier ouvert, téléphone ;
 - `e2e_chaine.py` (Playwright, le vrai site en mode démo) : élève qui commence sans être connecté (prévenu, puis repris
   connecté avec ses mesures), `backend.js` chargé à la demande, résultat dans la base, deuxième élève (14 mesures,
-  une erreur : 15/20), onglet « Dépannages » du professeur (classe, élève qui n'a pas rendu, détail) ;
+  une erreur : 15/20), page « Dépannages » du professeur (BTS 2 → ADM, élève qui n'a pas rendu, détail) ;
 - `e2e_defaut.py` (Playwright, PC et téléphone) : bouton « Bloquer la tige », défaut (étape 51, tapis arrêté),
   H2 qui clignote, vérin rouge, déblocage, acquittement ; défi 15 refusé au départ, puis résolu dans l'éditeur ;
 - `e2e_tri.py`, `e2e_defi14.py` (Playwright) : volet et tige animés, bacs, carte du tri, bulle de S4, GRAFCET en ET

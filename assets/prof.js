@@ -5,8 +5,26 @@
   const $app = document.getElementById("app");
   const esc = SIP.esc;
   let D = null;            // données brutes
-  let onglet = "bac";   // l'onglet Bac SI s'ouvre en premier : c'est celui qu'on regarde chaque semaine
-  let niveau = (() => { try { return localStorage.getItem("sip_prof_niveau") || ""; } catch (e) { return ""; } })();
+  // Navigation (27 nov. 2026) : un ESPACE (Lycée SI, BTS 1, BTS 2), une CLASSE de cet espace (en BTS : ADM et STI à part),
+  // puis les PAGES de cet espace. Plus de « Toutes les classes » : le bac SI et les BTS ne sont jamais sur la même page.
+  // Pour chaque espace, on retient la dernière classe et la dernière page (localStorage « sip_prof_nav »). Au premier
+  // passage : Lycée SI, Terminale SI, Bac SI (la page qu'on regarde chaque semaine).
+  const ESPACES = [
+    { id: "lycee", nom: "Lycée SI", classes: ["TSI", "1SI", "2SI"], pages: ["bac", "suivi", "competences", "flashs", "depannages", "signalements", "eleves", "apercu"] },
+    { id: "bts1", nom: "BTS 1", classes: ["BTS1-ADM", "BTS1-STI"], pages: ["suivi", "depannages", "flashs", "signalements", "eleves", "apercu"] },
+    { id: "bts2", nom: "BTS 2", classes: ["BTS2-ADM", "BTS2-STI"], pages: ["devoirs", "projets", "suivi", "depannages", "flashs", "signalements", "eleves", "apercu"] }
+  ];
+  const PAGES = { bac: "Bac SI", suivi: "Suivi", competences: "Compétences", flashs: "Flashs", depannages: "Dépannages", devoirs: "Devoirs E4", projets: "Projets",
+    signalements: "Signalements", eleves: "Élèves et codes", apercu: "Aperçu élève" };
+  const espaceDe = (n) => ESPACES.find((x) => x.classes.includes(n)) || ESPACES[0];
+  const NAV = (() => { try { return JSON.parse(localStorage.getItem("sip_prof_nav")) || {}; } catch (e) { return {}; } })();
+  NAV.p = NAV.p || {};
+  if (!NAV.e) {   // l'ancienne classe choisie dans le menu du haut (avant les espaces)
+    let ancien = ""; try { ancien = localStorage.getItem("sip_prof_niveau") || ""; } catch (e) { /* rien */ }
+    if (ancien && ESPACES.some((x) => x.classes.includes(ancien))) { NAV.e = espaceDe(ancien).id; NAV.p[NAV.e] = { n: ancien }; }
+  }
+  let espace = ESPACES.find((x) => x.id === NAV.e) || ESPACES[0];
+  let niveau = "", onglet = "";   // la classe et la page : fixées par regler()
   const pct = (s, m) => (m ? Math.round((100 * s) / m) : 0);
   const note20 = (sc, m) => (m ? (SIP.NOTE_MAX * sc) / m : 0);
   const tagNote = (n) => { const a = SIP.appreciation(n); return `<span class="etiquette ${a.cls}" title="${a.txt}">${SIP.nb(n, 3)}/20</span>`; };
@@ -95,22 +113,46 @@
   }
 
   // ---------------- Cadre ----------------
+  // les classes d'un espace qui ont des élèves (toutes, s'il n'y en a aucun) ; les pages qui ont un sens pour une classe
+  const classesVisibles = (x) => { const L = x.classes.filter((c) => D && D.eleves.some((e) => e.niveau === c)); return L.length ? L : x.classes; };
+  const aDesFlashs = (n) => !!D && D.entrainements.some((t) => /^flash-/.test(t.module || "") && D.parEleve[t.eleve_id] && D.parEleve[t.eleve_id].e.niveau === n);
+  const pagesDe = (x, n) => x.pages.filter((o) => (o === "bac" ? n === "TSI" : o === "flashs" ? n === "TSI" || aDesFlashs(n) : true));
+  function regler() {
+    const C = classesVisibles(espace), m = NAV.p[espace.id] || {};
+    if (!C.includes(niveau)) niveau = C.includes(m.n) ? m.n : C[0];
+    const P = pagesDe(espace, niveau);
+    if (!P.includes(onglet)) onglet = P.includes(m.o) ? m.o : P[0];
+    NAV.e = espace.id; NAV.p[espace.id] = { n: niveau, o: onglet };
+    try { localStorage.setItem("sip_prof_nav", JSON.stringify(NAV)); } catch (e) { /* rien */ }
+  }
+  const nomClasse = (c) => (/^BTS/.test(c) ? c.replace(/^BTS\d-/, "") : SIP.niveau(c).nom);
+  const sigNouveaux = (classes) => (D && D.signalements ? D.signalements.filter((x) => x.statut === "nouveau" && classes.includes(x.niveau)).length : 0);
+  const pastille = (n) => (n ? ` <span class="sig-pastille">${n}</span>` : "");
   function cadre(contenu) {
-    const opts = `<option value="">Toutes les classes</option>` + SIP.NIVEAUX.map((n) => `<option value="${n.id}" ${n.id === niveau ? "selected" : ""}>${esc(n.nom)}</option>`).join("");
-    $app.innerHTML = `<div class="rang no-print" style="justify-content:space-between">
-        <div class="rang"><select id="niv" style="width:auto">${opts}</select>
-        <button class="btn sec" id="maj">Actualiser</button></div>
-        <button class="btn sec" id="csv">Exporter CSV</button></div>
-      <div class="onglets no-print"><button data-o="suivi" class="${onglet === "suivi" ? "actif" : ""}">Suivi</button><button data-o="competences" class="${onglet === "competences" ? "actif" : ""}">Compétences</button><button data-o="bac" class="${onglet === "bac" ? "actif" : ""}">Bac SI</button><button data-o="flashs" class="${onglet === "flashs" ? "actif" : ""}">Flashs</button><button data-o="depannages" class="${onglet === "depannages" ? "actif" : ""}">Dépannages</button><button data-o="devoirs" class="${onglet === "devoirs" ? "actif" : ""}">Devoirs BTS 2</button><button data-o="projets" class="${onglet === "projets" ? "actif" : ""}">Projets BTS 2</button><button data-o="eleves" class="${onglet === "eleves" ? "actif" : ""}">Élèves et codes</button><button data-o="signalements" class="${onglet === "signalements" ? "actif" : ""}">Signalements${nbSigNouveaux() ? ` <span class="sig-pastille">${nbSigNouveaux()}</span>` : ""}</button><button data-o="apercu" class="${onglet === "apercu" ? "actif" : ""}">Aperçu élève</button></div>
+    const C = classesVisibles(espace), P = pagesDe(espace, niveau);
+    $app.innerHTML = `<nav class="espaces no-print" aria-label="Espaces">${ESPACES.map((x) => `<button data-esp="${x.id}" class="${x === espace ? "actif" : ""}"${x === espace ? ' aria-current="true"' : ""}>${esc(x.nom)}${pastille(sigNouveaux(x.classes))}</button>`).join("")}</nav>
+      <div class="rang no-print barre-classe">
+        <div class="choix-classe" role="group" aria-label="Classe">${C.map((c) => { const n = SIP.niveau(c);
+          return `<button data-niv="${c}" aria-pressed="${c === niveau}" title="${esc(n.nom + (n.desc ? " — " + n.desc : ""))}">${esc(nomClasse(c))}</button>`; }).join("")}</div>
+        <div class="rang" style="margin-left:auto"><button class="btn sec" id="maj">Actualiser</button><button class="btn sec" id="csv" title="Tous les résultats de la classe ${esc(SIP.niveau(niveau).nom)}">Exporter CSV</button></div></div>
+      <div class="onglets no-print">${P.map((o) => `<button data-o="${o}" class="${o === onglet ? "actif" : ""}">${PAGES[o]}${o === "signalements" ? pastille(nbSigNouveaux()) : ""}</button>`).join("")}</div>
       <div id="corps">${contenu}</div>`;
-    document.getElementById("niv").onchange = (e) => { niveau = e.target.value; try { localStorage.setItem("sip_prof_niveau", niveau); } catch (x) {} afficher(); };
+    document.querySelectorAll("[data-esp]").forEach((b) => (b.onclick = () => {
+      const x = ESPACES.find((y) => y.id === b.dataset.esp); if (!x || x === espace) return;
+      espace = x; niveau = ""; onglet = ""; if (SIP.profProjets) SIP.profProjets.fermer(); afficher(); window.scrollTo(0, 0);
+    }));
+    document.querySelectorAll("[data-niv]").forEach((b) => (b.onclick = () => { if (b.dataset.niv === niveau) return; niveau = b.dataset.niv; if (SIP.profProjets) SIP.profProjets.fermer(); afficher(); }));
     document.getElementById("maj").onclick = async () => { await charger(); if (SIP.profProjets) await SIP.profProjets.recharger(); afficher(); };
     document.getElementById("csv").onclick = exporterCSV;
     document.querySelectorAll("[data-o]").forEach((b) => (b.onclick = () => { onglet = b.dataset.o; if (onglet === "projets" && SIP.profProjets) SIP.profProjets.fermer(); afficher(); }));
   }
   const elevesFiltres = () => D.eleves.filter((e) => !niveau || e.niveau === niveau).sort((a, b) => a.niveau.localeCompare(b.niveau) || a.nom.localeCompare(b.nom));
 
-  function afficher() { onglet === "eleves" ? vueEleves() : onglet === "competences" ? vueCompetences() : onglet === "bac" ? vueBac() : onglet === "flashs" ? vueFlashs() : onglet === "depannages" ? vueDepannages() : onglet === "devoirs" ? vueDevoirs() : onglet === "projets" ? vueProjets() : onglet === "signalements" ? vueSignalements() : onglet === "apercu" ? vueApercu() : vueSuivi(); }
+  function afficher() {
+    regler();
+    ({ bac: vueBac, suivi: vueSuivi, competences: vueCompetences, flashs: vueFlashs, depannages: vueDepannages, devoirs: vueDevoirs, projets: vueProjets,
+      signalements: vueSignalements, eleves: vueEleves, apercu: vueApercu }[onglet] || vueSuivi)();
+  }
 
   // ---------------- Flashs : revoir les copies d'un flash, question par question ----------------
   // Le prof change les points d'une question à la main, ou fait recorriger les réponses par l'IA (fonction « corriger »,
@@ -438,15 +480,15 @@
   // ---------------- Aperçu élève : le site tel que le voit chaque filière, sans compte élève ----------------
   function vueApercu() {
     const extra = { TSI: "Tableau de bord tourné vers le bac : prochain DS, fiches, séries notées, sujet blanc.", "BTS2-STI": "Avec l'entraînement E4 (sujets d'annales, auto-évaluation N0–N3) et la page « Mon projet » (dossiers 1-2-3).", "BTS2-ADM": "Avec l'entraînement E4 (sujets d'annales, auto-évaluation N0–N3) et la page « Mon projet » (dossiers 1-2-3)." };
-    cadre(blocDSBlancs() + `<p class="discret">Ouvre le site élève comme un élève de la filière choisie, sans identifiant. Tout fonctionne (séries, fiches du jour, révision de la semaine, bac SI, E4) mais <b>rien n'est transmis</b> : tes essais restent dans ce navigateur et n'apparaissent ni dans le suivi ni dans les grilles. Dans l'aperçu, un bandeau permet de changer de filière, d'effacer tes essais ou de quitter.</p>
-      <div class="grille">${SIP.NIVEAUX.map((n) => `<div class="carte tuile"><div class="discret">${esc(n.groupe)}</div><h3>${esc(n.nom)}</h3>
+    cadre((espace.id === "lycee" ? blocDSBlancs() : "") + `<p class="discret">Ouvre le site élève comme un élève de la filière choisie, sans identifiant. Tout fonctionne (séries, fiches du jour, révision de la semaine, bac SI, E4) mais <b>rien n'est transmis</b> : tes essais restent dans ce navigateur et n'apparaissent ni dans le suivi ni dans les grilles. Dans l'aperçu, un bandeau permet de changer de filière, d'effacer tes essais ou de quitter.</p>
+      <div class="grille">${espace.classes.map((id) => SIP.niveau(id)).filter(Boolean).map((n) => `<div class="carte tuile"><div class="discret">${esc(n.groupe)}</div><h3>${esc(n.nom)}</h3>
         ${n.desc ? `<div class="discret">${esc(n.desc)}</div>` : ""}${extra[n.id] ? `<div class="discret">${esc(extra[n.id])}</div>` : ""}<span class="etiquette" style="margin:6px 0 12px">${SIP.modulesDu(n.id).length} modules</span>
         <a class="btn" style="margin-top:auto" href="index.html#/apercu/${n.id}" target="_blank" rel="noopener">Ouvrir l'aperçu ↗</a></div>`).join("")}</div>`);
   }
 
   // ---------------- Grille de compétences de la classe ----------------
   function vueCompetences() {
-    if (!niveau) return cadre(`<div class="carte"><p>Choisis une classe en haut pour afficher sa grille de compétences.</p></div>`);
+    if (!niveau) return cadre(`<div class="carte"><p>Choisis une classe pour afficher sa grille de compétences.</p></div>`);
     const codes = [...new Set(SIP.modulesDu(niveau).flatMap((m) => m.competences))].filter((c) => SIP.COMPETENCES[c]).sort((a, b) => a.localeCompare(b, "fr", { numeric: true }));
     if (!codes.length) return cadre(`<div class="carte"><p>Les modules de cette classe ne sont pas encore rattachés aux compétences du programme de SI.</p></div>`);
     const liste = elevesFiltres().filter((e) => e.actif !== false);
@@ -519,7 +561,7 @@
     return { cols, lignes, dsList };
   }
   function vueBac() {
-    if (niveau && niveau !== "TSI") return cadre(`<div class="carte"><p>L'entraînement bac SI concerne la Terminale SI : choisis « Terminale SI » en haut.</p></div>`);
+    if (niveau && niveau !== "TSI") return cadre(`<div class="carte"><p>L'entraînement bac SI concerne la Terminale SI : choisis « Terminale SI ».</p></div>`);
     const { cols, lignes, dsList } = bacGrille();
     if (!lignes.length) return cadre(`<div class="carte"><p>Aucun élève de Terminale SI. Crée-les dans l'onglet « Élèves et codes ».</p></div>`);
     // préparation d'un DS : une pastille par étape (E1 E2 E3, puis DSb), note avant l'échéance, « après » sinon
@@ -617,7 +659,7 @@
     x.E.forEach((t) => (Array.isArray(t.details) ? t.details : []).forEach((d) => { if (nbErreurs(d) && d.fiche) rates[d.fiche] = (rates[d.fiche] || 0) + nbErreurs(d); }));
     const top = Object.entries(rates).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-    $app.innerHTML = `<p class="no-print"><button class="btn-lien" id="ret">← Retour au suivi</button></p>
+    $app.innerHTML = `<p class="no-print"><button class="btn-lien" id="ret">← Retour : ${esc(PAGES[onglet] || "Suivi")} · ${esc(SIP.niveau(niveau).nom)}</button></p>
       <h1>${esc(e.nom)} <span class="discret">· ${esc(SIP.niveau(e.niveau).nom)}</span></h1>
       <div class="stats">
         <div class="carte"><span class="discret">Entraînements</span><b>${s.nb}</b></div>
@@ -646,7 +688,7 @@
     const liste = elevesFiltres();
     cadre(`<div class="grille" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
       <div class="carte no-print"><h3>Ajouter des élèves</h3>
-        <label for="nv">Classe</label><select id="nv">${SIP.NIVEAUX.map((n) => `<option value="${n.id}" ${n.id === niveau ? "selected" : ""}>${esc(n.nom)}</option>`).join("")}</select>
+        <label for="nv">Classe</label><select id="nv">${espace.classes.map((id) => SIP.niveau(id)).filter(Boolean).map((n) => `<option value="${n.id}" ${n.id === niveau ? "selected" : ""}>${esc(n.nom)}</option>`).join("")}</select>
         <label for="noms">Identifiants — un par ligne</label>
         <textarea id="noms" rows="6" placeholder="teva.m&#10;hinano.t&#10;maui.r"></textarea>
         <p class="discret">Conseil : prénom + initiale du nom, sans accent ni espace (pas de nom complet : le site est public).</p>
@@ -670,7 +712,7 @@
       if (!noms.length) return;
       const faits = [], ratés = [];
       for (const nom of noms) { const pin = genPin(); try { await SIP.api.creerEleve(nv, nom, pin); faits.push({ nom, pin, niveau: nv }); } catch (x) { ratés.push(nom + " (" + x.message + ")"); } }
-      await charger(); vueEleves(); if (faits.length) coupons(faits);
+      await charger(); if (faits.length) { niveau = nv; regler(); } vueEleves(); if (faits.length) coupons(faits);
       if (ratés.length) document.getElementById("err").textContent = "Non créés : " + ratés.join(", ");
     };
     document.querySelectorAll("[data-pin]").forEach((b) => (b.onclick = async () => {
@@ -765,7 +807,7 @@
         <span class="discret">Pour l'essayer : onglet « Aperçu élève », classe BTS 2, puis la tuile du devoir (autres valeurs à chaque essai, rien n'est transmis).</span></div>
       <div class="carte" style="margin-top:12px"><b>${R.length}</b> devoir${R.length > 1 ? "s" : ""} rendu${R.length > 1 ? "s" : ""} sur ${C.length} élève${C.length > 1 ? "s" : ""}${nRefaits ? ` (dont <b>${nRefaits}</b> refait${nRefaits > 1 ? "s" : ""})` : ""}${enCours ? ` · <b>${enCours}</b> en cours` : ""}${moy != null ? ` · moyenne des notes retenues <b>${SIP.nb(moy, 3)} / 20</b> · de ${SIP.nb(Math.min(...notes), 3)} à ${SIP.nb(Math.max(...notes), 3)}` : ""}</div>
       ${C.length ? `<div class="table-defil" style="margin-top:12px"><table><thead><tr><th>Élève</th><th>Classe</th><th class="num" title="Note du dernier essai">Note retenue</th><th title="Notes de tous les essais, dans l'ordre : le devoir noté, puis chaque devoir refait">Essais</th>${P.map((p) => `<th class="num" title="Points perdus dans la partie ${esc(p[0])} (${p[2]} questions), essai retenu">Partie ${esc(p[0])}<br><span class="discret">${esc(p[1])} · ${p[2]} q.</span></th>`).join("")}<th>Dernier essai le</th><th class="num">Temps passé</th><th class="num" title="Nombre de fois où le devoir noté a été démarré">Départs</th></tr></thead><tbody>${C.map(ligne).join("")}</tbody></table></div>`
-        : `<div class="carte" style="margin-top:12px"><p>Aucun élève de BTS 2${niveau ? " dans cette classe" : ""}. Choisis « Toutes les classes » ou une classe de BTS 2.</p></div>`}
+        : `<div class="carte" style="margin-top:12px"><p>Aucun élève en ${esc(SIP.niveau(niveau).nom)} : crée-les dans « Élèves et codes ».</p></div>`}
       ${faibles.length ? `<h3 style="margin-top:22px">Questions les moins réussies</h3><div class="table-defil"><table><thead><tr><th>Question</th><th>Énoncé (exemple d'une copie)</th><th class="num" title="Part des copies (essai retenu) sans erreur sur cette question">Juste du premier coup</th></tr></thead><tbody>${faibles.map((f) => `<tr><td>${esc(f.ref)}</td><td>${esc(f.q.length > 220 ? f.q.slice(0, 220) + "…" : f.q)}</td><td class="num">${tagPct(Math.round(100 * f.taux))}</td></tr>`).join("")}</tbody></table></div>` : ""}
       ${R.length ? `<h3 style="margin-top:22px">Les copies</h3>${R.map(copie).join("")}` : ""}`);
     const ch = document.getElementById("dv-choix"); if (ch) ch.onchange = () => { devoirVu = ch.value; afficher(); };
@@ -797,7 +839,7 @@
       <div class="rang no-print"><a class="btn sec" href="entrainements/bts-e4.html#/devoirs" target="_blank" rel="noopener">Ouvrir la page des devoirs</a><button class="btn sec" id="dv-csv">Toutes les notes (CSV)</button></div>
       ${E.length ? `<div class="table-defil" style="margin-top:12px"><table><thead><tr><th>Élève</th><th>Classe</th>${SE.map((s, j) => `<th title="${esc(bilan[j])}">${esc(s.titre)}<br><span class="discret">${niveauxEtude(LD, s.id).map((d) => "N" + d.niveau).join(" · ")}</span></th>`).join("")}</tr></thead><tbody>${M.map((m) =>
         `<tr><td><b>${esc(m.e.nom)}</b></td><td>${esc((SIP.niveau(m.e.niveau) || {}).court || m.e.niveau)}</td>${m.X.map((L) => `<td style="white-space:nowrap">${L.map(badge).join(" ")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`
-        : `<div class="carte" style="margin-top:12px"><p>Aucun élève de BTS 2${niveau ? " dans cette classe" : ""}. Choisis « Toutes les classes » ou une classe de BTS 2.</p></div>`}
+        : `<div class="carte" style="margin-top:12px"><p>Aucun élève en ${esc(SIP.niveau(niveau).nom)} : crée-les dans « Élèves et codes ».</p></div>`}
       <div class="carte" style="margin-top:12px">${SE.map((s, j) => `<p style="margin:2px 0"><b>${esc(s.titre)}</b> · <span class="discret">${esc(bilan[j])} (notes retenues)</span></p>`).join("")}</div>`);
     const ch = document.getElementById("dv-choix"); if (ch) ch.onchange = () => { devoirVu = ch.value; afficher(); };
     document.getElementById("dv-csv").onclick = () => {
@@ -821,7 +863,7 @@
     });
     const blob = new Blob(["﻿" + lignes.join("\r\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-    a.download = `si-papara_${niveau || "toutes-classes"}_${SIP.aujourdhui()}.csv`; a.click();
+    a.download = `si-papara_${niveau}_${SIP.aujourdhui()}.csv`; a.click();
   }
 
   // ---------------- Démarrage ----------------

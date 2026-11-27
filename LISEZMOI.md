@@ -20,6 +20,23 @@ Aucun serveur à maintenir, rien ne dépend de Claude.
 
 Au bout de 60 jours de cycle, une fiche passe « ancrée » : elle quitte la lecture quotidienne mais reste dans la révision hebdo.
 
+## L'espace prof : trois espaces, une classe à la fois (27 novembre)
+
+En haut de `prof.html`, trois gros boutons : **Lycée SI**, **BTS 1**, **BTS 2**. Dessous, la classe : Terminale SI, Première SI,
+Seconde SI dans le lycée ; **ADM** et **STI** à part dans chaque BTS (seules les classes qui ont des élèves s'affichent).
+Puis les pages de cet espace, pour cette classe seulement :
+
+| Espace | Pages |
+|---|---|
+| Lycée SI | Bac SI (Terminale SI), Suivi, Compétences, Flashs, Dépannages, Signalements, Élèves et codes, Aperçu élève (avec les DS blancs) |
+| BTS 1 | Suivi, Dépannages, Signalements, Élèves et codes, Aperçu élève |
+| BTS 2 | Devoirs E4, Projets, Suivi, Dépannages, Signalements, Élèves et codes, Aperçu élève |
+
+Il n'y a plus de « Toutes les classes » : le bac SI et les BTS ne sont jamais sur la même page. « Flashs » n'apparaît que
+pour une classe qui a des flashs ; la pastille rouge d'un espace compte ses signalements à traiter. L'espace prof rouvre
+le dernier espace, et dans chaque espace la dernière classe et la dernière page (`sip_prof_nav` dans le navigateur).
+« Exporter CSV » exporte la classe affichée. Au téléphone, les liens de l'en-tête passent sous le logo.
+
 ## 1. Tester tout de suite (mode démo)
 
 Ouvre `index.html` dans un navigateur : sans configuration, le site tourne en **mode démo** (données dans le navigateur).
@@ -49,7 +66,7 @@ Tu peux mettre le lien du site dans l'ENT (nati.pf) comme lien externe.
 
 ## 4. Créer les comptes élèves
 
-`prof.html` → onglet **Élèves et codes** → choisis la classe → colle un identifiant par ligne (ex. `teva.m`) → **Créer et générer les codes** → **Imprimer** → découpe les coupons.
+`prof.html` → l'espace (Lycée SI, BTS 1 ou BTS 2) → la classe → page **Élèves et codes** → colle un identifiant par ligne (ex. `teva.m`) → **Créer et générer les codes** → **Imprimer** → découpe les coupons.
 Les codes sont chiffrés en base : ils ne sont visibles qu'à la création. Code perdu → « Nouveau code ».
 5 codes faux d'affilée bloquent le compte 10 minutes.
 Fin d'année : « Désactiver » plutôt que « Supprimer » (supprimer efface tout l'historique).
@@ -58,7 +75,7 @@ Fin d'année : « Désactiver » plutôt que « Supprimer » (supprimer efface t
 
 Pour voir le site exactement comme un élève de **n'importe quelle filière** (2de SI, 1re SI, Tle SI, BTS 1/2 STI et ADM), sans créer de compte élève :
 
-- `prof.html` → onglet **Aperçu élève** → « Ouvrir l'aperçu » sur la filière voulue (ou lien « Aperçu élève » en haut de l'espace prof) ;
+- `prof.html` → l'espace voulu → page **Aperçu élève** → « Ouvrir l'aperçu » sur la filière voulue (ou lien « Aperçu élève » en haut de l'espace prof, pour toutes les filières) ;
 - ou, une fois connecté à l'espace prof dans ce navigateur, la page d'accueil du site affiche un bloc **Mode professeur** avec les 7 filières ; l'adresse `index.html#/apercu/BTS2-STI` (`2SI`, `1SI`, `TSI`, `BTS1-STI`, `BTS1-ADM`, `BTS2-STI`, `BTS2-ADM`) y mène directement.
 
 Dans l'aperçu, tout fonctionne comme pour un élève : tableau de bord de la filière (prochain DS en Terminale, tuile E4 en BTS 2), séries, fiches du jour, révision de la semaine, fiches de révision, pages `bac-si.html` et `bts-e4.html`. **Rien n'est transmis** : les essais sont gardés dans une base locale au navigateur (`sip_apercu_db`) et n'apparaissent ni dans le suivi ni dans les grilles. Un bandeau bleu en haut permet de **changer de filière**, d'**effacer ses essais** ou de **quitter l'aperçu**.
@@ -163,7 +180,8 @@ Limite : la clé publique permet en théorie d'appeler la fonction d'enregistrem
 - **Tapis de tri et GRAFCET en ET (26 novembre)** : quatrième partie opérative, le **tapis de tri** : une cellule au bout de la bande, un volet manœuvré par un **vérin** double effet et son distributeur 4/2 (dessinés selon l'ISO 1219, la tige sort quand la bobine de l'**électrovanne** YV1 est alimentée), deux bacs ; une caisse qui tombe pendant que le volet bouge tombe à côté. Nouveau récepteur « Électrovanne ». Exemple « Tapis de tri : un bac sur deux » : le tapis et l'aiguillage tournent **en même temps** (divergence et convergence en ET), 3 caisses dans chaque bac puis H1 ; défi 14 « Deux choses en même temps » (ajouter la divergence et la convergence en ET). Le **GRAFCET est maintenant dessiné avec ses structures** (double trait du ET, trait simple du OU, branches côte à côte, reprises de séquence qui remontent à gauche), dans l'éditeur et dans la vue en direct.
 - **Panne du vérin et GRAFCET de surveillance (26 novembre, soir)** : en simulation, « Bloquer la tige » (carte du tapis de tri) coince le vérin. Nouvel exemple « Tapis de tri surveillé » : un deuxième GRAFCET surveille le vérin (`t/X21/1s · /S5` : pas sorti 1 s après l'ordre) ; pendant le défaut, le tapis s'arrête (« KM1 si /X51 ») et H2 clignote grâce au bit système **%S6** (horloge 1 s, comme sur les automates Schneider) ; ↑S3 acquitte. Défi 15 « Le vérin se bloque ». Le dessin du GRAFCET sépare les GRAFCET indépendants par un trait pointillé et écrit les conditions des actions avec la barre du NON.
 - **Voltmètre et dépannage (26 novembre, nuit)** : pendant la simulation, un **voltmètre** (pointe rouge, pointe noire) mesure la tension entre deux bornes, comme un vrai : il voit à travers les bobines et les voyants, donne le signe en continu et les tensions partielles. Nouvelle section **Dépannage** dans la fenêtre « Défis » : cinq schémas justes (démarrage direct, voyants, inversion, automate, étoile-triangle) avec une **panne cachée au hasard** (fil coupé, contact ou pôle qui ne conduit plus, bobine, voyant ou fusible coupé, sans que le dessin change) ; les fils ne sont plus en couleur, l'élève mesure puis désigne l'élément en panne (nombre de mesures et d'erreurs, réparation, nouvelle panne).
-- **Dépannage du professeur (27 novembre)** : dans l'atelier schémas, Fichier → « Préparer un dépannage (professeur) » : sur n'importe quel schéma, tu choisis toi-même l'élément en panne, la consigne et le barème (mesures sans pénalité, points en moins par mesure de plus et par mauvaise désignation), puis tu copies le **lien** (ou un fichier) pour la classe : tout le monde a la même panne. La note sur 20 de chaque élève connecté arrive dans l'espace professeur, nouvel onglet **Dépannages** (une ligne par élève : note, mesures, erreurs, durée ; qui n'a pas rendu). Une mesure répétée à l'identique ne compte plus.
+- **Dépannage du professeur (27 novembre)** : dans l'atelier schémas, Fichier → « Préparer un dépannage (professeur) » : sur n'importe quel schéma, tu choisis toi-même l'élément en panne, la consigne et le barème (mesures sans pénalité, points en moins par mesure de plus et par mauvaise désignation), puis tu copies le **lien** (ou un fichier) pour la classe : tout le monde a la même panne. La note sur 20 de chaque élève connecté arrive dans l'espace professeur, nouvelle page **Dépannages** dans l'espace de chaque classe (une ligne par élève : note, mesures, erreurs, durée ; qui n'a pas rendu). Une mesure répétée à l'identique ne compte plus.
+- **Espace prof rangé par classe (27 novembre)** : trois espaces, Lycée SI, BTS 1 et BTS 2, avec ADM et STI à part dans chaque BTS ; chaque espace n'a que ses pages (le bac SI n'est plus à côté des devoirs E4). Voir « L'espace prof : trois espaces » plus haut.
 
 ## Projet planeur — Seconde SI (9 novembre)
 
