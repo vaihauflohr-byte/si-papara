@@ -5,9 +5,11 @@
      bases que le jury trouve fragiles (liens vers les notions), sources ;
    - #admission-tp-<banc> : la partie pratique, sur bancs simulés (agreg/admission-tp.js) ;
    - #admission-reel-<banc> : la partie pratique sur les bancs réels du labo (agreg/admission-reel.js) ;
+   - #admission-bilan, #admission-expose, #admission-cartes-* : l'oral et le suivi (agreg/admission-oral.js) ;
    - #admission-lecon-<épreuve> : s'entraîner à la leçon. Sujet tiré (support, niveau, séquence imposée,
      résultats des études), trame à remplir au chronomètre, compétences à cocher dans le référentiel du
-     niveau, puis correction par l'IA avec la grille du jury et entretien en trois questions.
+     niveau, puis correction par l'IA avec la grille du jury, entretien en trois questions à l'écrit ou
+     entretien en direct (le jury IA relance), dictée vocale possible dans chaque rubrique.
    Référentiels : intitulés recopiés des textes officiels (BTS Électrotechnique, BTS CIEL option B, BUT GEII,
    programme de SII de la filière TSI, 2I2D et sciences de l'ingénieur du cycle terminal).
    Notes dans st.adm (liste d'essais) ; brouillon dans le navigateur (adm-brouillon).
@@ -190,6 +192,7 @@
     const H = histo().slice(-6).reverse();
     app().innerHTML = `<a class="back" href="#accueil">← Accueil</a><div class="eyebrow">Agrégation SII · épreuves d’admission</div><h1>Le TP et son exploitation pédagogique</h1>
       <p>Ce que disent les rapports de jury 2024 et 2025 (option ingénierie électrique) : le déroulé de chaque épreuve, ce qui est noté, ce qui coûte des points. Puis l’entraînement aux deux moitiés de la note : la partie pratique, sur des bancs simulés puis sur tes bancs du labo, et la leçon, la partie où le jury enlève le plus de points.</p>
+      ${window.ADMISSION_ORAL ? ADMISSION_ORAL.carte() : ''}
       ${Object.keys(EP).map((k) => `<div class="card" style="margin-top:16px"><h2 style="margin:0 0 6px">${esc(EP[k].nom)}</h2>${frise(EP[k].phases)}<p class="muted" style="margin-top:10px">${esc(EP[k].note)}</p><div class="btns"><a class="b" href="#admission-lecon-${k}">S’entraîner à la leçon de cette épreuve · ${EP[k].min} min</a></div></div>`).join('')}
       ${window.ADMISSION_TP ? ADMISSION_TP.carte() : ''}
       ${window.ADMISSION_REEL ? ADMISSION_REEL.carte() : ''}
@@ -238,7 +241,23 @@
           ${fini ? '' : '<div class="btns"><button class="b" type="submit">Rendre ma trame au jury</button><button class="b sec" type="button" data-nv="1">Un autre sujet</button></div><p class="muted">Le brouillon est gardé dans ce navigateur : tu peux revenir plus tard.</p>'}
         </form>
         <div id="adres">${fini ? resultat() : ''}</div>`;
-      chrono();
+      chrono(); oral();
+    }
+    // la dictée vocale dans les rubriques, et l'entretien en direct (agreg/admission-oral.js)
+    function oral() {
+      const O = window.ADMISSION_ORAL; if (!O) return;
+      if (!R.corr) O.micros(document.getElementById('adf'));
+      if (R.corr && !(R.ent && R.ent.res)) O.micros(document.getElementById('ade'));
+      const box = document.getElementById('ad-live'), Q = (R.corr && R.corr.questions) || [];
+      if (!box || !Q.length) return;
+      if (!R.live || typeof R.live !== 'object') R.live = {};
+      const refs2 = R.comp.map((i) => refs[i]).filter(Boolean);
+      const ctx = `Épreuve : ${E.nom}. Support : ${S.nom} (${S.prob}). Niveau imposé : ${N.nom}. Séquence : « ${R.seqs[R.seq == null ? 0 : R.seq]} ».
+Résultats des études : ${S.mes.join(' ')}
+Compétences visées : ${refs2.length ? refs2.map((r) => `${r[0]} (${r[1]})`).join(' ; ') : 'aucune'}.
+${CHAMPS.map(([k, l]) => `${l} : ${String(R.champs[k] || '').trim().slice(0, 1500) || '(vide)'}`).join('\n')}
+Note de la trame par le jury : ${fmt(R.corr.total, 3)} / 10. À corriger : ${(R.corr.a_corriger || []).join(' ; ') || '—'}.`;
+      O.entretien(box, { etat: R.live, contexte: ctx, questions: Q, cadre: `L'entretien porte sur la leçon (exploitation pédagogique) que le candidat vient d'exposer, au niveau ${N.nom}.`, src: 'leçon', max: 6, sauver: garder });
     }
     function chrono() {
       clearInterval(window.__an); window.__an = 0;
@@ -262,6 +281,7 @@
         ${(c.points_forts || []).length ? `<p><b>Points forts :</b></p><ul>${c.points_forts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${(c.a_corriger || []).length ? `<p><b>À corriger avant le jour J :</b></p><ul>${c.a_corriger.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
         <p class="muted">Correction rédigée par une IA d’après les attentes des rapports de jury : prends-la comme l’avis d’un collègue exigeant, pas comme une note officielle.</p></div>
         ${entretien()}
+        ${window.ADMISSION_ORAL && (c.questions || []).length ? `<div class="card" style="margin-top:16px"><div class="eyebrow">L’entretien en direct</div><h2 style="margin:4px 0 8px">Le jury pose ses questions et relance</h2><div id="ad-live"></div></div>` : ''}
         <div class="btns" style="margin-top:16px"><button class="b" type="button" data-nv="1">Un autre sujet</button><a class="b sec" href="#admission">Les épreuves d’admission</a></div>`;
     }
     function autoGrille() {
@@ -380,6 +400,7 @@ Réponds en JSON : {"reponses": [{"note": 1.5, "commentaire": "…", "attendu": 
     if (r && window.ADMISSION_REEL) return ADMISSION_REEL.route(r[1]);
     const m =/^admission-lecon-(e1|e2|int)$/.exec(h);
     if (m) return lecon(m[1]);
+    if (window.ADMISSION_ORAL && ADMISSION_ORAL.gere(h)) { css(); return ADMISSION_ORAL.route(h); }
     accueil();
   }
   window.ADMISSION = { route };
