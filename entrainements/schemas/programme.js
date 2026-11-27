@@ -230,8 +230,15 @@
     const lR = (k) => 25 + 6.9 * R[k].n;
     const etp = (n) => E[idx.get(n)];
     const hE = (n) => Math.max(S, etp(n).actions.length * 15 + 7);
-    const txtA = (e) => e.actions.map((ac) => court(texteAction(P, inv, ac), 30));
-    const lA = (e) => Math.round(Math.min(200, Math.max(64, 18 + 6.3 * Math.max(0, ...txtA(e).map((t) => t.length)))));
+    // une action ; sa condition « si… » s'écrit comme une réceptivité (barre au-dessus pour NON)
+    const actionSvg = (ac) => {
+      const t = texteAction(P, inv, ac), si = String(ac.si || "").trim();
+      if (!si || (ac.t !== "n" && ac.t !== "ana")) { const c = court(t, 30); return { svg: esc(c), n: c.length }; }
+      const base = t.slice(0, Math.max(0, t.length - (" si " + ac.si).length)), r = recept2(si);
+      return { svg: esc(court(base, 16)) + " si " + r.svg, n: Math.min(16, base.length) + 4 + r.n };
+    };
+    const txtA = (e) => e.actions.map(actionSvg);
+    const lA = (e) => Math.round(Math.min(220, Math.max(64, 18 + 6.3 * Math.max(0, ...txtA(e).map((t) => t.n)))));
     const wrE = (n) => { const e = etp(n); return e.actions.length ? S / 2 + 20 + lA(e) : e.com ? S / 2 + 12 + 5.9 * Math.min(32, e.com.length) : S / 2; };
     // 1. les tailles : à gauche de l'axe (wl), à droite (wr), hauteur (h) ; nb : traits de reprise qui passent à gauche
     const memo = new Map();
@@ -286,7 +293,7 @@
         if (e.actions.length) {
           const ax = x + S / 2 + 20;
           h += `<line class="gf-l" x1="${x + S / 2}" y1="${y + S / 2}" x2="${ax}" y2="${y + S / 2}"/><rect class="gf-act${act ? " on" : ""}" x="${ax}" y="${y}" width="${lA(e)}" height="${hh}"/>`;
-          txtA(e).forEach((t, k) => { h += `<text class="gf-at" x="${ax + 8}" y="${y + 12 + 15 * k}">${esc(t)}</text>`; });
+          txtA(e).forEach((t, k) => { h += `<text class="gf-at" x="${ax + 8}" y="${y + 12 + 15 * k}">${t.svg}</text>`; });
         } else if (e.com) h += `<text class="gf-com" x="${x + S / 2 + 10}" y="${y + S / 2}">${esc(court(e.com, 32))}</text>`;
         if (hh > S) ligne(x, y + S, x, y + hh, ch);
         occ(x - S / 2 - 2, x + wrE(it.n), y, y + hh, ch);
@@ -323,8 +330,13 @@
         }
       }
     }
+    // les morceaux les uns sous les autres ; un trait pointillé avant un autre GRAFCET (qui a sa propre étape initiale)
     let y = 0;
-    for (const m of morceaux) y = placerSeq(m.items, 0, y, [m.ch]) + 40;
+    const seps = [];
+    morceaux.forEach((m, i) => {
+      if (i && m.items[0] && m.items[0].k === "etape" && etp(m.items[0].n).init) { seps.push(y - 4); y += 22; }
+      y = placerSeq(m.items, 0, y, [m.ch]) + 40;
+    });
     // 3. les reprises de séquence : le trait remonte à gauche de ce qu'il longe (les plus courtes d'abord)
     // si son trait en croisait un autre déjà tracé, elle devient un renvoi
     reprises.sort((a, b) => (a.yB - pos.get(a.vers).y) - (b.yB - pos.get(b.vers).y));
@@ -355,6 +367,7 @@
     }
     let x1 = Infinity, x2 = -Infinity, y1 = Infinity, y2 = -Infinity;
     for (const q of boites) { x1 = Math.min(x1, q.x1); x2 = Math.max(x2, q.x2); y1 = Math.min(y1, q.y1); y2 = Math.max(y2, q.y2); }
+    for (const ys of seps) h += `<line class="gf-sep" x1="${Math.round(x1)}" y1="${ys}" x2="${Math.round(x2)}" y2="${ys}"/>`;
     const dx = Math.round(10 - x1), dy = Math.round(12 - y1), L = Math.ceil(x2 - x1 + 24), H = Math.ceil(y2 - y1 + 26);
     return `<svg class="gf${api ? " live" : ""}" viewBox="0 0 ${L} ${H}" width="${L}" height="${H}" preserveAspectRatio="xMinYMin meet" role="img" aria-label="GRAFCET"><g transform="translate(${dx} ${dy})">${h}</g></svg>`;
   }
@@ -586,9 +599,9 @@
   function affV(P, v) { const a = SA.resoudre(v, SA.tableInverse(P.noms)); return a && P.noms[a] ? P.noms[a] : v || ""; }
   function puces(P, sorte, cur) {
     const L = [];
-    const ok = (a) => { const k = SA.sorteAdr(a); return sorte === "contact" ? /^(I|Q|M|TM|C|X)$/.test(k) : sorte === "bob" || sorte === "s" ? /^(Q|M)$/.test(k) : sorte === "r" ? /^(Q|M|TM|C)$/.test(k) : sorte === "ton" || sorte === "tof" ? k === "TM" : sorte === "ctu" ? k === "C" : false; };
+    const ok = (a) => { const k = SA.sorteAdr(a); return sorte === "contact" ? /^(I|Q|M|TM|C|X|S)$/.test(k) : sorte === "bob" || sorte === "s" ? /^(Q|M)$/.test(k) : sorte === "r" ? /^(Q|M|TM|C)$/.test(k) : sorte === "ton" || sorte === "tof" ? k === "TM" : sorte === "ctu" ? k === "C" : false; };
     for (const a of Object.keys(P.noms)) if (ok(a)) L.push([a, P.noms[a]]);
-    const plus = sorte === "ton" || sorte === "tof" ? ["%TM0", "%TM1", "%TM2", "%TM3"] : sorte === "ctu" ? ["%C0", "%C1", "%C2", "%C3"] : sorte === "contact" ? ["%M0", "%M1", "%TM0", "%C0"] : ["%M0", "%M1", "%M2"];
+    const plus = sorte === "ton" || sorte === "tof" ? ["%TM0", "%TM1", "%TM2", "%TM3"] : sorte === "ctu" ? ["%C0", "%C1", "%C2", "%C3"] : sorte === "contact" ? ["%M0", "%M1", "%TM0", "%C0", "%S6"] : ["%M0", "%M1", "%M2"];
     for (const a of plus) if (!L.some((x) => x[0] === a)) L.push([a, ""]);
     const ac = SA.resoudre(cur, SA.tableInverse(P.noms));
     return `<div class="ld-puces">${L.slice(0, 22).map(([a, n]) => `<button type="button" data-puce="${a}" class="${ac === a ? "on" : ""}"><b>${esc(n || a)}</b>${n ? `<small>${a}</small>` : ""}</button>`).join("")}</div>`;
@@ -694,7 +707,7 @@
       h += `<button class="gf-plus" type="button" data-a-e="${i}">+ action</button></div>`;
     });
     h += `<div class="rang"><button class="btn" type="button" data-pg="etape+">+ Étape et sa transition</button></div>`;
-    h += `<h3>Transitions</h3><div class="gf-sym" role="toolbar" aria-label="Écrire dans la réceptivité">${[["·", " · ", "ET"], ["+", " + ", "OU"], ["/", "/", "NON (barre)"], ["↑", "↑", "front montant"], ["↓", "↓", "front descendant"], ["( )", "()", "parenthèses"], ["t/X…/…s", "t/X1/2s", "temporisation"], ["1", "1", "toujours vraie"]].concat(entreesNom.map((n) => [n, n, "entrée " + n])).map(([l, v, t]) => `<button type="button" data-ins="${esc(v)}" title="${esc(t)}">${esc(l)}</button>`).join("")}</div>`;
+    h += `<h3>Transitions</h3><div class="gf-sym" role="toolbar" aria-label="Écrire dans la réceptivité">${[["·", " · ", "ET"], ["+", " + ", "OU"], ["/", "/", "NON (barre)"], ["↑", "↑", "front montant"], ["↓", "↓", "front descendant"], ["( )", "()", "parenthèses"], ["t/X…/…s", "t/X1/2s", "temporisation"], ["1", "1", "toujours vraie"], ["%S6", "%S6", "horloge 1 s : 0,5 s à 1, 0,5 s à 0 (pour faire clignoter un voyant : H2 si %S6)"]].concat(entreesNom.map((n) => [n, n, "entrée " + n])).map(([l, v, t]) => `<button type="button" data-ins="${esc(v)}" title="${esc(t)}">${esc(l)}</button>`).join("")}</div>`;
     G.transitions.forEach((t, k) => {
       h += `<div class="gf-t" data-t="${k}" id="gf-t-${k}"><span class="gf-tn">(${k + 1})</span><label>de <input type="text" class="gf-de" data-t="${k}" value="${t.de.join(", ")}" inputmode="numeric" aria-label="Étape d'avant"></label><label>vers <input type="text" class="gf-vers" data-t="${k}" value="${t.vers.join(", ")}" inputmode="numeric" aria-label="Étape d'après"></label><input type="text" class="gf-r" data-t="${k}" value="${esc(t.r)}" placeholder="réceptivité : dcy · a" spellcheck="false" autocomplete="off" aria-label="Réceptivité"><button class="gf-x" type="button" data-x-t="${k}" title="Supprimer la transition" aria-label="Supprimer la transition ${k + 1}">✕</button></div>`;
     });
@@ -819,12 +832,15 @@
     <ul><li>Touche une case pour y mettre un <b>contact</b> : à fermeture —| |— (passe si la variable vaut 1), à ouverture —|/|— (passe si elle vaut 0), front montant P (un seul cycle).</li>
     <li>Des contacts sur la même ligne sont <b>en série</b> (ET). Pour un <b>OU</b>, ajoute une ligne, mets-y un contact, et relie les deux lignes avec les boutons <b>+</b> (liaisons verticales).</li>
     <li>La case de droite reçoit la <b>sortie</b> : bobine, mise à 1 (S) ou à 0 (R), temporisation, compteur, ou une consigne 0-10 V sur AQ0.</li>
-    <li>Un bouton d'arrêt à ouverture câblé sur une entrée met cette entrée à 1 au repos : dans le programme, il se met avec un contact <b>à fermeture</b>.</li></ul>`;
+    <li>Un bouton d'arrêt à ouverture câblé sur une entrée met cette entrée à 1 au repos : dans le programme, il se met avec un contact <b>à fermeture</b>.</li>
+    <li><b>%S6</b> est une horloge (bit système) : 1 pendant une demi-seconde, 0 pendant la demi-seconde suivante. Un contact %S6 en série avec un défaut fait <b>clignoter</b> un voyant.</li></ul>`;
   const AIDE_GRAFCET = `<p><b>Le GRAFCET décrit un cycle, étape par étape.</b> Une étape active commande ses actions ; une transition est franchie quand l'étape d'avant est active et que sa réceptivité est vraie.</p>
     <ul><li>Réceptivité : <b>dcy · a</b> (ET), <b>a + b</b> (OU), <b>/a</b> (NON a), <b>↑dcy</b> (front montant), <b>t/X2/3s</b> (3 s après l'activation de l'étape 2), <b>1</b> (toujours vraie).</li>
     <li>Action continue : la sortie vaut 1 tant que l'étape est active (avec une condition « si… » si besoin). S et R : mise à 1 ou à 0 quand l'étape s'active, la valeur reste.</li>
     <li>Pour revenir au début, la dernière transition va <b>vers 0</b> : le dessin trace la boucle à gauche.</li>
-    <li>Une étape vers deux étapes (« vers 2, 4 ») : elles s'activent ensemble (ET). Deux transitions sous une même étape : un choix (OU).</li></ul>`;
+    <li>Une étape vers deux étapes (« vers 2, 4 ») : elles s'activent ensemble (ET). Deux transitions sous une même étape : un choix (OU).</li>
+    <li>Un deuxième GRAFCET (par exemple une <b>surveillance</b>) commence par sa propre étape initiale : les deux évoluent en même temps. <b>X21</b> vaut 1 quand l'étape 21 est active : « KM1 si /X51 » coupe KM1 pendant l'étape 51.</li>
+    <li><b>%S6</b> est une horloge : 1 pendant une demi-seconde, 0 pendant la suivante. « H2 si %S6 » fait <b>clignoter</b> H2.</li></ul>`;
 
   /* =====================================================================
      LA VUE EN DIRECT (pendant la simulation), dans un cadre au-dessus de la feuille

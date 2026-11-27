@@ -903,6 +903,7 @@
       if (vus.has(pc.ref)) continue; vus.add(pc.ref);
       const r = esc(pc.ref), P = M.parametres(pc), ch = pc.type === "chariot", ta = pc.type === "tapis" || pc.type === "tri";
       h += `<div class="cmd crt" data-ref="${r}" data-type="${pc.type}"><div><b>${r}</b><small>${ch ? "chariot · moteur " : pc.type === "tri" ? "tri · moteur " : ta ? "tapis · moteur " : "cuve · pompe "}${esc(P.moteur || "?")}${pc.type === "tri" ? " · vérin " + esc(P.verin || "?") : ""}</small><span class="etat"></span></div>`
+        + (pc.type === "tri" ? `<div class="bt"><button type="button" data-e="coincer" title="Simuler une panne : la tige du vérin reste où elle est">Bloquer la tige</button></div>` : "")
         + (ta ? "" : `<div class="po-jauge${ch ? " ch" : ""}"><i></i></div>`) + `<p class="io-x"></p>`
         + (ch || ta ? "" : `<label class="curseur">Eau consommée (sortie) <input type="range" min="0" max="100" step="5" data-e="conso"><output></output></label>`) + `</div>`;
     }
@@ -917,8 +918,9 @@
       if (A.sorte === "tri") {
         const pc = schema.pieces.find((q) => q.ref === row.dataset.ref && q.type === "tri"), P = M.parametres(pc), e = simE.pieces[pc.id] || {};
         const roule = Math.abs(A.vit || 0) * 1000 > 0.02, r = A.r || 0;
-        et.textContent = (roule ? "le tapis avance" : "arrêté") + (A.cote ? ` · ${A.cote} à côté !` : ""); et.className = "etat " + (A.cote ? "ko" : "ok");
-        x.textContent = [`volet ${r <= 0.02 ? "vers le bac 1" : r >= 0.98 ? "vers le bac 2" : "en mouvement"}`, `bac 1 : ${A.bac1 || 0}`, `bac 2 : ${A.bac2 || 0}`,
+        et.textContent = (roule ? "le tapis avance" : "arrêté") + (A.coince ? " · tige bloquée !" : "") + (A.cote ? ` · ${A.cote} à côté !` : ""); et.className = "etat " + (A.cote || A.coince ? "ko" : "ok");
+        const bc = row.querySelector('[data-e="coincer"]'); if (bc) { bc.textContent = A.coince ? "Débloquer la tige" : "Bloquer la tige"; bc.classList.toggle("rouge", !A.coince); }
+        x.textContent = [`volet ${r <= 0.02 ? "vers le bac 1" : r >= 0.98 ? "vers le bac 2" : A.coince ? "coincé entre les deux" : "en mouvement"}`, `bac 1 : ${A.bac1 || 0}`, `bac 2 : ${A.bac2 || 0}`,
           P.capteur ? `${P.capteur} : ${e.cc ? "une caisse devant" : "rien devant"}` : "", capt(P.rentre, e.cr, "vérin rentré"), capt(P.sorti, e.cs, "vérin sorti"), e.reste >= 0 ? `${e.reste} dans le magasin` : ""].filter(Boolean).join(" · ");
         continue;
       }
@@ -954,6 +956,7 @@
       const b = e.target.closest("button[data-e]"); if (!b || !sim) return;
       const ref = b.closest(".cmd").dataset.ref;
       if (b.dataset.e === "run") { sim.action(ref, "basculer"); majSim(true); }
+      else if (b.dataset.e === "coincer") { const A = simE.appareils[ref]; sim.action(ref, "coincer", !(A && A.coince)); majSim(true); }
       else if (b.dataset.e === "voir") { const pc = schema.pieces.find((q) => q.ref === ref && q.type === "automate"); if (pc) { if (PR.live.ref() === ref) PR.live.fermer(); else PR.live.ouvrir(pc, simE); } }
     });
     z.addEventListener("input", (e) => {
@@ -1435,10 +1438,10 @@
         <tr><td><span class="kbd">Échap</span></td><td>Arrêter le fil en cours ou l'outil, ne plus rien choisir.</td></tr>
       </table>
       <h3 style="margin-top:14px">L'automate et le variateur</h3>
-      <p class="discret"><b>L'automate (API)</b> s'alimente en 24 V continu. Une entrée (%I0.0…) vaut 1 quand elle reçoit le +24 V (le COM des entrées va au 0 V). Ses sorties à relais (%Q0.0…) ferment un contact entre leur commun (C0, C1) et la sortie : on y branche les bobines, les voyants, ou les entrées d'un variateur. Clique sur l'automate, puis <b>Programmer</b> : en <b>Ladder</b> (des contacts et des bobines) ou en <b>GRAFCET</b> (des étapes et des transitions). En simulation, clique sur l'automate pour voir son programme en direct.</p>
+      <p class="discret"><b>L'automate (API)</b> s'alimente en 24 V continu. Une entrée (%I0.0…) vaut 1 quand elle reçoit le +24 V (le COM des entrées va au 0 V). Ses sorties à relais (%Q0.0…) ferment un contact entre leur commun (C0, C1) et la sortie : on y branche les bobines, les voyants, ou les entrées d'un variateur. Clique sur l'automate, puis <b>Programmer</b> : en <b>Ladder</b> (des contacts et des bobines) ou en <b>GRAFCET</b> (des étapes et des transitions). En simulation, clique sur l'automate pour voir son programme en direct. Le bit système <b>%S6</b> est une horloge (1 pendant une demi-seconde, 0 pendant la suivante) : « H2 si %S6 » fait clignoter un voyant.</p>
       <p class="discret"><b>Le variateur</b> reçoit le réseau sur L1, L2, L3 et fait tourner le moteur branché sur U, V, W. LI1 (marche avant) et LI2 (marche arrière) s'activent avec son +24V ; la vitesse vient de AI1 (0-10 V : potentiomètre ou sortie AQ0 d'un automate), de sa molette, ou des vitesses présélectionnées (LI3, LI4). Il accélère et ralentit suivant ses rampes (ACC, DEC).</p>
       <h3 style="margin-top:14px">La partie opérative et les capteurs 3 fils</h3>
-      <p class="discret"><b>Le chariot</b>, <b>la cuve</b> et <b>le tapis</b> (catégorie « Partie opérative ») montrent la machine elle-même. On choisit le moteur qui l'entraîne et les repères de ses capteurs : en simulation, le chariot roule et actionne tout seul ses fins de course ; l'eau monte, descend et fait basculer les interrupteurs de niveau (LSL : niveau bas, LSH : niveau haut) ; les caisses du tapis passent devant la cellule, qui les voit une par une : pour les compter, il faut un compteur dans l'automate. <b>Le tapis de tri</b> a en plus un aiguillage : un volet manœuvré par un vérin (dessiné selon l'ISO 1219, avec son distributeur 4/2). Quand la bobine de l'électrovanne (YV) est alimentée, la tige sort et le volet envoie la caisse dans le bac 2 ; sinon, elle tombe dans le bac 1. Si rien n'arrête le moteur, le chariot force contre la butée (le moteur chauffe) ou la cuve déborde.</p>
+      <p class="discret"><b>Le chariot</b>, <b>la cuve</b> et <b>le tapis</b> (catégorie « Partie opérative ») montrent la machine elle-même. On choisit le moteur qui l'entraîne et les repères de ses capteurs : en simulation, le chariot roule et actionne tout seul ses fins de course ; l'eau monte, descend et fait basculer les interrupteurs de niveau (LSL : niveau bas, LSH : niveau haut) ; les caisses du tapis passent devant la cellule, qui les voit une par une : pour les compter, il faut un compteur dans l'automate. <b>Le tapis de tri</b> a en plus un aiguillage : un volet manœuvré par un vérin (dessiné selon l'ISO 1219, avec son distributeur 4/2). Quand la bobine de l'électrovanne (YV) est alimentée, la tige sort et le volet envoie la caisse dans le bac 2 ; sinon, elle tombe dans le bac 1. Pendant la simulation, « Bloquer la tige » (carte du tapis) simule une panne du vérin. Si rien n'arrête le moteur, le chariot force contre la butée (le moteur chauffe) ou la cuve déborde.</p>
       <p class="discret"><b>Le capteur 3 fils</b> se branche comme dans les machines : BN (marron) au +24 V, BU (bleu) au 0 V, et BK (noir), sa sortie, sur une entrée de l'automate. Un capteur PNP donne du +24 V sur BK quand il détecte ; un NPN donne du 0 V (la charge va alors du +24 V à BK).</p>
       <h3 style="margin-top:14px">Lire les symboles</h3>
       <p class="discret">Les symboles suivent la norme <b>NF EN 60617</b> (le numéro de chaque symbole est noté dessous). Ce qui compte, c'est le petit signe à gauche du contact : il dit <b>qui l'actionne</b>.</p>
@@ -1527,7 +1530,7 @@
   }
 
   /* ---------- démarrage ---------- */
-  garder("schemas:nbdefis", X.DEFIS.length);   // lu par le tableau de bord du site (assets/app.js) : « n / 14 défis réussis »
+  garder("schemas:nbdefis", X.DEFIS.length);   // lu par le tableau de bord du site (assets/app.js) : « n / 15 défis réussis »
   construirePalette();
   if (session && session.nom) $("sc-qui").textContent = session.nom;
   new ResizeObserver(() => appliquerVue()).observe(vueEl);

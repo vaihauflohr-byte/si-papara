@@ -289,6 +289,46 @@
     b.p("tri", 46, 60, "PO1", { moteur: "M1", sens: "1", capteur: "B1", verin: "YV1", rentre: "S4", sorti: "S5", duree: 6, ecart: 30, caisses: 0, course: 0.5 });
     return b.s;
   }
+  // tapis de tri surveillé : un deuxième GRAFCET (étapes 50, 51) surveille le vérin. S'il n'est pas sorti (S5) 1 s après
+  // l'ordre (étape 21), ou pas rentré (S4) 1 s après (étape 20) : défaut, le tapis s'arrête (KM1 si /X51) et H2 clignote (%S6)
+  function progTriSurveille() {
+    const P = progTri(), G = P.grafcet;
+    P.noms["%Q0.3"] = "H2";
+    G.etapes.find((e) => e.n === 10).actions = [{ t: "n", v: "%Q0.0", si: "/X51" }];
+    G.etapes.push({ n: 50, init: true, com: "surveillance du vérin", actions: [] }, { n: 51, com: "défaut vérin", actions: [{ t: "n", v: "%Q0.3", si: "%S6" }] });
+    G.transitions.push({ de: [50], vers: [51], r: "t/X21/1s · /S5 + t/X20/1s · /S4" }, { de: [51], vers: [50], r: "↑S3" });
+    return P;
+  }
+  function exempleTriSurveille(defi) {
+    const b = plan(defi ? "Défi · Le vérin se bloque" : "Tapis de tri surveillé : défaut du vérin");
+    puissanceDirecte(b);
+    const pr = progTriSurveille();
+    if (defi) {
+      pr.grafcet.transitions = pr.grafcet.transitions.filter((tr) => tr.de[0] !== 50 && tr.de[0] !== 51);
+      pr.grafcet.etapes.find((e) => e.n === 10).actions = [{ t: "n", v: "%Q0.0" }];
+    }
+    automate24(b, 36, pr);
+    // entrées : comme le tapis de tri
+    b.p("alim", 22, -1, "", { pot: "+24" }, 0);
+    b.f([22, 1], [22, 2], [55, 2]).f([25, 18], [25, 2]);
+    b.p("alim", 61, 1, "", { pot: "0V" }, 0);
+    b.f([61, 3], [61, 4], [57, 4], [57, 6]);
+    b.p("bp_no", 31, 9, "S2", { num: "13-14" }); b.p("bp_no", 37, 9, "S3", { num: "13-14" });
+    b.p("fdc_no", 43, 9, "S4", { num: "13-14" }); b.p("fdc_no", 49, 9, "S5", { num: "13-14" });
+    b.p("capteur3", 56, 9, "B1", { type: "PNP", sortie: "NO", detection: "optique" });
+    b.f([31, 6], [31, 2]).f([37, 6], [37, 2]).f([43, 6], [43, 2]).f([49, 6], [49, 2]).f([55, 6], [55, 2]);
+    b.f([31, 12], [31, 18]).f([37, 12], [37, 13], [33, 13], [33, 18]).f([43, 12], [43, 14], [35, 14], [35, 18]).f([49, 12], [49, 15], [37, 15], [37, 18]).f([56, 12], [56, 16], [39, 16], [39, 18]);
+    // sorties en escalier : %Q0.0 → KM1, %Q0.1 → YV1, %Q0.2 → H1 (lot complet), %Q0.3 → H2 (défaut, rouge)
+    b.p("alim", 19, 13, "", { pot: "L" }, 0); b.p("fusible", 19, 19, "F2", { cal: 2 }); b.p("contact_th_nf", 19, 26, "F1", { num: "95-96" });
+    b.f([19, 15], [19, 16]).f([19, 22], [19, 23]).f([19, 29], [19, 30], [25, 30]);
+    b.p("bobine", 33, 38, "KM1", { tension: "230~" }); b.p("electrovanne", 39, 38, "YV1", { tension: "230~" });
+    b.p("voyant", 47, 38, "H1", { couleur: "orange", tension: "230~" }); b.p("voyant", 53, 38, "H2", { couleur: "rouge", tension: "230~" });
+    b.f([27, 30], [27, 34], [33, 34], [33, 35]).f([29, 30], [29, 33], [39, 33], [39, 35]).f([31, 30], [31, 32], [47, 32], [47, 35]).f([33, 30], [33, 31], [53, 31], [53, 35]);
+    b.p("alim", 39, 47, "", { pot: "N" });
+    b.f([33, 41], [33, 43], [53, 43], [53, 41]).f([39, 41], [39, 43]).f([47, 41], [47, 43]).f([39, 45], [39, 43]);
+    b.p("tri", 46, 62, "PO1", { moteur: "M1", sens: "1", capteur: "B1", verin: "YV1", rentre: "S4", sorti: "S5", duree: 6, ecart: 30, caisses: 0, course: 0.5 });
+    return b.s;
+  }
   // va-et-vient en logique câblée : S2 lance le chariot à droite, S4 le renvoie à gauche, S3 l'arrête
   function exempleVaEtVient(defi) {
     const b = plan(defi ? "Défi · Le chariot revient tout seul" : "Va-et-vient d'un chariot (logique câblée)");
@@ -423,6 +463,9 @@
     { id: "tri", titre: "Tapis de tri : un bac sur deux (GRAFCET en ET)", niveau: "Partie opérative",
       resume: "S2 (vérin rentré) : deux branches en même temps. Le tapis avance (étape 10) pendant que l'aiguillage envoie une caisse sur deux dans le bac 2 (étapes 20 à 22 : YV1 sort le vérin, qui bascule le volet). Après 6 caisses, les deux branches se rejoignent : H1, lot complet ; S3 acquitte.",
       construire() { return exempleTri(); } },
+    { id: "tri-surveille", titre: "Tapis de tri surveillé : défaut du vérin", niveau: "Partie opérative",
+      resume: "Le même tri, avec un deuxième GRAFCET qui surveille le vérin (étapes 50 et 51) : s'il n'est pas sorti 1 s après l'ordre, le tapis s'arrête et H2 clignote (horloge %S6). Pour l'essayer : « Bloquer la tige » dans le panneau de simulation, puis « Débloquer » et S3 pour acquitter.",
+      construire() { return exempleTriSurveille(); } },
     { id: "api-variateur", titre: "Automate et variateur : deux sens, deux vitesses", niveau: "Variateur",
       resume: "API1 commande U1 : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz, 10 V : 50 Hz avec S4). Rampes de 2 s.",
       construire() { return exempleVariateurApi(); } },
@@ -705,9 +748,26 @@
         { texte: "Après 6 caisses : le tapis s'arrête, H1 s'allume (lot complet)", attendre: 5300, verifier: { PO1: [3, 3], KM1: false, H1: true }, si: "Ajoute la convergence en ET : une transition de « 11, 23 » vers 30, réceptivité S4. L'étape 30 ne s'active que quand les deux branches ont fini." },
         { texte: "S3 : acquittement, H1 s'éteint", faire: [["appuyer", "S3"], ["relacher", "S3"]], attendre: 200, verifier: { H1: false, KM1: false }, si: "La transition 30 → 0 (S3) était déjà là : ne l'efface pas." },
         { texte: "S2 : un nouveau lot, trié de la même façon", faire: [["appuyer", "S2"], ["relacher", "S2"]], attendre: 12000, verifier: { PO1: [6, 6], KM1: false, H1: true }, si: "Après l'acquittement, le GRAFCET revient à l'étape 0 et S2 relance les deux branches." }
+      ] },
+    { id: "d15-defaut", titre: "Le vérin se bloque", niveau: 3,
+      resume: "GRAFCET de surveillance : temporisation, défaut, voyant clignotant, acquittement.",
+      consigne: "<p>Le tapis de tri marche, mais si la tige du vérin se bloque, personne ne s'en aperçoit. Un deuxième GRAFCET doit <b>surveiller le vérin</b>. Ses étapes sont écrites : <b>50</b> (initiale : surveillance) et <b>51</b> (défaut : « H2 si %S6 », H2 clignote). À toi :</p><ul><li>la transition de <b>50 vers 51</b> : YV1 est commandée depuis 1 s (étape 21) et la tige n'est toujours pas sortie : <b>t/X21/1s · /S5</b> ;</li><li>la transition de <b>51 vers 50</b> : l'opérateur acquitte avec <b>↑S3</b> ;</li><li>dans l'étape <b>10</b>, la condition <b>/X51</b> sur l'action KM1 (« si… ») : pendant le défaut, le tapis s'arrête.</li></ul><p class=\"discret\">Pour essayer : en simulation, « Bloquer la tige » dans la carte du tapis, puis « Débloquer la tige » et S3.</p>",
+      indice: "X21 vaut 1 pendant l'étape 21, et t/X21/1s devient vrai 1 s après son activation. La transition 50 → 51 : t/X21/1s · /S5. Pour KM1 : dans l'étape 10, écris /X51 dans la case « si… » de l'action.",
+      depart() { return exempleTriSurveille(true); },
+      exige: { API1: "automate", KM1: "contacteur", YV1: "electrovanne", H1: "voyant", H2: "voyant", S2: "bouton", S3: "bouton", S4: "fdc", S5: "fdc", B1: "capteur", PO1: "tri" },
+      etapes: [
+        { texte: "Au repos : rien ne bouge, H2 éteint", verifier: { KM1: false, YV1: false, H2: false } },
+        { texte: "S2 : le tapis avance, la surveillance (étape 50) attend", faire: [["appuyer", "S2"], ["relacher", "S2"]], attendre: 300, verifier: { KM1: true, API1: "X50" }, si: "L'étape initiale 50 doit être active avec l'étape 0 : ne décoche pas « initiale »." },
+        { texte: "Panne : la tige se bloque. Après la 1re caisse, YV1 commande le vérin, mais S5 ne vient pas : 1 s plus tard, défaut (étape 51)", faire: [["coincer", "PO1", true]], attendre: 7700, verifier: { YV1: true, API1: "X51" }, si: "Le défaut n'est pas vu : ajoute la transition de 50 vers 51, réceptivité t/X21/1s · /S5 (YV1 depuis 1 s, et toujours pas S5)." },
+        { texte: "Pendant le défaut, le tapis s'arrête", verifier: { KM1: false }, si: "L'étape 51 est active, mais le tapis avance encore : dans l'étape 10, mets la condition /X51 sur l'action KM1 (case « si… »)." },
+        { texte: "H2 clignote : allumé…", verifier: { H2: true }, si: "Dans l'étape 51, l'action doit rester « H2 si %S6 »." },
+        { texte: "… puis éteint une demi-seconde", attendre: 500, verifier: { H2: false, KM1: false } },
+        { texte: "La tige est débloquée : elle sort (S5), mais rien ne repart sans acquittement", faire: [["coincer", "PO1", false]], attendre: 700, verifier: { S5: true, KM1: false, API1: "X51" }, si: "Le défaut doit rester jusqu'à l'acquittement par S3 : la transition 51 → 50 se fait sur ↑S3, pas sur S5." },
+        { texte: "S3 : acquittement, H2 s'éteint et le tapis repart", faire: [["appuyer", "S3"], ["relacher", "S3"]], attendre: 300, verifier: { API1: "X50", KM1: true, H2: false }, si: "Ajoute la transition de 51 vers 50, réceptivité ↑S3." },
+        { texte: "Le lot se termine : 3 caisses dans chaque bac, H1", attendre: 9000, verifier: { PO1: [3, 3], KM1: false, H1: true, H2: false }, si: "Après l'acquittement, le tri doit reprendre normalement : la caisse suivante va dans le bac 2." }
       ] }
   ];
 
-  const API = { EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, progCuve, progTapisGrafcet, progTapisLadder, progTri, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot, exempleCuve, exempleVaEtVient, exempleTapis, exempleTri };
+  const API = { EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, progCuve, progTapisGrafcet, progTapisLadder, progTri, progTriSurveille, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot, exempleCuve, exempleVaEtVient, exempleTapis, exempleTri, exempleTriSurveille };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasExemples = API;
 })(typeof window !== "undefined" ? window : globalThis);

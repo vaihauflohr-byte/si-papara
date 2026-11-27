@@ -85,7 +85,7 @@
         case "moteur": Object.assign(d, { w: 0, sens: 0, etatM: "arret", couplage: null, chauffe: 0, tente: false, grille: false, var: null, bloque: false }); break;
         case "chariot": Object.assign(d, { pos: P.depart === "droite" ? 1 : P.depart === "milieu" ? 0.5 : 0, vit: 0, butee: 0, butees: 0 }); break;
         case "tapis": Object.assign(d, { pos: 0, vit: 0, vues: 0, bac: 0, entrees: 0 }); break;
-        case "tri": Object.assign(d, { pos: 0, vit: 0, vues: 0, bac: 0, entrees: 0, r: 0, bac1: 0, bac2: 0, cote: 0, tombees: 0 }); break;
+        case "tri": Object.assign(d, { pos: 0, vit: 0, vues: 0, bac: 0, entrees: 0, r: 0, bac1: 0, bac2: 0, cote: 0, tombees: 0, coince: false }); break;
         case "cuve": Object.assign(d, { niv: clamp((Number(P.niveau) || 0) / 100, 0, 1), conso: clamp((Number(P.conso) || 0) / 100, 0, 1), deborde: false, debords: 0, vide: false, envers: false }); break;
         case "automate": Object.assign(d, { alim: false, grille: false, run: d.run === false ? false : true, actif: false, entrees: new Array(8).fill(false), sorties: new Array(8).fill(false), aq: 0, ko: new Set(), instable: false, api: SA.creerAutomate(d.principal && d.principal.prog), alimTxt: "" }); break;
         case "variateur": Object.assign(d, { alim: false, grille: false, defaut: null, fs: 0, cible: 0, dir: 1, LI: [false, false, false, false], ai1: 0, ordre: 0, deux: false, fRef: 0, origine: "AI1", molette: d.molette == null ? 0.5 : d.molette, aiTrop: false }); break;
@@ -603,7 +603,7 @@
           s.vit = vt + (s.vit - vt) * e;
           if (s.sorte === "tri") {   // le vérin, puis les caisses qui tombent : le volet décide du bac
             const but = s.ev && s.ev.alim ? 1 : 0, v = 1 / (clamp(Number(M.parametres(s.principal).course) || 0.5, 0.1, 10) * 1000);
-            s.r = s.r < but ? Math.min(but, s.r + v * dt) : Math.max(but, s.r - v * dt);
+            if (!s.coince) s.r = s.r < but ? Math.min(but, s.r + v * dt) : Math.max(but, s.r - v * dt);
           }
           compterT(s);
           if (s.sorte === "tri") {
@@ -652,7 +652,7 @@
           }
           if (dist < Infinity) te = t + Math.max(dist / vm, 0.5);
         }
-        if (s.sorte === "tri") {
+        if (s.sorte === "tri" && !s.coince) {
           const but = s.ev && s.ev.alim ? 1 : 0;
           if (Math.abs(but - s.r) > 1e-9) {
             const v = 1 / (clamp(Number(M.parametres(s.principal).course) || 0.5, 0.1, 10) * 1000);
@@ -801,7 +801,13 @@
       if (quoi === "appuyer") { if (S === "bouton") d.appuye = true; else if (MULTI.has(S)) d.actionne = true; else return false; }
       else if (quoi === "relacher") { if (S === "bouton") d.appuye = false; else if (S !== "au" && MULTI.has(S)) d.actionne = false; else return false; }
       else if (quoi === "maintenir") { if (S !== "bouton") return false; d.maintenu = valeur == null ? !d.maintenu : !!valeur; }
-      else if (quoi === "regler") {   // potentiomètre, ou molette du variateur : valeur de 0 à 1
+      else if (quoi === "coincer") {   // panne de la partie opérative : la tige du vérin du tapis de tri ne bouge plus
+        if (S !== "tri") return false;
+        const v = valeur == null ? !d.coince : !!valeur;
+        if (v === d.coince) return true;
+        d.coince = v;
+        log(v ? "alerte" : "info", v ? `Panne : la tige du vérin de ${d.ref} est bloquée.` : `Panne réparée : la tige du vérin de ${d.ref} bouge de nouveau.`, { refs: [d.ref] });
+      } else if (quoi === "regler") {   // potentiomètre, ou molette du variateur : valeur de 0 à 1
         const v = clamp(Number(valeur) || 0, 0, 1);
         if (S === "potentiometre") d.pos = v; else if (S === "variateur") d.molette = v; else if (S === "cuve") d.conso = v; else return false;
       } else if (quoi === "run" || quoi === "stop") { if (S !== "automate") return false; d.run = quoi === "run"; }
@@ -875,6 +881,7 @@
       }
       for (const s of systemes) {
         if (s.sorte === "chariot" && s.butee) { const c = s.butee > 0 ? s.cD : s.cG; L.push({ niveau: "alerte", texte: `Le chariot ${s.ref} force contre la butée ${s.butee > 0 ? "de droite" : "de gauche"} : ${s.mot.ref} est bloqué et chauffe. Il doit s'arrêter quand le chariot actionne ${c ? c.ref : "le fin de course"}.`, refs: [s.ref] }); }
+        if (s.sorte === "tri" && s.coince) L.push({ niveau: "alerte", texte: `Panne : la tige du vérin de ${s.ref} est bloquée${s.ev && s.ev.alim && s.r < 0.98 ? ` : ${s.ev.ref} est alimentée, mais la tige ne sort pas` : !(s.ev && s.ev.alim) && s.r > 0.02 ? " : elle ne rentre pas" : ""}. Clique sur « Débloquer la tige » pour la réparer.`, refs: [s.ref] });
         if (s.sorte === "tri" && s.cote) L.push({ niveau: "alerte", texte: `${s.cote} caisse${s.cote > 1 ? "s sont tombées" : " est tombée"} à côté des bacs : le volet de ${s.ref} doit être en place avant qu'une caisse tombe (le vérin met ${String(M.parametres(s.principal).course).replace(".", ",")} s à faire sa course).`, refs: [s.ref] });
         if (s.sorte === "cuve") {
           if (s.deborde) L.push({ niveau: "erreur", texte: `La cuve ${s.ref} déborde ! La pompe doit s'arrêter quand l'eau atteint ${s.cH ? s.cH.ref + " (niveau haut)" : "le niveau haut"}.`, refs: [s.ref] });
@@ -931,7 +938,7 @@
         const ac = (x) => (x ? !!x.actionne : null);
         if (d.sorte === "chariot") Object.assign(o, { po: 1, pos: d.pos, vit: d.vit, butee: d.butee, cg: ac(d.cG), cd: ac(d.cD), mot: d.mot ? d.mot.ref : null });
         if (d.sorte === "tapis" || d.sorte === "tri") Object.assign(o, { po: 1, pos: d.pos, vit: d.vit, vues: d.vues, bac: d.bac, reste: geoT(d).N ? geoT(d).N - d.entrees : -1, cc: ac(d.cC), mot: d.mot ? d.mot.ref : null });
-        if (d.sorte === "tri") Object.assign(o, { r: d.r, bac1: d.bac1, bac2: d.bac2, cote: d.cote, cr: ac(d.cR), cs: ac(d.cS), ev: d.ev ? !!d.ev.alim : null });
+        if (d.sorte === "tri") Object.assign(o, { r: d.r, bac1: d.bac1, bac2: d.bac2, cote: d.cote, cr: ac(d.cR), cs: ac(d.cS), ev: d.ev ? !!d.ev.alim : null, coince: !!d.coince });
         if (d.sorte === "cuve") Object.assign(o, { po: 1, niv: d.niv, deborde: d.deborde, vide: d.vide, pompe: debitCuve(d, false) > 0, conso: d.conso, cb: ac(d.cB), ch: ac(d.cH), mot: d.mot ? d.mot.ref : null });
         if (pc.type === "capteur3") Object.assign(o, { alim: d.alim, grille: d.grille });
         if (d.pilote) o.pilote = d.piloteRef;
@@ -943,7 +950,7 @@
         const o = { sorte: d.sorte, actionne: actionne(d) };
         for (const k of ["alim", "grille", "declenche", "ferme", "fondu", "fondus", "appuye", "maintenu", "actionne", "etatM", "sens", "couplage", "w", "terre", "delai",
           "run", "actif", "entrees", "sorties", "aq", "fs", "cible", "defaut", "LI", "ai1", "ordre", "fRef", "origine", "pos", "molette", "deux",
-          "vit", "butee", "butees", "niv", "conso", "deborde", "debords", "vide", "envers", "piloteRef", "bloque", "vues", "bac", "entrees", "r", "bac1", "bac2", "cote"]) if (d[k] !== undefined) o[k] = Array.isArray(d[k]) ? d[k].slice() : d[k];
+          "vit", "butee", "butees", "niv", "conso", "deborde", "debords", "vide", "envers", "piloteRef", "bloque", "vues", "bac", "entrees", "r", "bac1", "bac2", "cote", "coince"]) if (d[k] !== undefined) o[k] = Array.isArray(d[k]) ? d[k].slice() : d[k];
         if (A_BOBINE.has(d.sorte)) o.prog = progression(d);
         if (d.sorte === "automate") { o.api = d.api.etat(); o.erreurs = d.api.erreurs.length; o.ko = [...d.ko]; }
         if (d.sorte === "moteur" && d.var) o.variateur = d.var.ref;

@@ -380,7 +380,8 @@
           tx.push(T(134, 88, "bac 1", "middle", "info"), T(173, 88, "bac 2", "middle", "info"));
           if (sim) { tx.push(T(134, 66, String(E.bac1 || 0), "middle", "moyen"), T(173, 66, String(E.bac2 || 0), "middle", "moyen")); if (E.cote) tx.push(T(154, 100, `à côté : ${E.cote}`, "middle", "alerte")); }
           // vérin double effet et distributeur 4/2 monostable (ISO 1219-1) : la tige sort quand l'électrovanne est alimentée
-          h += R(-96, 30, 50, 12, "verin") + `<g data-tige="${esc(pc.id)}" transform="${gt.tige}">${P("M-92 31V41", null, "fin2")}${P("M-92 36H-42", null, "tige")}${P("M-42 33V39", null, "fin2")}</g>`;
+          if (sim && E.coince) tx.push(T(-100, 36, "bloquée", "end", "alerte"));
+          h += R(-96, 30, 50, 12, "verin" + (sim && E.coince ? " ko" : "")) + `<g data-tige="${esc(pc.id)}" transform="${gt.tige}">${P("M-92 31V41", null, "fin2")}${P("M-92 36H-42", null, "tige")}${P("M-42 33V39", null, "fin2")}</g>`;
           const marque = (x, rf, act) => { if (!String(rf || "").trim()) return; h += P(`M${x} 21V27`, null, "marque" + (act ? " on" : "")); tx.push(T(x, 16, rf, "middle", "num")); };
           marque(-42, p.rentre, sim && !!E.cr); marque(-12, p.sorti, sim && !!E.cs);
           h += P("M-90 42V48H-74V56M-52 42V50H-62V56", null, "fin2");

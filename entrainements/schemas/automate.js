@@ -29,9 +29,10 @@
     if ((m = /^%?C(\d{1,2})(\.D)?$/.exec(t)) && +m[1] < NCP) return "%C" + +m[1];
     if ((m = /^%?C(\d{1,2})\.V$/.exec(t)) && +m[1] < NCP) return "%C" + +m[1] + ".V";
     if (/^(%?QW0(\.0)?|AQ0)$/.test(t)) return "%QW0";
+    if (t === "%S6") return "%S6";   // bit système : horloge 1 s (toujours écrit avec %, « S6 » reste un nom de bouton)
     return null;
   }
-  const sorteAdr = (a) => (!a ? "" : /^%I/.test(a) ? "I" : /^%QW/.test(a) ? "QW" : /^%Q/.test(a) ? "Q" : /^%M/.test(a) ? "M" : /^%X/.test(a) ? "X" : /^%TM/.test(a) ? "TM" : /\.V$/.test(a) ? "CV" : /^%C/.test(a) ? "C" : "");
+  const sorteAdr = (a) => (!a ? "" : /^%I/.test(a) ? "I" : /^%QW/.test(a) ? "QW" : /^%Q/.test(a) ? "Q" : /^%M/.test(a) ? "M" : /^%X/.test(a) ? "X" : /^%TM/.test(a) ? "TM" : /^%S/.test(a) ? "S" : /\.V$/.test(a) ? "CV" : /^%C/.test(a) ? "C" : "");
   const numAdr = (a) => { const m = /(\d+)(?:\.V)?$/.exec(a || ""); return m ? +m[1] : -1; };
   const RE_NOM = /^[A-Za-z_À-ÿ][A-Za-z0-9_À-ÿ]{0,15}$/;
   const MOTS = new Set(["et", "ou", "non", "and", "or", "not", "t"]);
@@ -256,7 +257,7 @@
             if (!cs.v) { erreurs.push({ ou, texte: `Réseau ${ri + 1} : un ${NOM_CASE[cs.t]} n'a pas de variable.` }); return { t: cs.t, a: null }; }
             if (!a) { erreurs.push({ ou, texte: `Réseau ${ri + 1} : « ${cs.v} » n'est ni une adresse (%I0.0…) ni un mnémonique de la table.` }); return { t: cs.t, a: null }; }
             const s = sorteAdr(a);
-            if (!/^(I|Q|M|X|TM|C)$/.test(s)) { erreurs.push({ ou, texte: `Réseau ${ri + 1} : ${a} est un nombre, il ne se lit pas avec un contact.` }); return { t: cs.t, a: null }; }
+            if (!/^(I|Q|M|X|TM|C|S)$/.test(s)) { erreurs.push({ ou, texte: `Réseau ${ri + 1} : ${a} est un nombre, il ne se lit pas avec un contact.` }); return { t: cs.t, a: null }; }
             if (s === "X") alertes.push({ ou, texte: `Réseau ${ri + 1} : ${a} est une étape de GRAFCET, mais le programme est en Ladder (elle reste à 0).` });
             return { t: cs.t, a };
           }),
@@ -287,6 +288,7 @@
           return d;
         });
         C.ladder.push({ lignes, liens: R.v, depuis, NL });
+        for (const li of lignes) for (const cs of li.c) if (cs && cs.a === "%S6") C.horloge = true;
       });
       for (const [a, L] of ecrit) if (L.length > 1) alertes.push({ ou: { r: L[L.length - 1] - 1 }, texte: `${nomR(a)} a une bobine dans plusieurs réseaux (${L.join(", ")}) : seule la dernière compte. Réunis les conditions dans un seul réseau, ou utilise S et R.` });
     } else {
@@ -320,6 +322,8 @@
         if (ast) parcourir(ast, (n) => { if (n.k === "fm" || n.k === "fd") fronts.add(n.a); if (n.k === "tempo") { tempos.push(n); if (!nums.has(n.n)) erreurs.push({ ou, texte: `${nom} : la temporisation parle de l'étape ${n.n}, qui n'existe pas.` }); } });
         return { de: t.de, vers: t.vers, ast, ok: !err, tempos };
       });
+      for (const tr of trans) if (tr.ast) parcourir(tr.ast, (n) => { if (n.a === "%S6") C.horloge = true; });
+      for (const e of etapes) for (const ac of e.actions) if (ac.si) parcourir(ac.si, (n) => { if (n.a === "%S6") C.horloge = true; });
       for (const e of etapes) if (!trans.some((t) => t.de.indexOf(e.n) >= 0) && G.etapes.length > 1) alertes.push({ ou: { e: G.etapes.findIndex((x) => x.n === e.n) }, texte: `L'étape ${e.n} n'a pas de transition après elle : une fois active, elle le reste.` });
       C.grafcet = { etapes, trans };
     }
@@ -345,6 +349,7 @@
         case "I": return I[n]; case "Q": return Q[n]; case "M": return M[n]; case "X": return X.has(n);
         case "TM": return TM[n].q; case "C": return CP[n].p > 0 && CP[n].v >= CP[n].p;
         case "CV": return CP[n].v; case "QW": return aq;
+        case "S": return ((t + EPS) % 1000) < 500;   // %S6 : 1 pendant la première demi-seconde de chaque seconde
       }
       return false;
     }
@@ -511,6 +516,7 @@
     }
     function prochain() {
       let e = Infinity;
+      if (C.horloge) e = (Math.floor((t + EPS) / 500) + 1) * 500;   // %S6 change toutes les 0,5 s
       for (const st of TM) {
         if (!(st.p > 0)) continue;
         if (st.sorte === "ton" && st.in && !st.q) e = Math.min(e, st.t0 + st.p);
