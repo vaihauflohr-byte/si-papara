@@ -165,6 +165,7 @@
   // ajoute un bouton « Dicter » sous chaque zone de texte d'un bloc (une seule fois par zone)
   function micros(root) {
     if (!SR || !root) return;
+    css();
     root.querySelectorAll('textarea:not([data-or-mic]):not([disabled])').forEach((ta) => {
       ta.dataset.orMic = '1';
       const b = document.createElement('button'); b.type = 'button'; b.className = 'or-mic'; b.textContent = 'Dicter';
@@ -193,6 +194,7 @@
   // o : { etat (objet gardé par l'appelant), contexte, questions, cadre, src, max, sauver }
   function entretien(box, o) {
     if (!box) return;
+    css();   // la page qui l'accueille (leçon, fiche d'un banc) n'a pas forcément chargé ces styles
     const E = o.etat; if (!Array.isArray(E.msgs)) E.msgs = [];
     const max = o.max || 6, nQ = () => E.msgs.filter((m) => m.qui === 'jury' && m.q).length;
     let occupe = false;

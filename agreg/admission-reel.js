@@ -163,7 +163,7 @@
     }
     if (cH) {
       X.lignes.push(`Parabole ajustée sur ces points (Q en ${u}) : Hm ≈ ${fn(cH[0])} ${cH[1] < 0 ? '−' : '+'} ${fn(Math.abs(cH[1]))}·Q ${cH[2] < 0 ? '−' : '+'} ${fn(Math.abs(cH[2]))}·Q² ; hauteur à débit nul extrapolée : ${fx(cH[0], 1)} m, sans faire tourner P1 robinet fermé.`);
-      if (ok(Hmax)) X.ecarts.push({ l: 'Hauteur à débit nul extrapolée, face à la valeur annoncée', txt: `${fx(cH[0], 1)} m pour ${fx(Hmax, 1)} m annoncés`, e: ecart(cH[0], Hmax), D: D.Hm });
+      if (ok(Hmax)) X.ecarts.push({ l: 'Hauteur à débit nul extrapolée, face à la valeur annoncée', txt: `${fx(cH[0], 1)} m pour ${fx(Hmax, 1)} m annoncés`, e: ecart(cH[0], Hmax), D: D.Hm, inc: { p: 1 } });
     }
     if (refE.length) {
       let Qb = NaN, eb = NaN, src = '';
@@ -182,21 +182,21 @@
       if (L.length) {
         const em = moy(L.map((o) => o.e)), w = L.reduce((a, b) => (b.e > a.e ? b : a));
         const sous = L.every((o) => o.x.Hm < o.Hc), dessus = L.every((o) => o.x.Hm > o.Hc);
-        X.ecarts.push({ l: 'Hm mesurée face à la courbe du constructeur', quoi: 'écart moyen', txt: `Sur ${L.length} point${L.length > 1 ? 's' : ''} dans la plage de la courbe ; au plus ${fx(w.e, 1)} % à Q = ${fx(w.x.Q, dq)} ${u} (${fx(w.x.Hm, 1)} m mesurés pour ${fx(w.Hc, 1)} m)${L.length > 1 && (sous || dessus) ? ` ; tous les points sont ${sous ? 'sous' : 'au-dessus de'} la courbe : l’écart est systématique` : ''}`, e: em, D: D.Hm });
+        X.ecarts.push({ l: 'Hm mesurée face à la courbe du constructeur', quoi: 'écart moyen', txt: `Sur ${L.length} point${L.length > 1 ? 's' : ''} dans la plage de la courbe ; au plus ${fx(w.e, 1)} % à Q = ${fx(w.x.Q, dq)} ${u} (${fx(w.x.Hm, 1)} m mesurés pour ${fx(w.Hc, 1)} m)${L.length > 1 && (sous || dessus) ? ` ; tous les points sont ${sous ? 'sous' : 'au-dessus de'} la courbe : l’écart est systématique` : ''}`, e: em, D: D.Hm, inc: { p: 1 } });
       } else X.ctrl.push('Aucun point mesuré dans la plage de débit de la courbe du constructeur.');
     }
     autres.forEach((fa) => {
       const L2 = grp.get(fa), r = fa / fref;
       if (cH) {
         const E2 = L2.map((x) => { const q0 = x.Q / r; return q0 >= Qmin * 0.9 && q0 <= Qmax * 1.1 ? ecart(x.Hm, r * r * poly(cH, q0)) : NaN; }).filter(ok);
-        if (E2.length) X.ecarts.push({ l: `À ${fhz(fa)} Hz, Hm mesurée face aux lois de similitude`, quoi: 'écart moyen', txt: `Hm prévue = (f/f0)²·H(Q·f0/f), d’après la courbe à ${fhz(fref)} Hz, sur ${E2.length} point${E2.length > 1 ? 's' : ''}`, e: moy(E2), D: D.Hm });
+        if (E2.length) X.ecarts.push({ l: `À ${fhz(fa)} Hz, Hm mesurée face aux lois de similitude`, quoi: 'écart moyen', txt: `Hm prévue = (f/f0)²·H(Q·f0/f), d’après la courbe à ${fhz(fref)} Hz, sur ${E2.length} point${E2.length > 1 ? 's' : ''}`, e: moy(E2), D: D.Hm, inc: { p: 1 } });
       }
       if (cP) {
         const L3 = L2.filter((x) => ok(x.P) && x.Q >= Qmin && x.Q <= Qmax).map((x) => ({ x, Pr: poly(cP, x.Q) })).filter((o) => o.Pr > 0);
         if (L3.length) {
           const g = moy(L3.map((o) => (o.Pr - o.x.P) / o.Pr * 100));
           X.lignes.push(`À ${fhz(fa)} Hz, à même débit : ${L3.map((o) => `${fx(o.x.P, 0)} W au variateur pour ${fx(o.Pr, 0)} W au robinet à ${fhz(fref)} Hz (Q = ${fx(o.x.Q, dq)} ${u})`).join(' ; ')}.`);
-          X.ecarts.push({ l: `Puissance absorbée à même débit, variateur à ${fhz(fa)} Hz face au robinet`, quoi: g >= 0 ? 'économie moyenne' : 'surconsommation moyenne', mot: 1, txt: `Sur ${L3.length} point${L3.length > 1 ? 's' : ''} dans la plage de débit mesurée à ${fhz(fref)} Hz`, e: Math.abs(g), D: D.P });
+          X.ecarts.push({ l: `Puissance absorbée à même débit, variateur à ${fhz(fa)} Hz face au robinet`, quoi: g >= 0 ? 'économie moyenne' : 'surconsommation moyenne', mot: 1, txt: `Sur ${L3.length} point${L3.length > 1 ? 's' : ''} dans la plage de débit mesurée à ${fhz(fref)} Hz`, e: Math.abs(g), D: D.P, inc: { P: 1 } });
         }
       }
     });
@@ -274,7 +274,7 @@
     }
     if (mont.length >= 2) {
       const a = mont.reduce((p, q) => (q.ch < p.ch ? q : p)), b = mont.reduce((p, q) => (q.ch > p.ch ? q : p));
-      if (b.ch > a.ch) X.ecarts.push({ l: 'Énergie en montée, la charge la plus lourde face à la plus légère', quoi: 'différence', mot: 1, txt: `${fx(b.Eu, 2)} Wh à ${fx(b.ch, 0)} kg pour ${fx(a.Eu, 2)} Wh à ${fx(a.ch, 0)} kg`, e: ecart(b.Eu, a.Eu), D: DE });
+      if (b.ch > a.ch) X.ecarts.push({ l: 'Énergie en montée, la charge la plus lourde face à la plus légère', quoi: 'différence', mot: 1, txt: `${fx(b.Eu, 2)} Wh à ${fx(b.ch, 0)} kg pour ${fx(a.Eu, 2)} Wh à ${fx(a.ch, 0)} kg`, e: ecart(b.Eu, a.Eu), D: DE, inc: { E: 1 } });
     }
     const amod = ok(v) ? 1000 * v * (fc / FrS) / 2 : NaN, fits = {};
     ['montée', 'descente'].forEach((s) => {
@@ -283,7 +283,7 @@
       const f = lin(L.map((x) => [x.dEC, x.d])); if (!f) return; fits[s] = f;
       const ds = L.map((x) => x.dEC), pl = Math.max(...ds) - Math.min(...ds);
       X.lignes.push(`Arrêts en ${s} : la cabine va ${fx(f.a, 0)} mm plus loin par seconde de dEC (droite ajustée sur ${L.length} essais${f.r2 < 0.95 ? `, r² = ${fx(f.r2, 2)}` : ''}) ; à dEC nul, il resterait ${fx(f.b, 0)} mm, ce qui ne dépend pas de la rampe (retombée du frein, temps de réaction) si d est compté depuis l’ordre d’arrêt.`);
-      if (ok(amod)) X.ecarts.push({ l: `Pente du dépassement en ${s}, mesure face au modèle de la rampe`, txt: `${fx(f.a, 1)} mm/s mesurés pour ${fx(amod, 1)} mm/s prévus par v·(f/FrS)/2`, e: ecart(f.a, amod), D: DA, abs: Math.abs(f.a - amod) * pl });
+      if (ok(amod)) X.ecarts.push({ l: `Pente du dépassement en ${s}, mesure face au modèle de la rampe`, txt: `${fx(f.a, 1)} mm/s mesurés pour ${fx(amod, 1)} mm/s prévus par v·(f/FrS)/2`, e: ecart(f.a, amod), D: DA, abs: Math.abs(f.a - amod) * pl, incAbs: 'd' });
     });
     if (E.some((x) => ok(x.ch) && x.ch > 30) || A.some((x) => ok(x.ch) && x.ch > 30)) X.ctrl.push('Une charge dépasse la charge utile de 30 kg : le dossier l’interdit.');
     if (mont.length + desc.length && !ok(h)) X.ctrl.push('Course h non renseignée : ni ΔEp ni le rendement ne se calculent.');
@@ -345,8 +345,8 @@
       if (ok(x.inr)) p.push(`I N / I = ${fx(x.inr, 2)}`);
       if (ok(x.thdv)) p.push(`THD V = ${fx(x.thdv, 1)} %`);
       X.lignes.push(`${nom(x, i)} : ${p.join(' ; ')}.`);
-      if (ok(x.el)) X.ecarts.push({ l: `${nom(x, i)}, λ mesuré face au modèle cos φ1·I1/I`, txt: `${fx(Math.abs(x.pf), 3)} mesuré pour ${fx(x.lm, 3)} calculé`, e: x.el, D: D.pf });
-      if (ok(x.IN) && ok(x.INm) && x.INm > 0) X.ecarts.push({ l: `${nom(x, i)}, courant du neutre face à 3·I3`, txt: `${fx(x.IN, 2)} A mesurés pour ${fx(x.INm, 2)} A calculés avec H3 = ${fx(x.h3, 1)} % de I1`, e: ecart(x.IN, x.INm), D: D.IN || D.I });
+      if (ok(x.el)) X.ecarts.push({ l: `${nom(x, i)}, λ mesuré face au modèle cos φ1·I1/I`, txt: `${fx(Math.abs(x.pf), 3)} mesuré pour ${fx(x.lm, 3)} calculé`, e: x.el, D: D.pf, inc: { pf: 1, dpf: 1 } });
+      if (ok(x.IN) && ok(x.INm) && x.INm > 0) X.ecarts.push({ l: `${nom(x, i)}, courant du neutre face à 3·I3`, txt: `${fx(x.IN, 2)} A mesurés pour ${fx(x.INm, 2)} A calculés avec H3 = ${fx(x.h3, 1)} % de I1`, e: ecart(x.IN, x.INm), D: D.IN || D.I, inc: { in: 1, I: 1 } });
       if (ok(x.D2) && ok(x.S) && x.D2 < -0.02 * x.S * x.S) X.ctrl.push(`${nom(x, i)} : S² est plus petit que P² + Q1² ; relevés incohérents, ou tension très déformée.`);
       if ((ok(x.pf) && Math.abs(x.pf) > 1) || (ok(x.dpf) && Math.abs(x.dpf) > 1)) X.ctrl.push(`${nom(x, i)} : λ et cos φ1 ne dépassent pas 1.`);
       else if (ok(x.pf) && ok(x.dpf) && Math.abs(x.pf) > Math.abs(x.dpf) + 0.02) X.ctrl.push(`${nom(x, i)} : λ ne peut pas dépasser cos φ1 (λ = cos φ1·I1/I quand la tension est sinusoïdale).`);
@@ -394,13 +394,13 @@
       const gm = (2 * Math.PI / k) ** 2;
       X.lignes.push(`${pt.length} longueur${pt.length > 1 ? 's' : ''} de pendule, de ${fx(Math.min(...pt.map((x) => x.L)), 2)} à ${fx(Math.max(...pt.map((x) => x.L)), 2)} m ; périodes de ${fx(Math.min(...pt.map((x) => x.T)), 2)} à ${fx(Math.max(...pt.map((x) => x.T)), 2)} s.`);
       if (distincts(pt.map((x) => x.L)) >= 2) X.lignes.push(`Droite T = k·√L ajustée par l’origine : k = ${fx(k, 3)} s/√m, pour 2π/√g = ${fx(2 * Math.PI / Math.sqrt(G), 3)} s/√m ; tes mesures donnent g ≈ ${fx(gm, 2)} m/s².`);
-      X.ecarts.push({ l: 'Période mesurée face au pendule simple 2π·√(L/g)', quoi: 'écart moyen', txt: `Sur ${pt.length} longueur${pt.length > 1 ? 's' : ''} ; ${pt.every((x) => x.T > x.T0) ? 'toutes les périodes mesurées sont plus longues que le modèle : écart systématique' : pt.every((x) => x.T < x.T0) ? 'toutes les périodes mesurées sont plus courtes que le modèle : écart systématique' : 'écarts de part et d’autre du modèle'}`, e: moy(pt.map((x) => x.e)), D: DT });
+      X.ecarts.push({ l: 'Période mesurée face au pendule simple 2π·√(L/g)', quoi: 'écart moyen', txt: `Sur ${pt.length} longueur${pt.length > 1 ? 's' : ''} ; ${pt.every((x) => x.T > x.T0) ? 'toutes les périodes mesurées sont plus longues que le modèle : écart systématique' : pt.every((x) => x.T < x.T0) ? 'toutes les périodes mesurées sont plus courtes que le modèle : écart systématique' : 'écarts de part et d’autre du modèle'}`, e: moy(pt.map((x) => x.e)), D: DT, inc: { tn: 1, L: 0.5 } });
       X.kT = k;
     }
     // le balan après un arrêt
     if (ok(Tm)) X.lignes.push(`Pour le modèle de l’arrêt, T = ${fx(Tm, 2)} s (${ok(Tp) && Tp > 0 ? 'ta période mesurée' : `pendule de ${fx(L0, 2)} m`}) : le balan résiduel s’annule pour une décélération qui dure T = ${fx(Tm, 2)} s, ou 2T = ${fx(2 * Tm, 2)} s ; il vaut v/ω, son maximum, pour un arrêt brutal.`);
     const pa = AA.filter((x) => ok(x.A) && ok(x.Am)), pe = pa.filter((x) => ok(x.e)), pz = pa.filter((x) => x.zero);
-    if (pe.length) X.ecarts.push({ l: 'Balan résiduel mesuré face au modèle de l’arrêt par rampe', quoi: 'écart moyen', txt: `Sur ${pe.length} arrêt${pe.length > 1 ? 's' : ''} loin des zéros du modèle`, e: moy(pe.map((x) => x.e)), D: DA });
+    if (pe.length) X.ecarts.push({ l: 'Balan résiduel mesuré face au modèle de l’arrêt par rampe', quoi: 'écart moyen', txt: `Sur ${pe.length} arrêt${pe.length > 1 ? 's' : ''} loin des zéros du modèle`, e: moy(pe.map((x) => x.e)), D: DA, inc: { A: 1, v: 1 } });
     if (pz.length) {
       const z = pz.reduce((a, b) => (b.A < a.A ? b : a));
       X.lignes.push(`Près des zéros du modèle (décélération proche de T ou de 2T), le balan mesuré descend à ${fx(z.A, 1)} mm (décélération de ${fx(z.tr, 2)} s), contre ${fx(z.Amax, 1)} mm pour un arrêt brutal à la même vitesse : ${fx(100 * (1 - z.A / z.Amax), 0)} % de balan en moins. Ce qui reste vient de ce que le modèle ignore (rampe arrondie, amortissement, mesure).`);
@@ -539,6 +539,7 @@
         cons: { carte: 'ref', titre: 'La courbe du constructeur', aide: 'Quelques points (Q, H) lus sur la courbe EBARA de ta pompe (documentation des constructeurs, à la fin du dossier), dans l’unité de ton débitmètre. Vérifie qu’elle est donnée pour la vitesse de ton essai.', lignes: 5,
           cols: [{ k: 'Q', l: 'Q', u: '@uq' }, { k: 'H', l: 'H', u: 'm' }], out: [] },
       },
+      inc: [{ k: 'Q', l: 'Débitmètre', q: 'Q', t: 'mes', c: 'Q' }, { k: 'p', l: 'Manomètre M1', q: 'p', t: 'mes', c: 'p' }, { k: 'P', l: 'Analyseur ou wattmètres', q: 'P absorbée', t: 'mes', c: 'P' }],
       calc: calcPompe, schema: synPompe,
     },
     monte: {
@@ -573,6 +574,7 @@
         repE: { carte: 'rep', titre: 'Trois trajets identiques', aide: 'Même charge, même sens.', lignes: 3, fixe: 1, cols: 'en' },
         repA: { carte: 'rep', titre: 'Trois arrêts au même réglage', aide: 'Même dEC, même sens, même charge.', lignes: 3, fixe: 1, cols: 'arr' },
       },
+      inc: [{ k: 'E', l: 'Analyseur (compteur d’énergie ou puissance moyenne)', q: 'E', t: 'en', c: 'Eu', u: 'Wh' }, { k: 'd', l: 'Mesure de la distance d’arrêt', q: 'd', t: 'arr', c: 'd', u: 'mm', abs: 1 }],
       calc: calcMonte, schema: synMonte,
     },
     harmo: {
@@ -603,6 +605,7 @@
           out: [{ k: 'I1', l: 'I1', u: 'A', d: 3 }, { k: 'S', l: 'S', u: 'VA', d: 0 }, { k: 'Q1', l: 'Q1', u: 'var', d: 0 }, { k: 'D', l: 'D', u: 'VA', d: 0 }, { k: 'lm', l: 'λ modèle', u: '', d: 3 }, { k: 'el', l: 'écart λ', u: '%', d: 1 }, { k: 'inr', l: 'I N / I', u: '', d: 2 }] },
         rep: { carte: 'rep', titre: 'Trois relevés de la même configuration', aide: 'Coupe et relance la charge entre deux relevés.', lignes: 3, fixe: 1, cols: 'mes' },
       },
+      inc: [{ k: 'I', l: 'Pince de phase', q: 'I', t: 'mes', c: 'I' }, { k: 'in', l: 'Pince du neutre', q: 'I N', t: 'mes', c: 'in' }, { k: 'pf', l: 'Analyseur : facteur de puissance', q: 'λ', t: 'mes', c: 'pf' }, { k: 'dpf', l: 'Analyseur : cos φ1', q: 'cos φ1', t: 'mes', c: 'dpf' }],
       calc: calcHarmo, schema: synHarmo,
     },
     portique: {
@@ -641,6 +644,7 @@
         repT: { carte: 'rep', titre: 'Trois chronométrages à la même longueur', aide: 'Même longueur, même nombre d’oscillations.', lignes: 3, fixe: 1, cols: 'per' },
         repA: { carte: 'rep', titre: 'Trois arrêts identiques', aide: 'Même vitesse, même décélération, même longueur.', lignes: 3, fixe: 1, cols: 'arret' },
       },
+      inc: [{ k: 'tn', l: 'Chronomètre', q: 'tn', t: 'per', c: 'tn' }, { k: 'L', l: 'Mesure de la longueur du pendule', q: 'L', t: 'per', c: 'L' }, { k: 'A', l: 'Capteur de balan ou règle', q: 'A', t: 'arret', c: 'A' }, { k: 'v', l: 'Mesure de la vitesse du chariot', q: 'v', t: 'arret', c: 'v' }],
       calc: calcPortique, schema: synPortique,
     },
   };
@@ -680,11 +684,57 @@
     }
     if (!Array.isArray(R.hist)) R.hist = [];
     if (!NIVS.some((n) => n[0] === R.niv)) R.niv = 'btsET';
+    if (!R.inc || typeof R.inc !== 'object') R.inc = {};
+    for (const k of Object.keys(R.inc)) if (!R.inc[k] || typeof R.inc[k] !== 'object') delete R.inc[k];
+    ['photo', 'modele', 'ent', 'ep'].forEach((k) => { if (R[k] != null && typeof R[k] !== 'object') R[k] = null; });
+    if (R.ep && (typeof R.ep.t0 !== 'number' || typeof R.ep.prob !== 'number' || R.ep.prob >= B.probs.length)) R.ep = null;
   }
   const nbRemplies = (B, R) => Object.entries(B.tables).reduce((s, [k, T]) => s + (R.tab && Array.isArray(R.tab[k]) ? R.tab[k].filter((r) => r && rempli(r, colsDe(B, T))).length : 0), 0);
   const date = (t) => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
   const hm = (m) => (m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}` : `${m} min`);
   const erreurIA = (e) => (window.AGREG_HOOK && AGREG_HOOK.err && AGREG_HOOK.err(e && e.code)) || 'Le jury IA n’a pas pu répondre. Réessaie dans un moment.';
+
+  /* ---------- import de relevés : cellules collées depuis un tableur, ou fichier CSV d'un appareil ---------- */
+  const norme = (x) => brut(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\(.*?\)|\[.*?\]/g, '').replace(/[^a-z0-9]/g, '');
+  // découpe d'une ligne de CSV, en respectant les guillemets
+  function decoupe(l, sep) {
+    const out = []; let cur = '', q = false;
+    for (let i = 0; i < l.length; i++) {
+      const ch = l[i];
+      if (ch === '"') { if (q && l[i + 1] === '"') { cur += '""'; i++; } else { q = !q; cur += ch; } } else if (ch === sep && !q) { out.push(cur); cur = ''; } else cur += ch;
+    }
+    out.push(cur); return out;
+  }
+  // texte collé ou fichier lu → { cols: [{ j, nom, num }], data: [[cellules]], entete }
+  function lireTableur(txt) {
+    const L = String(txt || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim());
+    if (!L.length) return null;
+    const sep = L.some((l) => l.includes('\t')) ? '\t' : L.some((l) => l.includes(';')) ? ';' : L.some((l) => l.includes(',')) && L.some((l) => /\d\.\d/.test(l)) ? ',' : null;
+    const cell = (c) => c.trim().replace(/^"([\s\S]*)"$/, '$1').replace(/""/g, '"').trim();
+    const rows = L.map((l) => (sep ? decoupe(l, sep) : l.trim().split(/\s+/)).map(cell));
+    // un nombre écrit simplement (pas « 1/2 », position d'un robinet, ni une date) : virgule ou point, exposant
+    const num = (c) => /^[-+−]?(\d+([.,]\d*)?|[.,]\d+)(e[-+]?\d+)?$/i.test(c.replace(/[\s\u00a0\u202f]/g, ''));
+    // la première ligne surtout faite de nombres commence les données ; la ligne d'avant est l'en-tête
+    const d0 = rows.findIndex((r) => { const pl = r.filter((c) => c !== ''); return pl.length && r.filter(num).length >= Math.ceil(pl.length / 2); });
+    if (d0 < 0) return null;
+    const ent = d0 > 0 ? rows[d0 - 1] : null, data = rows.slice(d0).filter((r) => r.some(num));
+    const n = Math.max(...data.map((r) => r.length), ent ? ent.length : 0);
+    const cols = Array.from({ length: n }, (_, j) => { const V = data.map((r) => r[j] || '').filter((c) => c !== ''); return { j, nom: (ent && ent[j]) || `colonne ${j + 1}`, num: V.length > 0 && V.filter(num).length >= V.length / 2 }; });
+    return { cols, data, entete: !!ent };
+  }
+  // une photo de téléphone (plusieurs Mo) réduite à 1600 px de côté, en JPEG, avant l'envoi au jury IA
+  async function reduire(f) {
+    try {
+      const im = await createImageBitmap(f);
+      const k = Math.min(1, 1600 / Math.max(im.width, im.height)), w = Math.round(im.width * k), h = Math.round(im.height * k);
+      const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(im, 0, 0, w, h);
+      if (im.close) im.close();
+      const b = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.85));
+      return b ? new File([b], 'montage.jpg', { type: 'image/jpeg' }) : f;
+    } catch (e) { return f; }
+  }
+  // le mode épreuve : 2 h 30 en cinq phases (minutes pour 150 min, ramenées à la durée du banc)
+  const PHASES = [['Le banc, la problématique et l’objectif', 15], ['Sécurité et protocole', 25], ['Mesures et dispersion', 60], ['Résultats, écarts et conclusion', 30], ['La séance', 20]];
 
   function css() {
     if (document.getElementById('rl-css')) return;
@@ -709,8 +759,20 @@
 .rl-carte{list-style:none;padding:0;margin:8px 0 0}.rl-carte li{margin:10px 0;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
 .rl-syn{margin:10px 0 6px}.rl-syn svg{width:100%;max-width:560px;height:auto;display:block;margin:0 auto}.rl-syn figcaption{font-size:13px;color:#587083;text-align:center;margin-top:4px}
 .rl-imp{display:none}
+.rl-epq{background:#fff8e6;border-left:4px solid #c26a1b;border-radius:8px;padding:10px 14px;font-weight:700;margin:6px 0 0}
+.rl-ep{background:#183047;color:#fff;border-radius:10px;padding:10px 14px;flex:1 1 100%}.rl-ep .btns{margin:8px 0 0}.rl-ep .b.sec{background:#fff}
+.rl-epbar{position:relative;height:10px;background:#3b5570;border-radius:5px;overflow:hidden;margin:8px 0 0;display:flex}.rl-epbar span{border-right:2px solid #183047;position:relative;z-index:1}.rl-epbar span:last-of-type{border-right:0}.rl-epbar i{position:absolute;left:0;top:0;bottom:0;background:#ffd27a}
+.rl-ep.fin{background:#eaf7f1;color:inherit;border:1px solid #2f9e6e}.rl-ep.fin .b.sec{background:#fff}
+.rl-photo{border:1px dashed #9fb3c2;border-radius:10px;padding:10px 14px;margin:8px 0 14px;background:#fbfdfe}.rl-photo .rl-l{margin-top:0}
+.rl-file{position:relative;display:inline-block;overflow:hidden;cursor:pointer}.rl-file input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;font-size:0}
+.rl-impo{border:1px solid #c8d3dc;border-radius:10px;padding:10px 14px;margin:6px 0 12px;background:#fbfdfe}.rl-impo textarea{width:100%;box-sizing:border-box;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;padding:8px;border:1px solid #b9c8d3;border-radius:6px}
+.rl-map{display:flex;flex-wrap:wrap;gap:8px 14px;margin:6px 0}.rl-mapc{display:flex;flex-direction:column;font-size:13px;font-weight:700;gap:2px}.rl-mapc small{font-weight:400;color:#587083}.rl-mapc select{font:inherit;font-weight:400;padding:5px;border:1px solid #bbccd8;border-radius:6px;background:#fff}
+.rl-apercu td{padding:4px 8px}
+.rl-inc{display:grid;gap:12px;margin:8px 0}.rl-incl{font-size:14px}.rl-incf{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:flex-end;margin-top:4px}.rl-incf label{display:flex;flex-direction:column;font-size:12px;color:#587083}.rl-incf input{font:inherit;font-size:14px;width:84px;padding:6px;border:1px solid #bbccd8;border-radius:6px}.rl-incf select{font:inherit;font-size:14px;padding:6px;border:1px solid #bbccd8;border-radius:6px;max-width:100%;background:#fff}.rl-incu{font-weight:700;color:#12566f;font-size:14px;padding-bottom:7px}
+.rl-entc{margin-top:18px;border-top:1px solid #dfe7ee;padding-top:4px}.rl-mod h3{font-size:15px}
+.rl-arch{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
 @media(max-width:640px){.rl-c.card{padding:18px 16px}}
-@media print{.rl-nav,.rl-chr,.rl-c .btns,.rl-fin,.back,.rl-c textarea,.rl-opt:not(.on){display:none!important}
+@media print{.rl-nav,.rl-chr,.rl-c .btns,.rl-fin,.back,.rl-c textarea,.rl-opt:not(.on),.rl-photo .rl-file,.rl-impo,.or-mic,.or-voix,.or-rep{display:none!important}
 .rl-imp{display:block!important;white-space:pre-wrap;border:1px solid #c8d3dc;border-radius:6px;padding:8px 10px;margin:4px 0 10px;font-size:11pt}
 .rl-c.card{box-shadow:none;border:1px solid #c8d3dc}.rl-fig,.rl-syn,.rl-t tr,.ainote,.crit>div{break-inside:avoid}
 .rl-tw{overflow:visible}.rl-t{font-size:9pt}.rl-t input,.rl-t select{font-size:9pt;width:58px;padding:2px;border:0}.rl-t input.tx{width:100px}.rl-t td.n{position:static}}`;
@@ -731,6 +793,69 @@
     const sync = !!(window.AGREG_HOOK && AGREG_HOOK.synced && AGREG_HOOK.synced());
     const cartes = (c) => Object.keys(B.tables).filter((k) => B.tables[k].carte === c);
     const put = (i, h) => { const el = document.getElementById(i); if (el) el.innerHTML = h; };
+    // le mode épreuve : en cours (pas d'aide de l'IA), puis rendu (fiche verrouillée jusqu'à la sortie du mode)
+    const enEpreuve = () => !!(R.ep && !R.ep.fin), bloque = () => !!(R.ep && R.ep.fin);
+    const IMP = {};   // les imports en cours, par tableau : { txt, D, map }
+    // les fiches mises de côté (une épreuve lancée, une fiche effacée) : deux au plus par banc, dans st.reelArch
+    const ARCH = () => { if (!st.reelArch || typeof st.reelArch !== 'object') st.reelArch = {}; if (!Array.isArray(st.reelArch[id])) st.reelArch[id] = []; return st.reelArch[id]; };
+    const aDuContenu = () => nbRemplies(B, R) > 0 || Object.values(R.txt).some((v) => String(v).trim().length > 10);
+    function archiver() {
+      if (!aDuContenu()) return false;
+      const c = JSON.parse(JSON.stringify(R)); delete c.hist; delete c.ent; delete c.ep; delete c.epHist;
+      const A = ARCH(); st.reelArch[id] = [{ t: Date.now(), fiche: c }].concat(A).slice(0, 2);
+      return true;
+    }
+    /* l'incertitude des appareils : précision de la notice → incertitude relative à la valeur typique relevée */
+    const INC = B.inc || [];
+    const colDe = (A) => colsDe(B, B.tables[A.t]).find((c) => c.k === A.c);
+    const uniteA = (A) => A.u || (colDe(A) ? unite(colDe(A)) : '');
+    function typique(A, X) {
+      const V = [];
+      Object.entries(B.tables).forEach(([k, T]) => {
+        if (k !== A.t && T.cols !== A.t) return;
+        (R.tab[k] || []).forEach((row, i) => { let x = nb(row[A.c]); if (!ok(x) && X && X.rows[k] && X.rows[k][i]) x = X.rows[k][i][A.c]; if (ok(x) && x !== 0) V.push(Math.abs(x)); });
+      });
+      return V.length ? moy(V) : NaN;
+    }
+    function uRel(A, X) {
+      const v = R.inc[A.k]; if (!v) return null;
+      const m = v.m || 'lec', a = nb(v.a), n = nb(v.n), r = nb(v.r), c = nb(v.c), C = nb(v.C), U = nb(v.U), t = typique(A, X);
+      let abs = NaN, rel = NaN;
+      if (m === 'cl') { if (!ok(c) || !ok(C)) return null; abs = Math.abs(c / 100 * C); rel = ok(t) ? 100 * abs / t : NaN; }
+      else if (m === 'abs') { if (!ok(U)) return null; abs = Math.abs(U); rel = ok(t) ? 100 * abs / t : NaN; }
+      else {
+        const pa = ok(a) ? Math.abs(a) : 0, pn = ok(n) && ok(r) ? Math.abs(n * r) : 0;
+        if (!pa && !pn) return null;
+        rel = ok(t) ? pa + 100 * pn / t : pn ? NaN : pa; abs = ok(t) ? pa / 100 * t + pn : NaN;
+      }
+      return { rel, abs, t };
+    }
+    function uTxt(A, X) {
+      const x = uRel(A, X); if (!x) return '';
+      const u = uniteA(A);
+      if (A.abs) return ok(x.abs) ? `≈ ± ${fx(x.abs, 1)} ${u}${ok(x.rel) ? ` (${fx(x.rel, 1)} % de ${fn(x.t)} ${u})` : ''}` : 'remplis d’abord tes relevés';
+      return ok(x.rel) ? `≈ ± ${fx(x.rel, 1)} %${ok(x.t) ? ` autour de ${fn(x.t)} ${u}` : ''}` : 'remplis d’abord tes relevés';
+    }
+    // incertitude des appareils sur un écart : √Σ(exposant·u)² pour un produit ou un quotient de grandeurs mesurées
+    function uEcart(o, X) {
+      if (o.incAbs) { const A = INC.find((a) => a.k === o.incAbs), x = A && uRel(A, X); return { abs: x && ok(x.abs) ? x.abs : NaN, u: NaN, manque: x && ok(x.abs) ? [] : [A ? A.q : o.incAbs] }; }
+      if (!o.inc) return null;
+      let q = 0, n = 0; const manque = [];
+      for (const [k, e] of Object.entries(o.inc)) { const A = INC.find((a) => a.k === k), x = A && uRel(A, X); if (x && ok(x.rel)) { q += (e * x.rel) ** 2; n++; } else manque.push(A ? A.q : k); }
+      return { u: n ? Math.sqrt(q) : NaN, abs: NaN, manque };
+    }
+    const incRemplie = (X) => INC.some((A) => uRel(A, X));
+    function incHtml(X) {
+      if (!INC.length) return '';
+      const modes = [['lec', '± % de la lecture (+ digits)'], ['cl', 'classe, sur un calibre'], ['abs', '± une valeur fixe']];
+      const ligne = (A) => {
+        const v = R.inc[A.k] || {}, m = v.m || 'lec', u = uniteA(A);
+        const f = (k, l) => `<label>${l}<input data-i="${A.k}.${k}" inputmode="decimal" autocomplete="off" value="${esc(v[k] == null ? '' : v[k])}"></label>`;
+        const ch = m === 'cl' ? f('c', 'classe') + f('C', `calibre${u ? ` (${esc(u)})` : ''}`) : m === 'abs' ? f('U', `±${u ? ` (${esc(u)})` : ''}`) : f('a', '± % lecture') + f('n', 'digits') + f('r', `résolution${u ? ` (${esc(u)})` : ''}`);
+        return `<div class="rl-incl"><b>${esc(A.l)}</b> <span class="muted">· ${esc(A.q)}${u ? ` en ${esc(u)}` : ''}</span><div class="rl-incf"><select data-i="${A.k}.m" aria-label="Type de précision : ${esc(A.l)}">${modes.map(([k, l]) => `<option value="${k}"${m === k ? ' selected' : ''}>${l}</option>`).join('')}</select>${ch}<span class="rl-incu" id="rl-u-${A.k}">${uTxt(A, X)}</span></div></div>`;
+      };
+      return `<details class="rl-dos" id="rl-incd"${Object.keys(R.inc).length ? ' open' : ''}><summary>Les appareils et leur incertitude</summary><p class="muted rl-aide">Recopie la précision annoncée par la notice de chaque appareil. Pour juger un écart, l’incertitude des appareils s’ajoute à la dispersion des essais : seuil = √(dispersion² + incertitude des appareils²).</p><div class="rl-inc" id="rl-inc">${INC.map(ligne).join('')}</div></details>`;
+    }
 
     function champ(g, f) {
       const v = (R[g] || {})[f.k], i = `rl-${g}-${f.k}`;
@@ -747,7 +872,7 @@
       const T = B.tables[k], cols = colsDe(B, T), outs = outsDe(B, T), L = R.tab[k];
       return `<div id="rl-tab-${k}"><p class="rl-tt">${T.titre}</p><p class="muted rl-aide">${T.aide}</p><div class="rl-tw"><table class="rl-t"><thead><tr><th>#</th>${cols.map((c) => `<th>${c.l}${unite(c) ? `<br><small>${esc(unite(c))}</small>` : ''}</th>`).join('')}${outs.map((o) => `<th class="c">${o.l}${o.u ? `<br><small>${o.u}</small>` : ''}</th>`).join('')}</tr></thead>
         <tbody>${L.map((row, i) => `<tr><td class="n">${i + 1}</td>${cols.map((c) => `<td>${cellule(k, i, c, row[c.k])}</td>`).join('')}${outs.map((o) => `<td class="c" id="rl-${k}-${i}-${o.k}">—</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-        ${T.fixe ? `<p class="rl-disp" id="rl-disp-${k}"></p>` : `<div class="btns"><button type="button" class="b sec" data-add="${k}">Ajouter une ligne</button>${L.length > 1 ? `<button type="button" class="b sec" data-del="${k}">Retirer la dernière ligne</button>` : ''}</div>`}</div>`;
+        ${T.fixe ? `<p class="rl-disp" id="rl-disp-${k}"></p><div class="btns"><button type="button" class="b sec" data-imp="${k}">Coller ou importer des relevés</button></div>` : `<div class="btns"><button type="button" class="b sec" data-add="${k}">Ajouter une ligne</button>${L.length > 1 ? `<button type="button" class="b sec" data-del="${k}">Retirer la dernière ligne</button>` : ''}<button type="button" class="b sec" data-imp="${k}">Coller ou importer des relevés</button></div>`}<div id="rl-impo-${k}">${impHtml(k)}</div></div>`;
     }
     const zone = (k, rows) => `<p class="muted rl-aide">${TXT[k]}</p><textarea id="rl-${k}" data-p="txt.${k}" rows="${rows || 5}" maxlength="5000" aria-label="${esc(k)}">${esc(R.txt[k])}</textarea>`;
     // les étapes : leur titre, et ce qui les marque comme faites
@@ -765,22 +890,27 @@
 
     function page() {
       let n = 0; const N = () => ++n;
-      const ref = cartes('ref');
-      return `<a class="back" href="#admission">← Épreuves d’admission</a><div class="eyebrow">Sur tes bancs du labo · ${esc(B.eye)}</div><h1>${esc(B.titre)}</h1>
+      const ref = cartes('ref'), ep = R.ep, ia = !ep;   // pendant l'épreuve et jusqu'à la sortie du mode : pas d'aide de l'IA avant le jury
+      return `<a class="back" href="#admission">← Épreuves d’admission</a><div class="eyebrow">Sur tes bancs du labo · ${esc(B.eye)}${ep ? ' · mode épreuve' : ''}</div><h1>${esc(B.titre)}</h1>
         <p>La partie pratique en vrai, sur ton banc : tu fixes l’objectif, la sécurité et le protocole, tu mesures ; l’application calcule et trace au fil de tes relevés ; à la fin, le jury IA évalue ta démarche sur 10, comme la partie pratique de l’épreuve. ${sync ? 'La fiche suit d’un appareil à l’autre : les mesures au téléphone, la rédaction à l’ordinateur.' : 'La fiche est gardée dans ce navigateur.'}</p>
         <nav class="rl-nav" id="rl-nav" aria-label="Étapes de la fiche">${nav()}</nav><div class="rl-chr" id="rl-chr"></div>
         <div class="card rl-c" id="rl-s0"><h2>Le banc et la problématique</h2>
           ${B.schema ? `<figure class="rl-syn">${B.schema()}<figcaption>Schéma simplifié, d’après le dossier technique du banc</figcaption></figure>` : ''}
-          <details class="rl-dos"${R.prob < 0 && !R.probT.trim() ? ' open' : ''}><summary>Ce que dit le dossier technique du banc</summary>${B.dossier}</details>
-          <p class="rl-l">La problématique, comme le jury pourrait te la poser</p><div class="rl-opts" role="radiogroup">${B.probs.map((p, i) => `<button type="button" class="rl-opt${R.prob === i ? ' on' : ''}" data-prob="${i}" role="radio" aria-checked="${R.prob === i}">${esc(p)}</button>`).join('')}</div>
-          <label class="rl-l" for="rl-probT">Ou la tienne (elle remplace le choix ci-dessus)</label><textarea id="rl-probT" data-p="probT" rows="2" maxlength="600">${esc(R.probT)}</textarea></div>
+          <details class="rl-dos"${!ep && R.prob < 0 && !R.probT.trim() ? ' open' : ''}><summary>Ce que dit le dossier technique du banc</summary>${B.dossier}</details>
+          ${ep ? `<p class="rl-l">La problématique tirée au sort</p><p class="rl-epq">${esc(B.probs[ep.prob] || '')}</p>`
+            : `<p class="rl-l">La problématique, comme le jury pourrait te la poser</p><div class="rl-opts" role="radiogroup">${B.probs.map((p, i) => `<button type="button" class="rl-opt${R.prob === i ? ' on' : ''}" data-prob="${i}" role="radio" aria-checked="${R.prob === i}">${esc(p)}</button>`).join('')}</div>
+          <label class="rl-l" for="rl-probT">Ou la tienne (elle remplace le choix ci-dessus)</label><textarea id="rl-probT" data-p="probT" rows="2" maxlength="600">${esc(R.probT)}</textarea>`}</div>
         <div class="card rl-c" id="rl-s1"><h2>${N()}. L’objectif de l’activité</h2>${zone('obj', 3)}</div>
         <div class="card rl-c" id="rl-s2"><h2>${N()}. Prise en main : plaques et réglages d’origine</h2><p class="muted rl-aide">Relève les plaques signalétiques et les réglages d’origine avant toute modification : ce sont tes références, et tu remets les réglages à la fin.</p><div class="fields">${B.plaque.map((f) => champ('pl', f)).join('')}</div></div>
         <div class="card rl-c" id="rl-s3"><h2>${N()}. Sécurité et mise en œuvre</h2>${zone('secu', 5)}<details class="rl-dos"><summary>Comparer avec le dossier du banc</summary><ul>${B.secu.map((x) => `<li>${x}</li>`).join('')}</ul></details></div>
-        <div class="card rl-c" id="rl-s4"><h2>${N()}. Le protocole</h2>${zone('proto', 7)}<div class="btns"><button type="button" class="b sec" data-relire="1">Faire relire mon protocole par le jury IA</button></div><div id="rl-relu" aria-live="polite">${reluHtml()}</div></div>
-        <div class="card rl-c" id="rl-s5"><h2>${N()}. Les mesures</h2><p class="muted rl-aide">Les colonnes bleues se calculent au fil de tes relevés, les courbes se tracent dès deux points. La virgule, le point et les calculs (2*3,5) sont acceptés.</p>
+        <div class="card rl-c" id="rl-s4"><h2>${N()}. Le protocole</h2>${zone('proto', 7)}${ia ? `<div class="btns"><button type="button" class="b sec" data-relire="1">Faire relire mon protocole par le jury IA</button></div><div id="rl-relu" aria-live="polite">${reluHtml()}</div>` : ''}</div>
+        <div class="card rl-c" id="rl-s5"><h2>${N()}. Les mesures</h2>
+          <div class="rl-photo"><p class="rl-l">Avant la mise sous tension : fais vérifier ton montage</p><p class="muted rl-aide">Photographie le montage (appareils, cordons, points de branchement), sans personne sur la photo. Le jury IA dit ce qu’il voit, ce qui est conforme et ce qui pose problème ; il ne remplace pas ta vérification du câblage hors tension. La photo n’est pas conservée.</p>
+            <label class="b sec rl-file">Prendre ou choisir une photo du montage<input type="file" accept="image/*" data-photo="1" aria-label="Photo du montage"></label><div id="rl-photo-res" aria-live="polite">${photoHtml()}</div></div>
+          <p class="muted rl-aide">Les colonnes bleues se calculent au fil de tes relevés, les courbes se tracent dès deux points. La virgule, le point et les calculs (2*3,5) sont acceptés ; tu peux aussi coller des cellules copiées dans un tableur, ou importer le fichier CSV d’un appareil.</p>
           ${(B.params || []).length ? `<div class="fields">${B.params.map((f) => champ('pa', f)).join('')}</div>` : ''}${cartes('mes').map(tableau).join('')}
           <div id="rl-figs"></div><details class="rl-dos" id="rl-plus" hidden><summary>D’autres courbes</summary><div id="rl-figs2"></div></details>
+          ${incHtml(null)}
           <div class="btns"><button type="button" class="b sec" data-csv="1">Télécharger mes relevés (tableur, CSV)</button></div></div>
         <div class="card rl-c" id="rl-s6"><h2>${N()}. La dispersion des essais</h2><p class="muted rl-aide">Refais trois fois le même essai, dans les mêmes conditions. Un écart ne se commente comme réel que s’il dépasse cette dispersion : l’écart maximal à la moyenne des trois essais, rapporté à la moyenne.</p>${cartes('rep').map(tableau).join('')}</div>
         ${ref.length ? `<div class="card rl-c" id="rl-s7"><h2>${N()}. La référence du constructeur</h2>${ref.map(tableau).join('')}</div>` : ''}
@@ -790,7 +920,12 @@
           <p class="muted rl-aide" id="rl-nivc">${nivConseil()}</p>${zone('seance', 7)}</div>
         <div class="card rl-c" id="rl-s11"><h2>Le jury IA</h2><div id="rl-jury" aria-live="polite">${juryHtml()}</div></div>
         <div class="btns rl-fin" style="margin-top:18px"><button class="b sec" type="button" data-imprimer="1">Imprimer la fiche ou l’enregistrer en PDF</button></div>
-        <p class="muted rl-fin"><button class="b sec" type="button" data-raz="1">Effacer la fiche</button> Tes notes passées restent dans l’historique.</p>`;
+        ${ep ? '' : `<p class="muted rl-fin"><button class="b sec" type="button" data-raz="1">Effacer la fiche</button> La fiche effacée est archivée, et tes notes passées restent dans l’historique.</p>${archHtml()}`}`;
+    }
+    function archHtml() {
+      const A = (st.reelArch && Array.isArray(st.reelArch[id]) && st.reelArch[id]) || [];
+      if (!A.length) return '';
+      return `<div class="rl-arch muted rl-fin"><b>Fiches archivées :</b>${A.map((a, i) => { const k = a && a.fiche ? nbRemplies(B, a.fiche) : 0; return `<button type="button" class="b sec" data-arch="${i}">Reprendre la fiche du ${date(a.t)}${k ? ` (${k} ligne${k > 1 ? 's' : ''} de relevés)` : ''}</button>`; }).join('')}</div>`;
     }
     function nivConseil() {
       if (R.niv === 'btsET') return 'BTS Électrotechnique : la séance peut viser C13 (mesurer les grandeurs caractéristiques), C16 (appliquer un protocole pour mettre en service) ou C17 (réaliser un diagnostic de performance, y compris énergétique).';
@@ -801,19 +936,36 @@
       const b = (t, x) => (x.length ? `<h3>${t}</h3><ul>${x.map((y) => `<li>${esc(y)}</li>`).join('')}</ul>` : '');
       return `<div class="aires">${b('Ce qui manque pour répondre à la problématique', L.oublis)}${b('Les consignes du banc à ne pas oublier', L.risques)}${b('Conseils', L.conseils)}</div><p class="muted">Relecture par l’IA du ${date(L.t)}, d’après le dossier du banc et les rapports de jury.</p>`;
     }
-    function verdict(o) {
+    function verdict(o, X) {
       const D = o.D;
       if (!ok(o.e)) return '';
-      if (!D) return '<span class="rl-am">Dispersion non mesurée : impossible de dire si cet écart est réel.</span>';
-      if (o.abs != null) { const r = o.abs > D.a; return `<span class="${r ? 'rl-ko' : 'rl-ok'}">Sur la plage de dEC essayée, cela déplace l’arrêt de ${fx(o.abs, 0)} mm, ${r ? 'plus' : 'moins'} que la dispersion des arrêts (± ${fx(D.a, 0)} mm) : ${r ? 'écart réel, à expliquer' : 'pas d’écart démontré'}.</span>`; }
+      const U = X ? uEcart(o, X) : null;
+      const manque = U && U.manque.length && incRemplie(X) ? ` <span class="muted">(précision non renseignée pour ${U.manque.join(', ')})</span>` : '';
+      const dit = (r) => (r ? (o.mot ? 'différence réelle' : 'écart réel, à expliquer') : (o.mot ? 'pas de différence démontrée' : 'pas d’écart démontré'));
+      if (o.abs != null) {
+        if (!D) return '<span class="rl-am">Dispersion non mesurée : impossible de dire si cet écart est réel.</span>';
+        const ua = U && ok(U.abs) ? U.abs : NaN, S = ok(ua) ? Math.hypot(D.a, ua) : D.a, r = o.abs > S;
+        const seuil = ok(ua) ? `le seuil de ${fx(S, 0)} mm (dispersion des arrêts ± ${fx(D.a, 0)} mm, mesure de d ± ${fx(ua, 0)} mm)` : `la dispersion des arrêts (± ${fx(D.a, 0)} mm)`;
+        return `<span class="${r ? 'rl-ko' : 'rl-ok'}">Sur la plage de dEC essayée, cela déplace l’arrêt de ${fx(o.abs, 0)} mm, ${r ? 'plus' : 'moins'} que ${seuil} : ${dit(r)}.</span>${manque}`;
+      }
+      const u = U && ok(U.u) ? U.u : NaN;
+      if (!D) {
+        if (ok(u) && o.e <= u) return `<span class="rl-ok">Dispersion non mesurée, mais l’écart reste sous l’incertitude des appareils (${fx(u, 1)} %) : ${dit(false)}.</span>`;
+        return `<span class="rl-am">Dispersion non mesurée : impossible de dire si cet écart est réel.</span>${ok(u) ? ` <span class="muted">L’incertitude des appareils vaut ${fx(u, 1)} %.</span>` : ''}`;
+      }
+      if (ok(u)) {
+        const S = Math.hypot(D.d, u), r = o.e > S;
+        return `<span class="${r ? 'rl-ko' : 'rl-ok'}">${r ? 'Au-delà' : 'En deçà'} du seuil de ${fx(S, 1)} % (dispersion des essais ${fx(D.d, 1)} %, appareils ${fx(u, 1)} %, combinées en √(a² + b²)) : ${dit(r)}.</span>${manque}`;
+      }
       const r = o.e > D.d;
-      return `<span class="${r ? 'rl-ko' : 'rl-ok'}">${r ? `Plus que la dispersion des essais (${fx(D.d, 1)} %) : ${o.mot ? 'différence réelle' : 'écart réel, à expliquer'}.` : `Dans la dispersion des essais (${fx(D.d, 1)} %) : ${o.mot ? 'pas de différence démontrée' : 'pas d’écart démontré'}.`}</span>`;
+      return `<span class="${r ? 'rl-ko' : 'rl-ok'}">${r ? `Plus que la dispersion des essais (${fx(D.d, 1)} %)` : `Dans la dispersion des essais (${fx(D.d, 1)} %)`} : ${dit(r)}.</span>${manque}`;
     }
     const ecartTxt = (o) => `${o.l} : ${o.quoi || 'écart'} ${fx(o.e, 1)} %`;
     const dispLigne = ([l, D, u, d, abs]) => (D ? `${l} : moyenne ${fx(D.m, d)}${u ? ' ' + u : ''}, ${abs ? `dispersion ± ${fx(D.a, d)} ${u}` : `dispersion ${fx(D.d, 1)} %`}` : `${l} : remplis les trois essais`);
     function resultats(X) {
-      const ec = X.ecarts.map((o) => `<li><b>${ecartTxt(o)}</b><br>${o.txt}. ${verdict(o)}</li>`).join('');
-      return `${X.lignes.length ? `<ul class="rl-res">${X.lignes.map((l) => `<li>${l}</li>`).join('')}</ul>` : '<p class="muted">Les résultats s’écrivent ici au fil de tes relevés.</p>'}${ec ? `<h3>Les écarts</h3><ul class="rl-res">${ec}</ul>` : ''}${X.ctrl.length ? `<div class="hint"><b>À vérifier dans tes relevés</b><ul class="rl-res">${X.ctrl.map((l) => `<li>${l}</li>`).join('')}</ul></div>` : ''}`;
+      const ec = X.ecarts.map((o) => `<li><b>${ecartTxt(o)}</b><br>${o.txt}. ${verdict(o, X)}</li>`).join('');
+      const nudge = ec && INC.length && !incRemplie(X) ? '<p class="muted">Renseigne la précision de tes appareils (fin de la partie « Les mesures », « Les appareils et leur incertitude ») : le seuil tiendra compte de leur incertitude en plus de la dispersion des essais.</p>' : '';
+      return `${X.lignes.length ? `<ul class="rl-res">${X.lignes.map((l) => `<li>${l}</li>`).join('')}</ul>` : '<p class="muted">Les résultats s’écrivent ici au fil de tes relevés.</p>'}${ec ? `<h3>Les écarts</h3><ul class="rl-res">${ec}</ul>${nudge}` : ''}${X.ctrl.length ? `<div class="hint"><b>À vérifier dans tes relevés</b><ul class="rl-res">${X.ctrl.map((l) => `<li>${l}</li>`).join('')}</ul></div>` : ''}`;
     }
     function calcul() {
       const el = document.getElementById('rl-figs'), w = el ? Math.floor(el.clientWidth) : 0;
@@ -832,18 +984,60 @@
       put('rl-figs2', X.figs2.join(''));
       const pl = document.getElementById('rl-plus'); if (pl) pl.hidden = !X.figs2.length;
       put('rl-res', resultats(X));
+      INC.forEach((A) => put('rl-u-' + A.k, uTxt(A, X)));
       put('rl-nav', nav());
       return X;
     }
     const planifier = () => { clearTimeout(tCalc); tCalc = setTimeout(maj, 180); };
+    const phases = () => { const f = B.duree / 150; let t = 0; return PHASES.map(([l, m]) => { const a = t; t += m * f; return { l, a, b: t }; }); };
+    const minutes = (m) => hm(Math.max(0, Math.ceil(m)));
     function chrono() {
       const el = document.getElementById('rl-chr'); if (!el) return;
       clearInterval(window.__an); window.__an = 0;
+      if (R.ep) return chronoEpreuve(el);
       const conseil = `${hm(B.duree)} conseillées sur le banc, comme dans l’épreuve`;
-      if (!R.t0) { el.innerHTML = `<button type="button" class="b sec" data-chrono="go">Démarrer le chronomètre</button><span class="muted">${conseil}</span>`; return; }
-      el.innerHTML = `<span>Sur le banc depuis <b id="rl-min"></b> · ${conseil}</span><button type="button" class="b sec" data-chrono="raz">Remettre à zéro</button>`;
+      const epr = `<button type="button" class="b sec" data-epreuve="go">Mode épreuve</button><span class="muted">problématique tirée au sort, ${hm(B.duree)} en cinq phases, sans l’aide de l’IA, fiche rendue puis notée</span>`;
+      if (!R.t0) { el.innerHTML = `<button type="button" class="b sec" data-chrono="go">Démarrer le chronomètre</button><span class="muted">${conseil}</span>${epr}`; return; }
+      el.innerHTML = `<span>Sur le banc depuis <b id="rl-min"></b> · ${conseil}</span><button type="button" class="b sec" data-chrono="raz">Remettre à zéro</button>${epr}`;
       const aff = () => { const x = document.getElementById('rl-min'); if (!x) { clearInterval(window.__an); window.__an = 0; return; } x.textContent = hm(Math.max(0, Math.floor((Date.now() - R.t0) / 60000))); };
       aff(); window.__an = setInterval(aff, 15000);
+    }
+    function chronoEpreuve(el) {
+      if (R.ep.fin) {
+        const E = R.ev && R.ev.t >= R.ep.t0 ? R.ev : null, m = R.ep.min || 0;
+        el.innerHTML = `<div class="rl-ep fin"><b>Épreuve rendue</b> après ${hm(m)}${m >= B.duree ? ', temps écoulé' : ''} : ta fiche est verrouillée, comme une copie rendue. ${E ? `Le jury l’a notée <b>${fn(E.note)} / 10</b> : le détail, l’entretien et la fiche modèle sont en bas de page.` : 'Le jury IA lit ta fiche…'}<div class="btns"><button type="button" class="b sec" data-aller="rl-s11">Voir l’évaluation</button><button type="button" class="b sec" data-epreuve="sortir">Sortir du mode épreuve</button></div></div>`;
+        return;
+      }
+      const P = phases();
+      el.innerHTML = `<div class="rl-ep"><div id="rl-ept" aria-live="polite"></div><div class="rl-epbar" aria-hidden="true">${P.map((p) => `<span style="flex:${p.b - p.a}"></span>`).join('')}<i id="rl-epb"></i></div><div class="btns"><button type="button" class="b sec" data-rendre="1">Rendre ma fiche maintenant</button><button type="button" class="b sec" data-epreuve="stop">Abandonner l’épreuve</button></div></div>`;
+      const maj2 = () => {
+        const x = document.getElementById('rl-ept'); if (!x || !R.ep || R.ep.fin) { clearInterval(window.__an); window.__an = 0; return; }
+        const m = (Date.now() - R.ep.t0) / 60000;
+        if (m >= B.duree) { clearInterval(window.__an); window.__an = 0; rendreEpreuve(true); return; }
+        const i = Math.max(0, P.findIndex((p) => m < p.b)), ph = P[i];
+        x.innerHTML = `<b>Phase ${i + 1} sur ${P.length} : ${esc(ph.l)}</b> · reste ${minutes(ph.b - m)} dans cette phase, ${minutes(B.duree - m)} en tout`;
+        const bar = document.getElementById('rl-epb'); if (bar) bar.style.width = (100 * m / B.duree).toFixed(1) + '%';
+      };
+      maj2(); window.__an = setInterval(maj2, 5000);
+    }
+    function demarrerEpreuve() {
+      archiver();
+      const n = neuf(B); n.hist = R.hist; n.epHist = R.epHist || [];
+      n.ep = { t0: Date.now(), prob: Math.floor(Math.random() * B.probs.length) }; n.prob = n.ep.prob; n.t0 = n.ep.t0;
+      st.reel[id] = n; save(); vue(id); window.scrollTo(0, 0);
+    }
+    function rendreEpreuve(auto) {
+      if (!R.ep || R.ep.fin) return;
+      R.ep.fin = auto ? R.ep.t0 + B.duree * 60000 : Date.now();
+      R.ep.min = Math.round((R.ep.fin - R.ep.t0) / 60000);
+      garder(true); rendre(); window.scrollTo(0, 0);
+      evaluer();
+    }
+    function sortirEpreuve(note) {
+      if (!R.ep) return;
+      const E = R.ev && R.ev.t >= R.ep.t0 ? R.ev : null;
+      if (note !== false && R.ep.fin) R.epHist = (Array.isArray(R.epHist) ? R.epHist : []).concat([{ t: R.ep.t0, prob: R.ep.prob, min: R.ep.min, note: E ? E.note : null }]).slice(-10);
+      R.ep = null; garder(true); rendre(); window.scrollTo(0, 0);
     }
     // les relevés, en texte, pour le jury IA
     function relevesTxt(X) {
@@ -866,7 +1060,7 @@
       for (const [k, L] of Object.entries(X.dispTxt || {})) out.push(`Dispersion (${B.tables[k].titre}) : ${L.map((x) => brut(dispLigne(x))).join(' ; ')}`);
       return out.join('\n');
     }
-    const resume = (X) => X.lignes.map(brut).concat(X.ecarts.map((o) => brut(`${ecartTxt(o)}. ${o.txt}. ${verdict(o)}`)));
+    const resume = (X) => X.lignes.map(brut).concat(X.ecarts.map((o) => brut(`${ecartTxt(o)}. ${o.txt}. ${verdict(o, X)}`)));
     const cap = (s, n) => String(s || '').trim().slice(0, n) || '(vide)';
     const tete = () => `## Le banc, d'après son dossier technique\n${brut(B.dossier)}\n\n## Ce que le dossier impose (sécurité et mise en œuvre)\n${B.secu.map((x) => '- ' + x).join('\n')}\n\n## La problématique\n${probl() || '(pas encore choisie)'}`;
     function promptRelire() {
@@ -953,24 +1147,184 @@ Réponds en JSON : {"criteres": {"obj": {"note": 1, "commentaire": "…"}, "prot
       return m;
     }
     function juryHtml(err) {
-      const E = R.ev; let h = '';
+      const E = R.ev;
+      if (enEpreuve()) return `<p class="muted">Mode épreuve : le jury lira ta fiche quand tu la rendras, ou à la fin des ${hm(B.duree)}. D’ici là, pas d’aide de l’IA, comme le jour de l’épreuve.</p>`;
+      let h = '';
       if (E) {
         const b = (t, x) => (x && x.length ? `<h3>${t}</h3><ul>${x.map((y) => `<li>${esc(y)}</li>`).join('')}</ul>` : '');
-        h += `<div class="ainote"><strong>${fn(E.note)} / 10</strong><span>Évaluation du ${date(E.t)}. Dans l’épreuve, la partie pratique compte pour 10 points sur 20.</span></div>
+        h += `<div class="ainote"><strong>${fn(E.note)} / 10</strong><span>Évaluation du ${date(E.t)}${R.ep && E.t >= R.ep.t0 ? ', fiche rendue en mode épreuve' : ''}. Dans l’épreuve, la partie pratique compte pour 10 points sur 20.</span></div>
           <div class="crit">${GRILLE.map(([k, l, mx]) => { const c = (E.criteres || {})[k] || { note: 0, commentaire: '' }; return `<div><b>${l}</b><span class="${c.note >= mx ? 'rl-ok' : c.note > 0 ? '' : 'rl-ko'}">${fn(c.note)} / ${mx}</span><small>${esc(c.commentaire)}</small></div>`; }).join('')}</div>
           <div class="aires">${b('Points forts', E.forts)}${b('À corriger d’abord', E.corriger)}${b('Ce que le jury te demanderait à l’entretien', E.questions)}</div>
           <details class="rl-dos"><summary>Ce que le jury attendait sur ce banc</summary><ul>${B.jury.map((x) => `<li>${x}</li>`).join('')}</ul></details>`;
+        if (window.ADMISSION_ORAL && (E.questions || []).length) h += `<div class="rl-entc"><h3>L’entretien sur ce banc</h3><p class="muted">Le jury IA te pose ses questions une à une et relance, comme à l’oral ; réponds à l’écrit ou à la voix.</p><div id="rl-ent"></div></div>`;
+        h += `<div class="rl-entc"><h3>La fiche modèle</h3><p class="muted">Ce qu’un très bon candidat aurait écrit sur ce banc, pour ta problématique, avec tes propres relevés.</p><div class="btns"><button class="b sec" type="button" data-modele="1">${R.modele ? 'Refaire la fiche modèle' : 'Voir la fiche modèle (corrigé)'}</button></div><div id="rl-modele" aria-live="polite">${modeleHtml()}</div></div>`;
       }
       if (err) h += `<p class="hint">${esc(err)}</p>`;
-      h += `<p class="muted">${E ? 'Après tes corrections, fais réévaluer la fiche.' : 'Le jury IA lit toute la fiche : problématique, objectif, sécurité, protocole, relevés, résultats calculés, conclusion et séance. Il note ta démarche sur 10, avec la grille de la partie pratique.'} Correction par l’IA, d’après les rapports de jury 2024 et 2025 et le dossier du banc.</p>
+      const rendue = bloque() && E && E.t >= R.ep.t0;
+      if (!rendue) h += `<p class="muted">${E ? 'Après tes corrections, fais réévaluer la fiche.' : 'Le jury IA lit toute la fiche : problématique, objectif, sécurité, protocole, relevés, résultats calculés, conclusion et séance. Il note ta démarche sur 10, avec la grille de la partie pratique.'} Correction par l’IA, d’après les rapports de jury 2024 et 2025 et le dossier du banc.</p>
         <div class="btns"><button class="b" type="button" data-eval="1">${E ? 'Faire réévaluer ma fiche' : 'Faire évaluer ma démarche par le jury IA'}</button></div>`;
-      if (R.hist.length > 1) h += `<p class="muted">Tes évaluations sur ce banc : ${R.hist.slice(-6).map((x) => `${fn(x.note)} / 10 le ${date(x.t)}`).join(' · ')}.</p>`;
+      if (R.hist.length > 1) h += `<p class="muted">Tes évaluations sur ce banc : ${R.hist.slice(-6).map((x) => `${fn(x.note)} / 10 le ${date(x.t)}${x.ep ? ' (épreuve)' : ''}`).join(' · ')}.</p>`;
       return h;
+    }
+    const majJury = (err) => { put('rl-jury', juryHtml(err)); monterEntretien(); };
+    // l'entretien en direct, sur les questions du jury (agreg/admission-oral.js)
+    function monterEntretien() {
+      const box = document.getElementById('rl-ent'), O = window.ADMISSION_ORAL;
+      if (!box || !O || !R.ev || !(R.ev.questions || []).length) return;
+      if (!R.ent || typeof R.ent !== 'object' || R.ent.ev !== R.ev.t) R.ent = { ev: R.ev.t };
+      const X = calcul() || { rows: {}, lignes: [], ecarts: [], ctrl: [], dispTxt: {} }, niv = (NIVS.find((x) => x[0] === R.niv) || NIVS[0])[1];
+      const ctx = `Banc réel : ${B.titre}. Problématique : ${probl() || '(non choisie)'}.
+Objectif : ${cap(R.txt.obj, 800)}
+Sécurité : ${cap(R.txt.secu, 1000)}
+Protocole : ${cap(R.txt.proto, 1500)}
+Résultats calculés : ${resume(X).join(' ; ').slice(0, 3000) || 'aucun'}
+Conclusion : ${cap(R.txt.concl, 1500)}
+Séance (${niv}) : ${cap(R.txt.seance, 1500)}
+Évaluation du jury : ${fn(R.ev.note)} / 10 ; à corriger : ${(R.ev.corriger || []).join(' ; ') || '—'}`;
+      O.entretien(box, { etat: R.ent, contexte: ctx, questions: R.ev.questions, cadre: 'L’entretien porte sur la partie pratique que le candidat vient de mener sur un banc réel de son labo, et sur la séance qu’il en tire.', src: 'banc ' + id, max: 6, sauver: () => garder(true) });
+    }
+    /* la fiche modèle (corrigé), rédigée par l'IA avec les relevés du candidat */
+    function modeleHtml() {
+      const M = R.modele; if (!M) return '';
+      const L = (t, x) => (x && x.length ? `<h3>${t}</h3><ul>${x.map((y) => `<li>${esc(y)}</li>`).join('')}</ul>` : '');
+      const P = (t, x) => (x ? `<h3>${t}</h3><p>${esc(x)}</p>` : '');
+      return `<details class="rl-dos rl-mod" open><summary>La fiche modèle, pour « ${esc(M.prob || probl())} »</summary>${P('L’objectif', M.objectif)}${L('Sécurité et mise en œuvre', M.securite)}${L('Le protocole', M.protocole)}${L('L’exploitation attendue', M.exploitation)}${P('La conclusion', M.conclusion)}${P('La séance', M.seance)}${L('Les erreurs qui coûtent des points sur ce banc', M.erreurs)}<p class="muted">Rédigée par l’IA le ${date(M.t)}, d’après le dossier du banc, les attentes du jury et tes relevés ; vérifie les valeurs avant de t’en servir.</p></details>`;
+    }
+    async function faireModele() {
+      put('rl-modele', '<div class="think">Le jury rédige la fiche modèle… (jusqu’à une minute)</div>');
+      let s = null; try { s = await getSample(); } catch (e) { s = null; }
+      if (!s) { put('rl-modele', '<p class="hint">La fiche modèle n’est pas disponible pour l’instant.</p>' + modeleHtml()); return; }
+      const X = calcul() || { rows: {}, lignes: [], ecarts: [], ctrl: [], dispTxt: {} }, niv = (NIVS.find((x) => x[0] === R.niv) || NIVS[0])[1];
+      const prompt = `Tu es membre du jury de l'agrégation de sciences industrielles de l'ingénieur, option ingénierie électrique. Rédige la fiche d'un très bon candidat pour la partie pratique sur ce banc réel et pour cette problématique : ce que le jury aurait aimé lire. Elle sert de corrigé au professeur qui s'entraîne.
+
+${tete()}
+
+## Ce que le jury attend de la démarche sur ce banc
+${B.jury.map((x) => '- ' + x).join('\n')}
+
+## Les relevés du candidat (à réutiliser tels quels, sans inventer de valeurs)
+${relevesTxt(X).slice(0, 6000)}
+
+## Les résultats calculés à partir de ses relevés
+${resume(X).map((x) => '- ' + x).join('\n') || '- aucun : relevés insuffisants'}
+
+## Niveau visé pour la séance : ${niv}
+
+## Consignes
+1. "objectif" : deux ou trois phrases. "securite" : trois à cinq points conformes au dossier du banc.
+2. "protocole" : quatre à sept étapes (appareils avec calibre et catégorie, points de branchement, conditions d'essai, nombre et répartition des points, essai répété pour la dispersion).
+3. "exploitation" : trois à six points (grandeurs calculées, courbes, point remarquable, comparaison au modèle ou au constructeur, écarts face à la dispersion et à l'incertitude des appareils, causes et solutions).
+4. "conclusion" : quatre à six phrases qui répondent à la problématique avec les valeurs du candidat quand elles existent ; s'il en manque, dis ce qu'il faudrait mesurer, sans inventer de chiffres.
+5. "seance" : un paragraphe (niveau, compétences visées, organisation, activités des élèves, un protocole différent de celui de l'étude, évaluation).
+6. "erreurs" : trois ou quatre erreurs fréquentes qui coûtent des points sur ce banc.
+7. Ne recopie pas le texte du candidat. Tutoie-le. Français simple. Pas de Markdown, pas de HTML.
+
+Réponds en JSON : {"objectif": "…", "securite": ["…"], "protocole": ["…"], "exploitation": ["…"], "conclusion": "…", "seance": "…", "erreurs": ["…"]}`;
+      try {
+        const r = await s.json(prompt.slice(0, 39000), { cache: false, modelTier: 'complex' });
+        const t = (x, n) => String(x == null ? '' : x).trim().slice(0, n);
+        const M = { t: Date.now(), prob: probl(), objectif: t(r && r.objectif, 800), securite: liste(r && r.securite, 5), protocole: liste(r && r.protocole, 7), exploitation: liste(r && r.exploitation, 6), conclusion: t(r && r.conclusion, 1500), seance: t(r && r.seance, 1500), erreurs: liste(r && r.erreurs, 4) };
+        if (!M.objectif && !M.protocole.length && !M.conclusion) throw new Error('réponse vide');
+        R.modele = M; garder(true); put('rl-modele', modeleHtml());
+        const bt = app().querySelector('[data-modele]'); if (bt) bt.textContent = 'Refaire la fiche modèle';
+      } catch (e) { put('rl-modele', `<p class="hint">${esc(erreurIA(e))}</p>` + modeleHtml()); }
+    }
+    /* la photo du montage, vue par le jury IA avant la mise sous tension */
+    function photoHtml() {
+      const P = R.photo; if (!P) return '';
+      const G = { danger: ['rl-ko', 'Danger'], erreur: ['rl-am', 'Erreur'], conseil: ['', 'Conseil'] };
+      return `<div class="rl-photor">${P.vu ? `<p><b>Ce que voit le jury :</b> ${esc(P.vu)}</p>` : ''}${P.pb.length ? `<ul class="rl-res">${P.pb.map((x) => { const g = G[x.g] || G.conseil; return `<li><span class="${g[0]}">${g[1]}</span> · ${esc(x.t)}</li>`; }).join('')}</ul>` : '<p class="rl-ok">Aucun problème visible sur la photo.</p>'}${P.ok.length ? `<p><b>Conforme :</b> ${P.ok.map(esc).join(' ; ')}.</p>` : ''}${P.av.length ? `<p><b>À vérifier toi-même :</b> ${P.av.map(esc).join(' ; ')}.</p>` : ''}<p class="muted">Avis du jury IA du ${date(P.t)}, sur une photo : il ne remplace pas ta vérification du câblage hors tension.</p></div>`;
+    }
+    function promptPhoto() {
+      return `Tu es membre du jury de l'agrégation de sciences industrielles de l'ingénieur, option ingénierie électrique. Pendant la partie pratique, le candidat te montre la photo de son montage sur un banc réel, avant de le mettre sous tension. Regarde la photo jointe.
+
+${tete()}
+
+## Ce qu'il veut mesurer (son protocole)
+${cap(R.txt.proto, 2500)}
+
+## Consignes
+1. "vu" : en deux phrases, ce que tu vois (appareils, branchements, cordons) ; si la photo ne montre pas un montage de mesure, dis-le simplement.
+2. "problemes" : ce qui pose problème, du plus grave au moins grave, au plus six, chacun avec "gravite" : "danger" (risque pour les personnes ou le matériel : partie active accessible, fiche non protégée, masse d'un oscilloscope reliée à un potentiel, catégorie de mesure insuffisante, cordon abîmé…), "erreur" (la mesure sera fausse : appareil mal placé, pince sur le mauvais conducteur ou dans le mauvais sens, calibre inadapté, voltmètre en série, ampèremètre en parallèle…) ou "conseil". Liste vide si tu ne vois rien d'anormal.
+3. "conforme" : ce qui est correct, au plus cinq.
+4. "a_verifier" : ce que la photo ne permet pas de juger et qu'il doit vérifier lui-même, au plus quatre.
+5. Ne dis jamais que le montage est sûr : seule une vérification hors tension le permet. Tutoie-le. Français simple. Pas de Markdown, pas de HTML.
+
+Réponds en JSON : {"vu": "…", "problemes": [{"gravite": "erreur", "texte": "…"}], "conforme": ["…"], "a_verifier": ["…"]}`;
+    }
+    async function verifierMontage(f) {
+      if (!/^image\//.test(f.type || '') && !/\.(jpe?g|png|webp|heic|heif)$/i.test(f.name || '')) { put('rl-photo-res', '<p class="rl-al">Choisis une photo (JPEG ou PNG).</p>' + photoHtml()); return; }
+      put('rl-photo-res', '<div class="think">Le jury regarde ton montage… (jusqu’à une minute)</div>');
+      let s = null; try { s = await getSample(); } catch (e) { s = null; }
+      if (!s) { put('rl-photo-res', '<p class="hint">La vérification par l’IA n’est pas disponible pour l’instant.</p>' + photoHtml()); return; }
+      try {
+        const img = await reduire(f);
+        const r = await s.json(promptPhoto(), { cache: false, modelTier: 'complex', images: [img] });
+        const pb = (Array.isArray(r && r.problemes) ? r.problemes : []).map((x) => (typeof x === 'string' ? { g: 'conseil', t: x.trim() } : { g: ['danger', 'erreur', 'conseil'].includes(x && x.gravite) ? x.gravite : 'erreur', t: String((x && (x.texte || x.probleme)) || '').trim() })).filter((x) => x.t).slice(0, 6);
+        const P = { t: Date.now(), vu: String((r && r.vu) || '').trim().slice(0, 600), ok: liste(r && r.conforme, 5), pb, av: liste(r && r.a_verifier, 4) };
+        if (!P.vu && !pb.length && !P.ok.length) throw new Error('réponse vide');
+        R.photo = P; garder(true); put('rl-photo-res', photoHtml());
+      } catch (e) { put('rl-photo-res', `<p class="hint">${esc(erreurIA(e))}</p>` + photoHtml()); }
+    }
+    /* coller ou importer des relevés dans un tableau */
+    function deviner(k, D) {
+      const cols = colsDe(B, B.tables[k]), map = {}, pris = new Set();
+      if (D.entete) cols.forEach((c) => { const s2 = D.cols.find((x) => !pris.has(x.j) && (norme(x.nom) === norme(c.l) || norme(x.nom) === norme(c.k))); if (s2) { map[c.k] = s2.j; pris.add(s2.j); } });
+      // le reste dans l'ordre : colonnes de nombres vers les grandeurs, colonnes de texte vers les sens et les configurations
+      const numCol = (c) => !(c.sel || c.txt);
+      [true, false].forEach((num) => { const S = D.cols.filter((x) => !pris.has(x.j) && x.num === num); cols.filter((c) => map[c.k] == null && numCol(c) === num).forEach((c) => { const x = S.shift(); if (x) { map[c.k] = x.j; pris.add(x.j); } }); });
+      return map;
+    }
+    function lignesImport(k) {
+      const I = IMP[k]; if (!I || !I.D) return [];
+      const cols = colsDe(B, B.tables[k]);
+      return I.D.data.map((r) => {
+        const o = {};
+        cols.forEach((c) => {
+          const j = I.map[c.k]; if (j == null) return;
+          let v = String(r[j] == null ? '' : r[j]).trim();
+          if (c.sel) { const n = norme(v); v = (n && c.sel.find((x) => norme(x) === n || norme(x).startsWith(n))) || ''; }
+          if (v !== '') o[c.k] = v;
+        });
+        return o;
+      }).filter((o) => cols.some((c) => !c.sel && o[c.k] != null));
+    }
+    function mapHtml(k) {
+      const I = IMP[k], D = I && I.D;
+      if (!D) return I && I.txt && I.txt.trim() ? '<p class="rl-al">Aucune ligne de nombres reconnue dans ce texte.</p>' : '';
+      const T = B.tables[k], cols = colsDe(B, T), L = lignesImport(k), n = L.length;
+      const sel = cols.map((c) => `<label class="rl-mapc">${c.l}${unite(c) ? ` <small>${esc(unite(c))}</small>` : ''}<select data-mapc="${k}.${c.k}"><option value="">—</option>${D.cols.map((x) => `<option value="${x.j}"${I.map[c.k] === x.j ? ' selected' : ''}>${esc(String(x.nom).slice(0, 30))}</option>`).join('')}</select></label>`).join('');
+      return `<p><b>${n} ligne${n > 1 ? 's' : ''} de relevés, ${D.cols.length} colonne${D.cols.length > 1 ? 's' : ''}.</b> Vérifie quelle colonne va dans quelle case :</p><div class="rl-map">${sel}</div>
+        ${n ? `<div class="rl-tw"><table class="rl-t rl-apercu"><thead><tr>${cols.map((c) => `<th>${c.l}</th>`).join('')}</tr></thead><tbody>${L.slice(0, 4).map((o) => `<tr>${cols.map((c) => `<td>${esc(o[c.k] == null ? '' : o[c.k])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>${n > 4 ? `<p class="muted">… et ${n - 4} autre${n - 4 > 1 ? 's' : ''}.</p>` : ''}${T.fixe && n > T.lignes ? `<p class="muted">Ce tableau n’a que ${T.lignes} lignes : les ${T.lignes} premières seront gardées.</p>` : ''}` : ''}
+        <div class="btns">${n ? `<button type="button" class="b" data-impok="${k}" data-mode="remplacer">${T.fixe ? `Remplir les ${T.lignes} essais` : 'Remplacer les lignes du tableau'}</button>${T.fixe ? '' : `<button type="button" class="b sec" data-impok="${k}" data-mode="ajouter">Ajouter à la suite</button>`}` : ''}<button type="button" class="b sec" data-impnon="${k}">Annuler</button></div>`;
+    }
+    function impHtml(k) {
+      const I = IMP[k]; if (!I) return '';
+      return `<div class="rl-impo"><p class="muted rl-aide">Depuis Excel ou LibreOffice : sélectionne les cellules (avec la ligne des titres si tu veux), copie, colle ci-dessous. Ou importe le fichier CSV ou texte enregistré par l’appareil (analyseur, oscilloscope).</p>
+        <textarea data-collage="${k}" data-or-mic="0" rows="4" aria-label="Cellules à coller" placeholder="Colle ici tes cellules…">${esc(I.txt || '')}</textarea>
+        <div class="btns"><label class="b sec rl-file">Importer un fichier CSV ou texte<input type="file" accept=".csv,.txt,.tsv,text/csv,text/plain" data-fichier="${k}" aria-label="Fichier de relevés"></label></div>
+        <div id="rl-map-${k}">${mapHtml(k)}</div></div>`;
+    }
+    function analyser(k, txt) { const I = IMP[k]; if (!I) return; I.txt = txt; I.D = lireTableur(txt); I.map = I.D ? deviner(k, I.D) : {}; put('rl-map-' + k, mapHtml(k)); }
+    function importer(k, mode) {
+      const T = B.tables[k], cols = colsDe(B, T), L = lignesImport(k);
+      if (!L.length) return;
+      if (T.fixe) { R.tab[k] = L.slice(0, T.lignes); while (R.tab[k].length < T.lignes) R.tab[k].push({}); }
+      else R.tab[k] = (mode === 'ajouter' ? R.tab[k].filter((r) => rempli(r, cols)) : []).concat(L);
+      delete IMP[k]; garder(true); retable(k);
+      const el = document.getElementById('rl-tab-' + k); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    function lireFichier(k, f) {
+      const go = (enc) => new Promise((ok2) => { const r = new FileReader(); r.onload = () => ok2(String(r.result || '')); r.onerror = () => ok2(''); r.readAsText(f, enc); });
+      go('utf-8').then((t) => (t.includes('�') ? go('windows-1252') : t)).then((t) => {
+        const ta = app().querySelector(`[data-collage="${k}"]`); if (ta) ta.value = t.slice(0, 200000);
+        analyser(k, t.slice(0, 200000));
+      });
     }
     async function evaluer() {
       put('rl-jury', '<div class="think">Le jury lit ta fiche… (jusqu’à une minute)</div>');
       let s = null; try { s = await getSample(); } catch (e) { s = null; }
-      if (!s) { put('rl-jury', juryHtml('La correction par l’IA n’est pas disponible pour l’instant.')); return; }
+      if (!s) { majJury('La correction par l’IA n’est pas disponible pour l’instant.'); return; }
       try {
         const X = calcul() || { rows: {}, lignes: [], ecarts: [], ctrl: [], dispTxt: {} };
         const r = await s.json(promptJury(X), { cache: false, modelTier: 'complex' });
@@ -983,9 +1337,9 @@ Réponds en JSON : {"criteres": {"obj": {"note": 1, "commentaire": "…"}, "prot
           C[k] = { note: nt, commentaire: c ? String(c.commentaire || '').trim() : '' }; tot += nt;
         });
         R.ev = { t: Date.now(), note: tot, criteres: C, forts: liste(r.points_forts, 3), corriger: liste(r.a_corriger, 5), questions: liste(r.questions, 3) };
-        R.hist = R.hist.concat([{ t: R.ev.t, note: tot }]).slice(-20);
-        garder(true); put('rl-jury', juryHtml()); put('rl-nav', nav());
-      } catch (e) { put('rl-jury', juryHtml(erreurIA(e))); }
+        R.hist = R.hist.concat([Object.assign({ t: R.ev.t, note: tot }, R.ep ? { ep: 1 } : {})]).slice(-20);
+        garder(true); majJury(); put('rl-nav', nav()); if (R.ep) chrono();
+      } catch (e) { majJury(erreurIA(e)); }
     }
     function csv() {
       const X = calcul() || { rows: {} };
@@ -1037,22 +1391,54 @@ Réponds en JSON : {"criteres": {"obj": {"note": 1, "commentaire": "…"}, "prot
         L.pop(); garder(true); retable(k); return;
       }
       if ((b = t('[data-chrono]'))) { R.t0 = b.dataset.chrono === 'go' ? Date.now() : null; garder(true); chrono(); return; }
+      if ((b = t('[data-epreuve]'))) {
+        const q = b.dataset.epreuve;
+        if (q === 'go') { if (aDuContenu() && avant !== 'ep-go') { armer(b, 'ep-go', `Ta fiche actuelle sera archivée (tu la reprendras en bas de page). Lancer l’épreuve de ${hm(B.duree)} ?`); return; } demarrerEpreuve(); return; }
+        if (q === 'stop') { if (avant !== 'ep-stop') { armer(b, 'ep-stop', 'Abandonner l’épreuve, sans note ?'); return; } sortirEpreuve(false); return; }
+        if (q === 'sortir') { sortirEpreuve(); return; }
+      }
+      if ((b = t('[data-rendre]'))) { if (avant !== 'rendre') { armer(b, 'rendre', 'Rendre ta fiche maintenant ? Elle sera verrouillée, puis notée.'); return; } rendreEpreuve(false); return; }
+      if (t('[data-modele]')) { faireModele(); return; }
+      if ((b = t('[data-imp]'))) { const k = b.dataset.imp; if (IMP[k]) delete IMP[k]; else IMP[k] = { txt: '', D: null, map: {} }; put('rl-impo-' + k, impHtml(k)); const z = app().querySelector(`[data-collage="${k}"]`); if (z) z.focus(); return; }
+      if ((b = t('[data-impnon]'))) { delete IMP[b.dataset.impnon]; put('rl-impo-' + b.dataset.impnon, ''); return; }
+      if ((b = t('[data-impok]'))) { importer(b.dataset.impok, b.dataset.mode); return; }
+      if ((b = t('[data-arch]'))) {
+        const i = +b.dataset.arch, A = ARCH(), a = A[i]; if (!a || !a.fiche) return;
+        if (aDuContenu() && avant !== 'arch-' + i) { armer(b, 'arch-' + i, 'Ta fiche actuelle sera archivée à sa place. Reprendre celle-ci ?'); return; }
+        A.splice(i, 1); archiver();
+        const f = a.fiche; f.hist = R.hist; f.epHist = R.epHist || []; f.ep = null; f.v = 1;
+        st.reel[id] = f; save(); vue(id); window.scrollTo(0, 0); return;
+      }
       if (t('[data-relire]')) { relire(); return; }
       if ((b = t('[data-eval]'))) { const m = vides(); if (m.length && avant !== 'eval') { armer(b, 'eval', `${m.length > 1 ? 'Rubriques vides' : 'Rubrique vide'} : ${m.join(', ')}. Évaluer quand même ?`); return; } evaluer(); return; }
       if (t('[data-csv]')) { csv(); return; }
       if (t('[data-imprimer]')) { imprimer(); return; }
       if ((b = t('[data-raz]'))) {
         if (avant !== 'raz') { armer(b, 'raz', 'Effacer vraiment toute la fiche ?'); return; }
-        const h = R.hist; st.reel[id] = neuf(B); st.reel[id].hist = h; save(); vue(id); window.scrollTo(0, 0);
+        archiver();
+        const h = R.hist; st.reel[id] = neuf(B); st.reel[id].hist = h; st.reel[id].epHist = R.epHist || []; save(); vue(id); window.scrollTo(0, 0);
       }
     };
+    let tColle = 0;
     app().oninput = (e) => {
       const el = e.target, d = el.dataset || {};
+      if (d.i) { const [k, f] = d.i.split('.'); if (!R.inc[k]) R.inc[k] = {}; R.inc[k][f] = el.value; garder(); if (f !== 'm') planifier(); return; }
+      if (d.collage) { const k = d.collage, v = el.value; clearTimeout(tColle); tColle = setTimeout(() => analyser(k, v), 250); return; }
       if (d.p) { const [a, c] = d.p.split('.'); if (c == null) R[a] = el.value; else R[a][c] = el.value; garder(); if (a === 'pa') planifier(); if (a === 'niv') put('rl-nivc', nivConseil()); }
       else if (d.t) { const L = R.tab[d.t]; if (!L || !L[+d.r]) return; L[+d.r][d.c] = el.value; garder(); planifier(); }
     };
     app().onchange = (e) => {
       const el = e.target, d = el.dataset || {};
+      if (d.photo) { const f = el.files && el.files[0]; if (f) verifierMontage(f); el.value = ''; return; }
+      if (d.fichier) { const f = el.files && el.files[0]; if (f) lireFichier(d.fichier, f); el.value = ''; return; }
+      if (d.mapc) { const [k, c] = d.mapc.split('.'); const I = IMP[k]; if (!I) return; if (el.value === '') delete I.map[c]; else I.map[c] = +el.value; put('rl-map-' + k, mapHtml(k)); return; }
+      if (d.i) {
+        const [k, f] = d.i.split('.'); if (!R.inc[k]) R.inc[k] = {}; R.inc[k][f] = el.value; garder(true);
+        if (f === 'm') { const X = calcul(); const dd = document.getElementById('rl-incd'); const y = window.scrollY; if (dd) { dd.outerHTML = incHtml(X); } window.scrollTo(0, y); }
+        planifier(); return;
+      }
+      // à la sortie de la zone, on n'analyse que si le texte a changé : sinon les boutons seraient redessinés sous le clic
+      if (d.collage) { const I = IMP[d.collage]; if (I && I.txt !== el.value) { clearTimeout(tColle); analyser(d.collage, el.value); } return; }
       if (!d.p && !d.t) return;
       app().oninput(e); garder(true);
       if (d.redessine) { const y = window.scrollY; rendre(); window.scrollTo(0, y); }
@@ -1060,7 +1446,17 @@ Réponds en JSON : {"criteres": {"obj": {"note": 1, "commentaire": "…"}, "prot
     };
     app().onsubmit = (e) => e.preventDefault();
     app().onkeydown = null;
-    function rendre() { app().innerHTML = page(); maj(); chrono(); }
+    function verrouiller() {
+      app().querySelectorAll('.rl-c:not(#rl-s11) input, .rl-c:not(#rl-s11) textarea, .rl-c:not(#rl-s11) select, [data-add], [data-del], [data-imp]').forEach((x) => { x.disabled = true; });
+      app().querySelectorAll('.rl-photo').forEach((x) => { x.hidden = true; });
+    }
+    function rendre() {
+      app().innerHTML = page(); if (bloque()) verrouiller(); maj(); chrono();
+      if (window.ADMISSION_ORAL) ADMISSION_ORAL.micros(app());
+      monterEntretien();
+      // l'épreuve a pu finir pendant que la page était fermée : la fiche est rendue à la fin du temps
+      if (R.ep && !R.ep.fin && Date.now() - R.ep.t0 >= B.duree * 60000) rendreEpreuve(true);
+    }
     rendre();
   }
 
@@ -1070,7 +1466,7 @@ Réponds en JSON : {"criteres": {"obj": {"note": 1, "commentaire": "…"}, "prot
     const S = (typeof st === 'object' && st && st.reel) || {};
     return `<div class="card" style="margin-top:16px"><h2 style="margin:0 0 6px">Sur tes bancs du labo</h2>
       <p class="muted" style="margin:0 0 6px">La partie pratique en vrai, sur les bancs de ton labo, d’après leurs dossiers techniques : problématique, objectif, sécurité, protocole, mesures calculées et tracées au fil des relevés, dispersion, écarts, conclusion et séance ; puis le jury IA évalue ta démarche sur 10. Fiches faites pour le téléphone, au labo.</p>
-      <ul class="rl-carte">${Object.keys(BANCS).map((id) => { const B = BANCS[id], x = S[id], n = x && typeof x === 'object' ? nbRemplies(B, x) : 0, ev = x && x.ev; return `<li><a class="b" href="#admission-reel-${id}">${esc(B.titre)}</a><span class="muted">${esc(B.court)}${n ? ` · ${n} ligne${n > 1 ? 's' : ''} de relevés` : ''}${ev && isFinite(ev.note) ? ` · dernière évaluation ${fn(ev.note)} / 10` : ''}</span></li>`; }).join('')}</ul></div>`;
+      <ul class="rl-carte">${Object.keys(BANCS).map((id) => { const B = BANCS[id], x = S[id], n = x && typeof x === 'object' ? nbRemplies(B, x) : 0, ev = x && x.ev; return `<li><a class="b" href="#admission-reel-${id}">${esc(B.titre)}</a><span class="muted">${esc(B.court)}${n ? ` · ${n} ligne${n > 1 ? 's' : ''} de relevés` : ''}${ev && isFinite(ev.note) ? ` · dernière évaluation ${fn(ev.note)} / 10` : ''}${x && x.ep && !x.ep.fin ? ' · épreuve en cours' : ''}</span></li>`; }).join('')}</ul></div>`;
   }
 
   window.ADMISSION_REEL = { route: vue, carte, BANCS };
