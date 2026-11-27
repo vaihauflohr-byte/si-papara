@@ -101,7 +101,7 @@
         <div class="rang"><select id="niv" style="width:auto">${opts}</select>
         <button class="btn sec" id="maj">Actualiser</button></div>
         <button class="btn sec" id="csv">Exporter CSV</button></div>
-      <div class="onglets no-print"><button data-o="suivi" class="${onglet === "suivi" ? "actif" : ""}">Suivi</button><button data-o="competences" class="${onglet === "competences" ? "actif" : ""}">Compétences</button><button data-o="bac" class="${onglet === "bac" ? "actif" : ""}">Bac SI</button><button data-o="flashs" class="${onglet === "flashs" ? "actif" : ""}">Flashs</button><button data-o="devoirs" class="${onglet === "devoirs" ? "actif" : ""}">Devoirs BTS 2</button><button data-o="projets" class="${onglet === "projets" ? "actif" : ""}">Projets BTS 2</button><button data-o="eleves" class="${onglet === "eleves" ? "actif" : ""}">Élèves et codes</button><button data-o="signalements" class="${onglet === "signalements" ? "actif" : ""}">Signalements${nbSigNouveaux() ? ` <span class="sig-pastille">${nbSigNouveaux()}</span>` : ""}</button><button data-o="apercu" class="${onglet === "apercu" ? "actif" : ""}">Aperçu élève</button></div>
+      <div class="onglets no-print"><button data-o="suivi" class="${onglet === "suivi" ? "actif" : ""}">Suivi</button><button data-o="competences" class="${onglet === "competences" ? "actif" : ""}">Compétences</button><button data-o="bac" class="${onglet === "bac" ? "actif" : ""}">Bac SI</button><button data-o="flashs" class="${onglet === "flashs" ? "actif" : ""}">Flashs</button><button data-o="depannages" class="${onglet === "depannages" ? "actif" : ""}">Dépannages</button><button data-o="devoirs" class="${onglet === "devoirs" ? "actif" : ""}">Devoirs BTS 2</button><button data-o="projets" class="${onglet === "projets" ? "actif" : ""}">Projets BTS 2</button><button data-o="eleves" class="${onglet === "eleves" ? "actif" : ""}">Élèves et codes</button><button data-o="signalements" class="${onglet === "signalements" ? "actif" : ""}">Signalements${nbSigNouveaux() ? ` <span class="sig-pastille">${nbSigNouveaux()}</span>` : ""}</button><button data-o="apercu" class="${onglet === "apercu" ? "actif" : ""}">Aperçu élève</button></div>
       <div id="corps">${contenu}</div>`;
     document.getElementById("niv").onchange = (e) => { niveau = e.target.value; try { localStorage.setItem("sip_prof_niveau", niveau); } catch (x) {} afficher(); };
     document.getElementById("maj").onclick = async () => { await charger(); if (SIP.profProjets) await SIP.profProjets.recharger(); afficher(); };
@@ -110,7 +110,7 @@
   }
   const elevesFiltres = () => D.eleves.filter((e) => !niveau || e.niveau === niveau).sort((a, b) => a.niveau.localeCompare(b.niveau) || a.nom.localeCompare(b.nom));
 
-  function afficher() { onglet === "eleves" ? vueEleves() : onglet === "competences" ? vueCompetences() : onglet === "bac" ? vueBac() : onglet === "flashs" ? vueFlashs() : onglet === "devoirs" ? vueDevoirs() : onglet === "projets" ? vueProjets() : onglet === "signalements" ? vueSignalements() : onglet === "apercu" ? vueApercu() : vueSuivi(); }
+  function afficher() { onglet === "eleves" ? vueEleves() : onglet === "competences" ? vueCompetences() : onglet === "bac" ? vueBac() : onglet === "flashs" ? vueFlashs() : onglet === "depannages" ? vueDepannages() : onglet === "devoirs" ? vueDevoirs() : onglet === "projets" ? vueProjets() : onglet === "signalements" ? vueSignalements() : onglet === "apercu" ? vueApercu() : vueSuivi(); }
 
   // ---------------- Flashs : revoir les copies d'un flash, question par question ----------------
   // Le prof change les points d'une question à la main, ou fait recorriger les réponses par l'IA (fonction « corriger »,
@@ -141,6 +141,61 @@
     const L = []; for (let x = 0; x <= b + 1e-9; x += 0.25) L.push(Math.round(x * 100) / 100);
     if (!L.some((x) => Math.abs(x - v) < 1e-9)) L.push(v);
     return L.sort((a, c) => a - c).map((x) => `<option value="${x}"${Math.abs(x - v) < 1e-9 ? " selected" : ""}>${SIP.nb(x, 3)}</option>`).join("");
+  }
+
+  // ---------------- Dépannages de l'atelier schémas (entrainements/schemas.html) ----------------
+  // Le prof cache une panne dans un schéma (Fichier → Préparer un dépannage) et donne le lien à la classe : même panne pour tous.
+  // Chaque élève connecté envoie un résultat externe de module schemas-prof-<empreinte du lien> ; details[0] porte la note et
+  // les champs mesures, mauvaises, abandon, designations. Un élève qui a plusieurs essais (autre appareil…) : le premier compte.
+  let depVu = null;
+  function depannagesProf() {
+    const S = {};
+    D.entrainements.forEach((t) => {
+      if (t.type !== "externe" || !/^schemas-prof-[\w-]+$/.test(t.module || "")) return;
+      const x = D.parEleve[t.eleve_id]; if (!x || (niveau && x.e.niveau !== niveau)) return;
+      const s = (S[t.module] = S[t.module] || { module: t.module, titre: t.module, premier: t.fait_le, dernier: "", essais: [] });
+      s.essais.push(t);
+      if (t.fait_le < s.premier) s.premier = t.fait_le;
+      if (t.fait_le > s.dernier) { s.dernier = t.fait_le; s.titre = String(t.titre || "").replace(/^Dépannage · /, "") || t.module; }
+    });
+    return Object.values(S).sort((a, b) => b.dernier.localeCompare(a.dernier));
+  }
+  function infoDep(t) {
+    const d = (Array.isArray(t.details) && t.details[0]) || {}, m = (Array.isArray(t.details) && t.details[1]) || {};
+    const abandon = d.abandon != null ? !!d.abandon : d.rep === "abandon";
+    return { note: note20(t.score, t.score_max), abandon, panne: d.attendu || "",
+      mesures: d.mesures != null ? Number(d.mesures) : Number((/\((\d+)\)/.exec(m.q || "") || [])[1] || 0),
+      mauvaises: d.mauvaises != null ? Number(d.mauvaises) : Math.max(0, (Number(d.erreurs) || 0) - (abandon ? 1 : 0)) };
+  }
+  function vueDepannages() {
+    const S = depannagesProf();
+    const aide = `<p class="discret">Pour en préparer un : <a href="entrainements/schemas.html">Atelier schémas</a>, ouvre un exemple ou dessine ton schéma, puis <b>Fichier → Préparer un dépannage (professeur)</b>. Choisis l'élément en panne et donne le lien aux élèves : ils ont tous la même panne, et la note de chaque élève connecté arrive ici.</p>`;
+    if (!S.length) return cadre(`<div class="carte"><p>Aucun dépannage rendu${niveau ? " dans cette classe" : ""} pour l'instant.</p>${aide}</div>`);
+    if (!S.some((x) => x.module === depVu)) depVu = S[0].module;
+    const s = S.find((x) => x.module === depVu);
+    const parE = {};
+    s.essais.slice().sort((a, b) => a.fait_le.localeCompare(b.fait_le)).forEach((t) => (parE[t.eleve_id] = parE[t.eleve_id] || []).push(t));
+    const L = Object.keys(parE).map((id) => ({ e: D.parEleve[id].e, essais: parE[id], i: infoDep(parE[id][0]) })).sort((a, b) => a.e.niveau.localeCompare(b.e.niveau) || a.e.nom.localeCompare(b.e.nom));
+    const absents = niveau ? elevesFiltres().filter((e) => e.actif !== false && !parE[e.id]) : [];
+    const moy = L.reduce((a, l) => a + l.i.note, 0) / (L.length || 1);
+    const med = (v) => { const w = v.slice().sort((a, b) => a - b), k = w.length >> 1; return !w.length ? 0 : w.length % 2 ? w[k] : (w[k - 1] + w[k]) / 2; };
+    const duree = (t) => (t.duree_s ? (t.duree_s < 60 ? t.duree_s + " s" : Math.round(t.duree_s / 60) + " min") : "—");
+    const nbE = (x) => new Set(x.essais.map((t) => t.eleve_id)).size;
+    cadre(`<div class="carte"><div class="rang"><select id="dp-vu" style="width:auto" aria-label="Dépannage">${S.map((x) => `<option value="${esc(x.module)}"${x.module === s.module ? " selected" : ""}>${esc(x.titre)} · ${SIP.fmtDate(x.premier)} · ${nbE(x)} élève${nbE(x) > 1 ? "s" : ""}</option>`).join("")}</select></div>
+        ${L[0] && L[0].i.panne ? `<p>Panne cachée : <b>${esc(L[0].i.panne)}</b>.</p>` : ""}${aide}</div>
+      <div class="stats">
+        <div class="carte"><span class="discret">Ont rendu</span><b>${L.length}${niveau ? ` / ${L.length + absents.length}` : ""}</b></div>
+        <div class="carte"><span class="discret">Moyenne</span><b>${SIP.nb(moy, 3)} / 20</b></div>
+        <div class="carte"><span class="discret">Mesures (médiane)</span><b>${SIP.nb(med(L.map((l) => l.i.mesures)), 3)}</b></div>
+        <div class="carte"><span class="discret">Trouvée du premier coup</span><b>${L.filter((l) => !l.i.abandon && !l.i.mauvaises).length}</b></div>
+      </div>
+      <div class="table-defil"><table><thead><tr><th>Élève</th>${niveau ? "" : "<th>Classe</th>"}<th class="num">Note</th><th class="num">Mesures</th><th class="num">Mauvaises désignations</th><th class="num">Durée</th><th>Rendu le</th></tr></thead><tbody>${L.map((l) =>
+        `<tr class="cliquable" data-id="${esc(l.e.id)}"><td><b>${esc(l.e.nom)}</b>${l.essais.length > 1 ? ` <span class="discret" title="Le premier essai compte. Les autres : ${l.essais.slice(1).map((t) => SIP.nb(note20(t.score, t.score_max), 3) + "/20").join(", ")}">+${l.essais.length - 1} essai${l.essais.length > 2 ? "s" : ""}</span>` : ""}</td>${niveau ? "" : `<td>${esc(SIP.niveau(l.e.niveau).court)}</td>`}
+        <td class="num">${l.i.abandon ? `<span class="etiquette ko">abandon</span> ` : ""}${tagNote(l.i.note)}</td><td class="num">${l.i.mesures}</td><td class="num">${l.i.mauvaises}</td><td class="num">${duree(l.essais[0])}</td><td>${SIP.fmtDate(l.essais[0].fait_le, true)}</td></tr>`).join("")}${absents.map((e) =>
+        `<tr><td>${esc(e.nom)}</td><td class="discret" colspan="5">pas encore rendu</td></tr>`).join("")}</tbody></table></div>
+      <p class="discret">Clique sur un élève pour voir ses mesures et ses désignations. La panne est la même pour toute la classe : une très bonne note avec très peu de mesures, en très peu de temps, mérite une question.</p>`);
+    document.getElementById("dp-vu").onchange = (e) => { depVu = e.target.value; vueDepannages(); };
+    document.querySelectorAll("tr[data-id]").forEach((tr) => (tr.onclick = () => vueDetail(tr.dataset.id)));
   }
 
   function vueFlashs() {
@@ -551,7 +606,7 @@
     }).join("");
     const seances = x.E.map((t) => {
       const det = Array.isArray(t.details) ? t.details : [];
-      return `<details class="seance"><summary><b>${SIP.fmtDate(t.fait_le, true)}</b> ${esc(t.titre || t.module)} <span class="etiquette">${/^fiche-/.test(t.module) ? "Vérification de fiche" : /^flash-/.test(t.module) ? "Flash" : /^dsb-/.test(t.module) ? "DS blanc" : /^prep-/.test(t.module) ? "Préparation du DS" : /^bac-/.test(t.module) ? "Bac SI" : LIB[t.type] || t.type}</span>
+      return `<details class="seance"><summary><b>${SIP.fmtDate(t.fait_le, true)}</b> ${esc(t.titre || t.module)} <span class="etiquette">${/^fiche-/.test(t.module) ? "Vérification de fiche" : /^flash-/.test(t.module) ? "Flash" : /^schemas-prof-/.test(t.module) ? "Dépannage (atelier schémas)" : /^dsb-/.test(t.module) ? "DS blanc" : /^prep-/.test(t.module) ? "Préparation du DS" : /^bac-/.test(t.module) ? "Bac SI" : LIB[t.type] || t.type}</span>
         ${tagNote(note20(t.score, t.score_max))} ${det.length ? `<span class="discret">${det.reduce((a, d) => a + nbErreurs(d), 0)} erreur(s)</span>` : ""} ${t.duree_s ? `<span class="discret">${Math.round(t.duree_s / 60)} min</span>` : ""}</summary>
         ${det.length ? `<div class="table-defil"><table><thead><tr><th>#</th><th>Question</th><th>Réponse élève</th><th>Attendu</th><th class="num">Points</th></tr></thead><tbody>${det.map((d, k) =>
           `<tr><td>${k + 1}</td><td>${esc(d.q)}</td><td>${esc(d.rep)}${d.essais > 1 ? ` <span class="discret">(${d.essais} essais)</span>` : ""}</td><td>${esc(d.attendu)}</td><td class="num">${d.bareme != null ? `${nbErreurs(d) ? "" : "✓ "}${SIP.nb(d.pts, 3)} / ${SIP.nb(d.bareme, 3)}` : nbErreurs(d) ? `✗ −${SIP.PENALITE * nbErreurs(d)}` : "✓"}</td></tr>`).join("")}</tbody></table></div>` : `<p class="discret">Pas de détail.</p>`}

@@ -116,7 +116,19 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    relance le schéma sans panne. Mauvaise réponse : l'élément montré en vert, « en bon état ». Un fil compte aussi
    s'il est équivalent (le couper sépare les mêmes bornes). « Nouvelle panne » en tire une autre ; la barre d'outils dit
    « Quitter ». Le schéma de l'élève n'est pas touché (le dépannage n'est pas enregistré à sa place).
-11. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
+   La carte donne aussi une note sur 20, pour s'entraîner (même barème que ci-dessous, par défaut) ; une mesure
+   identique à la précédente (mêmes pointes, même valeur : une pointe reposée là où elle est) ne compte pas.
+11. **Dépannage du professeur** (Fichier → « Préparer un dépannage (professeur) ») : sur le schéma ouvert (un
+   exemple ou le sien), le professeur choisit l'élément en panne (outil « panne » : il touche un fil, un contact, un
+   fusible, une bobine, un voyant ; pour un appareil à plusieurs pôles, il choisit le pôle), un titre, ce qui doit se
+   passer (prérempli quand le schéma est un exemple ou un dépannage connu) et le barème : mesures sans pénalité (10),
+   points en moins par mesure de plus (0,5), par mauvaise désignation (3). Puis « Copier le lien » (à coller dans
+   Pronote ou l'ENT), « Fichier pour les élèves » (`.json`), « Essayer comme un élève ». Chez l'élève : même panne
+   pour toute la classe, pas de « Nouvelle panne », « Abandonner (note 0) » en deux temps, la note quand il a
+   trouvé ; s'il est connecté au site, le résultat part tout seul dans son suivi (sinon la carte le prévient dès le
+   début, et le résultat part quand il revient connecté). Les notes arrivent dans l'espace professeur, onglet
+   « Dépannages » (une ligne par élève, le premier essai compte, ceux de la classe qui n'ont pas rendu).
+12. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
    fichier `.json` (à rendre au professeur, à rouvrir sur un autre appareil), image PNG ou SVG avec un cartouche
    (logo du lycée, titre, nom de l'élève connecté, date), impression A4 paysage.
 
@@ -158,6 +170,32 @@ Chaque essai passe sur le schéma sans panne ; sur ces cinq schémas, toutes les
 (35 à 71 pannes possibles par schéma). Les tirer toutes au sort et les essayer prend moins de 0,2 s. La panne en cours,
 les mesures et les erreurs sont gardées (`schemas:dep:<élève>:<id>`, la panne un peu cachée en base 64), les réussites
 à part (`schemas:depannage:<élève>`) : le compteur « n / 15 défis » du tableau de bord ne les compte pas.
+
+## Le dépannage du professeur (`editeur.js`, `prof.js`)
+
+- **Ce qui part chez l'élève** : `{ v: 1, t: titre, c: consigne, s: schéma, p: panne, b: barème }`. Dans le lien
+  (`schemas.html#panne=z…`), le JSON est compressé (`CompressionStream("deflate-raw")`) puis écrit en base 64 « url » :
+  environ 900 caractères pour le démarrage direct. Dans le fichier (`{ type: "depannage-prof", v: 1, titre, code }`),
+  le code commence par `j` : le JSON en base 64, sans compression, lisible par tous les navigateurs. « Fichier → Ouvrir
+  un fichier » reconnaît les deux sortes de fichiers.
+- À l'ouverture, le schéma est validé (`M.valider`) et la panne doit faire partie de `MO.pannesPossibles` : un lien
+  abîmé ou une panne qui n'existe pas donnent un message, et l'atelier s'ouvre normalement.
+- L'identifiant du dépannage est `prof-<empreinte FNV-1a du contenu>`, le même pour le lien et le fichier : changer
+  le schéma, la panne, la consigne ou le barème donne un nouveau lien et un nouveau dépannage. La préparation rouverte
+  garde titre, consigne et barème pour le même schéma, même retouché (et la panne si l'élément existe encore). L'état de l'élève est gardé comme pour les autres
+  (`schemas:dep:<élève>:prof-…`, avec le code : l'atelier rouvre le dernier dépannage même sans le lien). Commencé
+  sans être connecté puis repris connecté : l'état « local » est repris une seule fois, s'il a moins de 4 h (sur un
+  ordinateur partagé, on ne reprend pas le travail d'un autre). La préparation en cours est gardée
+  (`schemas:prep:<prof>`, avec l'empreinte du schéma).
+- **Le résultat** : `backend.js` (et `config.js`, et Supabase si configuré) n'est chargé qu'au moment d'envoyer, puis
+  `SIP.ecrire("enregistrer", …)` : module `schemas-prof-<empreinte>`, titre `Dépannage · <titre>`, type `externe`,
+  note sur 20, durée ; `details[0]` : la panne (`attendu`), les désignations, la note (`pts` / `bareme`), et les champs
+  `mesures`, `mauvaises`, `abandon`, `designations` ; `details[1]` : la liste des mesures. Pas connecté, session
+  expirée, réseau : la carte le dit, avec « Envoyer mon résultat » ; hors ligne, la file d'attente du site s'en charge.
+- **Onglet « Dépannages » de l'espace professeur** (`assets/prof.js`, `vueDepannages`) : un menu par dépannage rendu
+  (titre, date, nombre d'élèves), la panne cachée, moyenne, médiane des mesures, trouvée du premier coup ; une ligne
+  par élève (note, mesures, mauvaises désignations, durée, date ; « +n essais » si l'élève a recommencé ailleurs : le
+  premier compte) ; avec une classe choisie, ceux qui n'ont pas encore rendu. Un clic ouvre le détail de l'élève.
 
 ## Les défis (`exemples.js`, `DEFIS`)
 
@@ -427,6 +465,12 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   transformateur, pôle coupé : 345 V, deux phases) ;
 - `e2e_dep.py` (Playwright, PC et téléphone) : une panne connue (KM1 13-14), fils sans couleur, mesures qui suivent le
   schéma, carte des mesures, erreur de désignation, bonne désignation, réparation, nouvelle panne, quitter, fenêtre ;
+- `e2e_prof.py` (Playwright) : préparation (outil « panne », pôle du relais thermique, bobine, barème), lien et
+  fichier ; élève connecté (mesure, erreur, note 16, résultat envoyé avec ses détails, rechargement sans renvoi),
+  élève pas connecté, abandon, fichier ouvert, téléphone ;
+- `e2e_chaine.py` (Playwright, le vrai site en mode démo) : élève qui commence sans être connecté (prévenu, puis repris
+  connecté avec ses mesures), `backend.js` chargé à la demande, résultat dans la base, deuxième élève (14 mesures,
+  une erreur : 15/20), onglet « Dépannages » du professeur (classe, élève qui n'a pas rendu, détail) ;
 - `e2e_defaut.py` (Playwright, PC et téléphone) : bouton « Bloquer la tige », défaut (étape 51, tapis arrêté),
   H2 qui clignote, vérin rouge, déblocage, acquittement ; défi 15 refusé au départ, puis résolu dans l'éditeur ;
 - `e2e_tri.py`, `e2e_defi14.py` (Playwright) : volet et tige animés, bacs, carte du tri, bulle de S4, GRAFCET en ET
