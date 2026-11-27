@@ -19,7 +19,7 @@
   const nf = (x, d) => Number(x).toLocaleString("fr-FR", { maximumFractionDigits: d == null ? 1 : d });
   const session = lire("sip_session");
   const QUI = session && session.nom ? String(session.nom) : "local";
-  const CLE = { libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, dep: (id) => "schemas:dep:" + QUI + ":" + id, depProgres: "schemas:depannage:" + QUI, prep: "schemas:prep:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
+  const CLE = { libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, dep: (id) => "schemas:dep:" + QUI + ":" + id, depProgres: "schemas:depannage:" + QUI, prep: "schemas:prep:" + QUI, defiStats: "schemas:defistats:" + QUI, envois: "schemas:envois:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
 
   const DOIGT = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);   // écran tactile sans souris
   const svg = $("sc-svg"), monde = $("sc-monde"), fond = $("sc-fond"), grilleR = $("sc-grille"), pn = $("sc-panneau"), vueEl = $("sc-vue");
@@ -904,7 +904,7 @@
       }
       choisirOutil("fleche");
       bulle(`Bravo, trouvé : ${esc(decrirePanne(p))}. Note : ${nf(noteDep())} / 20.`, 6000);
-      if (depProf) envoyerDep();
+      if (depProf) envoyerDep(); else envoyerDepEntrainement();
     } else {
       depEtat.erreurs++; garderDep();
       const m = Object.assign(c.fil ? { fil: c.fil.id } : { piece: c.piece.id }, { cls: "bon" });
@@ -943,7 +943,7 @@
           : E === "file" ? `<p class="dp-envoi ok">Résultat gardé : il partira dès que le site sera joignable ✓</p>`
           : E === "en cours" ? `<p class="dp-envoi">Envoi au professeur…</p>`
           : `<p class="dp-envoi ko">${E === "deconnecte" ? "Tu n'es pas connecté(e) au site : ton résultat n'est pas parti. Connecte-toi sur la page d'accueil, puis reviens ici." : E === "expire" ? "Ta connexion au site a expiré : reconnecte-toi sur la page d'accueil, puis reviens ici." : "Le résultat n'a pas pu partir."} Sinon, montre cet écran au professeur.</p><div class="rang"><button class="btn sec" type="button" id="dp-renvoyer">Envoyer mon résultat</button></div>`;
-      }
+      } else if (/^(envoye|file)$/.test(depEtat.envoi || "")) h += `<p class="discret">Ton professeur le voit dans son suivi ✓</p>`;
       h += depEtat.repare ? `<p class="discret">Réparé : essaie le schéma, il marche de nouveau.</p>` : `<div class="rang"><button class="btn" type="button" id="dp-reparer">Réparer et essayer</button></div>`;
     }
     return h;
@@ -997,24 +997,63 @@
     })();
     return siteP;
   }
-  async function envoyerDep() {
-    if (!depEtat || !depProf || !depEtat.trouve || depEtat.envoi === "en cours") return;
-    const D = depProf.D, n = depEtat.mesures.length, note = noteDep();
-    depEtat.envoi = "en cours"; majCarteDep();
+  // envoyer un résultat au suivi de l'élève (le site est chargé à ce moment-là) : "envoye", "file" (hors ligne : il partira
+  // plus tard), "deconnecte", "expire" ou "erreur"
+  async function envoyerAuSite(resultat) {
     let S = null; try { S = await chargerSite(); } catch (e) { S = null; }
     const se = S && S.session && S.session.get();
-    if (!se) { depEtat.envoi = "deconnecte"; garderDep(); majCarteDep(); return; }
-    const details = [
+    if (!se) return "deconnecte";
+    try { return (await S.ecrire("enregistrer", resultat)) ? "envoye" : "file"; }
+    catch (e) { return e && e.message === "SESSION_EXPIREE" ? "expire" : "erreur"; }
+  }
+  function detailsDep(bareme) {
+    const n = depEtat.mesures.length, note = noteDep();
+    return [
       { q: "Panne cachée", rep: depEtat.abandon ? "abandon" : `trouvée après ${n} mesure${n > 1 ? "s" : ""} et ${depEtat.erreurs} mauvaise${depEtat.erreurs > 1 ? "s" : ""} désignation${depEtat.erreurs > 1 ? "s" : ""}` + (depEtat.designations && depEtat.designations.length ? " : " + depEtat.designations.join(" ; ") : ""),
         attendu: decrirePanne(depEtat.panne, true), bareme: 20, pts: note, erreurs: depEtat.erreurs + (depEtat.abandon ? 1 : 0),
         mesures: n, mauvaises: depEtat.erreurs, abandon: !!depEtat.abandon, designations: (depEtat.designations || []).slice(0, 30) },
-      { q: `Mesures (${n})`, rep: depEtat.mesures.map((m) => `${m.a} → ${m.b} : ${m.t}`).join(" ; ").slice(0, 2000) || "aucune", attendu: `${D.bareme.libres} sans pénalité`, erreurs: 0 }];
+      { q: `Mesures (${n})`, rep: depEtat.mesures.map((m) => `${m.a} → ${m.b} : ${m.t}`).join(" ; ").slice(0, 2000) || "aucune", attendu: `${bareme.libres} sans pénalité`, erreurs: 0 }];
+  }
+  const dureeDep = () => Math.round(((depEtat.fin || Date.now()) - (depEtat.debut || Date.now())) / 1000);
+  async function envoyerDep() {
+    if (!depEtat || !depProf || !depEtat.trouve || depEtat.envoi === "en cours") return;
+    const D = depProf.D, E = depEtat;
+    E.envoi = "en cours"; majCarteDep();
+    const r = await envoyerAuSite({ module: "schemas-" + depProf.id, titre: "Dépannage · " + D.titre, type: "externe", score: noteDep(), score_max: 20, duree_s: dureeDep(), details: detailsDep(D.bareme) });
+    E.envoi = r; if (E === depEtat) { garderDep(); majCarteDep(); }
+  }
+  // un dépannage d'entraînement trouvé (ou abandonné) part dans le suivi, s'il est connecté ; chaque panne compte une fois
+  async function envoyerDepEntrainement() {
+    if (!session || !depEtat || depProf || !depEtat.trouve || /^(envoye|file|en cours)$/.test(depEtat.envoi || "")) return;
+    const D = depParId(doc.dep), E = depEtat; if (!D) return;
+    E.envoi = "en cours";
+    const r = await envoyerAuSite({ module: "schemas-dep-" + D.id, titre: "Atelier schémas · Dépannage : " + D.titre, type: "externe", score: noteDep(), score_max: 20, duree_s: dureeDep(), details: detailsDep(D.bareme || BAREME) });
+    E.envoi = r; if (E === depEtat) { garderDep(); majCarteDep(); }   // l'élève a pu passer à une autre panne pendant l'envoi
+  }
+  /* ---------- les défis réussis, dans le suivi du professeur ---------- */
+  // essais ratés et indice regardé, défi par défi, jusqu'à la première réussite ; la note (sur 20) : 20, −2 par essai raté
+  // (5 au plus), −3 si l'indice a été ouvert, jamais moins de 10. Elle ne compte pas dans la moyenne du suivi.
+  const statsDefis = () => lire(CLE.defiStats) || {};
+  function statsDefi(id) { const S = statsDefis(); return S[id] || { rates: 0, indice: false, debut: Date.now() }; }
+  function garderStatsDefi(id, o) { const S = statsDefis(); S[id] = o; garder(CLE.defiStats, S); }
+  const noteDefi = (st) => Math.max(10, 20 - 2 * Math.min(5, st.rates || 0) - (st.indice ? 3 : 0));
+  let envoiDefis = false;
+  async function envoyerDefis() {   // tous les défis réussis qui ne sont pas encore partis (réussis avant de se connecter, hors ligne…)
+    if (envoiDefis || !session) return;
+    const P = progres(), E = lire(CLE.envois) || {};
+    const L = X.DEFIS.filter((D) => P[D.id] && P[D.id].ok && !E["defi:" + D.id]);
+    if (!L.length) return;
+    envoiDefis = true;
     try {
-      const ok = await S.ecrire("enregistrer", { module: "schemas-" + depProf.id, titre: "Dépannage · " + D.titre, type: "externe", score: note, score_max: 20,
-        duree_s: Math.round(((depEtat.fin || Date.now()) - (depEtat.debut || Date.now())) / 1000), details });
-      depEtat.envoi = ok ? "envoye" : "file";
-    } catch (e) { depEtat.envoi = e && e.message === "SESSION_EXPIREE" ? "expire" : "erreur"; }
-    garderDep(); majCarteDep();
+      for (const D of L) {
+        const k = X.DEFIS.indexOf(D), p = P[D.id], ancien = p.rates == null, st = { rates: p.rates || 0, indice: !!p.indice }, note = noteDefi(st);   // ancien : réussi avant le suivi, essais pas comptés
+        const r = await envoyerAuSite({ module: "schemas-defi-" + D.id, titre: `Atelier schémas · Défi ${k + 1} : ${D.titre}`, type: "externe", score: note, score_max: 20,
+          duree_s: p.debut && p.t ? Math.min(3 * 3600, Math.max(0, Math.round((p.t - p.debut) / 1000))) : 0,
+          details: [{ q: `Défi ${k + 1} : ${D.titre}`, rep: ancien ? "réussi (essais pas comptés : réussi avant l'arrivée du suivi)" : `réussi ${st.rates ? `après ${st.rates} essai${st.rates > 1 ? "s" : ""} raté${st.rates > 1 ? "s" : ""}` : "du premier coup"}${st.indice ? ", avec l'indice" : ", sans indice"}`,
+            attendu: "réussi du premier coup, sans indice", pts: note, bareme: 20, erreurs: st.rates, essais: st.rates + 1, indice: st.indice, ancien, niveau: D.niveau, defi: k + 1 }] });
+        if (r === "envoye" || r === "file") { E["defi:" + D.id] = Date.now(); garder(CLE.envois, E); } else break;
+      }
+    } finally { envoiDefis = false; }
   }
   /* ---------- préparer un dépannage (professeur) ---------- */
   const sansBalises = (h) => String(h || "").replace(/<br\s*\/?>/g, "\n").replace(/<\/p>\s*<p[^>]*>/g, "\n\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
@@ -1632,7 +1671,7 @@
     let res = "";
     if (resultatDefi) {
       res = `<ul class="res">${resultatDefi.etapes.map((e) => `<li class="${e.ok ? "" : "ko"}"><span>${esc(e.texte)}</span>${e.ok ? "" : `${e.constat ? `<span class="constat">Ce que je vois : ${esc(e.constat.replace(/[.!\s]+$/, ""))}.</span>` : ""}<span class="pourquoi">${esc(e.detail)}</span>`}</li>`).join("")}</ul>`;
-      if (resultatDefi.ok) res += `<div class="bravo">Bravo, défi réussi !</div>${k + 1 < X.DEFIS.length ? `<div class="rang"><button class="btn" type="button" id="df-suivant">Défi suivant →</button></div>` : ""}`;
+      if (resultatDefi.ok) res += `<div class="bravo">Bravo, défi réussi !</div><p class="discret">${session ? "Ton professeur le voit dans son suivi." : "Connecte-toi au site (Mon espace) : ton professeur verra tes défis réussis."}</p>${k + 1 < X.DEFIS.length ? `<div class="rang"><button class="btn" type="button" id="df-suivant">Défi suivant →</button></div>` : ""}`;
     }
     return `<div class="pn-carte pn-defi"><div class="eyebrow">Défi ${k + 1} sur ${X.DEFIS.length} · ${"●".repeat(D.niveau)}${"○".repeat(3 - D.niveau)}${fait ? " · réussi ✓" : ""}</div>
       <h2>${esc(D.titre)}</h2>${D.consigne}
@@ -1644,7 +1683,10 @@
   function brancherDefi() {
     const v = $("df-verif"); if (!v) return;
     v.onclick = verifierDefi;
-    $("df-indice").onclick = () => { indiceVu = !indiceVu; $("df-indice-z").hidden = !indiceVu; };
+    $("df-indice").onclick = () => {
+      indiceVu = !indiceVu; $("df-indice-z").hidden = !indiceVu;
+      const D = defiParId(doc.defi); if (indiceVu && D && !progres()[D.id]) { const st = statsDefi(D.id); if (!st.indice) { st.indice = true; garderStatsDefi(D.id, st); } }
+    };
     const raz = $("df-raz");
     raz.onclick = () => {   // en deux temps : un clic de travers n'efface pas le travail
       const D = defiParId(doc.defi); if (!D) return;
@@ -1658,7 +1700,13 @@
     const D = defiParId(doc.defi); if (!D) return null;
     const r = MO.scenario(M.cloner(schema), D.etapes, { exige: D.exige });
     resultatDefi = r;
-    if (r.ok) { const P = progres(); P[D.id] = { ok: true, t: Date.now() }; garder(CLE.progres, P); }
+    const P = progres(), deja = P[D.id], st = statsDefi(D.id);
+    if (!r.ok && !deja) { st.rates = (st.rates || 0) + 1; garderStatsDefi(D.id, st); }
+    if (r.ok) {
+      P[D.id] = Object.assign({ rates: st.rates || 0, indice: !!st.indice, debut: st.debut || null }, deja || {}, { ok: true, t: (deja && deja.t) || Date.now() });
+      garder(CLE.progres, P);
+      envoyerDefis();
+    }
     if (sim) construirePanneauSim(); else majPanneau();
     ouvrirPanneau(true);
     const z = pn.querySelector(".res"); if (z) z.scrollIntoView({ block: "nearest" });
@@ -1671,6 +1719,7 @@
     doc = { type: "defi", defi: id };
     let s = null; const sv = lire(CLE.defi(id));
     if (sv) { try { s = M.valider(sv); } catch (e) { s = null; } }
+    if (!statsDefis()[id] && !progres()[id]) garderStatsDefi(id, { rates: 0, indice: false, debut: Date.now() });
     chargerSchema(s || D.depart());
     sauver(); fermerDialogues();
     if (history.replaceState) history.replaceState(null, "", "#defi=" + id);
@@ -1878,6 +1927,7 @@
       <p class="discret">Pendant la simulation, le bouton <b>Voltmètre</b> remplace « Fil » dans la barre d'outils. ${DOIGT ? "Touche" : "Clique sur"} une borne pour la pointe <b style="color:#e03131">rouge</b>, puis une autre pour la pointe <b>noire</b> (COM) : l'écran donne la tension entre les deux, et la suit quand le schéma change (appuie sur S2 en gardant les pointes). En continu, le signe dit dans quel sens tu mesures (−24 V : pointes inversées). Comme un vrai voltmètre, il « voit à travers » une bobine ou un voyant : derrière un contact ouvert, on retrouve le neutre.</p>
       <p class="discret"><b>Dépannage</b> (fenêtre « Défis ») : un schéma juste, avec une panne cachée au hasard (un fil coupé, un contact qui ne conduit plus, une bobine, un voyant ou un fusible coupé). Les fils ne sont plus en couleur : on essaie, on mesure pour trouver où la tension s'arrête, puis « Désigner la panne ». La méthode : pointe noire sur le neutre (ou le 0 V), pointe rouge de borne en borne en partant de la phase ; ou bien les deux pointes aux bornes d'un même élément (un contact fermé qui conduit donne 0 V).</p>
       <p class="discret"><b>Dépannage du professeur</b> : ton professeur peut te donner un lien (ou un fichier, à ouvrir avec Fichier → Ouvrir un fichier). Toute la classe a la même panne, et ta note sur 20 lui est envoyée : connecte-toi au site <b>avant</b> de commencer. Chaque mesure au-delà de celles qui sont gratuites et chaque mauvaise désignation enlèvent des points ; reposer une pointe là où elle est déjà ne compte pas.</p>
+      <p class="discret"><b>Ton suivi</b> : si tu es connecté(e) au site (Mon espace), chaque défi réussi et chaque panne trouvée partent dans ton suivi : ton professeur les voit. Un défi réussi du premier coup, sans indice, vaut 20 ; chaque essai raté enlève 2 points, l'indice 3 (jamais moins de 10). Ces notes ne comptent pas dans ta moyenne.</p>
       <p class="discret"><b>Professeur</b> : Fichier → <b>Préparer un dépannage</b> sur le schéma ouvert. Tu choisis l'élément en panne, la consigne et le barème, puis tu copies le lien ; les notes arrivent dans l'espace professeur (l'espace de la classe, page « Dépannages »).</p>
       <h3 style="margin-top:14px">Lire les symboles</h3>
       <p class="discret">Les symboles suivent la norme <b>NF EN 60617</b> (le numéro de chaque symbole est noté dessous). Ce qui compte, c'est le petit signe à gauche du contact : il dit <b>qui l'actionne</b>.</p>
@@ -1990,6 +2040,7 @@
   }
   window.addEventListener("hashchange", () => { const mp = /^#panne=([\w-]+)$/.exec(location.hash); if (mp) { if (!depProf || depProf.code !== mp[1]) ouvrirCodeProf(mp[1]); return; } const m = /^#(defi|exemple|depannage)=([\w-]+)$/.exec(location.hash); if (m) { if (m[1] === "defi") ouvrirDefi(m[2]); else if (m[1] === "depannage") ouvrirDepannage(m[2]); else ouvrirExemple(m[2]); } });
   window.addEventListener("beforeunload", () => { if (!sim) sauver(); });
+  if (session) setTimeout(envoyerDefis, 2500);   // défis réussis avant de se connecter, ou hors ligne : ils partent maintenant
   depart();
   requestAnimationFrame(() => { appliquerVue(); if (!schema.pieces.length) ajusterVue(); else ajusterVue(); });
 

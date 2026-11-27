@@ -42,9 +42,14 @@ Puis les pages de cet espace, pour cette classe seulement :
 
 | Espace | Pages |
 |---|---|
-| Lycée SI | Bac SI (Terminale SI), Suivi, Compétences, Flashs, Dépannages, Signalements, Élèves et codes, Aperçu élève (avec les DS blancs) |
-| BTS 1 | Suivi, Dépannages, Signalements, Élèves et codes, Aperçu élève |
-| BTS 2 | Devoirs E4, Projets, Suivi, Dépannages, Signalements, Élèves et codes, Aperçu élève |
+| Lycée SI | Bac SI (Terminale SI), Suivi, Compétences, Flashs, Dépannages, Atelier schémas, Signalements, Élèves et codes, Aperçu élève (avec les DS blancs) |
+| BTS 1 | Suivi, Dépannages, Atelier schémas, Signalements, Élèves et codes, Aperçu élève |
+| BTS 2 | Devoirs E4, Projets, Suivi, Dépannages, Atelier schémas, Signalements, Élèves et codes, Aperçu élève |
+
+**Atelier schémas** : les défis réussis par chaque élève connecté (une colonne par défi : ✓ vert du premier coup sans
+indice, ✓ orange après des essais ratés ou avec l'indice) et les pannes trouvées en dépannage d'entraînement ; une ligne
+« Réussi par » montre le défi qui bloque la classe. Ces notes ne comptent pas dans la moyenne. Détails dans
+`entrainements/schemas/LISEZMOI.md` (« Les défis dans le suivi du professeur »).
 
 Il n'y a plus de « Toutes les classes » : le bac SI et les BTS ne sont jamais sur la même page. « Flashs » n'apparaît que
 pour une classe qui a des flashs ; la pastille rouge d'un espace compte ses signalements à traiter. L'espace prof rouvre
@@ -207,6 +212,7 @@ Limite : la clé publique permet en théorie d'appeler la fonction d'enregistrem
 - **Codes des élèves visibles (27 novembre)** : page « Élèves et codes », colonne Code (caché jusqu'au clic) ; « Retrouver » pour les comptes déjà créés, sans changer leur code ; coupons de toute la classe. Une fois : coller `supabase/codes.sql` dans Supabase (voir « Créer les comptes élèves »).
 - **Tableau de bord des BTS en tuiles (27 novembre)** : rangé par année (BTS 2, puis BTS 1), chaque possibilité du site en tuile avec son icône, côte à côte ; un BTS 2 peut refaire les questions de cours de BTS 1 de son option. Voir « Le tableau de bord des BTS » plus haut.
 - **Atelier schémas : chronogramme (27 novembre)** : pendant la simulation, bouton « Chronogramme » : une ligne par élément au fil du temps (boutons, bobines, contacts temporisés, voyants, vitesse et couplage des moteurs, étapes du GRAFCET, variateur, chariot, cuve), repère pour mesurer un temps, image pour un compte rendu.
+- **Atelier schémas : les défis dans ton suivi (27 novembre)** : un élève connecté qui réussit un défi de l'atelier l'envoie dans son suivi (note sur 20 : −2 par essai raté, −3 avec l'indice, 10 au moins ; hors moyenne), et chaque panne trouvée en dépannage d'entraînement aussi. Nouvelle page « Atelier schémas » dans chaque espace prof : élèves × défis, pannes trouvées, « Réussi par ». Les défis réussis avant (ou hors ligne) partent à la prochaine ouverture de l'atelier.
 
 ## Projet planeur — Seconde SI (9 novembre)
 

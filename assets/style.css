@@ -246,6 +246,14 @@ tr:last-child td { border-bottom: 0; }
 td.num, th.num { text-align: right; } td.num { font-family: var(--f-mono); font-size: .86rem; }
 td.num .discret { font-family: var(--f-body); }
 table.grille-bac th { white-space: normal; min-width: 80px; max-width: 150px; vertical-align: bottom; }
+/* Atelier schémas (espace prof) : une colonne étroite par défi */
+table.atelier th.at-c, table.atelier td.at-c { text-align: center; padding-left: 3px; padding-right: 3px; min-width: 26px; }
+table.atelier td.at-c { font-family: var(--f-mono); color: var(--ink-3); }
+.at-c.ok { color: var(--good) !important; background: var(--good-soft); font-weight: 700; }
+.at-c.moyen { color: var(--warn) !important; background: var(--warn-soft); font-weight: 700; }
+span.at-c { padding: 0 5px; border-radius: 4px; }
+table.atelier td { white-space: nowrap; vertical-align: middle; }
+table.atelier tfoot td { font-size: .8rem; color: var(--ink-2); background: var(--paper-2); }
 table.grille-bac th:first-child { min-width: 0; }
 table.grille-bac th .discret { white-space: nowrap; }
 table.grille-bac td.prep-cell { min-width: 150px; max-width: 230px; white-space: normal; line-height: 1.9; }

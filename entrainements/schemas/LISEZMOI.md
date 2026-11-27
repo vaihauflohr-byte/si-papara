@@ -43,7 +43,8 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    Le panneau de droite donne les mêmes commandes en gros boutons, « ce qui se passe » (alertes) et un journal daté.
 5. **Défis** : un schéma à compléter ; « Vérifier » rejoue des essais sur le schéma de l'élève (appuyer sur S2,
    lâcher, surcharge…) et dit, étape par étape, ce qui marche et ce qui ne marche pas, avec un conseil. « Un indice »
-   donne une phrase et un petit schéma d'aide.
+   donne une phrase et un petit schéma d'aide. Si l'élève est connecté au site, chaque défi réussi part dans son suivi :
+   le professeur le voit dans son espace, page « Atelier schémas » (voir « Les défis dans le suivi du professeur »).
 6. **Automate** (catégorie « Automate et variateur ») : on le câble comme un vrai (alimentation 24 V continu,
    boutons et capteurs sur les entrées %I0.0…%I0.7 depuis le +24 V, COM au 0 V ; bobines, voyants ou entrées d'un
    variateur sur les sorties à relais %Q0.0…%Q0.7, avec leur commun C0 ou C1 ; consigne 0-10 V sur AQ0). Un clic sur
@@ -231,6 +232,30 @@ Le défi 8 (GRAFCET) garde des fins de course actionnés à la main (sans chario
 Pour chaque défi, on vérifie aussi qu'il n'y a eu **aucun court-circuit** pendant l'essai, et que les appareils du
 départ sont toujours là (sinon : « ne supprime pas et ne renomme pas les appareils du départ »).
 La réussite est gardée par élève (nom de la session du site, sinon « local ») : clé `schemas:progres:<nom>`.
+
+### Les défis dans le suivi du professeur
+
+Un élève **connecté au site** envoie un résultat (`SIP.ecrire("enregistrer")`, type `externe`, site chargé à la
+demande comme pour le dépannage du professeur) :
+- à la **première réussite** de chaque défi : module `schemas-defi-<identifiant>` (par ex. `schemas-defi-d7-ladder`),
+  titre « Atelier schémas · Défi 7 : … ». Note sur 20 : **20**, −2 par essai raté avant la réussite (5 au plus),
+  −3 si l'indice a été ouvert, **10 au moins**. `details[0]` porte `essais`, `indice`, `defi` (numéro), `niveau`. Les
+  essais ratés et l'indice sont comptés jusqu'à la première réussite (`schemas:defistats:<nom>`), recommencer un défi
+  réussi ne renvoie rien ;
+- à chaque **panne d'entraînement trouvée** (onglet Dépannages de la fenêtre « Défis ») : module
+  `schemas-dep-<identifiant>`, même note et mêmes détails que le dépannage du professeur.
+
+Les défis réussis qui ne sont pas encore partis (réussis hors ligne, avant d'être connecté avec le même nom, ou avant
+l'arrivée de ce suivi) partent à l'ouverture suivante de l'atelier (`schemas:envois:<nom>` retient ce qui est parti) ;
+ceux d'avant le suivi portent `ancien: true` (« essais pas comptés »). Un élève pas connecté est prévenu sous le
+« Bravo » : « Connecte-toi au site (Mon espace) : ton professeur verra tes défis réussis. »
+
+Côté professeur (`assets/prof.js`, page **Atelier schémas** de chaque espace) : un tableau élèves × défis de la classe
+(✓ vert : du premier coup, sans indice ; ✓ orange : après des essais ratés ou avec l'indice ; l'info-bulle donne la
+date et le détail), le nombre de défis réussis, les pannes d'entraînement trouvées et leur moyenne, et une ligne
+« Réussi par » (le défi qui bloque se voit). La liste des défis vient de `exemples.js`, chargé par la page à la
+première ouverture (avec `modele.js` et `automate.js`) : **un nouveau défi apparaît tout seul** dans le tableau. Ces
+notes **ne comptent pas dans la moyenne** du suivi (`ATELIER_LIBRE` dans `prof.js`), elles comptent dans l'activité.
 
 ## Les symboles et la norme
 
@@ -442,7 +467,9 @@ Dans la page, `window.SchemasAtelier` donne accès au schéma et à la simulatio
 |---|---|
 | `schemas:libre` | « Mon schéma », gardé à chaque modification |
 | `schemas:defi:<nom>:<défi>` | le schéma de l'élève pour chaque défi |
-| `schemas:progres:<nom>` | les défis réussis (lu aussi par le tableau de bord du site) |
+| `schemas:progres:<nom>` | les défis réussis (lu aussi par le tableau de bord du site), avec les essais ratés et l'indice |
+| `schemas:defistats:<nom>` | pour chaque défi pas encore réussi : essais ratés, indice ouvert, début |
+| `schemas:envois:<nom>` | les défis réussis déjà partis dans le suivi du professeur |
 | `schemas:nbdefis` | nombre de défis (pour « n / 13 » sur le tableau de bord) |
 | `schemas:copies` | « Mes schémas » (30 copies au plus ; une copie est faite automatiquement avant d'ouvrir un exemple ou un fichier) |
 | `schemas:dernier` | ce qui était ouvert (schéma libre ou défi), pour y revenir |
@@ -475,6 +502,11 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   transformateur, pôle coupé : 345 V, deux phases) ;
 - `e2e_dep.py` (Playwright, PC et téléphone) : une panne connue (KM1 13-14), fils sans couleur, mesures qui suivent le
   schéma, carte des mesures, erreur de désignation, bonne désignation, réparation, nouvelle panne, quitter, fenêtre ;
+- `e2e_suivi_defis.py` (Playwright, base démo du vrai site) : élève pas connecté (rien ne part, il est prévenu) ;
+  connectée : 2 essais ratés + indice → 13/20 avec ses détails, pas de renvoi ; un défi du premier coup → 20 ; une
+  panne d'entraînement trouvée → envoyée ; un défi réussi avant le suivi part à l'ouverture, une seule fois ; espace
+  prof BTS 1 → STI → Atelier schémas (cases vertes et orange, info-bulles, statistiques, « Réussi par »), moyenne du
+  suivi intacte, détail de l'élève, téléphone ;
 - `e2e_chrono.py` (Playwright) : marche-arrêt (impulsion de S2, KM1 qui reste collé, vitesse du moteur), repère et
   écart de temps, figer, fenêtre, lignes, image, effacer, rouvert après relance ; étoile-triangle (contact temporisé,
   couplage étoile puis triangle) ; automate en GRAFCET (étapes, entrées et sorties) ; téléphone ;
