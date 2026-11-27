@@ -7,7 +7,9 @@
    n'est déclaré réel que s'il dépasse la dispersion), conclusion, séance ; puis évaluation de la
    démarche par le jury IA, sur 10 (grille tirée des rapports de jury 2024 et 2025).
    Bancs, d'après leurs dossiers techniques : station de pompage SPBE-C (Deltalab), monte-charge
-   (DEC Industrie, ATV31 et TWIDO), Harmotris (qualité de l'énergie). Aucune donnée d'élève.
+   (DEC Industrie, ATV31 et TWIDO), Harmotris (qualité de l'énergie), portique de levage SLT07
+   (LEDENT : balan et levage). Chaque fiche montre un schéma simplifié du banc et s'imprime
+   (ou s'enregistre en PDF) en entier. Aucune donnée d'élève.
    Route #admission-reel-<banc> ; fiche dans st.reel[<banc>], enregistrée par save() : elle suit
    d'un appareil à l'autre quand la progression est synchronisée.
    Chargé après le moteur (agreg/index.html) : st, save, app, esc, fmt, parse, getSample.
@@ -369,6 +371,142 @@
     return X;
   }
 
+  /* ---------- portique SLT07 : balan et levage ---------- */
+  // balan résiduel après un arrêt par rampe linéaire de durée tr, depuis la vitesse v :
+  // A = (v/ω)·|sin(π·tr/T)|/(π·tr/T), maximal pour un arrêt brutal (v/ω), nul quand tr est un multiple de T
+  const balan = (v, tr, T) => { const w = 2 * Math.PI / T, x = Math.PI * tr / T; return (v / w) * (x < 1e-9 ? 1 : Math.abs(Math.sin(x)) / x); };
+  function calcPortique(R) {
+    const L0 = nb(R.pa.L), Tp = nb(R.pa.T);
+    const Tm = ok(Tp) && Tp > 0 ? Tp : ok(L0) && L0 > 0 ? 2 * Math.PI * Math.sqrt(L0 / G) : NaN;
+    const lT = (r) => { const L = nb(r.L), n = nb(r.n), tn = nb(r.tn), T = ok(tn) && n > 0 ? tn / n : NaN, T0 = ok(L) && L > 0 ? 2 * Math.PI * Math.sqrt(L / G) : NaN; return { L, n, tn, T, T0, e: ecart(T, T0) }; };
+    // près des zéros du modèle (tr proche de T, 2T…), un écart relatif n'a plus de sens : on ne le calcule pas
+    const lA = (r) => { const v = nb(r.v), tr = nb(r.tr), A = nb(r.A), Am = ok(v) && ok(tr) && tr >= 0 && ok(Tm) ? balan(v, tr, Tm) : NaN, Amax = ok(v) && ok(Tm) ? v * Tm / (2 * Math.PI) : NaN; return { v, tr, A, Am, Amax, zero: ok(Am) && Am < 0.1 * Amax, e: ok(Am) && Am >= 0.1 * Amax ? ecart(A, Am) : NaN, rap: ok(tr) && ok(Tm) ? tr / Tm : NaN }; };
+    const lP = (r) => { const m = nb(r.m), v = nb(r.v), P = nb(r.P), mont = r.sens !== 'descente', Pm = ok(m) && ok(v) ? m * G * v / 1000 : NaN; return { m, v, P, mont, Pm, eta: mont && ok(Pm) && P > 0 ? 100 * Pm / P : NaN }; };
+    const TT = R.tab.per.map(lT), AA = R.tab.arret.map(lA), PP = R.tab.lev.map(lP), RT = R.tab.repT.map(lT), RA = R.tab.repA.map(lA);
+    const X = base({ per: TT, arret: AA, lev: PP, repT: RT, repA: RA });
+    const DT = dispersion(RT.map((x) => x.T)), DA = dispersion(RA.map((x) => x.A));
+    X.disp = { T: DT, A: DA };
+    X.dispTxt = { repT: [['T', DT, 's', 3]], repA: [['A', DA, 'mm', 1]] };
+    // la période en fonction de la longueur
+    const pt = TT.filter((x) => ok(x.T) && ok(x.L) && x.L > 0);
+    if (pt.length) {
+      const k = pt.reduce((s, x) => s + x.T * Math.sqrt(x.L), 0) / pt.reduce((s, x) => s + x.L, 0);
+      const gm = (2 * Math.PI / k) ** 2;
+      X.lignes.push(`${pt.length} longueur${pt.length > 1 ? 's' : ''} de pendule, de ${fx(Math.min(...pt.map((x) => x.L)), 2)} à ${fx(Math.max(...pt.map((x) => x.L)), 2)} m ; périodes de ${fx(Math.min(...pt.map((x) => x.T)), 2)} à ${fx(Math.max(...pt.map((x) => x.T)), 2)} s.`);
+      if (distincts(pt.map((x) => x.L)) >= 2) X.lignes.push(`Droite T = k·√L ajustée par l’origine : k = ${fx(k, 3)} s/√m, pour 2π/√g = ${fx(2 * Math.PI / Math.sqrt(G), 3)} s/√m ; tes mesures donnent g ≈ ${fx(gm, 2)} m/s².`);
+      X.ecarts.push({ l: 'Période mesurée face au pendule simple 2π·√(L/g)', quoi: 'écart moyen', txt: `Sur ${pt.length} longueur${pt.length > 1 ? 's' : ''} ; ${pt.every((x) => x.T > x.T0) ? 'toutes les périodes mesurées sont plus longues que le modèle : écart systématique' : pt.every((x) => x.T < x.T0) ? 'toutes les périodes mesurées sont plus courtes que le modèle : écart systématique' : 'écarts de part et d’autre du modèle'}`, e: moy(pt.map((x) => x.e)), D: DT });
+      X.kT = k;
+    }
+    // le balan après un arrêt
+    if (ok(Tm)) X.lignes.push(`Pour le modèle de l’arrêt, T = ${fx(Tm, 2)} s (${ok(Tp) && Tp > 0 ? 'ta période mesurée' : `pendule de ${fx(L0, 2)} m`}) : le balan résiduel s’annule pour une décélération qui dure T = ${fx(Tm, 2)} s, ou 2T = ${fx(2 * Tm, 2)} s ; il vaut v/ω, son maximum, pour un arrêt brutal.`);
+    const pa = AA.filter((x) => ok(x.A) && ok(x.Am)), pe = pa.filter((x) => ok(x.e)), pz = pa.filter((x) => x.zero);
+    if (pe.length) X.ecarts.push({ l: 'Balan résiduel mesuré face au modèle de l’arrêt par rampe', quoi: 'écart moyen', txt: `Sur ${pe.length} arrêt${pe.length > 1 ? 's' : ''} loin des zéros du modèle`, e: moy(pe.map((x) => x.e)), D: DA });
+    if (pz.length) {
+      const z = pz.reduce((a, b) => (b.A < a.A ? b : a));
+      X.lignes.push(`Près des zéros du modèle (décélération proche de T ou de 2T), le balan mesuré descend à ${fx(z.A, 1)} mm (décélération de ${fx(z.tr, 2)} s), contre ${fx(z.Amax, 1)} mm pour un arrêt brutal à la même vitesse : ${fx(100 * (1 - z.A / z.Amax), 0)} % de balan en moins. Ce qui reste vient de ce que le modèle ignore (rampe arrondie, amortissement, mesure).`);
+    }
+    // la puissance de levage
+    const mo = PP.filter((x) => x.mont && ok(x.m) && ok(x.P) && ok(x.v));
+    if (mo.length) {
+      X.lignes.push(`Levage : rendement de la chaîne à vitesse établie ${mo.filter((x) => ok(x.eta)).map((x) => `${fx(x.eta, 0)} % à ${fx(x.m, 0)} kg`).join(', ')} (puissance mécanique m·g·v rapportée à la puissance électrique mesurée).`);
+      const vm = moy(mo.map((x) => x.v)), memeV = mo.every((x) => Math.abs(x.v - vm) <= 0.05 * vm);
+      if (memeV && distincts(mo.map((x) => x.m)) >= 2) {
+        const f = lin(mo.map((x) => [x.m, x.P]));
+        if (f && f.a > 0) X.lignes.push(`Droite P = ${fx(f.b, 0)} W + ${fx(f.a, 2)} W/kg × m à ${fx(vm, 0)} mm/s : la pente donne un rendement de ${fx(G * vm / 1000 / f.a * 100, 0)} %, sans tenir compte du panier, et ${fx(f.b, 0)} W ne dépendent pas de la charge.`);
+      } else if (!memeV) X.ctrl.push('Levage : les vitesses diffèrent d’un essai à l’autre ; garde la même vitesse pour comparer les charges.');
+    }
+    if (PP.some((x) => !x.mont && ok(x.P))) X.lignes.push('En descente, la charge entraîne : le moteur freine, et la puissance prélevée au réseau ne couvre que les pertes (ou devient négative si le variateur renvoie l’énergie).');
+    const cap = nb(R.pl.cap);
+    if (ok(cap) && PP.some((x) => ok(x.m) && x.m > cap)) X.ctrl.push('Une masse levée dépasse la capacité nominale du portique : le dossier l’interdit.');
+    if (TT.some((x) => ok(x.n) && x.n < 5)) X.ctrl.push('Moins de cinq oscillations chronométrées : compte-en au moins dix pour diviser l’erreur de déclenchement du chronomètre.');
+    if (AA.some((x) => ok(x.A)) && !ok(Tm)) X.ctrl.push('Donne la longueur L pendant les arrêts (ou ta période mesurée) : sans elle, le modèle de l’arrêt ne se calcule pas.');
+    if (pt.length && !DT) X.ctrl.push('Dispersion des périodes non mesurée : remplis les trois chronométrages.');
+    if (AA.some((x) => ok(x.A)) && !DA) X.ctrl.push('Dispersion du balan non mesurée : remplis les trois arrêts identiques.');
+    // les courbes
+    if (pt.length >= 2) {
+      const lm = Math.max(...pt.map((x) => x.L)) * 1.1;
+      X.figs.push(graphe({ titre: 'Période du balan en fonction de la longueur du pendule', x: axe(0, lm, 5), y: plage(pt.map((x) => x.T).concat([2 * Math.PI * Math.sqrt(lm / G)])), xl: 'L (m)', yl: 'T (s)',
+        series: [{ ligne: courbe((L) => 2 * Math.PI * Math.sqrt(L / G), 0, lm), c: CONS, dash: 1, nom: 'pendule simple 2π√(L/g)' }].concat(X.kT ? [{ ligne: courbe((L) => X.kT * Math.sqrt(L), 0, lm), c: COUL[0], nom: 'ajustée T = k·√L' }] : [], [{ pts: pt.map((x) => [x.L, x.T]), c: COUL[0], k: 0, nom: 'mesures' }]) }));
+    }
+    if (pa.length && ok(Tm)) {
+      const vs = pa.map((x) => x.v), vm = moy(vs), memeV = vs.every((v) => Math.abs(v - vm) <= 0.05 * vm);
+      if (memeV) {
+        const tm = Math.max(2.3 * Tm, ...pa.map((x) => x.tr * 1.1));
+        X.figs.push(graphe({ titre: `Balan résiduel en fonction de la durée de la décélération (v = ${fx(vm, 0)} mm/s)`, x: axe(0, tm, 5), y: plage(pa.map((x) => x.A).concat([balan(vm, 0, Tm)])), xl: 'durée de la décélération (s)', yl: 'A (mm)',
+          series: [{ ligne: courbe((t) => balan(vm, t, Tm), 0, tm, 120), c: CONS, dash: 1, nom: 'modèle (v/ω)·|sin(πt/T)|/(πt/T)' }, { pts: pa.map((x) => [x.tr, x.A]), c: COUL[0], k: 0, nom: 'arrêts mesurés' }],
+          notes: [[Tm, 0.08 * balan(vm, 0, Tm) + 0.6, 'T', CONS, 'middle'], [2 * Tm, 0.08 * balan(vm, 0, Tm) + 0.6, '2T', CONS, 'middle']] }));
+      } else {
+        const am = Math.max(...pa.map((x) => Math.max(x.A, x.Am))) * 1.15;
+        X.figs.push(graphe({ titre: 'Balan résiduel : mesure face au modèle', x: axe(0, am, 5), y: axe(0, am, 5), xl: 'A modèle (mm)', yl: 'A mesuré (mm)', series: [{ ligne: [[0, 0], [am, am]], c: CONS, dash: 1, nom: 'mesure = modèle' }, { pts: pa.map((x) => [x.Am, x.A]), c: COUL[0], k: 0, nom: 'arrêts' }] }));
+      }
+    }
+    if (mo.length >= 2) X.figs2.push(graphe({ titre: 'Puissance absorbée en montée en fonction de la masse levée', x: axe(0, Math.max(...mo.map((x) => x.m)) * 1.1, 5), y: plage(mo.map((x) => x.P).concat(mo.map((x) => x.Pm))), xl: 'm (kg)', yl: 'P (W)',
+      series: [{ pts: mo.map((x) => [x.m, x.P]), c: COUL[0], k: 0, nom: 'P électrique mesurée' }, { pts: mo.map((x) => [x.m, x.Pm]), c: CONS, k: 3, nom: 'P mécanique m·g·v' }] }));
+    return X;
+  }
+
+  /* ---------- les schémas simplifiés des bancs, d'après leurs dossiers ---------- */
+  const tx = (x, y, s, o) => T(x, y, s, Object.assign({ fs: 13 }, o || {}));
+  const EAU = '#cfe6f3', TR = 'stroke="#183047" stroke-width="2" fill="none"', FL = (x1, y1, x2, y2) => { const a = Math.atan2(y2 - y1, x2 - x1), p = (d, s) => `${(x2 - 9 * Math.cos(a + s * 0.45)).toFixed(1)} ${(y2 - 9 * Math.sin(a + s * 0.45)).toFixed(1)}`; return `<path d="M${x1} ${y1}L${x2} ${y2}" ${TR}/><path d="M${x2} ${y2}L${p(0, 1)}L${p(0, -1)}Z" fill="#183047"/>`; };
+  // vanne : deux triangles pointe contre pointe, dans l'axe de la conduite (verticale ou horizontale)
+  const vanne = (x, y, vert) => (vert ? `<path d="M${x - 8} ${y - 8}H${x + 8}L${x - 8} ${y + 8}H${x + 8}Z" fill="#fff" stroke="#183047" stroke-width="1.8"/>` : `<path d="M${x - 8} ${y - 8}V${y + 8}L${x + 8} ${y - 8}V${y + 8}Z" fill="#fff" stroke="#183047" stroke-width="1.8"/>`);
+  function synPompe() {
+    let s = '';
+    s += `<rect x="18" y="128" width="86" height="76" fill="${EAU}"/><path d="M18 108V204H104V108" ${TR}/>` + tx(61, 222, 'puits d’exhaure', { a: 'middle', w: 700 }) + tx(61, 238, '60 L', { a: 'middle' });
+    s += `<path d="M104 186H136" ${TR}/><circle cx="150" cy="186" r="14" fill="#fff" stroke="#183047" stroke-width="2"/><path d="M150 175L160 193H140Z" fill="#183047"/>` + tx(150, 218, 'P1', { a: 'middle', w: 700 }) + tx(150, 234, '0,75 kW', { a: 'middle' });
+    s += `<path d="M150 172V72H214" ${TR}/><path d="M143 141L150 153L157 141" fill="none" stroke="#183047" stroke-width="1.8"/><circle cx="150" cy="143" r="3.5" fill="#183047"/>` + tx(140, 150, 'C1', { a: 'end', fs: 12 });
+    s += `<path d="M150 108H162" ${TR}/><circle cx="171" cy="108" r="9" fill="#fff" stroke="#183047" stroke-width="2"/><path d="M171 108L176 102" stroke="#a8362b" stroke-width="2"/>` + tx(185, 113, 'M1', { w: 700 });
+    s += `<rect x="214" y="56" width="86" height="32" rx="4" fill="#fff8ef" stroke="${CONS}" stroke-width="1.8" stroke-dasharray="6 4"/>` + tx(257, 69, 'élément', { a: 'middle', fs: 12, c: CONS, w: 700 }) + tx(257, 83, 'démontable', { a: 'middle', fs: 12, c: CONS, w: 700 });
+    s += `<path d="M300 72H334" ${TR}/>` + FL(334, 72, 334, 100);
+    s += `<rect x="318" y="118" width="72" height="46" fill="${EAU}"/><path d="M318 92V164H390V92" ${TR}/>` + tx(354, 40, 'bassin de reprise', { a: 'middle', w: 700 }) + tx(354, 56, '25 L', { a: 'middle' });
+    s += `<path d="M312 104H318M312 152H318" stroke="#183047" stroke-width="2"/>` + tx(308, 108, 'NBH', { a: 'end', fs: 11.5 }) + tx(308, 156, 'NBB', { a: 'end', fs: 11.5 });
+    s += FL(390, 128, 402, 128) + `<rect x="404" y="92" width="52" height="72" rx="4" fill="#f4f8fa" stroke="#183047" stroke-width="1.5"/>` + tx(430, 110, 'P2, P3', { a: 'middle', fs: 11.5, w: 700 }) + tx(430, 126, 'château', { a: 'middle', fs: 11.5 }) + tx(430, 140, 'd’eau', { a: 'middle', fs: 11.5 }) + tx(430, 156, 'V1, V2', { a: 'middle', fs: 11.5 });
+    s += `<path d="M430 164V250H8V96H40" ${TR}/>` + FL(40, 96, 40, 120) + `<path d="M354 164V250" ${TR}/>` + vanne(354, 208, 1) + tx(364, 212, 'V3', { fs: 12, w: 700 }) + tx(262, 244, 'retour de l’eau au puits', { a: 'middle', fs: 12, c: '#42596b' });
+    return svg(460, 258, s, 'Schéma simplifié de la station de pompage SPBE-C');
+  }
+  function synMonte() {
+    let s = '';
+    s += `<circle cx="230" cy="48" r="26" fill="#fff" stroke="#183047" stroke-width="2"/><circle cx="230" cy="48" r="3" fill="#183047"/><path d="M256 48H264" ${TR}/>`;
+    s += `<rect x="264" y="26" width="104" height="44" rx="4" fill="#eef6ff" stroke="#183047" stroke-width="1.8"/>` + tx(316, 44, 'moto-réducteur', { a: 'middle', fs: 11.5, w: 700 }) + tx(316, 61, 'frein, volant', { a: 'middle', fs: 11.5 });
+    s += `<path d="M204 48V112M256 48V186" ${TR}/><rect x="166" y="112" width="76" height="58" fill="#fff" stroke="#183047" stroke-width="2"/>` + tx(204, 138, 'cabine', { a: 'middle', w: 700 }) + tx(204, 156, '30 kg au plus', { a: 'middle', fs: 11.5 });
+    s += `<rect x="246" y="186" width="20" height="50" fill="#9fb3c2" stroke="#183047" stroke-width="1.8"/>` + tx(272, 210, 'contrepoids', { fs: 11.5 });
+    s += `<circle cx="256" cy="92" r="4" fill="#183047"/><circle cx="256" cy="132" r="4" fill="#183047"/><path d="M260 92H272" stroke="#183047" stroke-width="1.5"/><rect x="272" y="84" width="16" height="16" fill="#fff" stroke="#183047" stroke-width="1.5"/>` + tx(294, 96, 'capteur à boules', { fs: 11.5 });
+    s += `<path d="M268 176h12M268 244h12" stroke="#a8362b" stroke-width="3"/>` + tx(286, 180, 'surcourses', { fs: 11.5, c: '#a8362b' });
+    s += `<path d="M158 90V250" stroke="#9fb3c2" stroke-width="2"/><path d="M158 112V168M158 192V248" stroke="#183047" stroke-width="5"/><path d="M60 170H158M60 250H158" stroke="#183047" stroke-width="1.5"/>`;
+    s += tx(150, 132, 'porte haute', { a: 'end', fs: 11.5 }) + tx(150, 147, '(guillotine)', { a: 'end', fs: 11.5 }) + tx(150, 216, 'porte basse', { a: 'end', fs: 11.5 }) + tx(150, 231, '(battante)', { a: 'end', fs: 11.5 }) + tx(62, 165, 'niveau 2', { fs: 11, c: '#42596b' }) + tx(62, 245, 'niveau 1', { fs: 11, c: '#42596b' });
+    s += `<rect x="362" y="112" width="92" height="124" rx="4" fill="#f4f8fa" stroke="#183047" stroke-width="1.5"/>` + tx(408, 132, 'armoire', { a: 'middle', w: 700 }) + tx(408, 152, 'Q1, KA1', { a: 'middle', fs: 11.5 }) + tx(408, 170, 'ATV31', { a: 'middle', fs: 11.5 }) + tx(408, 188, 'TWIDO', { a: 'middle', fs: 11.5 }) + tx(408, 206, 'TwidoPort', { a: 'middle', fs: 11.5 }) + tx(408, 224, 'frein 48 V', { a: 'middle', fs: 11.5 });
+    s += `<path d="M408 112V48H368" ${TR}/>` + tx(414, 86, '400 V', { fs: 11.5 });
+    return svg(460, 258, s, 'Schéma simplifié du monte-charge');
+  }
+  function synHarmo() {
+    // tout le schéma descend de 16 sous le titre
+    let s = '<g transform="translate(0 16)">';
+    s += `<path d="M14 24V62H70" ${TR}/><path d="M34 56L46 68M46 56L34 68" stroke="#183047" stroke-width="2"/>` + tx(40, 84, 'Q0, Q1', { a: 'middle', fs: 11.5 });
+    s += `<path d="M70 62V40H112M128 40H176M70 62V84H105M141 84H176" ${TR}/><path d="M112 32V48M128 32V48" stroke="#183047" stroke-width="2"/><path d="M112 40H128" stroke="#183047" stroke-width="2" stroke-dasharray="2 3"/>` + tx(120, 26, 'direct (S7)', { a: 'middle', fs: 11.5 });
+    s += `<circle cx="116" cy="84" r="11" fill="none" stroke="#183047" stroke-width="2"/><circle cx="130" cy="84" r="11" fill="none" stroke="#183047" stroke-width="2"/>` + tx(123, 112, 'séparé', { a: 'middle', fs: 11.5 }) + tx(123, 127, '2 kVA', { a: 'middle', fs: 11.5 });
+    s += `<circle cx="179" cy="40" r="3" fill="#183047"/><circle cx="179" cy="84" r="3" fill="#183047"/><path d="M200 62L181 44" stroke="#183047" stroke-width="2.2"/><circle cx="200" cy="62" r="3" fill="#183047"/>` + tx(206, 46, 'S0', { fs: 12, w: 700 });
+    s += `<path d="M200 62H262" ${TR}/><circle cx="228" cy="62" r="9" fill="none" stroke="${CONS}" stroke-width="2"/>` + tx(228, 88, 'U1, I1', { a: 'middle', fs: 12, w: 700, c: CONS }) + tx(228, 103, 'analyseur', { a: 'middle', fs: 11.5, c: CONS });
+    s += `<path d="M262 36V196" stroke="#183047" stroke-width="4"/>`;
+    s += tx(272, 30, 'ligne Bâtiment', { fs: 12, w: 700 }) + `<path d="M262 50H298M344 50H372" ${TR}/><rect x="298" y="38" width="46" height="24" rx="3" fill="#fff8ef" stroke="${CONS}" stroke-width="1.5"/>` + tx(321, 55, 'S9, S10', { a: 'middle', fs: 11 }) + `<circle cx="386" cy="50" r="13" fill="#fff" stroke="#183047" stroke-width="2"/><path d="M377 41L395 59M395 41L377 59" stroke="#183047" stroke-width="1.6"/>` + tx(386, 80, 'HAL, HL, ballast,', { a: 'middle', fs: 11 }) + tx(386, 94, 'lampe à induction', { a: 'middle', fs: 11 });
+    s += tx(272, 124, 'charges externes (S4)', { fs: 11, c: '#42596b' }) + `<path d="M262 132H300" stroke="#183047" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+    s += tx(272, 152, 'ligne Industrie', { fs: 12, w: 700 }) + `<path d="M262 176H298M344 176H366" ${TR}/><rect x="298" y="160" width="46" height="32" fill="#fff" stroke="#183047" stroke-width="1.8"/><path d="M298 192L344 160" stroke="#183047" stroke-width="1.2"/>` + tx(306, 173, '~', { fs: 13 }) + tx(336, 189, '~', { fs: 13 }) + `<circle cx="382" cy="176" r="16" fill="#fff" stroke="#183047" stroke-width="2"/>` + tx(382, 175, 'M', { a: 'middle', fs: 12, w: 700 }) + tx(382, 188, '3~', { a: 'middle', fs: 10 }) + tx(340, 214, 'variateur et moteur asynchrone', { a: 'middle', fs: 11 });
+    s += '</g>' + tx(8, 16, 'réseau 3 × 400 V', { w: 700 });
+    return svg(460, 242, s, 'Schéma unifilaire simplifié de l’Harmotris');
+  }
+  function synPortique() {
+    let s = `<rect x="30" y="28" width="400" height="12" fill="#dfe7ee" stroke="#183047" stroke-width="1.8"/><path d="M40 40L24 230M40 40L56 230M420 40L404 230M420 40L436 230" ${TR}/>`;
+    s += `<rect x="200" y="40" width="56" height="18" rx="2" fill="#eef6ff" stroke="#183047" stroke-width="1.8"/><circle cx="228" cy="66" r="8" fill="#fff" stroke="#183047" stroke-width="2"/>` + tx(262, 54, 'chariot et treuil', { fs: 11.5 });
+    s += FL(212, 16, 112, 16) + FL(212, 16, 312, 16) + tx(320, 20, 'translation (2 200 mm)', { fs: 11.5 });
+    s += `<path d="M228 74V168" ${TR}/><path d="M228 74L252 164" stroke="#8aa0b0" stroke-width="1.6" stroke-dasharray="5 4"/><rect x="212" y="168" width="32" height="24" fill="#9fb3c2" stroke="#183047" stroke-width="1.8"/><rect x="236" y="164" width="32" height="24" fill="none" stroke="#8aa0b0" stroke-width="1.4" stroke-dasharray="5 4"/>` + tx(240, 210, 'panier + poids', { a: 'middle', fs: 11.5 });
+    s += `<rect x="236" y="88" width="20" height="10" fill="#fff8ef" stroke="${CONS}" stroke-width="1.5"/>` + tx(262, 97, 'capteur de balan', { fs: 11.5, c: CONS, w: 700 });
+    s += `<path d="M204 74V180" stroke="#42596b" stroke-width="1.2"/><path d="M200 74H208M200 180H208" stroke="#42596b" stroke-width="1.2"/>` + tx(198, 132, 'L', { a: 'end', w: 700, c: '#42596b' });
+    s += FL(150, 150, 150, 112) + FL(150, 150, 150, 198) + tx(142, 156, 'levage (75 cm)', { a: 'end', fs: 11.5 });
+    s += `<rect x="330" y="150" width="70" height="66" rx="3" fill="#f4f8fa" stroke="#183047" stroke-width="1.5"/>` + tx(365, 168, 'coffrets', { a: 'middle', fs: 11.5, w: 700 }) + tx(365, 184, 'levage', { a: 'middle', fs: 11 }) + tx(365, 198, 'translation', { a: 'middle', fs: 11 }) + tx(365, 212, 'automatisme', { a: 'middle', fs: 11 });
+    let b = ''; for (let x = 70; x < 390; x += 16) b += `<rect x="${x}" y="228" width="8" height="5" fill="#f2c200"/><rect x="${x + 8}" y="228" width="8" height="5" fill="#183047"/>`;
+    s += `<path d="M8 234H452" stroke="#183047" stroke-width="1.5"/>` + b + tx(230, 250, 'zone balisée au sol (bande jaune et noire)', { a: 'middle', fs: 11.5 });
+    return svg(460, 256, s, 'Schéma simplifié du portique SLT07');
+  }
+
   /* ---------- les bancs, d'après leurs dossiers techniques ---------- */
   const BANCS = {
     pompe: {
@@ -401,7 +539,7 @@
         cons: { carte: 'ref', titre: 'La courbe du constructeur', aide: 'Quelques points (Q, H) lus sur la courbe EBARA de ta pompe (documentation des constructeurs, à la fin du dossier), dans l’unité de ton débitmètre. Vérifie qu’elle est donnée pour la vitesse de ton essai.', lignes: 5,
           cols: [{ k: 'Q', l: 'Q', u: '@uq' }, { k: 'H', l: 'H', u: 'm' }], out: [] },
       },
-      calc: calcPompe,
+      calc: calcPompe, schema: synPompe,
     },
     monte: {
       titre: 'Monte-charge : l’énergie d’un trajet et la précision d’arrêt', eye: 'monte-charge DEC Industrie', duree: 150,
@@ -435,7 +573,7 @@
         repE: { carte: 'rep', titre: 'Trois trajets identiques', aide: 'Même charge, même sens.', lignes: 3, fixe: 1, cols: 'en' },
         repA: { carte: 'rep', titre: 'Trois arrêts au même réglage', aide: 'Même dEC, même sens, même charge.', lignes: 3, fixe: 1, cols: 'arr' },
       },
-      calc: calcMonte,
+      calc: calcMonte, schema: synMonte,
     },
     harmo: {
       titre: 'Harmotris : harmoniques, facteur de puissance et neutre', eye: 'Harmotris, qualité de l’énergie', duree: 150,
@@ -465,7 +603,45 @@
           out: [{ k: 'I1', l: 'I1', u: 'A', d: 3 }, { k: 'S', l: 'S', u: 'VA', d: 0 }, { k: 'Q1', l: 'Q1', u: 'var', d: 0 }, { k: 'D', l: 'D', u: 'VA', d: 0 }, { k: 'lm', l: 'λ modèle', u: '', d: 3 }, { k: 'el', l: 'écart λ', u: '%', d: 1 }, { k: 'inr', l: 'I N / I', u: '', d: 2 }] },
         rep: { carte: 'rep', titre: 'Trois relevés de la même configuration', aide: 'Coupe et relance la charge entre deux relevés.', lignes: 3, fixe: 1, cols: 'mes' },
       },
-      calc: calcHarmo,
+      calc: calcHarmo, schema: synHarmo,
+    },
+    portique: {
+      titre: 'Portique SLT07 : le balan de la charge et le levage', eye: 'portique de levage LEDENT SLT07', duree: 150,
+      court: 'période du balan face au pendule, balan à l’arrêt face au modèle de la rampe (anti-balan), puissance et rendement du levage',
+      dossier: `<p>Le portique pédagogique LEDENT SLT07 reproduit un pont roulant : un <b>chariot</b> se déplace en <b>translation</b> sur une poutre (2 200 mm) et porte le <b>treuil de levage</b> (75 cm de course au plus) ; la charge est un panier lesté de poids, pendu à un câble antigiratoire. Les déplacements ne dépassent pas 20 m/min. Chaque mouvement a son coffret (variateur, disjoncteur), relié au coffret centralisateur ; le coffret AUTOMATISME porte l’automate TSX37 et l’écran tactile Magelis.</p>
+        <p>En manuel, les boutons montée, descente, droite et gauche commandent les mouvements, un potentiomètre règle la vitesse. En automatique (par clé, sous la surveillance du professeur) : cycles simples de levage ou de translation, avec deux paliers de vitesse (V1 sur D1, V2 sur D2) et une vitesse d’approche (V3 sur D3) ; cycles combinés « obstacle » (étude des balans, passage d’un obstacle), « traitement » (quatre cuves) et « empilage/dépilage » (préhenseur venturi, magnétique ou à pince). Un <b>codeur</b> donne la position, un <b>système de pesage</b> la charge (tare, défaut de surcharge), un <b>capteur de balan</b> à faisceau la position du câble, de −100 à 100, à initialiser à chaque mise sous tension.</p>
+        <p>Sécurité : zone de déplacement de la charge délimitée au sol par une bande jaune et noire et par une rampe à 1 m de hauteur, « accès interdit sauf consignation machine », 800 mm libres autour du portique ; fins de course et surcourses (le dépassement met le système en défaut, on le dégage avec la clé du coffret et le bouton du sens opposé) ; freins sur les mouvements.</p>`,
+      probs: ['Le balan de la charge suit-il le modèle du pendule simple ?', 'Comment arrêter le chariot sans faire balancer la charge ?', 'Quelle puissance faut-il pour lever la charge, et quel est le rendement du levage ?'],
+      secu: ['Prise de service : pas de travaux en cours sur le portique, câble bien enroulé sur le treuil et en bon état, chaîne porte-câbles libre, freins et fins de course vérifiés.',
+        'Pendant les manœuvres : personne dans la zone délimitée par la bande jaune, aucune charge au-dessus des personnes, aucune charge supérieure à la capacité, aucune sécurité neutralisée ou déréglée ; pas de mouvements brutaux ni simultanés, vitesse adaptée à la charge et aux rampes des variateurs.',
+        'Les poids se manipulent charge en position basse ; le panier reste pendu à son câble pour que celui-ci s’enroule bien sur le treuil.',
+        'Réglages et mesures sous tension : en mode manuel, à petite vitesse, charge au plus bas ; appareils de mesure conformes à la CEI 61010, lunettes et protections individuelles. Le mode automatique se lance par clé, sous la surveillance du professeur, personne dans les 800 mm autour du portique.',
+        'Surcourse atteinte : le système se met en défaut ; prévenir le responsable, dégager avec la clé du coffret et le bouton du sens opposé.',
+        'Consignation : charge au centre en position basse, alimentation générale coupée et cadenassée ; circuit identifié, absence de tension vérifiée, zone d’intervention délimitée.'],
+      jury: ['Pendule simple : T = 2π·√(L/g), avec L mesurée du point d’accroche du câble au centre de gravité du panier chargé ; petites oscillations ; chronométrer dix oscillations pour diviser l’erreur de déclenchement du chronomètre.',
+        'Plusieurs longueurs L (le levage les donne) : T en fonction de √L est une droite de pente 2π/√g ; g déduit des mesures, comparé à 9,81 m/s².',
+        'Capteur de balan initialisé (câble immobile au milieu du faisceau, touche F4) puis étalonné (valeur affichée en fonction du déplacement du câble), ou amplitude mesurée à la règle ou en vidéo.',
+        'Arrêt du chariot par une rampe de durée tr depuis la vitesse v : balan résiduel A = (v/ω)·|sin(π·tr/T)|/(π·tr/T), maximal pour un arrêt brutal (v/ω) et nul quand tr vaut un multiple de T : c’est le principe de l’anti-balan (rampe accordée à la période, ou profil de vitesse en deux temps).',
+        'Puissance de levage à vitesse établie : P = m·g·v ; rendement de la chaîne ; la pente de P en fonction de m donne le rendement sans la masse du panier ; en descente, la charge entraîne et le moteur freine.',
+        'Rampes et vitesses d’origine des variateurs et de l’automate relevées avant modification, remises à la fin ; essais à petite vitesse d’abord.',
+        'Trois essais identiques pour la dispersion : trois chronométrages de dix oscillations, trois arrêts identiques.',
+        'Causes d’écart : pendule pesant (panier et câble non ponctuels, masse du câble), amortissement, rampe arrondie ou limitée par le variateur, mesure de L, lecture ou étalonnage du capteur de balan, câble qui s’enroule pendant l’essai.'],
+      plaque: [{ k: 'cap', l: 'Capacité nominale de levage', u: 'kg' }, { k: 'Pl', l: 'Moteur de levage : puissance utile', u: 'W' }, { k: 'Ul', l: 'Moteur de levage : tension (et nature du courant)', txt: 1 }, { k: 'Il', l: 'Moteur de levage : intensité nominale', u: 'A' }, { k: 'nl', l: 'Moteur de levage : vitesse nominale', u: 'tr/min' }, { k: 'Pt', l: 'Moteur de translation : puissance utile', u: 'W' }, { k: 'var', l: 'Variateurs : modèles et rampes d’origine', txt: 1 }, { k: 'vmax', l: 'Vitesse maximale de déplacement annoncée', u: 'm/min' }],
+      params: [{ k: 'L', l: 'L : longueur du pendule pendant les arrêts, du point d’accroche au centre de gravité de la charge', u: 'm' }, { k: 'T', l: 'Période mesurée pour cette longueur (facultatif : sinon le modèle prend 2π·√(L/g))', u: 's' }],
+      tables: {
+        per: { carte: 'mes', titre: 'A. La période du balan', aide: 'Une longueur de pendule par ligne : n oscillations chronométrées en tn secondes, après avoir écarté la charge de quelques centimètres.', lignes: 4,
+          cols: [{ k: 'L', l: 'L', u: 'm' }, { k: 'n', l: 'n', u: 'oscill.' }, { k: 'tn', l: 'tn', u: 's' }],
+          out: [{ k: 'T', l: 'T', u: 's', d: 3 }, { k: 'T0', l: 'T modèle', u: 's', d: 3 }, { k: 'e', l: 'écart', u: '%', d: 1 }] },
+        arret: { carte: 'mes', titre: 'B. Le balan après un arrêt du chariot', aide: 'Un arrêt par ligne : vitesse avant l’arrêt, durée de la décélération (réglage de la rampe, ou chronométrée), amplitude du balan juste après l’arrêt.', lignes: 5,
+          cols: [{ k: 'v', l: 'v', u: 'mm/s' }, { k: 'tr', l: 'Décélération', u: 's' }, { k: 'A', l: 'A', u: 'mm' }],
+          out: [{ k: 'rap', l: 'tr / T', u: '', d: 2 }, { k: 'Am', l: 'A modèle', u: 'mm', d: 1 }, { k: 'e', l: 'écart', u: '%', d: 1 }] },
+        lev: { carte: 'mes', titre: 'C. La puissance de levage', aide: 'Facultatif. À vitesse établie : masse levée (panier compris), sens, vitesse et puissance électrique mesurée (précise où dans ton protocole).', lignes: 4,
+          cols: [{ k: 'm', l: 'Masse levée', u: 'kg' }, { k: 'sens', l: 'Sens', sel: ['montée', 'descente'] }, { k: 'v', l: 'v', u: 'mm/s' }, { k: 'P', l: 'P électrique', u: 'W', neg: 1 }],
+          out: [{ k: 'Pm', l: 'P méca', u: 'W', d: 1 }, { k: 'eta', l: 'η', u: '%', d: 0 }] },
+        repT: { carte: 'rep', titre: 'Trois chronométrages à la même longueur', aide: 'Même longueur, même nombre d’oscillations.', lignes: 3, fixe: 1, cols: 'per' },
+        repA: { carte: 'rep', titre: 'Trois arrêts identiques', aide: 'Même vitesse, même décélération, même longueur.', lignes: 3, fixe: 1, cols: 'arret' },
+      },
+      calc: calcPortique, schema: synPortique,
     },
   };
 
@@ -531,7 +707,13 @@
 .rl-res{padding-left:20px;margin:6px 0}.rl-res li{margin:8px 0}.rl-ok{color:#1f7a53;font-weight:600}.rl-ko{color:#a8362b;font-weight:600}.rl-am{color:#9c5221;font-weight:600}
 .rl-disp{font-size:14px;margin:4px 0 12px;color:#2c4352}.rl-al{color:#a8362b;font-weight:700;margin:8px 0 0}
 .rl-carte{list-style:none;padding:0;margin:8px 0 0}.rl-carte li{margin:10px 0;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
-@media(max-width:640px){.rl-c.card{padding:18px 16px}}`;
+.rl-syn{margin:10px 0 6px}.rl-syn svg{width:100%;max-width:560px;height:auto;display:block;margin:0 auto}.rl-syn figcaption{font-size:13px;color:#587083;text-align:center;margin-top:4px}
+.rl-imp{display:none}
+@media(max-width:640px){.rl-c.card{padding:18px 16px}}
+@media print{.rl-nav,.rl-chr,.rl-c .btns,.rl-fin,.back,.rl-c textarea,.rl-opt:not(.on){display:none!important}
+.rl-imp{display:block!important;white-space:pre-wrap;border:1px solid #c8d3dc;border-radius:6px;padding:8px 10px;margin:4px 0 10px;font-size:11pt}
+.rl-c.card{box-shadow:none;border:1px solid #c8d3dc}.rl-fig,.rl-syn,.rl-t tr,.ainote,.crit>div{break-inside:avoid}
+.rl-tw{overflow:visible}.rl-t{font-size:9pt}.rl-t input,.rl-t select{font-size:9pt;width:58px;padding:2px;border:0}.rl-t input.tx{width:100px}.rl-t td.n{position:static}}`;
     document.head.appendChild(s);
   }
 
@@ -588,6 +770,7 @@
         <p>La partie pratique en vrai, sur ton banc : tu fixes l’objectif, la sécurité et le protocole, tu mesures ; l’application calcule et trace au fil de tes relevés ; à la fin, le jury IA évalue ta démarche sur 10, comme la partie pratique de l’épreuve. ${sync ? 'La fiche suit d’un appareil à l’autre : les mesures au téléphone, la rédaction à l’ordinateur.' : 'La fiche est gardée dans ce navigateur.'}</p>
         <nav class="rl-nav" id="rl-nav" aria-label="Étapes de la fiche">${nav()}</nav><div class="rl-chr" id="rl-chr"></div>
         <div class="card rl-c" id="rl-s0"><h2>Le banc et la problématique</h2>
+          ${B.schema ? `<figure class="rl-syn">${B.schema()}<figcaption>Schéma simplifié, d’après le dossier technique du banc</figcaption></figure>` : ''}
           <details class="rl-dos"${R.prob < 0 && !R.probT.trim() ? ' open' : ''}><summary>Ce que dit le dossier technique du banc</summary>${B.dossier}</details>
           <p class="rl-l">La problématique, comme le jury pourrait te la poser</p><div class="rl-opts" role="radiogroup">${B.probs.map((p, i) => `<button type="button" class="rl-opt${R.prob === i ? ' on' : ''}" data-prob="${i}" role="radio" aria-checked="${R.prob === i}">${esc(p)}</button>`).join('')}</div>
           <label class="rl-l" for="rl-probT">Ou la tienne (elle remplace le choix ci-dessus)</label><textarea id="rl-probT" data-p="probT" rows="2" maxlength="600">${esc(R.probT)}</textarea></div>
@@ -606,7 +789,8 @@
         <div class="card rl-c" id="rl-s10"><h2>${N()}. La séance</h2><div class="fields"><div class="fld"><label for="rl-niv">Niveau visé</label><select id="rl-niv" data-p="niv">${NIVS.map(([k, l]) => `<option value="${k}"${R.niv === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></div></div>
           <p class="muted rl-aide" id="rl-nivc">${nivConseil()}</p>${zone('seance', 7)}</div>
         <div class="card rl-c" id="rl-s11"><h2>Le jury IA</h2><div id="rl-jury" aria-live="polite">${juryHtml()}</div></div>
-        <p class="muted" style="margin-top:18px"><button class="b sec" type="button" data-raz="1">Effacer la fiche</button> Tes notes passées restent dans l’historique.</p>`;
+        <div class="btns rl-fin" style="margin-top:18px"><button class="b sec" type="button" data-imprimer="1">Imprimer la fiche ou l’enregistrer en PDF</button></div>
+        <p class="muted rl-fin"><button class="b sec" type="button" data-raz="1">Effacer la fiche</button> Tes notes passées restent dans l’historique.</p>`;
     }
     function nivConseil() {
       if (R.niv === 'btsET') return 'BTS Électrotechnique : la séance peut viser C13 (mesurer les grandeurs caractéristiques), C16 (appliquer un protocole pour mettre en service) ou C17 (réaliser un diagnostic de performance, y compris énergétique).';
@@ -825,6 +1009,16 @@ Réponds en JSON : {"criteres": {"obj": {"note": 1, "commentaire": "…"}, "prot
       document.body.appendChild(a); a.click();
       setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
     }
+    // impression : les zones de texte s'impriment mal (texte coupé), on les double d'un bloc imprimable le temps de l'impression
+    function imprimer() {
+      app().querySelectorAll('.rl-imp').forEach((x) => x.remove());
+      app().querySelectorAll('textarea').forEach((z) => { const d = document.createElement('div'); d.className = 'rl-imp'; d.textContent = z.value.trim() || '(vide)'; z.after(d); });
+      const D = [...app().querySelectorAll('details')].map((d) => [d, d.open]); D.forEach(([d]) => { d.open = true; });
+      let fini = false;
+      const fin = () => { if (fini) return; fini = true; window.removeEventListener('afterprint', fin); app().querySelectorAll('.rl-imp').forEach((x) => x.remove()); D.forEach(([d, o]) => { d.open = o; }); };
+      window.addEventListener('afterprint', fin);
+      window.print();
+    }
     // un bouton qui demande confirmation : premier clic, il change de texte ; second clic, il agit
     const desarmer = () => { attente = ''; app().querySelectorAll('[data-txt]').forEach((b) => { b.textContent = b.dataset.txt; delete b.dataset.txt; }); };
     const armer = (b, cle, t) => { attente = cle; b.dataset.txt = b.textContent; b.textContent = t; };
@@ -846,6 +1040,7 @@ Réponds en JSON : {"criteres": {"obj": {"note": 1, "commentaire": "…"}, "prot
       if (t('[data-relire]')) { relire(); return; }
       if ((b = t('[data-eval]'))) { const m = vides(); if (m.length && avant !== 'eval') { armer(b, 'eval', `${m.length > 1 ? 'Rubriques vides' : 'Rubrique vide'} : ${m.join(', ')}. Évaluer quand même ?`); return; } evaluer(); return; }
       if (t('[data-csv]')) { csv(); return; }
+      if (t('[data-imprimer]')) { imprimer(); return; }
       if ((b = t('[data-raz]'))) {
         if (avant !== 'raz') { armer(b, 'raz', 'Effacer vraiment toute la fiche ?'); return; }
         const h = R.hist; st.reel[id] = neuf(B); st.reel[id].hist = h; save(); vue(id); window.scrollTo(0, 0);
