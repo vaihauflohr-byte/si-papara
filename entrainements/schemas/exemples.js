@@ -768,6 +768,62 @@
       ] }
   ];
 
-  const API = { EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, progCuve, progTapisGrafcet, progTapisLadder, progTri, progTriSurveille, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot, exempleCuve, exempleVaEtVient, exempleTapis, exempleTri, exempleTriSurveille };
+  /* ---------- dépannage : un schéma juste, une panne cachée (tirée au hasard parmi celles que l'essai montre) ---------- */
+  const ex = (id) => () => EXEMPLES.find((e) => e.id === id).construire();
+  const marche = [["appuyer", "S2"], ["relacher", "S2"]], arret = [["appuyer", "S1"], ["relacher", "S1"]];
+  const DEPANNAGES = [
+    { id: "p1-marche-arret", titre: "Démarrage direct", niveau: 1, base: ex("marche-arret"),
+      resume: "Marche-arrêt d'un moteur : S2, S1, auto-maintien, relais thermique.",
+      fonctionnement: "<p>On appuie sur <b>S2</b> (marche) : le contacteur <b>KM1</b> colle et le moteur <b>M1</b> démarre. Quand on lâche S2, KM1 reste collé : son contact 13-14 le maintient. <b>S1</b> (arrêt) arrête tout. Si le moteur force, le relais thermique <b>F1</b> déclenche et arrête le moteur.</p>",
+      essai: [
+        { faire: [["appuyer", "S2"]], verifier: { KM1: true, M1: "marche" } },
+        { faire: [["relacher", "S2"]], verifier: { KM1: true, M1: "marche" } },
+        { faire: arret, verifier: { KM1: false, M1: "arret" } },
+        { faire: marche, attendre: 1500, verifier: { KM1: true, M1: "marche" } },
+        { faire: [["surcharge", "F1"]], verifier: { KM1: false, M1: "arret" } },
+        { faire: [["rearmer", "F1"]], verifier: { KM1: false } }] },
+    { id: "p2-signalisation", titre: "Marche-arrêt avec voyants", niveau: 1, base: ex("signalisation"),
+      resume: "Le même, avec H1 (en marche) et H2 (défaut thermique).",
+      fonctionnement: "<p>Comme le démarrage direct : <b>S2</b> met en marche, <b>S1</b> arrête, <b>KM1</b> se maintient tout seul. En plus, le voyant <b>H1</b> (vert) s'allume quand le moteur tourne, et le voyant <b>H2</b> (orange) quand le relais thermique <b>F1</b> a déclenché.</p>",
+      essai: [
+        { verifier: { H1: false, H2: false } },
+        { faire: marche, verifier: { KM1: true, M1: "marche", H1: true, H2: false } },
+        { faire: arret, verifier: { KM1: false, M1: "arret", H1: false } },
+        { faire: marche, attendre: 1500, verifier: { KM1: true, M1: "marche" } },
+        { faire: [["surcharge", "F1"]], verifier: { KM1: false, H1: false, H2: true } },
+        { faire: [["rearmer", "F1"]], verifier: { KM1: false, H2: false } }] },
+    { id: "p3-inversion", titre: "Inversion du sens de marche", niveau: 2, base: ex("inversion"),
+      resume: "Deux contacteurs, deux sens, un verrouillage électrique.",
+      fonctionnement: "<p><b>S2</b> : <b>KM1</b> colle, le moteur tourne dans le sens 1. <b>S3</b> : <b>KM2</b> colle, il tourne dans le sens 2. <b>S1</b> arrête. Chaque contacteur se maintient tout seul (13-14), et ils ne peuvent pas coller ensemble : le verrouillage passe par KM1 21-22 et KM2 21-22.</p>",
+      essai: [
+        { faire: marche, verifier: { KM1: true, KM2: false, M1: "sens1" } },
+        { faire: arret, verifier: { KM1: false, M1: "arret" } },
+        { faire: [["appuyer", "S3"], ["relacher", "S3"]], attendre: 1500, verifier: { KM2: true, KM1: false, M1: "sens2" } },
+        { faire: arret, verifier: { KM2: false, M1: "arret" } },
+        { faire: marche, attendre: 1500, verifier: { KM1: true, M1: "sens1" } },
+        { faire: [["surcharge", "F1"]], verifier: { KM1: false, KM2: false } }] },
+    { id: "p4-automate", titre: "Marche-arrêt par automate", niveau: 2, base: ex("api-ladder"),
+      resume: "Les boutons sur les entrées, KM1 et H1 sur les sorties.",
+      fonctionnement: "<p>Les boutons <b>S1</b>, <b>S2</b> et le contact <b>F1</b> 95-96 arrivent sur les entrées de l'automate <b>API1</b> ; <b>KM1</b> et <b>H1</b> sont sur ses sorties. <b>S2</b> : KM1 colle, le moteur démarre, H1 s'allume, et ça reste en marche quand on lâche S2. <b>S1</b> arrête ; une surcharge de <b>F1</b> aussi. Les voyants de l'automate montrent ses entrées et ses sorties : c'est la première chose à regarder.</p>",
+      essai: [
+        { verifier: { KM1: false, H1: false } },
+        { faire: [["appuyer", "S2"]], verifier: { KM1: true, M1: "marche" } },
+        { faire: [["relacher", "S2"]], verifier: { KM1: true, H1: true } },
+        { faire: arret, verifier: { KM1: false, H1: false, M1: "arret" } },
+        { faire: marche, attendre: 1500, verifier: { KM1: true, M1: "marche" } },
+        { faire: [["surcharge", "F1"]], verifier: { KM1: false } },
+        { faire: [["rearmer", "F1"]], verifier: { KM1: false } }] },
+    { id: "p5-etoile-triangle", titre: "Démarrage étoile-triangle", niveau: 3, base: ex("etoile-triangle"),
+      resume: "Trois contacteurs, un relais temporisé, une commande en 24 V.",
+      fonctionnement: "<p><b>S2</b> : <b>KM1</b> et <b>KM2</b> collent, le moteur démarre en <b>étoile</b>. 3 s plus tard, le relais temporisé <b>KA1</b> fait retomber KM2 et coller <b>KM3</b> : le moteur passe en <b>triangle</b>. <b>S1</b> arrête tout. La commande est en 24 V, par le transformateur <b>T1</b>.</p>",
+      essai: [
+        { faire: marche, verifier: { KM1: true, KM2: true, KM3: false, M1: "etoile" } },
+        { attendre: 3300, verifier: { KM1: true, KM2: false, KM3: true, M1: "triangle" } },
+        { faire: arret, verifier: { KM1: false, KM2: false, KM3: false, M1: "arret" } },
+        { faire: marche, attendre: 3300, verifier: { M1: "triangle" } },
+        { faire: [["surcharge", "F1"]], verifier: { KM1: false, KM3: false } }] }
+  ];
+
+  const API = { DEPANNAGES, EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, progCuve, progTapisGrafcet, progTapisLadder, progTri, progTriSurveille, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot, exempleCuve, exempleVaEtVient, exempleTapis, exempleTri, exempleTriSurveille };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasExemples = API;
 })(typeof window !== "undefined" ? window : globalThis);

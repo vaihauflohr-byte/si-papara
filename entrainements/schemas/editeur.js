@@ -18,7 +18,7 @@
   const nf = (x, d) => Number(x).toLocaleString("fr-FR", { maximumFractionDigits: d == null ? 1 : d });
   const session = lire("sip_session");
   const QUI = session && session.nom ? String(session.nom) : "local";
-  const CLE = { libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
+  const CLE = { libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, dep: (id) => "schemas:dep:" + QUI + ":" + id, depProgres: "schemas:depannage:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
 
   const DOIGT = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);   // écran tactile sans souris
   const svg = $("sc-svg"), monde = $("sc-monde"), fond = $("sc-fond"), grilleR = $("sc-grille"), pn = $("sc-panneau"), vueEl = $("sc-vue");
@@ -26,6 +26,8 @@
   /* ---------- état ---------- */
   let schema = M.nouveau();
   let doc = { type: "libre" };
+  // voltmètre (pointes rouge et noire posées sur des bornes) ; dépannage (la panne cachée, les mesures) ; marques sur le dessin
+  let sondes = { a: null, b: null, prochaine: "a" }, depEtat = null, marques = [];
   let sel = new Set(), outil = "fleche", aPlacer = null;
   const vue = { x: 40, y: 40, z: 1.3 };
   let sim = null, simE = null, simSig = "", rafId = 0, tPrec = 0, angles = {}, dernierTap = {};
@@ -131,10 +133,11 @@
         const x0 = Math.min(geste.a[0], geste.b[0]), y0 = Math.min(geste.a[1], geste.b[1]);
         h += `<rect class="rect-sel" x="${x0}" y="${y0}" width="${Math.abs(geste.b[0] - geste.a[0])}" height="${Math.abs(geste.b[1] - geste.a[1])}"/>`;
       }
-    } else if (survolPiece && actionnable(survolPiece)) {
+    } else if (survolPiece && actionnable(survolPiece) && outil !== "designer") {
       const b = M.boiteAbs(survolPiece);
       h += `<g class="survol"><rect class="act-sim" x="${b[0] * G - 5}" y="${b[1] * G - 5}" width="${(b[2] - b[0]) * G + 10}" height="${(b[3] - b[1]) * G + 10}" rx="5"/></g>`;
     }
+    if (sim) h += surcouches();
     monde.innerHTML = h;
     majVide();
   }
@@ -219,7 +222,12 @@
   function refaire() { if (sim || hpos >= histo.length - 1) return; hpos++; schema = JSON.parse(histo[hpos]); sel.clear(); netEdit = null; sauverBientot(); rendre(); majPanneau(); majBoutons(); }
   let tSauve = 0;
   function sauverBientot() { clearTimeout(tSauve); tSauve = setTimeout(sauver, 250); }
-  function sauver() { clearTimeout(tSauve); garder(doc.type === "defi" ? CLE.defi(doc.defi) : CLE.libre, schema); garder(CLE.dernier, doc); }
+  function sauver() { clearTimeout(tSauve); if (doc.type !== "depannage") garder(doc.type === "defi" ? CLE.defi(doc.defi) : CLE.libre, schema); garder(CLE.dernier, doc); }
+  function quitterDoc() {   // avant d'ouvrir un autre schéma
+    if (doc.type === "defi") { sauver(); doc = { type: "libre" }; }
+    else if (doc.type === "depannage") { depEtat = null; marques = []; doc = { type: "libre" }; }
+    else copieAuto();
+  }
 
   /* ---------- nouvelle pièce : repère, numéros, tension par défaut ---------- */
   function tensionParDefaut() {
@@ -457,6 +465,14 @@
     try { svg.setPointerCapture(e.pointerId); } catch (x) { /* rien */ }
     pointeurs.set(e.pointerId, { x: e.clientX, y: e.clientY, t: e.pointerType });
     const w = pointMonde(e), gp = grilleDe(w), tac = tactile(e);
+    if (sim && e.button !== 1 && outil === "volt") {
+      const bo = borneA(w, rayon(tac ? 22 : 10));
+      if (bo) { e.preventDefault(); poserSonde(bo.pc, bo.b); geste = { type: "rien" }; return; }
+    }
+    if (sim && e.button !== 1 && outil === "designer") {
+      const c = cibleDesignation(w, tac);
+      if (c) { e.preventDefault(); designer(c); geste = { type: "rien" }; return; }
+    }
     if (sim && e.button !== 1) {
       const pc = pieceA(w, tac ? 7 : 2);
       if (pc && actionnable(pc)) { e.preventDefault(); actionSim(pc, e); return; }
@@ -520,7 +536,15 @@
       vue.z = z; vue.x = cx - wx * z; vue.y = cy - wy * z; appliquerVue(); return;
     }
     if (!geste) {
-      if (sim) { const pc = pieceA(w, tac ? 7 : 2), act = actionnable(pc) ? pc : null; if (act !== survolPiece) { survolPiece = act; rendre(); } svg.style.cursor = act ? "pointer" : "grab"; return; }
+      if (sim) {
+        if (outil === "volt") {
+          const bo = borneA(w, rayon(tac ? 22 : 10)), sb = bo ? { x: bo.b.x, y: bo.b.y } : null;
+          if (JSON.stringify(sb) !== JSON.stringify(survolBorne)) { survolBorne = sb; rendre(); }
+          if (bo) { svg.style.cursor = "crosshair"; return; }
+        } else if (survolBorne) { survolBorne = null; rendre(); }
+        if (outil === "designer") { svg.style.cursor = cibleDesignation(w, tac) ? "help" : "grab"; return; }
+        const pc = pieceA(w, tac ? 7 : 2), act = actionnable(pc) ? pc : null; if (act !== survolPiece) { survolPiece = act; rendre(); } svg.style.cursor = act ? "pointer" : "grab"; return;
+      }
       const r = rayon(tac ? 20 : 9);
       let sb = null;
       if (outil === "fil" || brouillon || outil === "fleche") { const c = cibleFil(w, r, brouillon ? brouillon.pts[brouillon.pts.length - 1] : null); if (c && (c.borne || outil === "fil" || brouillon)) sb = { x: c.pt[0], y: c.pt[1], d: c.d }; }
@@ -686,39 +710,244 @@
     if (sel.size) { sel.clear(); rendre(); majPanneau(); majBoutons(); }
   }
   function choisirOutil(o, item) {
-    if (sim && o !== "main" && o !== "fleche") return;
+    if (sim && !/^(main|fleche|volt|designer)$/.test(o)) return;
+    if (!sim && (o === "volt" || o === "designer")) return;
     if (brouillon && !(o === "fil" && outil === "fil")) brouillon = null;
     outil = o; aPlacer = o === "placer" ? item : null;
     document.querySelectorAll("#sc-barre [data-o]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.o === o)));
     document.querySelectorAll(".pal-i").forEach((b) => b.setAttribute("aria-pressed", String(o === "placer" && item && b.dataset.k === item.k)));
     if (o === "placer") bulle(DOIGT ? `Touche la feuille pour poser : ${esc(M.TYPES[item.type].nom.toLowerCase())}. « Choisir » pour arrêter.` : `Clique sur la feuille pour poser : ${esc(M.TYPES[item.type].nom.toLowerCase())}. <span class="kbd">R</span> pour le tourner, <span class="kbd">Maj</span> + clic pour en poser plusieurs, <span class="kbd">Échap</span> pour arrêter.`, 0);
     else if (o === "fil") bulle("Glisse d'une borne à une autre, ou clique borne par borne. Les coins se font tout seuls.", 3500);
+    else if (o === "volt") bulle(`Voltmètre : ${DOIGT ? "touche" : "clique sur"} une borne pour la pointe <b style="color:var(--p-l1)">rouge</b>, puis une autre pour la pointe <b>noire</b> (COM). Les boutons du schéma marchent toujours.`, 5000);
+    else if (o === "designer") bulle(`${DOIGT ? "Touche" : "Clique sur"} l'élément que tu crois en panne : un fil, un contact, une bobine, un fusible…`, 6000);
     else bulle("");
-    svg.style.cursor = o === "main" ? "grab" : o === "fleche" ? "" : "crosshair";
-    majBoutons(); rendre();
+    svg.style.cursor = o === "main" ? "grab" : o === "fleche" ? "" : o === "designer" ? "help" : "crosshair";
+    majBoutons(); rendre(); majVoltmetre();
+    const bv = $("dp-volt"); if (bv) bv.setAttribute("aria-pressed", String(o === "volt"));
+    const bd = $("dp-designer"); if (bd) bd.setAttribute("aria-pressed", String(o === "designer"));
+  }
+
+  /* =====================================================================
+     VOLTMÈTRE ET DÉPANNAGE
+     ===================================================================== */
+  function nomBorne(pc, b) {
+    const P = M.parametres(pc);
+    if (pc.type === "alim") return (M.POTENTIELS.find((x) => x.id === P.pot) || {}).nom || P.pot;
+    if (pc.type === "reseau") return b.id;
+    return `${pc.ref || M.TYPES[pc.type].court} ${b.n || b.id}`.trim();
+  }
+  function poserSonde(pc, b) {
+    const k = sondes.prochaine, autre = k === "a" ? sondes.b : sondes.a;
+    if (autre && autre.piece === pc.id && autre.borne === b.id) return;   // la même borne
+    sondes[k] = { piece: pc.id, borne: b.id, x: b.x, y: b.y, nom: nomBorne(pc, b) };
+    sondes.prochaine = k === "a" ? "b" : "a";
+    if (sondes.a && sondes.b && sim) {
+      const r = sim.mesurer(sondes.a, sondes.b);
+      if (doc.type === "depannage" && depEtat) { depEtat.mesures.push({ a: sondes.a.nom, b: sondes.b.nom, t: r.texte }); garderDep(); majCarteDep(); }
+    }
+    majVoltmetre(); rendre();
+  }
+  function majVoltmetre() {
+    const z = $("sc-volt"); if (!z) return;
+    const voir = !!sim && (outil === "volt" || !!sondes.a || !!sondes.b);
+    z.hidden = !voir; document.body.classList.toggle("volt", voir); if (!voir) return;
+    const r = sondes.a && sondes.b ? sim.mesurer(sondes.a, sondes.b) : null;
+    const v = r ? r.texte : "—";
+    if (z.dataset.v === v + (sondes.a ? sondes.a.nom : "") + (sondes.b ? sondes.b.nom : "") + sondes.prochaine) return;
+    z.dataset.v = v + (sondes.a ? sondes.a.nom : "") + (sondes.b ? sondes.b.nom : "") + sondes.prochaine;
+    z.innerHTML = `<div class="sv-ecran">${esc(v)}</div><div class="sv-p"><i class="r"></i>${sondes.a ? esc(sondes.a.nom) : "pointe rouge : touche une borne"}</div><div class="sv-p"><i class="n"></i>${sondes.b ? esc(sondes.b.nom) : "pointe noire (COM)"}</div>`;
+  }
+  function surcouches() {
+    let h = "";
+    for (const m of marques) {
+      if (m.fil) { const f = filParId(m.fil); if (f) h += `<path class="marque-${m.cls}" d="M${f.pts.map((q) => q[0] * G + " " + q[1] * G).join("L")}"/>`; }
+      else { const pc = pieceParId(m.piece); if (pc) { const b = M.boiteAbs(pc); h += `<rect class="marque-${m.cls}" x="${b[0] * G - 6}" y="${b[1] * G - 6}" width="${(b[2] - b[0]) * G + 12}" height="${(b[3] - b[1]) * G + 12}" rx="6"/>`; } }
+    }
+    if (outil === "volt" && survolBorne) h += `<circle class="sonde-vise" cx="${survolBorne.x * G}" cy="${survolBorne.y * G}" r="7"/>`;
+    for (const [k, c] of [["a", "r"], ["b", "n"]]) {
+      const q = sondes[k]; if (!q) continue;
+      const sx = k === "a" ? 1 : -1;   // la pointe rouge penche à droite, la noire à gauche
+      h += `<g class="sonde ${c}"><line x1="${q.x * G}" y1="${q.y * G}" x2="${q.x * G + 9 * sx}" y2="${q.y * G - 16}"/><circle cx="${q.x * G}" cy="${q.y * G}" r="4.2"/><text x="${q.x * G + 11 * sx}" y="${q.y * G - 19}">${k === "a" ? "+" : "COM"}</text></g>`;
+    }
+    return h;
+  }
+  const depParId = (id) => X.DEPANNAGES.find((d) => d.id === id) || null;
+  function garderDep() {
+    if (doc.type !== "depannage" || !depEtat) return;
+    garder(CLE.dep(doc.dep), { p: btoa(JSON.stringify(depEtat.panne)), mesures: depEtat.mesures.slice(-40), erreurs: depEtat.erreurs, trouve: depEtat.trouve, repare: depEtat.repare });
+  }
+  function nouvellePanne(D, sauf) {   // au hasard, parmi les pannes que l'essai montre
+    const s = D.base(), L = MO.pannesPossibles(s);
+    for (let i = L.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [L[i], L[j]] = [L[j], L[i]]; }
+    const cle = (p) => JSON.stringify(p);
+    for (const p of L) if ((!sauf || cle(p) !== cle(sauf)) && MO.panneVisible(s, p, D.essai)) return p;
+    return L[0] || null;
+  }
+  function ouvrirDepannage(id, silencieux, neuve) {
+    const D = depParId(id); if (!D) return;
+    if (sim) arreterSim();
+    if (doc.type === "defi") sauver(); else if (doc.type === "libre") { sauver(); copieAuto(); }
+    doc = { type: "depannage", dep: id };
+    let e = null;
+    if (!neuve) { const r = lire(CLE.dep(id)); if (r && r.p) { try { e = { panne: JSON.parse(atob(r.p)), mesures: r.mesures || [], erreurs: r.erreurs || 0, trouve: !!r.trouve, repare: !!r.repare }; } catch (x) { e = null; } } }
+    if (e && !MO.pannesPossibles(D.base()).some((q) => JSON.stringify(q) === JSON.stringify(e.panne))) e = null;   // une panne qui n'existe plus : on en tire une autre
+    depEtat = e || { panne: nouvellePanne(D, neuve), mesures: [], erreurs: 0, trouve: false, repare: false };
+    marques = depEtat.trouve ? [Object.assign(depEtat.panne.fil ? { fil: depEtat.panne.fil } : { piece: depEtat.panne.piece }, { cls: "panne" })] : [];
+    garderDep();
+    chargerSchema(D.base());
+    garder(CLE.dernier, doc);
+    fermerDialogues();
+    if (history.replaceState) history.replaceState(null, "", "#depannage=" + id);
+    demarrerSim();
+    if (!silencieux) ouvrirPanneau(true);
+  }
+  function quitterDepannage() {
+    if (sim) arreterSim();
+    depEtat = null; marques = []; doc = { type: "libre" };
+    let s = null; const sv = lire(CLE.libre); if (sv) { try { s = M.valider(sv); } catch (e) { s = null; } }
+    chargerSchema(s || M.nouveau());
+    if (history.replaceState) history.replaceState(null, "", location.pathname + location.search);
+    sauver();
+  }
+  function relancerSim() { if (sim) { cancelAnimationFrame(rafId); appuis.clear(); PR.live.fermer(); sim = null; } demarrerSim(); }
+  function nomPiece(pc) {
+    const r = pc.ref || M.TYPES[pc.type].court, t = pc.type, P = M.parametres(pc);
+    if (t === "poles") return `les pôles de ${r}`;
+    if (t === "sectionneur") return `le sectionneur ${r}`;
+    if (t === "thermique") return `le relais thermique ${r}`;
+    if (t === "fusible") return `le fusible ${r}`;
+    if (M.BOBINES.indexOf(t) >= 0) return `la bobine de ${r}`;
+    if (t === "voyant") return `le voyant ${r}`;
+    if (t === "electrovanne") return `la bobine de l'électrovanne ${r}`;
+    if (t === "moteur" || t === "moteur6") return `le moteur ${r}`;
+    if (t === "alim" || t === "reseau") return "l'alimentation";
+    if (t === "automate") return `l'automate ${r}`;
+    if (/^bp_|arret_urgence/.test(t)) return `le bouton ${r}${P.num ? " (" + P.num + ")" : ""}`;
+    return `le contact ${r}${P.num ? " " + P.num : ""}`;
+  }
+  function decrirePanne(p) {
+    if (!p) return "";
+    if (p.fil) {
+      const f = filParId(p.fil); if (!f) return "un fil coupé";
+      const bout = (q) => { for (const pc of schema.pieces) for (const b of M.bornesAbs(pc)) if (b.x === q[0] && b.y === q[1]) return nomBorne(pc, b); return null; };
+      const a = bout(f.pts[0]), b = bout(f.pts[f.pts.length - 1]);
+      return a && b ? `le fil entre ${a} et ${b} était coupé` : a || b ? `le fil qui part de ${a || b} était coupé` : "un fil était coupé";
+    }
+    const pc = pieceParId(p.piece); if (!pc) return "";
+    const r = pc.ref || "", t = pc.type, pole = p.i != null ? `${2 * p.i + 1}-${2 * p.i + 2}` : "";
+    if (t === "poles" || t === "disjoncteur" || t === "disj_moteur") return `le pôle ${pole} de ${r} ne conduisait plus`;
+    if (t === "sectionneur") return `le fusible ${pole} du sectionneur ${r} était fondu (sans que ça se voie)`;
+    if (t === "thermique") return `l'élément ${pole} du relais thermique ${r} était coupé`;
+    if (t === "fusible") return `le fusible ${r} était fondu (sans que ça se voie)`;
+    if (M.BOBINES.indexOf(t) >= 0) return `la bobine de ${r} était coupée`;
+    if (t === "voyant") return `le voyant ${r} était grillé`;
+    if (t === "electrovanne") return `la bobine de l'électrovanne ${r} était coupée`;
+    return `${nomPiece(pc)} ${M.nature(pc) === "nf" ? "ne conduisait plus" : "ne se fermait plus"}`;
+  }
+  function memePanneFil(a, b) {   // deux fils sont la même panne si les couper sépare les mêmes bornes
+    if (a === b) return true;
+    const part = (id) => {
+      const n = M.netlist(Object.assign({}, schema, { fils: schema.fils.filter((f) => f.id !== id) })), m = new Map();
+      return Object.keys(n.borne).sort().map((k) => { const v = n.borne[k]; if (!m.has(v)) m.set(v, m.size); return k + "=" + m.get(v); }).join("|");
+    };
+    return part(a) === part(b);
+  }
+  function cibleDesignation(w, tac) {
+    const pc = pieceA(w, 0); if (pc) return { piece: pc };
+    const fh = filA(w, rayon(tac ? 14 : 7)); if (fh) return { fil: fh.f };
+    const pc2 = pieceA(w, tac ? 6 : 2); if (pc2) return { piece: pc2 };
+    return null;
+  }
+  function designer(c) {
+    if (doc.type !== "depannage" || !depEtat || depEtat.trouve || !depEtat.panne) return;
+    const p = depEtat.panne;
+    const ok = c.fil ? !!p.fil && memePanneFil(p.fil, c.fil.id) : !!p.piece && p.piece === c.piece.id;
+    if (ok) {
+      depEtat.trouve = true; garderDep();
+      marques = [Object.assign(p.fil ? { fil: p.fil } : { piece: p.piece }, { cls: "panne" })];
+      const P = lire(CLE.depProgres) || {}, n = depEtat.mesures.length, av = P[doc.dep];
+      P[doc.dep] = { ok: true, t: Date.now(), mesures: av && av.mesures != null ? Math.min(av.mesures, n) : n, fois: ((av && av.fois) || 0) + 1 };
+      garder(CLE.depProgres, P);
+      choisirOutil("fleche");
+      bulle(`Bravo, trouvé : ${esc(decrirePanne(p))}.`, 6000);
+    } else {
+      depEtat.erreurs++; garderDep();
+      const m = Object.assign(c.fil ? { fil: c.fil.id } : { piece: c.piece.id }, { cls: "bon" });
+      marques = marques.filter((x) => x.cls !== "bon").concat([m]);
+      setTimeout(() => { marques = marques.filter((x) => x !== m); rendre(); }, 2200);
+      choisirOutil("volt");
+      bulle(`Non : ${c.fil ? "ce fil" : esc(nomPiece(c.piece))} ${c.fil ? "est" : "est"} en bon état. Mesure encore : cherche où la tension s'arrête.`, 5000);
+    }
+    majCarteDep(); rendre();
+  }
+  function carteDepannage() {
+    const D = depParId(doc.dep); if (!D || !depEtat) return "";
+    const k = X.DEPANNAGES.indexOf(D), fait = !!(lire(CLE.depProgres) || {})[D.id];
+    return `<div class="pn-carte pn-defi pn-dep"><div class="eyebrow">Dépannage ${k + 1} sur ${X.DEPANNAGES.length} · ${"●".repeat(D.niveau)}${"○".repeat(3 - D.niveau)}${fait ? " · déjà réussi ✓" : ""}</div>
+      <h2>${esc(D.titre)}</h2>
+      <p>Le schéma est juste, mais une <b>panne</b> y est cachée : un fil coupé, un contact qui ne conduit plus, une bobine, un voyant ou un fusible coupé… Ici, les fils ne montrent pas la tension : il faut <b>mesurer</b>.</p>
+      <details class="dp-ok" open><summary>Ce qui doit se passer</summary>${D.fonctionnement}</details>
+      <ol class="dp-etapes"><li>Essaie le schéma : qu'est-ce qui ne marche pas ?</li><li>Prends le <b>voltmètre</b> : pointe rouge sur une borne, pointe noire sur une autre (par exemple N ou 0 V). Cherche où la tension s'arrête.</li><li>Désigne l'élément en panne.</li></ol>
+      <div class="rang"><button class="btn" type="button" id="dp-volt" aria-pressed="${outil === "volt"}">Voltmètre</button><button class="btn sec" type="button" id="dp-designer" aria-pressed="${outil === "designer"}"${depEtat.trouve || depEtat.repare ? " disabled" : ""}>Désigner la panne</button></div>
+      <div id="dp-suivi">${suiviDep()}</div>
+      <div class="rang"><button class="btn sec" type="button" id="dp-nouvelle">Nouvelle panne</button><button class="btn sec" type="button" id="dp-quitter">Quitter le dépannage</button></div></div>`;
+  }
+  function suiviDep() {
+    const n = depEtat.mesures.length, e = depEtat.erreurs;
+    let h = `<p class="dp-cpt">${n} mesure${n > 1 ? "s" : ""}${e ? ` · ${e} erreur${e > 1 ? "s" : ""}` : ""}</p>`;
+    if (n) h += `<ul class="dp-mesures">${depEtat.mesures.slice(-6).reverse().map((m) => `<li><span><i class="r"></i>${esc(m.a)} <i class="n"></i>${esc(m.b)}</span><b>${esc(m.t)}</b></li>`).join("")}</ul>`;
+    if (depEtat.trouve) {
+      h += `<div class="bravo">Trouvé : ${esc(decrirePanne(depEtat.panne))}. ${n} mesure${n > 1 ? "s" : ""}, ${e ? `${e} erreur${e > 1 ? "s" : ""}` : "aucune erreur"}.</div>`;
+      h += depEtat.repare ? `<p class="discret">Réparé : essaie le schéma, il marche de nouveau.</p>` : `<div class="rang"><button class="btn" type="button" id="dp-reparer">Réparer et essayer</button></div>`;
+    }
+    return h;
+  }
+  function majCarteDep() { const z = $("dp-suivi"); if (!z || !depEtat) return; z.innerHTML = suiviDep(); brancherSuivi(); const bd = $("dp-designer"); if (bd) bd.disabled = depEtat.trouve || depEtat.repare; }
+  function brancherSuivi() {
+    const r = $("dp-reparer"); if (r) r.onclick = () => { depEtat.repare = true; garderDep(); relancerSim(); };
+  }
+  function brancherDep() {
+    const v = $("dp-volt"); if (!v) return;
+    v.onclick = () => choisirOutil(outil === "volt" ? "fleche" : "volt");
+    $("dp-designer").onclick = () => choisirOutil(outil === "designer" ? "volt" : "designer");
+    $("dp-quitter").onclick = quitterDepannage;
+    const nv = $("dp-nouvelle");
+    nv.onclick = () => {   // en deux temps si la panne n'est pas encore trouvée
+      if (!depEtat.trouve && !nv.dataset.sur) { nv.dataset.sur = "1"; nv.textContent = "Sûr ? Abandonner celle-ci"; nv.classList.add("ko"); setTimeout(() => { if (nv.isConnected) { delete nv.dataset.sur; nv.textContent = "Nouvelle panne"; nv.classList.remove("ko"); } }, 3500); return; }
+      const avant = depEtat.panne;
+      ouvrirDepannage(doc.dep, true, avant || true);
+      bulle("Une nouvelle panne est cachée. Essaie le schéma, puis mesure.", 4000);
+    };
+    brancherSuivi();
   }
 
   /* =====================================================================
      SIMULATION
      ===================================================================== */
-  function basculerSim() { if (sim) arreterSim(); else demarrerSim(); }
+  function basculerSim() { if (sim) { if (doc.type === "depannage") quitterDepannage(); else arreterSim(); } else demarrerSim(); }
+  const avecPanne = () => doc.type === "depannage" && depEtat && depEtat.panne && !depEtat.repare;
+  function masquer(E) { if (doc.type === "depannage") E.noeuds = E.noeuds.map(() => null); return E; }   // en dépannage, on mesure
   function demarrerSim() {
     brouillon = null; if (outil === "placer" || outil === "fil") choisirOutil("fleche");
     sel.clear(); geste = null; survolPiece = null;
-    sim = MO.simulation(M.cloner(schema)); simE = sim.etat(); simSig = ""; angles = {}; tPrec = 0;
-    document.body.classList.add("simu");
-    const b = $("sc-simuler"); b.querySelector("span").textContent = "Arrêter"; b.querySelector("svg").innerHTML = '<rect x="6" y="6" width="12" height="12" rx="1.5"/>';
+    sim = MO.simulation(M.cloner(schema), avecPanne() ? { panne: depEtat.panne } : {}); simE = masquer(sim.etat()); simSig = ""; angles = {}; tPrec = 0;
+    document.body.classList.add("simu"); document.body.classList.toggle("depannage", doc.type === "depannage");
+    const b = $("sc-simuler"); b.querySelector("span").textContent = doc.type === "depannage" ? "Quitter" : "Arrêter"; b.querySelector("svg").innerHTML = '<rect x="6" y="6" width="12" height="12" rx="1.5"/>';
     fermerPalette();
     majBoutons(); construirePanneauSim(); dessiner();
     cancelAnimationFrame(rafId); rafId = requestAnimationFrame(boucle);
     const api = schema.pieces.find((pc) => pc.type === "automate" && pc.ref);
-    if (!schema.pieces.some((pc) => actionnable(pc))) bulle("Rien à actionner dans ce schéma : ajoute des boutons ou des interrupteurs.", 4000);
+    majVoltmetre();
+    if (doc.type === "depannage") bulle(depEtat && depEtat.repare ? "Réparé : essaie le schéma, il marche de nouveau." : "Essaie le schéma : qu'est-ce qui ne marche pas ? Puis prends le <b>Voltmètre</b> pour trouver la panne.", 5500);
+    else if (!schema.pieces.some((pc) => actionnable(pc))) bulle("Rien à actionner dans ce schéma : ajoute des boutons ou des interrupteurs.", 4000);
     else if (api) bulle(`Clique sur les boutons du schéma. Clique sur <b>${esc(api.ref)}</b> pour voir son programme en direct.`, 5000);
     else bulle("Clique sur les boutons du schéma (ou dans la liste « Commandes »). Double-clic : le bouton reste appuyé.", 4500);
   }
   function arreterSim() {
     sim = null; simE = null; cancelAnimationFrame(rafId); appuis.clear(); survolPiece = null; PR.live.fermer();
-    document.body.classList.remove("simu");
+    sondes = { a: null, b: null, prochaine: "a" }; survolBorne = null;
+    if (outil === "volt" || outil === "designer") { outil = "fleche"; document.querySelectorAll("#sc-barre [data-o]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.o === "fleche"))); }
+    document.body.classList.remove("simu", "depannage"); majVoltmetre();
     const b = $("sc-simuler"); b.querySelector("span").textContent = "Simuler"; b.querySelector("svg").innerHTML = '<path d="M7 4.5v15l12-7.5z"/>';
     bulle(""); majBoutons(); dessiner(); majPanneau();
   }
@@ -734,14 +963,15 @@
     const bouge = sim.enMarche() || sim.prochainEvenement() < Infinity || Object.values(simE.pieces).some((o) => o.w);
     if (!bouge && simSig) { $("sc-horloge").textContent = "t = " + nf(sim.temps() / 1000) + " s"; sim.avancer(dt); return; }
     sim.avancer(dt);
-    simE = sim.etat();
+    simE = masquer(sim.etat());
     for (const pc of schema.pieces) if (pc.type === "moteur" || pc.type === "moteur6") { const o = simE.pieces[pc.id]; if (o) angles[pc.id] = (angles[pc.id] || 0) + (o.w || 0) * dt * 0.32; }
     majSim(false);
   }
   function majSim(force) {
     if (!sim) return;
-    if (force) simE = sim.etat();
+    if (force) simE = masquer(sim.etat());
     $("sc-horloge").textContent = "t = " + nf(sim.temps() / 1000) + " s";
+    majVoltmetre();
     const sig = signature(simE);
     if (sig !== simSig) { simSig = sig; dessiner(); majPanneauSim(); PR.live.maj(simE); } else { majRotors(); majSystemes(); }
   }
@@ -792,14 +1022,15 @@
   function construirePanneauSim() {
     let h = poignee();
     if (doc.type === "defi") h += carteDefi();
-    h += `<h2>Simulation</h2><p class="discret">Les fils sous tension sont en couleur, les bobines alimentées en jaune. Clique sur les organes de commande du schéma, ou ici :</p>
+    if (doc.type === "depannage") h += carteDepannage();
+    h += `<h2>Simulation</h2><p class="discret">${doc.type === "depannage" ? "Les fils ne montrent pas la tension : mesure-la avec le voltmètre. Les bobines collées sont en jaune." : "Les fils sous tension sont en couleur, les bobines alimentées en jaune."} Clique sur les organes de commande du schéma, ou ici :</p>
       <div class="rang"><button class="btn sec" type="button" id="sm-raz">Tout remettre à zéro</button><button class="btn" type="button" id="sm-courant" hidden>Remettre le courant</button></div>
       <h3>Commandes</h3><div class="cmd-l" id="sm-cmd">${commandesSim().map((c) => `<div class="cmd" data-ref="${esc(c.ref)}"><div><b>${esc(c.ref)}</b><small>${esc(DESCR_CMD[c.pc.type] || "")}</small><span class="etat"></span></div><div class="bt">${boutonsCmd(c)}</div></div>`).join("") || `<p class="discret">Aucun bouton, interrupteur ni protection à actionner.</p>`}</div>
       ${cartesSim()}
       <h3>Ce qui se passe</h3><ul class="msgs" id="sm-msgs"></ul>
       <h3>Journal</h3><ul class="msgs" id="sm-journal"></ul>`;
     pn.innerHTML = h;
-    brancherPoignee(); brancherDefi(); brancherCartes();
+    brancherPoignee(); brancherDefi(); brancherDep(); brancherCartes();
     $("sm-raz").onclick = () => { sim.reinitialiser(); angles = {}; majSim(true); };
     $("sm-courant").onclick = () => { sim.rearmerAlimentation(); majSim(true); };
     for (const b of pn.querySelectorAll("#sm-cmd button[data-c]")) {
@@ -1287,7 +1518,7 @@
   function ouvrirExemple(id) {
     const E = X.EXEMPLES.find((e) => e.id === id); if (!E) return;
     if (sim) arreterSim();
-    if (doc.type === "defi") { sauver(); doc = { type: "libre" }; } else copieAuto();
+    quitterDoc();
     chargerSchema(E.construire()); fermerDialogues();
     if (history.replaceState) history.replaceState(null, "", location.pathname + location.search);
     bulle(`Exemple « ${esc(E.titre)} » ouvert. Appuie sur <b>Simuler</b> pour l'essayer.`, 4500);
@@ -1301,7 +1532,11 @@
     const P = progres(), n = X.DEFIS.filter((d) => P[d.id]).length;
     $("d-defis-c").innerHTML = `<p class="discret">Chaque défi part d'un schéma à compléter. « Vérifier » rejoue des essais sur ton schéma (appuyer sur S2, surcharge…) et te dit ce qui ne va pas. ${n ? `<b>${n} défi${n > 1 ? "s" : ""} réussi${n > 1 ? "s" : ""} sur ${X.DEFIS.length}.</b>` : ""} Ta progression reste dans ce navigateur${QUI !== "local" ? ` (${esc(QUI)})` : ""}.</p>
       <div class="cartes">${X.DEFIS.map((d, k) => `<button class="carte-x" type="button" data-df="${d.id}"><div class="ap">${apercu(d.depart())}</div><span class="etq${P[d.id] ? " fait" : ""}">${P[d.id] ? "Réussi ✓" : "Défi " + (k + 1)} · ${"●".repeat(d.niveau)}${"○".repeat(3 - d.niveau)}</span><b>${esc(d.titre)}</b><span>${esc(d.resume)}</span></button>`).join("")}</div>`;
+    const PD = lire(CLE.depProgres) || {};
+    $("d-defis-c").insertAdjacentHTML("beforeend", `<h3 style="margin-top:18px">Dépannage : trouve la panne</h3><p class="discret">Un schéma juste, avec une panne cachée au hasard (fil coupé, contact, bobine, fusible…). Les fils ne montrent pas la tension : on cherche avec le <b>voltmètre</b>, comme en vrai.</p>
+      <div class="cartes">${X.DEPANNAGES.map((d, k) => `<button class="carte-x" type="button" data-dp="${d.id}"><div class="ap">${apercu(d.base())}</div><span class="etq${PD[d.id] ? " fait" : ""}">${PD[d.id] ? "Trouvé ✓" : "Dépannage " + (k + 1)} · ${"●".repeat(d.niveau)}${"○".repeat(3 - d.niveau)}</span><b>${esc(d.titre)}</b><small>${esc(d.resume)}</small></button>`).join("")}</div>`);
     for (const b of $("d-defis-c").querySelectorAll("[data-df]")) b.onclick = () => ouvrirDefi(b.dataset.df);
+    for (const b of $("d-defis-c").querySelectorAll("[data-dp]")) b.onclick = () => ouvrirDepannage(b.dataset.dp);
     ouvrirDialogue("d-defis");
   }
   function ouvrirFichier() {
@@ -1319,7 +1554,7 @@
       <ul class="copies">${L.map((c, i) => `<li><span><b>${esc(c.nom)}</b><small>${new Date(c.t).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })} · ${c.schema.pieces.length} symboles</small></span><button class="btn sec" type="button" data-o="${i}">Ouvrir</button><button class="btn sec" type="button" data-x="${i}" aria-label="Supprimer la copie">×</button></li>`).join("") || `<li class="discret">Aucune copie pour l'instant.</li>`}</ul>`;
     const C = $("d-fichier-c");
     for (const b of C.querySelectorAll("[data-f]")) b.onclick = () => actionFichier(b.dataset.f);
-    for (const b of C.querySelectorAll("[data-o]")) b.onclick = () => { const c = (lire(CLE.copies) || [])[+b.dataset.o]; if (!c) return; if (sim) arreterSim(); if (doc.type === "defi") { sauver(); doc = { type: "libre" }; } else copieAuto(); try { chargerSchema(M.valider(c.schema)); } catch (e) { toast(e.message); } fermerDialogues(); };
+    for (const b of C.querySelectorAll("[data-o]")) b.onclick = () => { const c = (lire(CLE.copies) || [])[+b.dataset.o]; if (!c) return; if (sim) arreterSim(); quitterDoc(); try { chargerSchema(M.valider(c.schema)); } catch (e) { toast(e.message); } fermerDialogues(); };
     for (const b of C.querySelectorAll("[data-x]")) b.onclick = () => { const L2 = lire(CLE.copies) || []; L2.splice(+b.dataset.x, 1); garder(CLE.copies, L2); ouvrirFichier(); };
     ouvrirDialogue("d-fichier");
   }
@@ -1329,7 +1564,7 @@
   }
   const nomFichier = () => (schema.titre || "schema").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase().slice(0, 50) || "schema";
   async function actionFichier(f) {
-    if (f === "nouveau") { if (sim) arreterSim(); if (doc.type === "defi") { sauver(); doc = { type: "libre" }; } else copieAuto(); chargerSchema(M.nouveau()); fermerDialogues(); if (history.replaceState) history.replaceState(null, "", location.pathname); return; }
+    if (f === "nouveau") { if (sim) arreterSim(); quitterDoc(); chargerSchema(M.nouveau()); fermerDialogues(); if (history.replaceState) history.replaceState(null, "", location.pathname); return; }
     if (f === "json") { telecharger(new Blob([JSON.stringify(schema, null, 1)], { type: "application/json" }), nomFichier() + ".json"); toast("Fichier exporté."); return; }
     if (f === "copie") { const nom = ($("f-nom").value || schema.titre || "Mon schéma").trim().slice(0, 80); const L = lire(CLE.copies) || []; L.unshift({ id: Date.now(), nom, t: Date.now(), schema: M.cloner(schema) }); garder(CLE.copies, L.slice(0, 30)); toast("Copie enregistrée."); ouvrirFichier(); return; }
     if (f === "svg") { const t = await svgExport(); telecharger(new Blob([t], { type: "image/svg+xml" }), nomFichier() + ".svg"); return; }
@@ -1343,7 +1578,7 @@
       try {
         const s = M.valider(JSON.parse(String(r.result)));
         if (sim) arreterSim();
-        if (doc.type === "defi") { sauver(); doc = { type: "libre" }; } else copieAuto();
+        quitterDoc();
         chargerSchema(s); fermerDialogues(); toast(`« ${s.titre} » ouvert.`);
       } catch (x) { toast(x && x.message ? x.message : "Ce fichier n'a pas pu être lu."); }
       e.target.value = "";
@@ -1443,6 +1678,9 @@
       <h3 style="margin-top:14px">La partie opérative et les capteurs 3 fils</h3>
       <p class="discret"><b>Le chariot</b>, <b>la cuve</b> et <b>le tapis</b> (catégorie « Partie opérative ») montrent la machine elle-même. On choisit le moteur qui l'entraîne et les repères de ses capteurs : en simulation, le chariot roule et actionne tout seul ses fins de course ; l'eau monte, descend et fait basculer les interrupteurs de niveau (LSL : niveau bas, LSH : niveau haut) ; les caisses du tapis passent devant la cellule, qui les voit une par une : pour les compter, il faut un compteur dans l'automate. <b>Le tapis de tri</b> a en plus un aiguillage : un volet manœuvré par un vérin (dessiné selon l'ISO 1219, avec son distributeur 4/2). Quand la bobine de l'électrovanne (YV) est alimentée, la tige sort et le volet envoie la caisse dans le bac 2 ; sinon, elle tombe dans le bac 1. Pendant la simulation, « Bloquer la tige » (carte du tapis) simule une panne du vérin. Si rien n'arrête le moteur, le chariot force contre la butée (le moteur chauffe) ou la cuve déborde.</p>
       <p class="discret"><b>Le capteur 3 fils</b> se branche comme dans les machines : BN (marron) au +24 V, BU (bleu) au 0 V, et BK (noir), sa sortie, sur une entrée de l'automate. Un capteur PNP donne du +24 V sur BK quand il détecte ; un NPN donne du 0 V (la charge va alors du +24 V à BK).</p>
+      <h3 style="margin-top:14px">Le voltmètre et le dépannage</h3>
+      <p class="discret">Pendant la simulation, le bouton <b>Voltmètre</b> remplace « Fil » dans la barre d'outils. ${DOIGT ? "Touche" : "Clique sur"} une borne pour la pointe <b style="color:#e03131">rouge</b>, puis une autre pour la pointe <b>noire</b> (COM) : l'écran donne la tension entre les deux, et la suit quand le schéma change (appuie sur S2 en gardant les pointes). En continu, le signe dit dans quel sens tu mesures (−24 V : pointes inversées). Comme un vrai voltmètre, il « voit à travers » une bobine ou un voyant : derrière un contact ouvert, on retrouve le neutre.</p>
+      <p class="discret"><b>Dépannage</b> (fenêtre « Défis ») : un schéma juste, avec une panne cachée au hasard (un fil coupé, un contact qui ne conduit plus, une bobine, un voyant ou un fusible coupé). Les fils ne sont plus en couleur : on essaie, on mesure pour trouver où la tension s'arrête, puis « Désigner la panne ». La méthode : pointe noire sur le neutre (ou le 0 V), pointe rouge de borne en borne en partant de la phase ; ou bien les deux pointes aux bornes d'un même élément (un contact fermé qui conduit donne 0 V).</p>
       <h3 style="margin-top:14px">Lire les symboles</h3>
       <p class="discret">Les symboles suivent la norme <b>NF EN 60617</b> (le numéro de chaque symbole est noté dessous). Ce qui compte, c'est le petit signe à gauche du contact : il dit <b>qui l'actionne</b>.</p>
       <div class="sym-g">${SYMBOLES_AIDE.map(([t, p, nom, ref, o]) => `<figure>${SY.icone(t, p, o)}<figcaption>${esc(nom)}<small>${esc(ref)}</small></figcaption></figure>`).join("")}</div>
@@ -1511,6 +1749,7 @@
     q("annuler").disabled = !!sim || hpos <= 0; q("refaire").disabled = !!sim || hpos >= histo.length - 1;
     q("tourner").disabled = !!sim || (!sel.size && outil !== "placer"); q("supprimer").disabled = !!sim || (!sel.size && !brouillon);
     for (const o of ["fil"]) document.querySelector(`#sc-barre [data-o="${o}"]`).disabled = !!sim;
+    document.querySelector('#sc-barre [data-o="volt"]').disabled = !sim;
   }
   let tBulle = 0;
   function bulle(html, ms) {
@@ -1535,15 +1774,17 @@
   if (session && session.nom) $("sc-qui").textContent = session.nom;
   new ResizeObserver(() => appliquerVue()).observe(vueEl);
   function depart() {
-    const h = location.hash.replace(/^#/, ""), m = /^(defi|exemple)=([\w-]+)$/.exec(h);
+    const h = location.hash.replace(/^#/, ""), m = /^(defi|exemple|depannage)=([\w-]+)$/.exec(h);
     if (m && m[1] === "defi" && defiParId(m[2])) { ouvrirDefi(m[2], true); return; }
+    if (m && m[1] === "depannage" && depParId(m[2])) { ouvrirDepannage(m[2], true); return; }
     if (m && m[1] === "exemple" && X.EXEMPLES.some((e) => e.id === m[2])) { doc = { type: "libre" }; chargerSchema(X.EXEMPLES.find((e) => e.id === m[2]).construire()); return; }
     const d = lire(CLE.dernier);
     if (d && d.type === "defi" && defiParId(d.defi)) { ouvrirDefi(d.defi, true); return; }
+    if (d && d.type === "depannage" && depParId(d.dep)) { ouvrirDepannage(d.dep, true); return; }
     let s = null; const sv = lire(CLE.libre); if (sv) { try { s = M.valider(sv); } catch (e) { s = null; } }
     doc = { type: "libre" }; chargerSchema(s || M.nouveau());
   }
-  window.addEventListener("hashchange", () => { const m = /^#(defi|exemple)=([\w-]+)$/.exec(location.hash); if (m) { if (m[1] === "defi") ouvrirDefi(m[2]); else ouvrirExemple(m[2]); } });
+  window.addEventListener("hashchange", () => { const m = /^#(defi|exemple|depannage)=([\w-]+)$/.exec(location.hash); if (m) { if (m[1] === "defi") ouvrirDefi(m[2]); else if (m[1] === "depannage") ouvrirDepannage(m[2]); else ouvrirExemple(m[2]); } });
   window.addEventListener("beforeunload", () => { if (!sim) sauver(); });
   depart();
   requestAnimationFrame(() => { appliquerVue(); if (!schema.pieces.length) ajusterVue(); else ajusterVue(); });
@@ -1553,6 +1794,7 @@
     schema: () => schema, simulation: () => sim, etat: () => simE, vue: () => Object.assign({}, vue), choix: () => [...sel], outil: () => outil, doc: () => Object.assign({}, doc),
     versEcran: (gx, gy) => { const r = svg.getBoundingClientRect(); return [r.left + vue.x + gx * G * vue.z, r.top + vue.y + gy * G * vue.z]; },
     charger: (s) => chargerSchema(M.valider(s)), ouvrirExemple, ouvrirDefi, verifierDefi, simuler: basculerSim, dessiner, svgExport,
+    ouvrirDepannage, depannage: () => (depEtat ? JSON.parse(JSON.stringify(depEtat)) : null), sondes: () => JSON.parse(JSON.stringify(sondes)), outilV: choisirOutil,
     programmer: (ref) => ouvrirProgramme(schema.pieces.find((q) => q.type === "automate" && (!ref || q.ref === ref)))
   };
 })();

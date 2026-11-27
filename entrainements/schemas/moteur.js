@@ -55,8 +55,12 @@
     union(a, b) { a = this.find(a); b = this.find(b); if (a !== b) this.p[b] = a; }
   }
 
-  function simulation(schema) {
-    const s = schema, net = M.netlist(s), pieces = s.pieces || [];
+  /* options.panne (dépannage) : { fil: id } un fil coupé, { piece: id, i } un contact (ou un pôle i) qui ne conduit plus,
+     une bobine ou un voyant coupé. Le dessin ne change pas : seuls les mesures et le fonctionnement le montrent. */
+  function simulation(schema, options) {
+    const opt = options || {}, panne = opt.panne && (opt.panne.fil || opt.panne.piece) ? opt.panne : null;
+    const s = schema, pieces = s.pieces || [], netR = M.netlist(s);   // netR : le schéma tel qu'il est dessiné
+    const net = panne && panne.fil ? M.netlist(Object.assign({}, s, { fils: (s.fils || []).filter((f) => f.id !== panne.fil) })) : netR;
     const NB = Math.max(1, net.nb);
     const nd = (pc, b) => { const n = net.borne[pc.id + ":" + b]; return n == null ? -1 : n; };
     const INFO = Object.assign({}, BASE);
@@ -137,14 +141,14 @@
     // bornes et bouts de fils reliés à rien (le réseau peut garder N ou PE libres)
     {
       const L = [];
-      for (const l of net.libres) {
+      for (const l of netR.libres) {
         const pc = pieces.find((q) => q.id === l.piece); if (!pc || pc.type === "reseau" || M.libreOk(pc, l.borne)) continue;
         const b = M.bornesLocales(pc).find((q) => q.id === l.borne);
         if (pc.type === "alim") { const P = M.parametres(pc); L.push("repère " + ((M.POTENTIELS.find((x) => x.id === P.pot) || {}).nom || P.pot)); }
         else L.push(((pc.ref || M.TYPES[pc.type].court) + " " + ((b && b.n) || "")).trim());
       }
       if (L.length) remarques.push({ niveau: "info", texte: `${L.length > 1 ? L.length + " bornes ne sont reliées" : "Une borne n'est reliée"} à rien : ${L.slice(0, 5).join(", ")}${L.length > 5 ? "…" : ""}.`, refs: [] });
-      if (net.bouts.length) remarques.push({ niveau: "info", texte: `${net.bouts.length > 1 ? net.bouts.length + " bouts de fils ne sont reliés" : "Un bout de fil n'est relié"} à rien.`, refs: [] });
+      if (netR.bouts.length) remarques.push({ niveau: "info", texte: `${netR.bouts.length > 1 ? netR.bouts.length + " bouts de fils ne sont reliés" : "Un bout de fil n'est relié"} à rien.`, refs: [] });
     }
     const appareils = Object.values(dev);
     const bobines = appareils.filter((d) => A_BOBINE.has(d.sorte) || d.sorte === "transfo");
@@ -199,6 +203,8 @@
         cond.push({ pc, i: 1, n1: nd(pc, "PE"), n2: nd(pc, "PE2"), ferme: () => true });   // la borne de terre traverse le variateur
       }
     }
+    // panne : le contact (ou le pôle) bouge comme d'habitude, mais il ne conduit plus
+    if (panne && panne.piece) for (const c of cond) if (c.pc.id === panne.piece && (panne.i == null || panne.i === c.i)) { c.meca = c.ferme; c.ferme = () => false; }
     const condValides = cond.filter((c) => c.n1 >= 0 && c.n2 >= 0);
 
     /* ----- les sources ----- */
@@ -246,6 +252,7 @@
       else if (pc.type === "transfo") charges.push({ pc, d, n1: nd(pc, "p1"), n2: nd(pc, "p2"), cote: { v: Number(P.prim) || 400, ac: true }, sorte: "transfo" });
       else if (pc.type === "capteur3") charges.push({ pc, d, n1: nd(pc, "BN"), n2: nd(pc, "BU"), cote: { v: 24, ac: false }, sorte: "capteur3" });
     }
+    if (panne && panne.piece) for (const ch of charges) if (ch.pc.id === panne.piece) ch.coupee = true;   // bobine ou voyant coupé
     const moteurs = pieces.filter((pc) => (pc.type === "moteur" || pc.type === "moteur6") && devDe.get(pc.id)).map((pc) => ({ pc, d: devDe.get(pc.id) }));
 
     /* ----- calcul des nœuds ----- */
@@ -343,7 +350,7 @@
         for (const ch of charges) {
           if (ch.sorte === "voyant" || ch.sorte === "ev") continue;
           const d = ch.d; if (bloques.has(d)) continue;
-          const j = jugerCharge(ch, uf, m);
+          const j = ch.coupee ? { on: false, etat: "" } : jugerCharge(ch, uf, m);
           if (j.grille && !d.grille) {
             d.grille = true;
             log("erreur", `${ch.sorte === "transfo" ? "Le transformateur" : ch.sorte === "capteur3" ? "Le capteur" : "La bobine"} ${d.ref} (${txtTension(ch.cote)}) reçoit ${txtTension(j.u)} : ${ch.sorte === "transfo" ? "il grille" : ch.sorte === "capteur3" ? "il est détruit" : "elle grille"} !`, { refs: [d.ref] });
@@ -386,7 +393,7 @@
       // voyants et électrovannes
       for (const ch of charges) {
         if (ch.sorte !== "voyant" && ch.sorte !== "ev") continue;
-        const j = juger(ch, tensionCharge(ch, uf, m));
+        const j = ch.coupee ? { on: false, etat: "" } : juger(ch, tensionCharge(ch, uf, m));
         if (j.grille && !ch.d.grille) { ch.d.grille = true; log("erreur", `${ch.sorte === "ev" ? "La bobine de l'électrovanne" : "Le voyant"} ${ch.d.ref} (${txtTension(ch.cote)}) reçoit ${txtTension(j.u)} : ${ch.sorte === "ev" ? "elle grille" : "il grille"} !`, { refs: [ch.d.ref] }); }
         ch.d.alim = j.on && !ch.d.grille;
       }
@@ -850,6 +857,7 @@
       if (defaut) L.push({ niveau: "erreur", texte: "Court-circuit : l'alimentation est coupée. Corrige le schéma, puis « Remettre le courant ».", refs: [] });
       for (const ch of charges) {
         const d = ch.d, quoi = ch.sorte === "voyant" ? "Le voyant" : ch.sorte === "transfo" ? "Le primaire du transformateur" : ch.sorte === "capteur3" ? "Le capteur" : ch.sorte === "ev" ? "La bobine de l'électrovanne" : "La bobine";
+        if (ch.coupee) continue;
         if (d.grille) { L.push({ niveau: "erreur", texte: ch.sorte === "capteur3" ? `Le capteur ${d.ref} est détruit (mauvaise tension).` : `${quoi} ${d.ref} a grillé (mauvaise tension).`, refs: [d.ref] }); continue; }
         const j = jugerCharge(ch, uf, m);
         if (ch.sorte === "capteur3") {
@@ -916,7 +924,7 @@
       for (const c of condValides) {
         const o = pieceEtat[c.pc.id] || (pieceEtat[c.pc.id] = {});
         if (!o.fermes) o.fermes = [];
-        o.fermes[c.i] = c.ferme();
+        o.fermes[c.i] = (c.meca || c.ferme)();
         o.ferme = o.fermes[0];
       }
       for (const pc of pieces) {
@@ -960,6 +968,87 @@
       for (const c of courts) if (t - c.t < 2500) for (const n of c.noeuds) recents.add(n);
       return { t, defaut: !!defaut, noeuds, court: [...recents], pieces: pieceEtat, appareils: appareilsEtat, messages: messages(), journal: journal.slice() };
     }
+    /* ----- le voltmètre (haute impédance) : ce qu'il lit entre deux bornes ----- */
+    const voit = [];   // il « voit à travers » les récepteurs, les enroulements des moteurs, les entrées des automates
+    for (const ch of charges) if (!ch.coupee) voit.push([ch.n1, ch.n2]);
+    for (const { pc } of moteurs) {
+      const b = (id) => nd(pc, id);
+      if (pc.type === "moteur") voit.push([b("U"), b("V")], [b("V"), b("W")], [b("W"), b("U")]);
+      else voit.push([b("U1"), b("U2")], [b("V1"), b("V2")], [b("W1"), b("W2")]);
+    }
+    for (const pc of pieces) {
+      if (pc.type === "automate") { for (let k = 0; k < 8; k++) voit.push([nd(pc, "I" + k), nd(pc, "COM")]); voit.push([nd(pc, "p24"), nd(pc, "m0")]); }
+      else if (pc.type === "transfo") voit.push([nd(pc, "s1"), nd(pc, "s2")]);
+      else if (pc.type === "variateur") for (const li of ["LI1", "LI2", "LI3", "LI4"]) voit.push([nd(pc, li), nd(pc, "COM")]);
+    }
+    const voitOk = voit.filter(([x, y]) => x >= 0 && y >= 0);
+    function vu(n) {   // le potentiel d'un point, vu par le voltmètre
+      if (!dernier || n < 0) return { k: "air" };
+      const { uf, m } = dernier, r0 = uf.find(n), e0 = m.get(r0);
+      if (e0 && e0.size) return e0.size > 1 ? { k: "court" } : { k: "pot", p: e0.values().next().value };
+      const va = vNoeud(uf, m, n, null, 0);
+      if (typeof va === "number" && !Number.isNaN(va)) return { k: "dc", v: va };
+      const vus = new Set([r0]), file = [r0], pots = new Set();   // point en l'air : on regarde à travers les récepteurs
+      while (file.length) {
+        const r = file.shift();
+        for (const [x, y] of voitOk) {
+          const rx = uf.find(x), ry = uf.find(y), autre = rx === r ? ry : ry === r ? rx : -1;
+          if (autre < 0 || vus.has(autre)) continue;
+          vus.add(autre);
+          const e = m.get(autre);
+          if (e && e.size) { for (const p of e) pots.add(p); continue; }
+          file.push(autre);
+        }
+      }
+      if (pots.size === 1) return { k: "pot", p: [...pots][0], via: true };
+      return pots.size ? { k: "mix", pots: [...pots] } : { k: "air" };
+    }
+    const enDC = (X) => (X.k === "dc" ? X.v : X.k === "pot" && X.p === "+24" ? 24 : X.k === "pot" && X.p === "0V" ? 0 : null);
+    // un point « entre deux potentiels » (à travers des récepteurs) : la moyenne des tensions complexes (récepteurs égaux)
+    const ANG = { L1: 0, L2: -120, L3: 120 };
+    function phasor(p) {
+      const i = info(p); if (!i) return null;
+      const pol = (m, a) => ({ re: m * Math.cos(a * Math.PI / 180), im: m * Math.sin(a * Math.PI / 180) });
+      if (i.net === "R" || i.net === "PE") return Object.assign(i.chaud ? pol(230, ANG[p] || 0) : { re: 0, im: 0 }, { sys: "R" });
+      if (i.net === "DC") return { re: p === "+24" ? 24 : 0, im: 0, sys: "DC" };
+      if (i.net.indexOf("T:") === 0) return { re: i.chaud ? i.v : 0, im: 0, sys: i.net };
+      if (i.net.indexOf("V:") === 0) return Object.assign(pol(230 * clamp(Math.abs((i.var && i.var.fs) || 0) / 50, 0, 1), [0, -120, 120][i.ph]), { sys: i.net });
+      return null;
+    }
+    function phasorDe(X) {
+      if (X.k === "dc") return { re: X.v, im: 0, sys: "DC" };
+      if (X.k === "pot") return phasor(X.p);
+      if (X.k !== "mix") return null;
+      const L = X.pots.map(phasor);
+      if (L.some((q) => !q || q.sys !== L[0].sys)) return null;
+      return { re: L.reduce((a, q) => a + q.re, 0) / L.length, im: L.reduce((a, q) => a + q.im, 0) / L.length, sys: L[0].sys };
+    }
+    /* a, b : { piece, borne } (pointe rouge, pointe noire). Rend { v, ac, texte } ; v est signé en continu. */
+    function mesurer(a, b) {
+      const n1 = a ? nd({ id: a.piece }, a.borne) : -1, n2 = b ? nd({ id: b.piece }, b.borne) : -1;
+      if (n1 < 0 || n2 < 0) return { v: null, texte: "—" };
+      if (n1 === n2 && dernier && dernier.uf.find(n1) === dernier.uf.find(n2)) return { v: 0, ac: false, texte: "0 V" };
+      const A = vu(n1), B = vu(n2);
+      if (A.k === "court" || B.k === "court") return { v: null, texte: "court-circuit" };
+      const zero = { v: 0, ac: false, texte: "0 V" };
+      if (A.k === "air" || B.k === "air") return zero;
+      if (A.k === "mix" || B.k === "mix") {   // une tension « partielle », à travers des récepteurs
+        const pa = phasorDe(A), pb = phasorDe(B);
+        if (!pa || !pb || pa.sys !== pb.sys) return zero;
+        if (pa.sys === "DC") { const v = Math.round((pa.re - pb.re) * 10) / 10; return { v, ac: false, texte: v ? `${v < 0 ? "−" : ""}${nf1(Math.abs(v))} V continu` : "0 V" }; }
+        const v = Math.round(Math.hypot(pa.re - pb.re, pa.im - pb.im));
+        return v ? { v, ac: true, texte: `${v} V ~` } : zero;
+      }
+      const da = enDC(A), db = enDC(B);
+      if (da != null && db != null) { const v = Math.round((da - db) * 10) / 10; return { v, ac: false, texte: v ? `${v < 0 ? "−" : ""}${nf1(Math.abs(v))} V continu` : "0 V" }; }
+      if (da != null || db != null) return zero;   // continu d'un côté, alternatif de l'autre : deux circuits séparés
+      const u = tension(A.p, B.p);
+      if (u.inconnu || !u.v) return zero;
+      let v = u.v;
+      const iv = info(A.p) && info(A.p).var ? info(A.p).var : info(B.p) && info(B.p).var ? info(B.p).var : null;
+      if (iv) v = Math.round(400 * clamp(Math.abs(iv.fs || 0) / 50, 0, 1));   // sortie d'un variateur : la tension suit la fréquence
+      return { v, ac: true, texte: `${v} V ~` };
+    }
     function enChemin(refProt, refMoteur) {   // les pôles de refProt portent-ils le courant de refMoteur ?
       const mo = moteurs.find((x) => x.d.ref === refMoteur); if (!mo) return false;
       return condValides.some((c) => c.pc.ref === refProt && (c.prot || c.therm) && c.ferme() && cheminMoteur(mo, c));
@@ -969,7 +1058,7 @@
       action, avancer, evaluer: () => { evaluer(); return api; }, etat, reinitialiser, rearmerAlimentation, enChemin,
       appuyer: (r) => action(r, "appuyer"), relacher: (r) => action(r, "relacher"), basculer: (r) => action(r, "basculer"),
       surcharge: (r) => action(r, "surcharge"), rearmer: (r) => action(r, "rearmer"),
-      temps: () => t, journal: () => journal.slice(), netlist: net, appareils: () => appareils.map((d) => ({ ref: d.ref, sorte: d.sorte })),
+      temps: () => t, journal: () => journal.slice(), netlist: netR, mesurer, appareils: () => appareils.map((d) => ({ ref: d.ref, sorte: d.sorte })),
       enMarche: () => moteurs.some(({ d }) => Math.abs(d.w) > 0.002 || d.etatM !== "arret") || bobines.some((d) => (d.sorte === "travail" || d.sorte === "repos") && progression(d) > 0 && progression(d) < 1) || variateurs.some((d) => d.fs !== 0 || d.cible !== 0),
       regler: (r, v) => action(r, "regler", v),
       prochainEvenement: prochain, aDefaut: () => !!defaut
@@ -1042,7 +1131,7 @@
   }
   function scenario(schema, etapes, options) {
     const o = options || {};
-    const sim = simulation(schema);
+    const sim = simulation(schema, { panne: o.panne });
     const sortes = {}; for (const a of sim.appareils()) sortes[a.ref] = a.sorte;
     for (const [ref, sorte] of Object.entries(o.exige || {})) {
       if (!sortes[ref]) return { ok: false, etapes: [{ texte: `Le schéma contient ${ref}`, ok: false, detail: `Je ne trouve pas ${ref}. Ne supprime pas et ne renomme pas les appareils du départ.` }], journal: [] };
@@ -1069,6 +1158,24 @@
     return { ok, etapes: out, journal: sim.journal() };
   }
 
-  const API = { simulation, scenario, lireTension, POT_ALIM, PRINCIPAL };
+  /* ---------- dépannage : les pannes qu'on peut cacher dans un schéma ---------- */
+  function pannesPossibles(schema) {
+    const L = [];
+    for (const f of schema.fils || []) L.push({ fil: f.id });
+    for (const pc of schema.pieces || []) {
+      const t = pc.type;
+      if (M.nature(pc) || t === "fusible" || M.BOBINES.indexOf(t) >= 0 || t === "voyant" || t === "electrovanne") L.push({ piece: pc.id });
+      else if (t === "poles" || t === "sectionneur" || t === "thermique" || t === "disj_moteur") for (let i = 0; i < 3; i++) L.push({ piece: pc.id, i });
+      else if (t === "disjoncteur") { const n = clamp(M.parametres(pc).poles | 0, 1, 3); for (let i = 0; i < n; i++) L.push({ piece: pc.id, i }); }
+    }
+    return L;
+  }
+  /* une panne se voit si l'essai (sans les vérifications de câblage : protection, terre) ne passe plus */
+  function panneVisible(schema, panne, essai) {
+    const E = essai.map((e) => { const c = Object.assign({}, e); delete c.protege; delete c.terre; return c; });
+    return !scenario(schema, E, { panne, jamaisCourt: false }).ok;
+  }
+
+  const API = { simulation, scenario, lireTension, POT_ALIM, PRINCIPAL, pannesPossibles, panneVisible };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasMoteur = API;
 })(typeof window !== "undefined" ? window : globalThis);

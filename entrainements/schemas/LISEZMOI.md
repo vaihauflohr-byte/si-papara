@@ -102,7 +102,21 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
      contact de sortie se ferme quand la sortie est active. Branché à l'envers : il ne marche pas, et « ce qui se
      passe » le dit.
    Le panneau de simulation montre où est le chariot, le niveau de la cuve, l'état de leurs capteurs.
-9. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
+9. **Voltmètre** (pendant la simulation, à la place de « Fil » dans la barre d'outils) : un toucher sur une borne pose la
+   pointe rouge, le suivant la pointe noire (COM), puis elles alternent. L'écran (en haut à gauche, en bas sur téléphone)
+   donne la tension et la suit quand le schéma change : 230 V ~, 400 V ~, 24 V continu avec son signe (−24 V : pointes
+   inversées). Comme un vrai voltmètre, il « voit à travers » les bobines, les voyants, les enroulements et les entrées
+   d'automate : derrière un contact ouvert, on retrouve le neutre ; un point relié à deux phases par des récepteurs
+   donne une tension partielle (aux bornes d'un pôle coupé : 345 V). Deux circuits séparés (24 V et réseau) : 0 V.
+10. **Dépannage** (fenêtre « Défis », en bas) : un schéma juste avec une **panne cachée**, tirée au hasard parmi celles que
+   l'essai du dépannage fait voir : un fil coupé, un contact (ou un pôle) qui ne conduit plus, une bobine, un voyant ou
+   un fusible coupé. Le dessin ne change pas (le contact bouge, le fusible a l'air intact), les fils ne sont plus en
+   couleur, aucun message ne trahit la panne : l'élève essaie, mesure, puis « Désigner la panne » et touche l'élément.
+   Bonne réponse : l'élément est marqué en rouge, le nombre de mesures et d'erreurs est donné, « Réparer et essayer »
+   relance le schéma sans panne. Mauvaise réponse : l'élément montré en vert, « en bon état ». Un fil compte aussi
+   s'il est équivalent (le couper sépare les mêmes bornes). « Nouvelle panne » en tire une autre ; la barre d'outils dit
+   « Quitter ». Le schéma de l'élève n'est pas touché (le dépannage n'est pas enregistré à sa place).
+11. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
    fichier `.json` (à rendre au professeur, à rouvrir sur un autre appareil), image PNG ou SVG avec un cartouche
    (logo du lycée, titre, nom de l'élève connecté, date), impression A4 paysage.
 
@@ -129,6 +143,21 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `tri-surveille` | le même tri, avec H2 (défaut, rouge) sur %Q0.3 et un deuxième GRAFCET, la surveillance du vérin : 50 (initiale) → `t/X21/1s · /S5 + t/X20/1s · /S4` (tige pas sortie 1 s après l'ordre, ou pas rentrée 1 s après) → 51 (« H2 si %S6 ») → `↑S3` → 50 ; dans l'étape 10, « KM1 si /X51 » : le tapis s'arrête pendant le défaut |
 | `api-variateur` | automate et variateur : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz ; 10 V avec S4 : 50 Hz), C0 au +24V du variateur, rampes de 2 s |
 | `variateur-pot` | variateur seul : interrupteurs S2 (LI1) et S3 (LI2) sur son +24V, potentiomètre R1 sur +10V, AI1, COM |
+
+## Les dépannages (`exemples.js`, `DEPANNAGES`)
+
+| Identifiant | Schéma | L'essai qui fait voir la panne |
+|---|---|---|
+| `p1-marche-arret` | démarrage direct | S2 (maintenu, puis lâché : KM1 reste), S1, S2 (le moteur ne doit pas être sur deux phases), surcharge F1, réarmement |
+| `p2-signalisation` | le même, avec H1 et H2 | repos (voyants éteints), marche (H1), arrêt, surcharge (H2), réarmement |
+| `p3-inversion` | inversion du sens de marche | S2 sens 1, S1, S3 sens 2, S1, S2, surcharge |
+| `p4-automate` | marche-arrêt par automate (Ladder) | repos, S2, lâché (maintien, H1), S1, S2, surcharge, réarmement |
+| `p5-etoile-triangle` | démarrage étoile-triangle (24 V) | S2 étoile, 3,3 s plus tard triangle, S1, S2, surcharge |
+
+Chaque essai passe sur le schéma sans panne ; sur ces cinq schémas, toutes les pannes possibles se voient sauf le fil PE
+(35 à 71 pannes possibles par schéma). Les tirer toutes au sort et les essayer prend moins de 0,2 s. La panne en cours,
+les mesures et les erreurs sont gardées (`schemas:dep:<élève>:<id>`, la panne un peu cachée en base 64), les réussites
+à part (`schemas:depannage:<élève>`) : le compteur « n / 15 défis » du tableau de bord ne les compte pas.
 
 ## Les défis (`exemples.js`, `DEFIS`)
 
@@ -321,6 +350,20 @@ calcul de tension partagée), le verrouillage mécanique, les temps de réponse 
 l'automate, les entrées analogiques de l'automate, la régulation du variateur (couple, glissement : le moteur suit la
 fréquence), la charge mécanique (le chariot va à la même vitesse à vide ou chargé).
 
+### Pannes et voltmètre
+
+- `simulation(schema, { panne })` : `{ fil: id }` (la liste des liaisons est refaite sans ce fil ; celle du dessin,
+  `sim.netlist`, et les remarques « borne reliée à rien » restent celles du schéma dessiné), `{ piece: id }` ou
+  `{ piece: id, i }` (le contact, ou le pôle i, bouge comme d'habitude mais ne conduit plus ; une bobine, un voyant, une
+  électrovanne coupés ne s'alimentent jamais, sans message). `scenario(…, { panne })` rejoue un essai avec la panne.
+- `pannesPossibles(schema)` : chaque fil, chaque contact, fusible, bobine, voyant, électrovanne, chaque pôle d'un
+  sectionneur, d'un contacteur, d'un relais thermique ou d'un disjoncteur. `panneVisible(schema, panne, essai)` : l'essai
+  (sans ses vérifications de protection et de terre) ne passe plus.
+- `sim.mesurer({ piece, borne }, { piece, borne })` → `{ v, ac, texte }`. Un point relié à une source donne son potentiel ;
+  un point « en l'air » regarde à travers les récepteurs (bobines, voyants, électrovannes, primaires, capteurs 3 fils,
+  enroulements des moteurs, entrées et alimentation des automates, entrées LI des variateurs) : un seul potentiel
+  trouvé, c'est le sien ; plusieurs, la moyenne de leurs tensions complexes (récepteurs supposés égaux) ; aucun, 0 V.
+
 ### Piloter la simulation depuis ailleurs
 
 Le moteur ne dépend pas de la page. Une autre partie opérative (convoyeur, ascenseur…) peut se brancher de deux
@@ -379,6 +422,11 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   l'exemple : 5 puis 10 caisses, arrêt par S1, magasin limité), tapis de tri (divergence en ET, 3 + 3 puis 6 + 6,
   vérin trop lent : caisses à côté, électrovanne de mauvaise tension), tapis de tri surveillé (tige bloquée rentrée ou
   sortie, H2 qui clignote, acquittement), défis 11 à 15 ; `t_auto.js` : en plus, l'horloge %S6 ;
+- `t_dep.js` (Node) : chaque dépannage (essai sain, pannes visibles), le voltmètre (L-N, entre phases, à travers une
+  bobine, fusible coupé caché, bobine coupée, fil du neutre coupé sans remarque, 24 V continu signé, circuits séparés,
+  transformateur, pôle coupé : 345 V, deux phases) ;
+- `e2e_dep.py` (Playwright, PC et téléphone) : une panne connue (KM1 13-14), fils sans couleur, mesures qui suivent le
+  schéma, carte des mesures, erreur de désignation, bonne désignation, réparation, nouvelle panne, quitter, fenêtre ;
 - `e2e_defaut.py` (Playwright, PC et téléphone) : bouton « Bloquer la tige », défaut (étape 51, tapis arrêté),
   H2 qui clignote, vérin rouge, déblocage, acquittement ; défi 15 refusé au départ, puis résolu dans l'éditeur ;
 - `e2e_tri.py`, `e2e_defi14.py` (Playwright) : volet et tige animés, bacs, carte du tri, bulle de S4, GRAFCET en ET
