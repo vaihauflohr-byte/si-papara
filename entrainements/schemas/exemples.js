@@ -127,8 +127,9 @@
     b.f([12, 19], [12, 20], [6, 20]).f([14, 19], [14, 21], [4, 21]).f([16, 19], [16, 22], [2, 22]);
     b.f([10, 2], [10, 8], [19, 8], [19, 31], [8, 31], [8, 32]);
   }
-  function exempleApiGrafcet(prog, titre) {
+  function exempleApiGrafcet(prog, titre, avecChariot) {
     const b = plan(titre || "Aller-retour d'un chariot (GRAFCET)");
+    if (avecChariot) b.p("chariot", 34, 61, "PO1", { moteur: "M1", sens: "1", gauche: "S3", droite: "S4", duree: 4, depart: "gauche" });
     puissanceInversion(b);
     automate24(b, 40, prog || progChariot());
     entrees(b, 40, [["bp_no", "S2", { num: "13-14" }], ["fdc_no", "S3", { num: "13-14" }], ["fdc_no", "S4", { num: "13-14" }]]);
@@ -165,6 +166,66 @@
       b.f([45, 30], [45, 44], [12, 44]);     // AQ0 → AI1 (consigne 0-10 V)
       b.f([12, 46], [16, 46]);               // COM du variateur au 0 V commun
     }
+    return b.s;
+  }
+  // cuve : pompe M1 par KM1, flotteurs B1 (bas) et B2 (haut) en capteurs 3 fils PNP, automate en Ladder (S et R)
+  function progCuve() {
+    return { lang: "ladder", noms: { "%I0.0": "S1", "%I0.1": "S2", "%I0.2": "B1", "%I0.3": "B2", "%Q0.0": "KM1", "%Q0.1": "H1", "%M0": "AUTO" }, ladder: [
+      { com: "S2 : mise en service", l: [{ c: [ct("no", "%I0.1"), N, N, N, N], s: { t: "s", v: "%M0" } }], v: [] },
+      { com: "S1 : mise hors service (bouton à ouverture)", l: [{ c: [ct("nf", "%I0.0"), N, N, N, N], s: { t: "r", v: "%M0" } }], v: [] },
+      { com: "Sous le niveau bas : la pompe démarre", l: [{ c: [ct("no", "%M0"), ct("nf", "%I0.2"), N, N, N], s: { t: "s", v: "%Q0.0" } }], v: [] },
+      { com: "Niveau haut, ou hors service : elle s'arrête", l: [{ c: [ct("no", "%I0.3"), N, N, N, N], s: { t: "r", v: "%Q0.0" } }, { c: [ct("nf", "%M0"), N, N, N, N], s: null }], v: [[1]] },
+      { com: "Voyant : pompe en marche", l: [{ c: [ct("no", "%Q0.0"), N, N, N, N], s: { t: "bob", v: "%Q0.1" } }], v: [] }] };
+  }
+  function exempleCuve(sansProg) {
+    const b = plan(sansProg ? "Défi · Remplis la cuve" : "Remplissage d'une cuve (automate, capteurs PNP)");
+    puissanceDirecte(b);
+    const ap = automate24(b, 36, progCuve());
+    if (sansProg) ap.prog = SA.validerProg({ lang: "ladder", noms: progCuve().noms });
+    // +24 V en haut (y = 2), 0 V des capteurs juste dessous (y = 4)
+    b.p("alim", 22, -1, "", { pot: "+24" }, 0);
+    b.f([22, 1], [22, 2], [50, 2]).f([25, 18], [25, 2]);
+    b.p("alim", 55, 1, "", { pot: "0V" }, 0);
+    b.f([55, 3], [55, 4], [45, 4]);
+    b.p("bp_nf", 31, 9, "S1", { num: "11-12" }); b.p("bp_no", 37, 9, "S2", { num: "13-14" });
+    b.p("capteur3", 44, 9, "B1", { type: "PNP", sortie: "NO" }); b.p("capteur3", 51, 9, "B2", { type: "PNP", sortie: "NO" });
+    b.f([31, 6], [31, 2]).f([37, 6], [37, 2]).f([43, 6], [43, 2]).f([50, 6], [50, 2]).f([45, 6], [45, 4]).f([52, 6], [52, 4]);
+    b.f([31, 12], [31, 18]).f([37, 12], [37, 15], [33, 15], [33, 18]).f([44, 12], [44, 16], [35, 16], [35, 18]).f([51, 12], [51, 17], [37, 17], [37, 18]);
+    // sorties : L → F2 → F1 95-96 → C0 ; %Q0.0 → KM1 (pompe), %Q0.1 → H1
+    b.p("alim", 19, 13, "", { pot: "L" }, 0); b.p("fusible", 19, 19, "F2", { cal: 2 }); b.p("contact_th_nf", 19, 26, "F1", { num: "95-96" });
+    b.f([19, 15], [19, 16]).f([19, 22], [19, 23]).f([19, 29], [19, 30], [25, 30]);
+    b.p("bobine", 33, 36, "KM1", { tension: "230~" }); b.p("voyant", 39, 36, "H1", { couleur: "vert", tension: "230~" });
+    b.f([27, 30], [27, 32], [33, 32], [33, 33]).f([29, 30], [29, 31], [39, 31], [39, 33]);
+    b.p("alim", 36, 45, "", { pot: "N" });
+    b.f([33, 39], [33, 41], [39, 41], [39, 39]).f([36, 43], [36, 41]);
+    b.p("cuve", 58, 34, "PO1", { moteur: "M1", bas: "B1", haut: "B2", duree: 10, conso: 40, niveau: 50 });
+    return b.s;
+  }
+  // va-et-vient en logique câblée : S2 lance le chariot à droite, S4 le renvoie à gauche, S3 l'arrête
+  function exempleVaEtVient(defi) {
+    const b = plan(defi ? "Défi · Le chariot revient tout seul" : "Va-et-vient d'un chariot (logique câblée)");
+    puissanceInversion(b);
+    b.p("alim", 28, 1, "", { pot: "L" });
+    b.p("fusible", 28, 7, "F2", { cal: 2 });
+    b.p("contact_th_nf", 28, 14, "F1", { num: "95-96" });
+    b.p("bp_nf", 28, 21, "S1", { num: "11-12" });
+    b.p("bp_no", 28, 28, "S2", { num: "13-14" });
+    b.p("contact_no", 34, 28, "KM1", { num: "13-14" });
+    if (!defi) b.p("fdc_nf", 28, 35, "S4", { num: "11-12" });
+    b.p("contact_nf", 28, 42, "KM2", { num: "21-22" });
+    b.p("bobine", 28, 49, "KM1", { tension: "230~" });
+    if (!defi) b.p("fdc_no", 42, 28, "S4", { num: "13-14" });
+    b.p("contact_no", 48, 28, "KM2", { num: "13-14" });
+    b.p("fdc_nf", 42, 35, "S3", { num: "11-12" });
+    b.p("contact_nf", 42, 42, "KM1", { num: "21-22" });
+    b.p("bobine", 42, 49, "KM2", { tension: "230~" });
+    b.p("alim", 28, 55, "", { pot: "N" });
+    b.f([28, 3], [28, 4]).f([28, 10], [28, 11]).f([28, 17], [28, 18]).f([28, 24], [28, 25]);
+    b.f([28, 25], [34, 25]).f([34, 31], [28, 31]).f([28, 24], [42, 24], [42, 25]).f([42, 25], [48, 25]).f([48, 31], [42, 31]);
+    b.f([28, 31], [28, 32]).f([28, 38], [28, 39]).f([28, 45], [28, 46]);
+    b.f([42, 31], [42, 32]).f([42, 38], [42, 39]).f([42, 45], [42, 46]);
+    b.f([28, 52], [28, 53]).f([42, 52], [42, 53], [28, 53]);
+    b.p("chariot", 30, 63, "PO1", { moteur: "M1", sens: "1", gauche: "S3", droite: "S4", duree: 4, depart: "gauche" });
     return b.s;
   }
   function exempleVariateurPot(sansPot) {
@@ -260,8 +321,14 @@
       resume: "S1, S2 et F1 sur les entrées de API1, KM1 et H1 sur ses sorties. Le programme en Ladder fait l'auto-maintien.",
       construire() { return exempleApiLadder(); } },
     { id: "api-grafcet", titre: "Aller-retour d'un chariot (GRAFCET)", niveau: "Automate",
-      resume: "dcy : le chariot va à droite (KM1) jusqu'à b, attend 3 s, revient (KM2) jusqu'à a. Clique sur S3 et S4 pour dire où il est.",
-      construire() { return exempleApiGrafcet(); } },
+      resume: "dcy (S2) : le chariot va à droite (KM1) jusqu'à b (S4), attend 3 s, revient (KM2) jusqu'à a (S3). Il actionne lui-même ses fins de course.",
+      construire() { return exempleApiGrafcet(null, null, true); } },
+    { id: "va-et-vient", titre: "Va-et-vient d'un chariot (logique câblée)", niveau: "Partie opérative",
+      resume: "S2 : le chariot part à droite (KM1). Arrivé sur S4, KM1 retombe et KM2 le ramène ; il s'arrête sur S3. Les fins de course sont actionnés par le chariot.",
+      construire() { return exempleVaEtVient(); } },
+    { id: "cuve", titre: "Remplissage d'une cuve (automate, capteurs PNP)", niveau: "Partie opérative",
+      resume: "S2 met en service : la pompe M1 démarre sous le niveau bas (B1) et s'arrête au niveau haut (B2). Programme en Ladder avec S et R ; flotteurs en capteurs 3 fils PNP.",
+      construire() { return exempleCuve(); } },
     { id: "api-variateur", titre: "Automate et variateur : deux sens, deux vitesses", niveau: "Variateur",
       resume: "API1 commande U1 : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz, 10 V : 50 Hz avec S4). Rampes de 2 s.",
       construire() { return exempleVariateurApi(); } },
@@ -327,6 +394,13 @@
     b.p("bp_no", 2, 4, "S2"); b.p("contact_nf", 2, 11, "KM2", { num: "21-22" }); b.p("bobine", 2, 18, "KM1");
     b.p("bp_no", 12, 4, "S3"); b.p("contact_nf", 12, 11, "KM1", { num: "21-22" }); b.p("bobine", 12, 18, "KM2");
     b.f([2, 7], [2, 8]).f([2, 14], [2, 15]).f([12, 7], [12, 8]).f([12, 14], [12, 15]);
+    return b.s;
+  }
+  function aideVaEtVient() {
+    const b = plan("aide");
+    b.p("fdc_nf", 2, 4, "S4", { num: "11-12" }); b.p("bobine", 2, 11, "KM1");
+    b.p("fdc_no", 10, 4, "S4", { num: "13-14" }); b.p("contact_no", 16, 4, "KM2", { num: "13-14" }); b.p("bobine", 10, 11, "KM2");
+    b.f([2, 7], [2, 8]).f([10, 1], [16, 1]).f([10, 7], [16, 7]).f([10, 7], [10, 8]);
     return b.s;
   }
 
@@ -479,9 +553,37 @@
         { texte: "R1 à fond : 50 Hz", faire: [["regler", "R1", 1]], attendre: 3000, verifier: { U1: 50 }, si: "R1 à fond : le curseur est sur la borne 1, qui doit être au +10V." },
         { texte: "R1 à 20 % : 10 Hz", faire: [["regler", "R1", 0.2]], attendre: 4000, verifier: { U1: 10 }, si: "À 20 %, le curseur donne 2 V : la borne 3 doit être au COM (0 V)." },
         { texte: "S2 coupé, S3 : marche arrière", faire: [["basculer", "S2"], ["basculer", "S3"]], attendre: 3000, verifier: { U1: "arriere", M1: "sens2" }, si: "S3 commande LI2 (marche arrière) : il est déjà câblé, ne le change pas." }
+      ] },
+    { id: "d11-cuve", titre: "Remplis la cuve", niveau: 3,
+      resume: "Programmer un remplissage automatique avec S et R.",
+      consigne: "<p>Le câblage est fait : <b>S1</b> (arrêt, à ouverture) sur %I0.0, <b>S2</b> (marche) sur %I0.1, le flotteur du niveau bas <b>B1</b> sur %I0.2 et celui du niveau haut <b>B2</b> sur %I0.3 ; la pompe <b>KM1</b> sur %Q0.0 et le voyant <b>H1</b> sur %Q0.1. Programme <b>API1</b> en Ladder :</p><ul><li><b>S2</b> met l'installation en service, <b>S1</b> la met hors service ;</li><li>en service, la pompe <b>démarre</b> quand l'eau descend sous B1, et <b>s'arrête</b> quand elle atteint B2 — elle ne repart pas avant d'être redescendue sous B1 ;</li><li>H1 est allumé quand la pompe tourne.</li></ul><p class=\"discret\">B1 vaut 1 quand l'eau est au-dessus du niveau bas, B2 quand elle atteint le niveau haut. L'eau est consommée en continu.</p>",
+      indice: "Un bit %M0 (AUTO) : S2 le met à 1 (bobine S), S1 le remet à 0 (bobine R, avec un contact à ouverture car S1 est à ouverture). Puis : AUTO et non B1 → S KM1 ; B2 → R KM1. Une bobine simple « KM1 = non B2 » ferait repartir la pompe dès que l'eau baisse un peu.",
+      depart() { return exempleCuve(true); },
+      exige: { API1: "automate", KM1: "contacteur", H1: "voyant", S1: "bouton", S2: "bouton", B1: "capteur", B2: "capteur", PO1: "cuve" },
+      etapes: [
+        { texte: "S2 : mise en service. La cuve est à moitié pleine : la pompe attend", faire: [["appuyer", "S2"], ["relacher", "S2"]], verifier: { KM1: false }, si: "Au-dessus du niveau bas, la pompe ne doit pas tourner." },
+        { texte: "L'eau descend sous B1 : la pompe démarre", attendre: 8000, verifier: { KM1: true, H1: true }, si: "Quand B1 passe à 0 (l'eau sous le niveau bas), et que l'installation est en service, mets KM1 à 1 avec une bobine S. Et H1 suit KM1." },
+        { texte: "L'eau atteint B2 : la pompe s'arrête, la cuve ne déborde pas", attendre: 10500, verifier: { KM1: false, PO1: "sans-debord" }, si: "Quand B2 passe à 1 (niveau haut), remets KM1 à 0 avec une bobine R." },
+        { texte: "L'eau redescend un peu : la pompe ne repart pas tout de suite", attendre: 3000, verifier: { KM1: false }, si: "La pompe ne doit repartir que sous le niveau bas : utilise S et R plutôt qu'une bobine « KM1 = non B2 »." },
+        { texte: "S1 : hors service. Même sous le niveau bas, la pompe ne repart pas", faire: [["appuyer", "S1"], ["relacher", "S1"]], attendre: 13000, verifier: { KM1: false }, si: "S1 doit mettre l'installation hors service (le bit AUTO à 0), et la pompe ne doit démarrer qu'en service." },
+        { texte: "S2 : remise en service, la pompe repart", faire: [["appuyer", "S2"], ["relacher", "S2"]], verifier: { KM1: true }, si: "En service et sous le niveau bas : la pompe doit démarrer." }
+      ] },
+    { id: "d12-va-et-vient", titre: "Le chariot revient tout seul", niveau: 2,
+      resume: "Les deux contacts du fin de course S4 en logique câblée.",
+      consigne: "<p>S2 lance le chariot vers la droite (<b>KM1</b>) ; S3, le fin de course de gauche, arrête déjà le retour. Il manque le fin de course de droite <b>S4</b> : pose ses deux contacts aux places vides.</p><ul><li>un contact <b>à ouverture</b> (11-12) qui coupe KM1 quand le chariot arrive à droite ;</li><li>un contact <b>à fermeture</b> (13-14) qui lance KM2 (le retour), en parallèle avec l'auto-maintien de KM2.</li></ul><p class=\"discret\">Sans S4, le chariot va forcer contre la butée de droite : le moteur se bloque, chauffe, et le relais thermique déclenche.</p>",
+      indice: "Prends « Fin de course NF » et « Fin de course NO » dans la palette, repère S4 pour les deux. Le NF va sous S2 et KM1 (branche de gauche), le NO à côté du contact 13-14 de KM2 (branche de droite).",
+      aide: aideVaEtVient,
+      depart() { return exempleVaEtVient(true); },
+      exige: { KM1: "contacteur", KM2: "contacteur", S2: "bouton", S3: "fdc", M1: "moteur", PO1: "chariot" },
+      etapes: [
+        { texte: "Au repos : le chariot est à gauche, rien ne bouge", verifier: { KM1: false, KM2: false, PO1: "gauche" }, si: "Au repos, aucun contacteur ne doit coller." },
+        { texte: "S2 : le chariot part à droite", faire: [["appuyer", "S2"], ["relacher", "S2"]], attendre: 300, verifier: { KM1: true, KM2: false, M1: "sens1" }, si: "La branche de KM1 doit conduire : pose le contact à ouverture S4 (11-12) à la place vide, sous S2 et KM1." },
+        { texte: "Il arrive à droite : KM1 retombe et KM2 le ramène", attendre: 4500, verifier: { KM1: false, KM2: true, M1: "sens2" }, si: "Quand le chariot actionne S4, son contact à ouverture coupe KM1 et son contact à fermeture lance KM2." },
+        { texte: "Il revient à gauche et s'arrête sur S3", attendre: 4500, verifier: { KM1: false, KM2: false, PO1: "gauche" }, si: "KM2 doit se maintenir après le départ de S4 (son contact 13-14), et S3 l'arrête à gauche." },
+        { texte: "Le chariot n'a jamais forcé contre une butée, F1 n'a pas déclenché", verifier: { PO1: "sans-butee", F1: false }, si: "Le moteur doit s'arrêter sur les fins de course, avant les butées." }
       ] }
   ];
 
-  const API = { EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot };
+  const API = { EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, progCuve, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot, exempleCuve, exempleVaEtVient };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasExemples = API;
 })(typeof window !== "undefined" ? window : globalThis);

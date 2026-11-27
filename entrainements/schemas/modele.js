@@ -68,6 +68,9 @@
   def("fdc_no", { nom: "Fin de course à fermeture", court: "Fin de course NO", cat: "cmd", pref: "S", p: { num: "13-14" }, boite: [-2.4, -3, 1, 3], bornes: (p) => deuxNum(p, "13", "14") });
   def("fdc_nf", { nom: "Fin de course à ouverture", court: "Fin de course NF", cat: "cmd", pref: "S", p: { num: "11-12" }, boite: [-2.4, -3, 1.6, 3], bornes: (p) => deuxNum(p, "11", "12") });
   def("capteur", { nom: "Capteur de proximité", court: "Capteur", cat: "cmd", pref: "B", p: { num: "13-14" }, boite: [-3.6, -3, 1, 3], bornes: (p) => deuxNum(p, "13", "14") });
+  // capteur 3 fils : BN (marron, +) et BU (bleu, −) en haut, BK (noir, sortie) en bas
+  def("capteur3", { nom: "Capteur 3 fils (PNP ou NPN)", court: "Capteur 3 fils", cat: "cmd", pref: "B", p: { type: "PNP", sortie: "NO" }, boite: [-4.4, -3, 2, 3],
+    bornes: () => [{ id: "BN", x: -1, y: -3, d: "n", n: "BN" }, { id: "BU", x: 1, y: -3, d: "n", n: "BU" }, { id: "BK", x: 0, y: 3, d: "s", n: "BK" }] });
 
   // Contacteurs et relais
   def("bobine", { nom: "Bobine de contacteur", court: "Bobine KM", cat: "rel", pref: "KM", p: { tension: "230~" }, boite: [-1.4, -3, 1.4, 3], bornes: () => deux("A1", "A2") });
@@ -117,9 +120,15 @@
   def("potentiometre", { nom: "Potentiomètre de consigne", court: "Potentiomètre", cat: "api", pref: "R", p: { pos: 50 }, boite: [-2, -2.8, 2.4, 2.8],
     bornes: () => [{ id: "1", x: -2, y: -2, d: "o", n: "1" }, { id: "2", x: -2, y: 0, d: "o", n: "2" }, { id: "3", x: -2, y: 2, d: "o", n: "3" }] });
 
+  // Partie opérative animée (pas de bornes) : elle lit le moteur et actionne les capteurs, par leurs repères
+  def("chariot", { nom: "Chariot sur rail (partie opérative)", court: "Chariot", cat: "po", pref: "PO", sansRot: true, boite: [-16, -5, 16, 5],
+    p: { moteur: "M1", sens: "1", gauche: "S3", droite: "S4", duree: 4, depart: "gauche" }, bornes: () => [] });
+  def("cuve", { nom: "Cuve et pompe (partie opérative)", court: "Cuve", cat: "po", pref: "PO", sansRot: true, boite: [-10, -8.4, 10, 8.4],
+    p: { moteur: "M1", bas: "B1", haut: "B2", duree: 10, conso: 40, niveau: 50 }, bornes: () => [] });
+
   const CATS = [
     { id: "alim", nom: "Alimentation" }, { id: "prot", nom: "Protection" }, { id: "cmd", nom: "Commande" },
-    { id: "rel", nom: "Contacteurs et relais" }, { id: "rec", nom: "Récepteurs" }, { id: "api", nom: "Automate et variateur" }];
+    { id: "rel", nom: "Contacteurs et relais" }, { id: "rec", nom: "Récepteurs" }, { id: "api", nom: "Automate et variateur" }, { id: "po", nom: "Partie opérative" }];
 
   /* familles utiles au moteur et à l'éditeur */
   const BOBINES = ["bobine", "relais", "tempo_travail", "tempo_repos"];

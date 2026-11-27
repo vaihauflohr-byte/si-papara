@@ -36,7 +36,8 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    - bouton poussoir : appuyé tant qu'on garde le doigt (ou la souris) dessus ; **double-clic** (ou 📌 dans la liste
      « Commandes ») : il reste appuyé ; un clic le relâche. Deux doigts sur deux boutons, ça marche aussi ;
    - arrêt d'urgence : il reste enfoncé, un deuxième clic le déverrouille ;
-   - sélecteur, interrupteur, fin de course, capteur : un clic change leur état ;
+   - sélecteur, interrupteur, fin de course, capteur : un clic change leur état (sauf ceux qu'une partie opérative
+     actionne : une bulle dit que c'est le chariot ou l'eau qui le fait) ;
    - relais thermique (le symbole de puissance ou ses contacts 95-96 / 97-98) : un clic = **surcharge**, un autre = réarmement ;
    - sectionneur, disjoncteurs : un clic ouvre ou ferme, ou réarme après un déclenchement ; fusible fondu : un clic le remplace.
    Le panneau de droite donne les mêmes commandes en gros boutons, « ce qui se passe » (alertes) et un journal daté.
@@ -64,7 +65,20 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    reçoivent le +24V du variateur ; vitesse par AI1 (0-10 V : potentiomètre sur +10V, AI1, COM, ou sortie AQ0 d'un
    automate), par sa molette, ou par les vitesses présélectionnées (LI3, LI4) ; rampes ACC et DEC. L'afficheur montre
    `rdY` ou la fréquence ; le panneau donne l'ordre reçu, la consigne et un curseur pour la molette ou le potentiomètre.
-8. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
+8. **Partie opérative** (catégorie du même nom) : la machine elle-même, à côté du schéma. On la relie par des
+   repères (panneau de droite) : le moteur qui l'entraîne et ses capteurs.
+   - **Chariot sur rail** : il roule quand son moteur tourne (sens 1 : vers la droite, réglable), en `duree` secondes
+     pour toute la course ; sa came soulève le levier des deux fins de course (gauche, droite), qui s'allument en vert.
+     S'il dépasse un fin de course, il force contre la butée (rouge) : le moteur se bloque, chauffe, et le relais
+     thermique finit par déclencher.
+   - **Cuve et pompe** : la pompe (le moteur choisi, en sens 1) remplit la cuve ; l'eau sort en continu par le bas
+     (curseur « Eau consommée » dans le panneau de simulation) ; deux flotteurs, niveau bas (20 %) et niveau haut
+     (80 %), basculent quand l'eau les atteint. Si la pompe ne s'arrête pas, la cuve déborde.
+   - **Capteur 3 fils** (catégorie « Commande », PNP ou NPN, sortie NO ou NC) : BN (marron) au +24 V, BU (bleu) au
+     0 V, BK (noir) : la sortie. Deux voyants sur le boîtier : vert, alimenté ; orange, sortie active. Branché à
+     l'envers : il ne marche pas, et « ce qui se passe » le dit.
+   Le panneau de simulation montre où est le chariot, le niveau de la cuve, l'état de leurs capteurs.
+9. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
    fichier `.json` (à rendre au professeur, à rouvrir sur un autre appareil), image PNG ou SVG avec un cartouche
    (logo du lycée, titre, nom de l'élève connecté, date), impression A4 paysage.
 
@@ -83,7 +97,9 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `inversion` | inversion du sens de marche, L1 et L3 croisées par KM2, verrouillage électrique KM1 21-22 / KM2 21-22 |
 | `etoile-triangle` | démarrage étoile-triangle : KM1 ligne, KM2 étoile, KM3 triangle, KA1 temporisé travail 3 s, verrouillage KM2/KM3, commande en 24 V par le transformateur T1 400/24 V |
 | `api-ladder` | marche-arrêt par automate : S1, S2, F1 95-96 sur %I0.0 à %I0.2, KM1 et H1 sur %Q0.0 et %Q0.1 ; programme en Ladder avec auto-maintien |
-| `api-grafcet` | aller-retour d'un chariot : dcy, a, b sur les entrées, KM1 et KM2 (verrouillage câblé en plus) ; GRAFCET 0 → 1 (KM1) → 2 (pause, `t/X2/3s`) → 3 (KM2) → 0 |
+| `api-grafcet` | aller-retour d'un chariot : dcy, a, b sur les entrées, KM1 et KM2 (verrouillage câblé en plus) ; GRAFCET 0 → 1 (KM1) → 2 (pause, `t/X2/3s`) → 3 (KM2) → 0 ; le chariot PO1 (M1, course de 4 s) actionne lui-même S3 (a) et S4 (b) |
+| `va-et-vient` | va-et-vient en logique câblée, sur l'inversion de sens : S2 lance KM1 (à droite), S4 (11-12) coupe KM1 et S4 (13-14) lance KM2 (retour, auto-maintien), S3 (11-12) l'arrête ; chariot PO1 |
+| `cuve` | remplissage d'une cuve : pompe M1 (démarrage direct par KM1), flotteurs B1 (bas) et B2 (haut) en capteurs 3 fils PNP sur %I0.2 et %I0.3, S1 et S2 (mise hors service, en service) ; Ladder : `S2 → S AUTO`, `/S1 → R AUTO`, `AUTO · /B1 → S KM1`, `B2 + /AUTO → R KM1`, `KM1 → H1` |
 | `api-variateur` | automate et variateur : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz ; 10 V avec S4 : 50 Hz), C0 au +24V du variateur, rampes de 2 s |
 | `variateur-pot` | variateur seul : interrupteurs S2 (LI1) et S3 (LI2) sur son +24V, potentiomètre R1 sur +10V, AI1, COM |
 
@@ -101,6 +117,10 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `d8-grafcet` | Complète le GRAFCET du chariot (étapes 0 et 1 données) | repos ; dcy : KM1 ; b : KM2 ; a : arrêt ; attente ; dcy : nouveau cycle |
 | `d9-variateur` | Relie l'automate au variateur (programme fait) | repos : arrêt ; S2 : 25 Hz en avant, sens 1 ; S4 : 50 Hz ; S1 : arrêt après la rampe ; S3 : arrière, sens 2 |
 | `d10-potentiometre` | Le potentiomètre de vitesse | S2 : 25 Hz (R1 à 50 %) ; R1 à fond : 50 Hz ; R1 à 20 % : 10 Hz ; S3 : marche arrière |
+| `d11-cuve` | Remplis la cuve (câblage fait, programme vide) | S2 : la pompe attend (cuve à moitié) ; sous B1 : elle démarre, H1 ; à B2 : arrêt, pas de débordement ; l'eau redescend un peu : elle ne repart pas (une bobine « KM1 = /B2 » ferait battre la pompe) ; S1 : hors service, même sous B1 ; S2 : elle repart |
+| `d12-va-et-vient` | Le chariot revient tout seul (les deux contacts de S4 manquent) | repos : chariot à gauche ; S2 : KM1, sens 1 ; arrivé à droite : KM1 retombe, KM2, sens 2 ; retour : arrêt à gauche sur S3 ; jamais en butée, F1 pas déclenché |
+
+Le défi 8 (GRAFCET) garde des fins de course actionnés à la main (sans chariot) : ses essais cliquent sur S3 et S4.
 
 Pour chaque défi, on vérifie aussi qu'il n'y a eu **aucun court-circuit** pendant l'essai, et que les appareils du
 départ sont toujours là (sinon : « ne supprime pas et ne renomme pas les appareils du départ »).
@@ -193,15 +213,40 @@ Une étape : `{ n, init, com, actions: [{ t: "n" | "s" | "r" | "inc" | "ana", v,
   et le curseur d'un potentiomètre (diviseur entre ses bornes 1 et 3) sont des sources ; AI1 lit la tension de son
   nœud par rapport au 0 V (plus de 10 V : remarque).
 
+### Partie opérative et capteurs 3 fils
+
+- **Liens** : une partie opérative (`chariot`, `cuve`, repère PO1, ni bornes ni rotation) trouve par leur repère son
+  moteur et ses capteurs (fins de course `fdc_no`/`fdc_nf`, `capteur` ou `capteur3`) ; un repère absent ou d'une autre
+  sorte : remarque. Les capteurs reliés sont « pilotés » : `action(ref, "appuyer" | "relacher" | "basculer")` les refuse.
+- **Chariot** : position de 0 (gauche) à 1 (droite). Vitesse visée : `±facteur / duree` (facteur 1 en direct ; avec
+  un variateur, `fréquence / 50`) dans le sens du moteur (`sens` du chariot : à droite ou à gauche pour le sens 1).
+  Le chariot suit cette vitesse avec une constante de temps de 0,12 s (moteur-frein), intégrée exactement.
+  Fins de course : actionnés à moins de 4 % du bout, relâchés au-delà de 5 % (hystérésis) : un arrêt sur le fin de
+  course ne touche pas la butée, une rampe de décélération longue peut l'atteindre (comme en vrai). En butée, le
+  moteur alimenté est **bloqué** : il ne tourne plus et chauffe comme un moteur sur deux phases (le relais thermique
+  déclenche après 4 s) ; journal et « ce qui se passe » l'expliquent.
+- **Cuve** : niveau de 0 à 1. La pompe ne débite qu'en sens 1 (`facteur / duree`, sens 2 : « elle tourne à
+  l'envers ») ; la sortie retire `conso / duree` (curseur de 0 à 100 %, action `regler`). Flotteurs : niveau bas
+  relâché sous 20 % et actionné à 22 %, niveau haut actionné à 80 % et relâché sous 78 %. Pleine avec la pompe en
+  marche : elle déborde (erreur au journal) ; vide : remarque.
+- **Le temps** : `prochain()` donne la date où un capteur peut basculer au plus tôt (distance au seuil le plus proche
+  divisée par la vitesse la plus grande possible) ; on y recalcule tout, comme pour une temporisation.
+- **Capteur 3 fils** (`capteur3`, sorte `capteur`) : une charge entre BN et BU (alimenté si BN est au +24 V et BU au
+  0 V ; à l'envers : non alimenté, remarque) et un contact de sortie entre BN et BK (PNP) ou BU et BK (NPN), fermé
+  quand il est alimenté et que la détection (`NO`) ou son absence (`NC`) le demande. Une entrée d'automate voit
+  24 V entre l'entrée et COM dans un sens ou dans l'autre : un NPN marche avec COM au +24 V.
+- **Défis** : `verifier: { PO1: "gauche" | "droite" | "en-route" }` (chariot ; toute autre valeur : jamais en butée),
+  `{ PO1: 60 }` (cuve à 60 % ± 4 ; toute autre valeur : jamais débordé).
+
 Ce que le moteur ne calcule pas : les courants et les impédances (deux bobines en série ne collent pas, mais sans
 calcul de tension partagée), le verrouillage mécanique, les temps de réponse des contacteurs et le temps de cycle de
-l'automate, les capteurs 3 fils (PNP/NPN), les entrées analogiques de l'automate, la régulation du variateur (couple,
-glissement : le moteur suit la fréquence).
+l'automate, les entrées analogiques de l'automate, la régulation du variateur (couple, glissement : le moteur suit la
+fréquence), la charge mécanique (le chariot va à la même vitesse à vide ou chargé).
 
-### Pour plus tard : système animé
+### Piloter la simulation depuis ailleurs
 
-Le moteur ne dépend pas de la page. Une partie opérative animée (style Factory I/O : un chariot qui actionne ses fins
-de course) n'aura qu'à :
+Le moteur ne dépend pas de la page. Une autre partie opérative (convoyeur, ascenseur…) peut se brancher de deux
+façons : comme le chariot et la cuve, dans `moteur.js` (section « parties opératives ») ; ou de l'extérieur, en :
 - agir sur les appareils : `sim.action(ref, quoi)` avec `appuyer`, `relacher`, `basculer`, `maintenir`, `surcharge`,
   `rearmer`, `ouvrir`, `fermer`, `regler` (potentiomètre, molette : de 0 à 1), `run`, `stop` (automate) ;
 - lire l'état : `sim.etat().appareils` (bobines alimentées, moteurs : sens, vitesse `w` de −1 à 1, couplage,
@@ -217,7 +262,7 @@ Dans la page, `window.SchemasAtelier` donne accès au schéma et à la simulatio
   `charges` s'il consomme) ; une entrée dans `PALETTE` (`editeur.js`) et une phrase dans `DESCR`.
 - **un exemple** : une entrée dans `EXEMPLES` avec `construire()` (fonctions `b.p(type, x, y, repère, paramètres)`
   et `b.f([x, y], …)` pour les fils).
-- **un défi** : une entrée dans `DEFIS` : `depart()`, `exige` (appareils à garder), `etapes` :
+- **un défi** : une entrée dans `DEFIS` : `depart()`, `exige` (appareils à garder), `aide()` (petit schéma de l'indice, facultatif), `etapes` :
   `{ texte, faire: [["appuyer", "S2"], ["regler", "R1", 0.8]], attendre: ms, verifier: { KM1: true, H1: false, M1: "sens1" | "sens2" | "arret" | "marche" | "etoile" | "triangle", U1: 25 | "arret" | "avant" | "arriere", API1: "X2", court: false }, protege: [["F1", "M1"]], terre: ["M1"], si: "conseil si l'étape échoue" }`.
   Un automate du départ reçoit son programme : `pc.prog = SA.validerProg({ … })` (voir `automate24` dans `exemples.js`).
   Vérifier que le départ échoue et que la solution réussit (voir les essais).
@@ -229,7 +274,7 @@ Dans la page, `window.SchemasAtelier` donne accès au schéma et à la simulatio
 | `schemas:libre` | « Mon schéma », gardé à chaque modification |
 | `schemas:defi:<nom>:<défi>` | le schéma de l'élève pour chaque défi |
 | `schemas:progres:<nom>` | les défis réussis (lu aussi par le tableau de bord du site) |
-| `schemas:nbdefis` | nombre de défis (pour « n / 10 » sur le tableau de bord) |
+| `schemas:nbdefis` | nombre de défis (pour « n / 12 » sur le tableau de bord) |
 | `schemas:copies` | « Mes schémas » (30 copies au plus ; une copie est faite automatiquement avant d'ouvrir un exemple ou un fichier) |
 | `schemas:dernier` | ce qui était ouvert (schéma libre ou défi), pour y revenir |
 
@@ -250,6 +295,11 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   par le programme) ; les défis 7 à 10 (départ refusé, solution acceptée) ;
 - `e2e_api.py` (Playwright, PC et téléphone) : programmer au doigt et à la souris (cases, liaison, GRAFCET,
   mnémoniques renommés), simuler, vue en direct, variateur, curseur du potentiomètre, défi ;
+- `t_po.js` (Node) : cycle GRAFCET avec le chariot, va-et-vient câblé, chariot sans fin de course (butée, moteur
+  bloqué, F1 déclenche), cuve (démarrage au niveau bas, arrêt au niveau haut, sans consommation), programme naïf qui
+  fait battre la pompe, capteurs PNP et NPN (NO, NC, à l'envers), deux chariots sur un moteur, défis 11 et 12 ;
+- `e2e_po.py` (Playwright, PC et téléphone) : le chariot avance et actionne ses fins de course, clic sur un capteur
+  piloté (bulle), cartes « Parties opératives », curseur de consommation, va-et-vient au doigt, palette, panneau ;
 - `e2e_bureau.py`, `e2e_telephone.py`, `e2e_liens.py` (Playwright) : PC 1280×860 à la souris et au clavier,
   téléphone 390×844 au doigt (glisser, pincer, appui long, par `Input.dispatchTouchEvent`) en mode sombre, tablette
   en portrait, liens du tableau de bord ; aucune erreur de script.

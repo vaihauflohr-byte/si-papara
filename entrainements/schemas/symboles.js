@@ -15,6 +15,14 @@
   const R = (x, y, w, h, cls, extra) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"${cls ? ` class="${cls}"` : ""}${extra || ""}/>`;
   const T = (x, y, t, a, cls, col) => ({ x, y, t: String(t), a: a || "middle", cls: cls || "num", col });
   const n1 = (x) => Math.round(x * 10) / 10;
+  const c01 = (x) => Math.max(0, Math.min(1, Number(x) || 0));
+  const esc = (x) => String(x == null ? "" : x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const texte = (x, y, t, cls, a, extra) => `<text x="${x}" y="${y}" class="sy-t ${cls}" text-anchor="${a || "middle"}" dominant-baseline="central"${extra || ""}>${esc(t)}</text>`;
+
+  /* parties opératives : où dessiner le chariot (et l'angle de ses roues), la hauteur de l'eau dans la cuve.
+     L'éditeur s'en sert aussi pour les animer à chaque image, sans tout redessiner. */
+  function geoChariot(pos) { const xc = n1(-122 + 244 * c01(pos)); return { xc, a: n1((xc * 11.459) % 360) }; }
+  function geoCuve(niv) { const h = n1(113 * c01(niv)); return { y: n1(57 - h), h }; }
 
   /* contact à deux bornes, vertical, bornes a (haut, y = -30) et b (bas, y = +30)
      o : { nat: "no"|"nf", ferme, ca, cb, act: null|"bp"|"au"|"rot"|"man"|"fdc"|"prox"|"th"|"t+"|"t-", pousse } */
@@ -250,6 +258,80 @@
         tx.push(T(-34, 6, ref, "end", "ref"), T(-34, 18, "3~ 400 V", "end", "info"));
         break;
       }
+      case "capteur3": {
+        // capteur de proximité 3 fils : BN (marron) au +24 V, BU (bleu) au 0 V, BK (noir) la sortie
+        const pnp = p.type !== "NPN", sortieOn = sim && !!E.ferme;
+        h += P("M-10 -30V-12", c.BN) + P("M10 -30V-12", c.BU) + P("M0 30V12", c.BK);
+        h += R(-16, -12, 34, 24, "corps-b" + (sim && E.grille ? " grille" : ""), ` rx="2"`);
+        h += P("M-12 3L-7 -2L-2 3L-7 8Z", null, "act" + (sim && E.actionne ? " plein" : ""));
+        h += `<circle cx="-11" cy="-7" r="1.9" class="led${sim && E.alim ? " on-e" : ""}"/><circle cx="-5.5" cy="-7" r="1.9" class="led${sortieOn ? " on-s" : ""}"/>`;
+        if (sim && E.grille) h += P("M-12 -9L12 9M-12 9L12 -9", null, "barre");
+        tx.push(T(9, -4, pnp ? "PNP" : "NPN", "middle", "petit"), T(9, 5.5, p.sortie === "NC" ? "NC" : "NO", "middle", "petit"));
+        tx.push(T(-14, -22, "BN", "end", "num", "#9c6b3c"), T(14, -22, "BU", "start", "num", "#1c7ed6"), T(4, 23, "BK", "start"));
+        tx.push(T(-20, 1, ref, "end", "ref"));
+        break;
+      }
+      case "chariot": {
+        // vue de face : rail et butées, deux fins de course à galet ; la came du chariot soulève leur levier
+        const pos = sim ? E.pos : p.depart === "droite" ? 1 : p.depart === "milieu" ? 0.5 : 0;
+        const g = geoChariot(pos), mv = sim && Math.abs(E.vit || 0) * 1000 > 0.02 ? Math.sign(E.vit) : 0;
+        let hach = ""; for (let x = -150; x <= 156; x += 12) hach += `M${x} 24l-6 6`;
+        h += P(hach, null, "fin") + P("M-156 24H156", null, "rail");
+        h += R(-156, -8, 8, 32, "butee" + (sim && E.butee === -1 ? " on" : "")) + R(148, -8, 8, 32, "butee" + (sim && E.butee === 1 ? " on" : ""));
+        // levé : le galet est sur la came ; on : actionné en simulation (voyant vert)
+        const fdc = (sx, r, leve, on) => {
+          if (!String(r || "").trim()) return "";
+          const bx = sx < 0 ? -154 : 134, px = 140 * sx, rx = 133 * sx;
+          tx.push(T(144 * sx, -47, r, "middle", "ref"));
+          return R(bx, -41, 20, 13, "po-fdc" + (on ? " on" : ""), ` rx="2"`) + `<circle cx="${149 * sx}" cy="-34.5" r="2.3" class="led${on ? " on-e" : ""}"/>`
+            + `<g${leve ? ` transform="rotate(${16 * sx} ${px} -28)"` : ""}>${P(`M${px} -28L${rx} -14`, null, "levier" + (on ? " on" : ""))}<circle cx="${rx}" cy="-14" r="3" class="galet${on ? " on" : ""}"/></g>`
+            + `<circle cx="${px}" cy="-28" r="1.5" class="plein"/>`;
+        };
+        const lg = sim ? !!E.cg : pos <= 0.04, ld = sim ? !!E.cd : pos >= 0.96;
+        h += fdc(-1, p.gauche, lg, sim && lg) + fdc(1, p.droite, ld, sim && ld);
+        h += `<g data-po="${esc(pc.id)}" transform="translate(${g.xc} 0)">`
+          + `<path d="M-22 -6L-19 -12H19L22 -6Z" class="came"/>` + R(-26, -6, 52, 20, "corps-po" + (mv ? " roule" : ""), ` rx="3"`)
+          + `<circle cx="-7" cy="4" r="6.5" class="corps-m${mv ? " tourne" : ""}"/>` + texte(-7, 4.4, "M", "petit") + texte(3, 4.4, p.moteur || "?", "petit", "start")
+          + [-15, 15].map((x) => `<g data-roue="${x}" transform="rotate(${g.a} ${x} 19)"><circle cx="${x}" cy="19" r="5" class="roue"/>${P(`M${x - 5} 19H${x + 5}M${x} 14V24`, null, "fin")}</g>`).join("")
+          + (mv ? P(mv > 0 ? "M-11 39H11M11 39l-5 -4M11 39l-5 4" : "M11 39H-11M-11 39l5 -4M-11 39l5 4", null, "sens") : "")
+          + `</g>`;
+        tx.push(T(0, -40, ref, "middle", "ref"), T(0, -28, "chariot · moteur " + (p.moteur || "?"), "middle", "info"));
+        if (sim && E.butee) tx.push(T(E.butee < 0 ? -112 : 112, 42, "en butée !", "middle", "alerte"));
+        break;
+      }
+      case "cuve": {
+        // cuve ouverte en haut, pompe à gauche, flotteurs à droite (niveau bas 20 %, niveau haut 80 %), sortie en bas
+        const niv = sim ? E.niv : c01((Number(p.niveau) || 0) / 100), ge = geoCuve(niv);
+        const pompe = sim && !!E.pompe, conso = sim ? E.conso || 0 : c01((Number(p.conso) || 0) / 100);
+        h += R(-36, ge.y, 72, ge.h, "eau", ` data-eau="${esc(pc.id)}"`);
+        h += P("M-38 -60V58H38V-60", null, "paroi");
+        // levé : le flotteur est dans l'eau ; on : actionné en simulation (voyant vert)
+        const flot = (r, y, leve, on, nom) => {
+          h += P(`M-36 ${y}H36`, null, "repere");
+          if (!String(r || "").trim()) return;
+          h += R(38, y - 5, 10, 10, "po-fdc" + (on ? " on" : ""), ` rx="2"`) + `<circle cx="43" cy="${y}" r="2.2" class="led${on ? " on-e" : ""}"/>`;
+          const fy = n1(y + (leve ? -6 : 6));
+          h += P(`M38 ${y}L28 ${fy}`, null, "levier" + (on ? " on" : "")) + `<circle cx="24" cy="${fy}" r="4.5" class="flotteur${on ? " on" : ""}"/>`;
+          tx.push(T(52, y - 1, r, "start", "ref"), T(52, y + 10, nom, "start", "info"));
+        };
+        const lh = sim ? !!E.ch : niv >= 0.8, lb = sim ? !!E.cb : niv >= 0.22;
+        flot(p.haut, -33.4, lh, sim && lh, "niveau haut");
+        flot(p.bas, 34.4, lb, sim && lb, "niveau bas");
+        // pompe et tuyaux
+        h += P("M-100 64H-84V50", null, "tuyau" + (pompe ? " on" : "")) + P("M-84 30V-70H-22V-58", null, "tuyau" + (pompe ? " on" : ""));
+        h += `<circle cx="-84" cy="40" r="10" class="corps-m${pompe ? " tourne" : ""}"/>` + P("M-84 30L-92.7 45H-75.3Z", null, "fin2");
+        if (pompe) h += P("M-22 -56V-38", null, "jet");
+        const sort = sim && conso > 0 && niv > 0.001;
+        h += P("M0 58V77", null, "tuyau" + (sort ? " on" : "")) + P("M-5 62H5L-5 72H5Z", null, "vanne");
+        if (sort) h += P("M0 78V86", null, "jet");
+        if (sim && E.deborde) h += P("M-40 -58q-7 9 -6 28M40 -58q7 9 6 28", null, "jet");
+        h += texte(0, -46, Math.round(niv * 100) + " %", "moyen", "middle", ` data-nivt="${esc(pc.id)}"`);
+        tx.push(T(-70, 37, p.moteur || "?", "start", "ref"), T(-70, 48, "pompe", "start", "info"));
+        tx.push(T(9, 67, "sortie " + Math.round(conso * 100) + " %", "start", "info"), T(4, -73, ref, "start", "ref"));
+        if (sim && E.deborde) tx.push(T(42, -66, "déborde !", "start", "alerte"));
+        else if (sim && E.vide) tx.push(T(0, 46, "vide", "middle", "alerte"));
+        break;
+      }
       case "potentiometre": {
         h += P("M-20 -20H12V-16", c["1"]) + P("M-20 20H12V16", c["3"]) + P("M-20 0H3", c["2"]);
         h += R(6, -16, 12, 32, "corps-b") + `<path d="M0 -4.2L6.5 0L0 4.2Z" class="act plein"/>`;
@@ -268,8 +350,14 @@
     return `<circle cx="${x}" cy="${y}" r="${r}" class="anneau-f"/><circle cx="${x}" cy="${y}" r="${r}" class="anneau" style="stroke-dasharray:${n1(L * v)} ${n1(L)}" transform="rotate(-90 ${x} ${y})"/>`;
   }
 
+  /* icônes simplifiées des parties opératives (le vrai dessin est trop large pour la palette) */
+  const ICONES = {
+    chariot: `<svg viewBox="-36 -22 72 44" class="sy" aria-hidden="true" focusable="false"><path d="M-33 13H33" class="rail"/><rect x="-34" y="-2" width="4" height="15" class="butee"/><rect x="30" y="-2" width="4" height="15" class="butee"/><rect x="-30" y="-18" width="9" height="6" class="po-fdc"/><rect x="21" y="-18" width="9" height="6" class="po-fdc"/><path d="M-12 -3L-10 -6H10L12 -3Z" class="came"/><rect x="-14" y="-3" width="28" height="11" rx="2" class="corps-po"/><circle cx="-7" cy="10" r="3" class="roue"/><circle cx="7" cy="10" r="3" class="roue"/><path d="M-8 -12H8M8 -12l-3 -2.5M8 -12l-3 2.5" class="sens"/></svg>`,
+    cuve: `<svg viewBox="-34 -24 68 48" class="sy" aria-hidden="true" focusable="false"><rect x="-13" y="-1" width="26" height="20" class="eau"/><path d="M-14 -20V20H14V-20" class="paroi"/><path d="M-13 -10H13M-13 10H13" class="repere"/><path d="M-27 14V-23H-6V-19" class="tuyau"/><circle cx="-27" cy="14" r="5" class="corps-m"/><circle cx="19" cy="-10" r="2.6" class="flotteur"/><circle cx="19" cy="10" r="2.6" class="flotteur"/></svg>`
+  };
   /* l'icône d'un symbole pour la palette (repère du symbole, sans texte) */
   function icone(type, p) {
+    if (ICONES[type]) return ICONES[type];
     const pc = { id: "ic", type, x: 0, y: 0, rot: 0, ref: "", p: p || {} };
     const T0 = M.TYPES[type]; if (!T0) return "";
     const b = M.boiteLocale(pc), m = 4;
@@ -279,6 +367,6 @@
     return `<svg viewBox="${x0} ${y0} ${w} ${h}" class="sy" aria-hidden="true" focusable="false">${d.corps}${lab}</svg>`;
   }
 
-  const API = { dessiner, icone, COUL_POT, COUL_VOYANT, NOM_POT };
+  const API = { dessiner, icone, geoChariot, geoCuve, COUL_POT, COUL_VOYANT, NOM_POT };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasSymboles = API;
 })(typeof window !== "undefined" ? window : globalThis);

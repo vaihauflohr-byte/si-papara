@@ -113,7 +113,7 @@ body.simu .sc-palette{opacity:.45;pointer-events:none}
 .grille-fond{fill:url(#sc-motif)}
 @keyframes sc-cligne{50%{opacity:.25}}
 @keyframes sc-vibre{0%{transform:translate(0,0)}25%{transform:translate(.8px,-.6px)}50%{transform:translate(-.7px,.5px)}75%{transform:translate(.6px,.7px)}}
-@media (prefers-reduced-motion:reduce){.fil.court,.sy .corps-b.vibre,.sy .corps-m.peine{animation:none}}
+@media (prefers-reduced-motion:reduce){.fil.court,.sy .corps-b.vibre,.sy .corps-m.peine,.sy .jet{animation:none}}
 /* bulles sur la feuille */
 .sc-bulle{position:absolute;left:50%;top:10px;transform:translateX(-50%);max-width:min(92%,560px);background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:8px;padding:7px 12px;font-size:.88rem;box-shadow:var(--sc-ombre);z-index:6}
 .sc-bulle.alerte{border-left-color:var(--bad)}
@@ -195,6 +195,26 @@ body:not(.simu) .sc-horloge{display:none}
 .sy .ecran{fill:#17261c;stroke:var(--ink)}
 .sy .fin2{stroke-width:1.1}
 .ecran-t{fill:#69db7c;font-family:var(--f-mono);font-size:11px;font-weight:700;stroke:none}
+/* parties opératives (chariot, cuve) et capteur 3 fils */
+.sy .rail{stroke-width:2.6}
+.sy .butee{fill:var(--paper-2)}
+.sy .butee.on{fill:var(--bad-soft);stroke:var(--bad);stroke-width:2.2}
+.sy .po-fdc,.sy .galet,.sy .roue,.sy .vanne,.sy .flotteur{fill:var(--sc-feuille)}
+.sy .po-fdc.on,.sy .levier.on,.sy .galet.on{stroke:var(--good)}
+.sy .flotteur.on{fill:#2fb344;stroke:#2b8a3e}
+.sy .came{fill:var(--ink-3)}
+.sy .corps-po{fill:var(--accent-soft)}
+.sy .corps-po.roule{stroke:var(--good);stroke-width:2}
+.sy .paroi{stroke-width:2.6}
+.sy .eau{fill:#74c0fc;stroke:none;opacity:.7}
+.sy .repere{stroke:var(--ink-3);stroke-width:.9;stroke-dasharray:4 3}
+.sy .tuyau{stroke:var(--ink-3);stroke-width:3.4;stroke-linecap:butt}
+.sy .tuyau.on{stroke:#339af0}
+.sy .jet{stroke:#339af0;stroke-width:2.4;stroke-dasharray:3 4;animation:sc-jet .45s linear infinite}
+@keyframes sc-jet{to{stroke-dashoffset:-14}}
+.po-jauge{flex:1 1 100%;position:relative;height:10px;border-radius:5px;background:var(--paper-2);border:1px solid var(--rule);overflow:hidden}
+.po-jauge i{position:absolute;top:0;bottom:0;left:0;width:0;background:#74c0fc}
+.po-jauge.ch i{width:14px;margin-left:-7px;border-radius:4px;background:var(--accent)}
 /* vue du programme en direct (simulation) */
 .sc-live{position:absolute;right:10px;bottom:10px;width:min(480px,calc(100% - 20px));max-height:58%;display:flex;flex-direction:column;background:var(--paper);border:1px solid var(--rule);border-radius:10px;box-shadow:var(--sc-ombre);z-index:7;overflow:hidden}
 .sc-live[hidden]{display:none}
