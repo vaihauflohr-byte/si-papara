@@ -230,10 +230,10 @@
   // Les défis réussis restent dans le navigateur de l'élève (clé schemas:progres:<nom>, écrite par entrainements/schemas/editeur.js).
   function defisSchemas(s) { try { return Object.keys(JSON.parse(localStorage.getItem("schemas:progres:" + ((s && s.nom) || "local"))) || {}).length; } catch (e) { return 0; } }
   function tuileSchemas(s) {
-    const n = defisSchemas(s), tot = +localStorage.getItem("schemas:nbdefis") || 6;
+    const n = defisSchemas(s), tot = +localStorage.getItem("schemas:nbdefis") || 10;
     return `<a class="carte bac-hero ${n >= tot ? "fait" : ""}" href="entrainements/schemas.html">
         <div><div class="eyebrow">Électrotechnique · schémas de commande et de puissance</div><div class="bac-titre">Atelier schémas <span>dessiner, puis simuler</span></div>
-        <p class="discret" style="margin:0">Les symboles normalisés, les fils, puis « Simuler » : boutons, contacteurs, relais thermique, temporisations, moteur. Des exemples tout faits et des défis corrigés.</p></div>
+        <p class="discret" style="margin:0">Les symboles normalisés, les fils, puis « Simuler » : boutons, contacteurs, relais thermique, temporisations, moteur, automate programmé en Ladder ou en GRAFCET, variateur de vitesse. Des exemples tout faits et des défis corrigés.</p></div>
         <div class="bac-d">${n ? `<div><div class="grand">${n}<small> / ${tot}</small></div><div class="discret">défis réussis</div></div>` : ""}<span class="btn">Ouvrir →</span></div>
       </a>`;
   }

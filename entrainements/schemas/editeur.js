@@ -6,7 +6,7 @@
    ===================================================================== */
 (function () {
   "use strict";
-  const M = window.SchemasModele, SY = window.SchemasSymboles, MO = window.SchemasMoteur, X = window.SchemasExemples;
+  const M = window.SchemasModele, SY = window.SchemasSymboles, MO = window.SchemasMoteur, X = window.SchemasExemples, SA = window.SchemasAutomate, PR = window.SchemasProgramme;
   const G = M.G;
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -97,12 +97,13 @@
       P.push(`<circle class="jonction" cx="${q[0] * G}" cy="${q[1] * G}" r="2.8"${c ? ` style="fill:${c}"` : ""}/>`);
     }
     if (o.libres) {
-      for (const l of net.libres) if (!estReseau(s, l.piece)) P.push(`<circle class="libre" cx="${l.x * G}" cy="${l.y * G}" r="2.9"/>`);
+      for (const l of net.libres) if (!estReseau(s, l.piece) && !libreOkL(s, l)) P.push(`<circle class="libre" cx="${l.x * G}" cy="${l.y * G}" r="2.9"/>`);
       for (const q of net.bouts) P.push(`<circle class="bout" cx="${q[0] * G}" cy="${q[1] * G}" r="2.9"/>`);
     }
     return P.join("");
   }
   const estReseau = (s, id) => { const pc = s.pieces.find((q) => q.id === id); return !!pc && pc.type === "reseau"; };
+  const libreOkL = (s, l) => { const pc = s.pieces.find((q) => q.id === l.piece); return !!pc && M.libreOk(pc, l.borne); };
   let demande = false;
   function rendre() { if (!demande) { demande = true; requestAnimationFrame(() => { demande = false; dessiner(); }); } }
   function dessiner() {
@@ -234,6 +235,7 @@
     if (!fantome) {
       if (M.AVEC_NUM.indexOf(item.type) >= 0) { const n = M.numeroContact(schema, pc); if (n) pc.p.num = n; }
       if (T.p.tension !== undefined && !p.tension) pc.p.tension = tensionParDefaut();
+      if (item.type === "automate") pc.prog = SA.progDefaut();
     }
     return pc;
   }
@@ -243,7 +245,10 @@
     sel = new Set([pc.id]);
     if (!encore) choisirOutil("fleche");
     commit();
-    bulle(M.TYPES[pc.type].lien ? `${pc.ref} posé. Son repère dit à quel appareil il appartient : change-le dans le panneau si besoin.` : `${pc.ref || M.TYPES[pc.type].court} posé. Glisse d'une borne à une autre pour tirer les fils.`, 3500);
+    bulle(M.TYPES[pc.type].lien ? `${pc.ref} posé. Son repère dit à quel appareil il appartient : change-le dans le panneau si besoin.`
+      : pc.type === "automate" ? `${pc.ref} posé. Câble son alimentation (+24V, 0V), ses entrées et ses sorties, puis « Programmer » dans le panneau.`
+      : pc.type === "variateur" ? `${pc.ref} posé. Réseau sur L1, L2, L3, moteur sur U, V, W ; LI1 (avant) et LI2 (arrière) reçoivent son +24V.`
+      : `${pc.ref || M.TYPES[pc.type].court} posé. Glisse d'une borne à une autre pour tirer les fils.`, 4000);
   }
 
   /* ---------- fils ---------- */
@@ -382,7 +387,8 @@
     }
     return best;
   }
-  const ACTIONNABLES = new Set(["bp_no", "bp_nf", "arret_urgence", "selecteur", "interrupteur", "fdc_no", "fdc_nf", "capteur", "thermique", "contact_th_nf", "contact_th_no", "sectionneur", "disjoncteur", "disj_moteur", "fusible"]);
+  const ACTIONNABLES = new Set(["bp_no", "bp_nf", "arret_urgence", "selecteur", "interrupteur", "fdc_no", "fdc_nf", "capteur", "thermique", "contact_th_nf", "contact_th_no", "sectionneur", "disjoncteur", "disj_moteur", "fusible", "automate", "variateur", "potentiometre"]);
+  const ELEC = /^(automate|variateur|potentiometre)$/;
   const actionnable = (pc) => !!pc && ACTIONNABLES.has(pc.type) && !!pc.ref;
 
   function commencerPan(e) { geste = { type: "pan", sx: e.clientX, sy: e.clientY, vx: vue.x, vy: vue.y, bouge: false, pid: e.pointerId }; svg.style.cursor = "grabbing"; }
@@ -675,18 +681,20 @@
     fermerPalette();
     majBoutons(); construirePanneauSim(); dessiner();
     cancelAnimationFrame(rafId); rafId = requestAnimationFrame(boucle);
+    const api = schema.pieces.find((pc) => pc.type === "automate" && pc.ref);
     if (!schema.pieces.some((pc) => actionnable(pc))) bulle("Rien à actionner dans ce schéma : ajoute des boutons ou des interrupteurs.", 4000);
+    else if (api) bulle(`Clique sur les boutons du schéma. Clique sur <b>${esc(api.ref)}</b> pour voir son programme en direct.`, 5000);
     else bulle("Clique sur les boutons du schéma (ou dans la liste « Commandes »). Double-clic : le bouton reste appuyé.", 4500);
   }
   function arreterSim() {
-    sim = null; simE = null; cancelAnimationFrame(rafId); appuis.clear(); survolPiece = null;
+    sim = null; simE = null; cancelAnimationFrame(rafId); appuis.clear(); survolPiece = null; PR.live.fermer();
     document.body.classList.remove("simu");
     const b = $("sc-simuler"); b.querySelector("span").textContent = "Simuler"; b.querySelector("svg").innerHTML = '<path d="M7 4.5v15l12-7.5z"/>';
     bulle(""); majBoutons(); dessiner(); majPanneau();
   }
   function signature(E) {
     const P = {};
-    for (const [id, o] of Object.entries(E.pieces)) { const c = Object.assign({}, o); if (c.w != null) c.w = Math.round(c.w * 8) / 8; if (c.prog != null) c.prog = Math.round(c.prog * 40) / 40; if (c.chauffe != null) c.chauffe = Math.round(c.chauffe * 4) / 4; P[id] = c; }
+    for (const [id, o] of Object.entries(E.pieces)) { const c = Object.assign({}, o); if (c.w != null) c.w = Math.round(c.w * 8) / 8; if (c.prog != null) c.prog = Math.round(c.prog * 40) / 40; if (c.chauffe != null) c.chauffe = Math.round(c.chauffe * 4) / 4; if (c.f != null) c.f = Math.round(c.f); P[id] = c; }
     return JSON.stringify([E.noeuds, E.court, P, E.messages.map((m) => m.texte), E.journal.length, E.defaut]);
   }
   function boucle(ts) {
@@ -705,11 +713,13 @@
     if (force) simE = sim.etat();
     $("sc-horloge").textContent = "t = " + nf(sim.temps() / 1000) + " s";
     const sig = signature(simE);
-    if (sig !== simSig) { simSig = sig; dessiner(); majPanneauSim(); } else majRotors();
+    if (sig !== simSig) { simSig = sig; dessiner(); majPanneauSim(); PR.live.maj(simE); } else majRotors();
   }
   function actionSim(pc, e) {
     const ref = pc.ref, A = simE.appareils[ref]; if (!A) return;
     const t = pc.type;
+    if (t === "automate") { if (PR.live.ref() === ref) PR.live.fermer(); else PR.live.ouvrir(pc, simE); geste = { type: "rien" }; return; }
+    if (t === "variateur" || t === "potentiometre") { ouvrirPanneau(true); const c = pn.querySelector(`#sm-elec [data-ref="${CSS.escape(ref)}"]`); if (c) { c.scrollIntoView({ block: "nearest", behavior: "smooth" }); c.classList.add("flash"); setTimeout(() => c.classList.remove("flash"), 900); } geste = { type: "rien" }; return; }
     if (t === "bp_no" || t === "bp_nf") {
       if (e.button === 2) { sim.action(ref, "maintenir"); majSim(true); return; }
       if (A.maintenu) { sim.action(ref, "maintenir", false); majSim(true); return; }
@@ -732,7 +742,7 @@
   function commandesSim() {
     const L = [], vus = new Set();
     for (const pc of schema.pieces) {
-      if (!actionnable(pc) || vus.has(pc.ref)) continue;
+      if (!actionnable(pc) || vus.has(pc.ref) || ELEC.test(pc.type)) continue;
       const A = simE.appareils[pc.ref]; if (!A) continue;
       if (/^contact_th/.test(pc.type) && schema.pieces.some((q) => q.ref === pc.ref && (q.type === "thermique" || q.type === "disj_moteur"))) continue;
       vus.add(pc.ref); L.push({ pc, ref: pc.ref, sorte: A.sorte });
@@ -745,10 +755,11 @@
     h += `<h2>Simulation</h2><p class="discret">Les fils sous tension sont en couleur, les bobines alimentées en jaune. Clique sur les organes de commande du schéma, ou ici :</p>
       <div class="rang"><button class="btn sec" type="button" id="sm-raz">Tout remettre à zéro</button><button class="btn" type="button" id="sm-courant" hidden>Remettre le courant</button></div>
       <h3>Commandes</h3><div class="cmd-l" id="sm-cmd">${commandesSim().map((c) => `<div class="cmd" data-ref="${esc(c.ref)}"><div><b>${esc(c.ref)}</b><small>${esc(DESCR_CMD[c.pc.type] || "")}</small><span class="etat"></span></div><div class="bt">${boutonsCmd(c)}</div></div>`).join("") || `<p class="discret">Aucun bouton, interrupteur ni protection à actionner.</p>`}</div>
+      ${cartesSim()}
       <h3>Ce qui se passe</h3><ul class="msgs" id="sm-msgs"></ul>
       <h3>Journal</h3><ul class="msgs" id="sm-journal"></ul>`;
     pn.innerHTML = h;
-    brancherPoignee(); brancherDefi();
+    brancherPoignee(); brancherDefi(); brancherCartes();
     $("sm-raz").onclick = () => { sim.reinitialiser(); angles = {}; majSim(true); };
     $("sm-courant").onclick = () => { sim.rearmerAlimentation(); majSim(true); };
     for (const b of pn.querySelectorAll("#sm-cmd button[data-c]")) {
@@ -802,6 +813,7 @@
       }
       et.textContent = txt; et.className = "etat " + (ok ? "ok" : "ko");
     }
+    majCartes();
     const ms = simE.messages;
     $("sm-msgs").innerHTML = ms.length ? ms.map((m) => `<li class="${m.niveau}">${esc(m.texte)}</li>`).join("") : `<li class="info">Tout va bien. ${moteursTxt()}</li>`;
     const J = simE.journal.slice(-8).reverse();
@@ -812,8 +824,83 @@
   }
   function moteursTxt() {
     const L = [];
-    for (const [ref, A] of Object.entries(simE.appareils)) if (A.sorte === "moteur" && (A.etatM === "marche" || A.etatM === "surtension")) L.push(`${ref} tourne dans le sens ${A.sens === 1 ? 1 : 2}${A.couplage ? " (" + (A.couplage === "etoile" ? "étoile" : "triangle") + ")" : ""}.`);
+    for (const [ref, A] of Object.entries(simE.appareils)) if (A.sorte === "moteur" && (A.etatM === "marche" || A.etatM === "surtension")) {
+      const V = A.variateur && simE.appareils[A.variateur];
+      L.push(`${ref} tourne dans le sens ${A.sens === 1 ? 1 : 2}${A.couplage ? " (" + (A.couplage === "etoile" ? "étoile" : "triangle") + ")" : ""}${V ? ` à ${nf(Math.abs(V.fs || 0))} Hz (variateur ${A.variateur})` : ""}.`);
+    }
     return L.join(" ");
+  }
+
+  /* ---------- panneau de simulation : automates, variateurs, potentiomètres ---------- */
+  function leds(pc, k) {
+    const P = SA.validerProg(pc.prog);
+    let h = "";
+    for (let i = 0; i < 8; i++) { const a = (k === "e" ? "%I0." : "%Q0.") + i, n = P.noms[a]; h += `<i class="ledh" data-k="${i}" title="${a}${n ? " · " + esc(n) : ""}">${i}${n ? `<small>${esc(n.slice(0, 6))}</small>` : ""}</i>`; }
+    return h;
+  }
+  function cartesSim() {
+    const ordre = { automate: 0, variateur: 1, potentiometre: 2 };
+    const L = schema.pieces.filter((pc) => ELEC.test(pc.type) && pc.ref).sort((a, b) => ordre[a.type] - ordre[b.type] || a.ref.localeCompare(b.ref, "fr", { numeric: true }));
+    if (!L.length) return "";
+    let h = `<h3>Automates et variateurs</h3><div class="cmd-l" id="sm-elec">`;
+    const vus = new Set();
+    for (const pc of L) {
+      if (vus.has(pc.ref)) continue; vus.add(pc.ref);
+      const r = esc(pc.ref);
+      if (pc.type === "automate") h += `<div class="cmd crt" data-ref="${r}" data-type="automate"><div><b>${r}</b><small>automate · ${SA.validerProg(pc.prog).lang === "grafcet" ? "GRAFCET" : "Ladder"}</small><span class="etat"></span></div><div class="bt"><button type="button" data-e="run">STOP</button><button type="button" data-e="voir">Programme</button></div><div class="io"><div class="io-l"><span>Entrées</span>${leds(pc, "e")}</div><div class="io-l s"><span>Sorties</span>${leds(pc, "s")}</div><p class="io-x"></p></div></div>`;
+      else if (pc.type === "variateur") h += `<div class="cmd crt" data-ref="${r}" data-type="variateur"><div><b>${r}</b><small>variateur</small><span class="etat"></span></div><div class="bt"><span class="ecran-v">rdY</span></div><p class="io-x"></p>${M.parametres(pc).ref === "molette" ? `<label class="curseur">Molette du variateur <input type="range" min="0" max="100" step="1" data-e="molette"><output></output></label>` : ""}</div>`;
+      else h += `<div class="cmd crt" data-ref="${r}" data-type="potentiometre"><div><b>${r}</b><small>potentiomètre</small><span class="etat"></span></div><label class="curseur">Position du curseur <input type="range" min="0" max="100" step="1" data-e="pos"><output></output></label></div>`;
+    }
+    return h + `</div>`;
+  }
+  function brancherCartes() {
+    const z = $("sm-elec"); if (!z) return;
+    z.addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-e]"); if (!b || !sim) return;
+      const ref = b.closest(".cmd").dataset.ref;
+      if (b.dataset.e === "run") { sim.action(ref, "basculer"); majSim(true); }
+      else if (b.dataset.e === "voir") { const pc = schema.pieces.find((q) => q.ref === ref && q.type === "automate"); if (pc) { if (PR.live.ref() === ref) PR.live.fermer(); else PR.live.ouvrir(pc, simE); } }
+    });
+    z.addEventListener("input", (e) => {
+      const i = e.target; if (!i.matches("input[type=range]") || !sim) return;
+      const ref = i.closest(".cmd").dataset.ref;
+      sim.action(ref, "regler", Number(i.value) / 100);
+      const o = i.parentElement.querySelector("output"); if (o) o.textContent = i.value + " %";
+      majSim(true);
+    });
+  }
+  function majCartes() {
+    const z = $("sm-elec"); if (!z) return;
+    for (const row of z.querySelectorAll(".cmd")) {
+      const A = simE.appareils[row.dataset.ref]; if (!A) continue;
+      const et = row.querySelector(".etat"), x = row.querySelector(".io-x");
+      if (row.dataset.type === "automate") {
+        et.textContent = A.grille ? "détruit" : !A.alim ? "pas alimenté" : A.run ? "en marche (RUN)" : "arrêté (STOP)"; et.className = "etat " + (A.actif ? "ok" : "ko");
+        const b = row.querySelector('[data-e="run"]'); b.textContent = A.run ? "STOP" : "RUN"; b.title = A.run ? "Passer l'automate en STOP" : "Passer l'automate en RUN";
+        const v = row.querySelector('[data-e="voir"]'); v.classList.toggle("on", PR.live.ref() === row.dataset.ref);
+        row.querySelectorAll(".io-l:not(.s) .ledh").forEach((l, k) => l.classList.toggle("on", !!(A.alim && A.entrees && A.entrees[k])));
+        row.querySelectorAll(".io-l.s .ledh").forEach((l, k) => l.classList.toggle("on", !!(A.actif && A.sorties && A.sorties[k])));
+        const api = A.api || {}, T = [];
+        if (A.actif && api.lang === "grafcet") T.push(`Étapes actives : ${(api.X || []).map((n) => "X" + n).join(", ") || "aucune"}`);
+        if (A.actif && api.TM) api.TM.forEach((tm, k) => { if (tm.p > 0 && (tm.in || tm.q)) T.push(`%TM${k} : ${nf(tm.et / 1000)} / ${nf(tm.p / 1000)} s`); });
+        if (A.actif && A.aq > 0) T.push(`AQ0 = ${nf(A.aq)} V`);
+        if (A.erreurs) T.push(`${A.erreurs} erreur${A.erreurs > 1 ? "s" : ""} dans le programme`);
+        x.textContent = T.join(" · ");
+      } else if (row.dataset.type === "variateur") {
+        const f = A.fs || 0, af = Math.abs(f);
+        const scr = A.grille ? "----" : A.defaut ? A.defaut : !A.alim ? "" : af >= 0.05 ? af.toFixed(1) : "rdY";
+        row.querySelector(".ecran-v").textContent = scr || "·";
+        et.textContent = A.grille ? "détruit" : A.defaut ? "défaut " + A.defaut : !A.alim ? "pas alimenté" : af >= 0.05 ? `${nf(af)} Hz ${f > 0 ? "avant" : "arrière"}` : "prêt, à l'arrêt";
+        et.className = "etat " + (A.alim && !A.defaut && !A.grille ? "ok" : "ko");
+        const LI = A.LI || [], ord = A.deux ? "avant et arrière ensemble" : LI[0] ? "avant (LI1)" : LI[1] ? "arrière (LI2)" : "aucun";
+        const cons = A.origine === "AI1" ? `AI1 = ${nf(A.ai1 || 0)} V` : A.origine === "molette" ? "molette" : `vitesse présélectionnée ${A.origine}`;
+        x.textContent = A.alim ? `Ordre : ${ord} · consigne : ${cons} → ${nf(A.fRef || 0)} Hz` : "";
+        const i = row.querySelector('input[data-e="molette"]'); if (i && document.activeElement !== i) { i.value = Math.round((A.molette || 0) * 100); i.parentElement.querySelector("output").textContent = i.value + " %"; }
+      } else {
+        et.textContent = Math.round((A.pos || 0) * 100) + " %"; et.className = "etat ok";
+        const i = row.querySelector('input[data-e="pos"]'); if (i && document.activeElement !== i) { i.value = Math.round((A.pos || 0) * 100); i.parentElement.querySelector("output").textContent = i.value + " %"; }
+      }
+    }
   }
 
   /* =====================================================================
@@ -849,7 +936,10 @@
     contact_th_no: "Il se ferme quand le relais thermique déclenche : il allume un voyant de défaut.",
     voyant: "Il s'allume quand il reçoit sa tension.",
     moteur: "Il tourne quand U, V, W reçoivent les trois phases. Croiser deux phases inverse le sens.",
-    moteur6: "Six bornes. Étoile : U2, V2, W2 reliées. Triangle : U1 avec W2, V1 avec U2, W1 avec V2."
+    moteur6: "Six bornes. Étoile : U2, V2, W2 reliées. Triangle : U1 avec W2, V1 avec U2, W1 avec V2.",
+    automate: "Il s'alimente en 24 V continu (+24V, 0V). Une entrée vaut 1 quand elle reçoit 24 V par rapport à COM. Une sortie à relais ferme le contact entre son commun (C0 ou C1) et %Q0.x. Son programme (Ladder ou GRAFCET) décide des sorties.",
+    variateur: "Il reçoit le réseau sur L1, L2, L3 et alimente le moteur sur U, V, W, à la fréquence qu'il faut (rampes ACC, DEC). LI1 : marche avant, LI2 : marche arrière, quand elles reçoivent son +24V. La vitesse vient de AI1 (0-10 V), de sa molette, ou des vitesses présélectionnées (LI3, LI4).",
+    potentiometre: "Un diviseur de tension : le curseur (2) donne une tension entre celle de la borne 1 et celle de la borne 3. Sur un variateur : 1 au +10V, 2 à AI1, 3 au COM."
   };
   let pnOuvert = false;
   function ouvrirPanneau(v) { pnOuvert = v == null ? !pnOuvert : v; document.body.classList.toggle("pn-ouvert", pnOuvert); const pg = $("pn-poignee"); if (pg) pg.querySelector("i").textContent = pnOuvert ? "▼" : "▲"; }
@@ -874,12 +964,12 @@
     else h += panneauSchema();
     pn.innerHTML = h;
     brancherPoignee(); brancherDefi();
-    for (const b of pn.querySelectorAll("[data-pa]")) b.onclick = () => ({ supprimer, tourner, dupliquer, simuler: basculerSim, exemples: ouvrirExemples, defis: ouvrirDefis, aide: ouvrirAide })[b.dataset.pa]();
+    for (const b of pn.querySelectorAll("[data-pa]")) b.onclick = () => ({ supprimer, tourner, dupliquer, simuler: basculerSim, exemples: ouvrirExemples, defis: ouvrirDefis, aide: ouvrirAide, programmer: () => ouvrirProgramme(pieceChoisieSeule()) })[b.dataset.pa]();
     brancherChamps();
   }
   function panneauSchema() {
     const net = netEdit || (netEdit = M.netlist(schema));
-    const nL = net.libres.filter((l) => !estReseau(schema, l.piece)).length + net.bouts.length;
+    const nL = net.libres.filter((l) => !estReseau(schema, l.piece) && !libreOkL(schema, l)).length + net.bouts.length;
     return `<h2>${doc.type === "defi" ? "Ton schéma" : "Mon schéma"}</h2>
       ${doc.type === "defi" ? "" : `<label class="ch" for="pn-titre">Titre</label><input type="text" id="pn-titre" value="${esc(schema.titre)}" maxlength="80">`}
       <p class="discret">${schema.pieces.length} symbole${schema.pieces.length > 1 ? "s" : ""} · ${schema.fils.length} fil${schema.fils.length > 1 ? "s" : ""}${nL ? ` · <b style="color:var(--sc-libre)">${nL} borne${nL > 1 ? "s" : ""} ou bout${nL > 1 ? "s" : ""} de fil libre${nL > 1 ? "s" : ""}</b> (ronds orange ou rouges)` : ""}</p>
@@ -889,6 +979,12 @@
       <p>3 · Clique sur un symbole pour régler son repère (KM1, S2…).</p>
       <p>4 · Appuie sur <b>Simuler</b> pour l'essayer.</p>
       <div class="rang"><button class="btn sec" type="button" data-pa="exemples">Exemples</button><button class="btn sec" type="button" data-pa="defis">Défis</button><button class="btn sec" type="button" data-pa="aide">Aide</button></div>`;
+  }
+  function ouvrirProgramme(pc) {
+    if (!pc || pc.type !== "automate") return;
+    if (sim) arreterSim();
+    fermerDialogues();
+    PR.ouvrir(pc, { commit, schema: () => schema, bulle });
   }
   function option(v, lib, cur) { return `<option value="${esc(v)}"${String(v) === String(cur) ? " selected" : ""}>${esc(lib)}</option>`; }
   function panneauPiece(pc) {
@@ -909,6 +1005,20 @@
     if (pc.type === "alim") h += `<label class="ch" for="pc-pot">Potentiel</label><select id="pc-pot" data-ch="pot">${M.POTENTIELS.map((p) => option(p.id, `${p.nom} · ${p.aide}`, P.pot)).join("")}</select>`;
     if (pc.type === "transfo") h += `<label class="ch" for="pc-prim">Primaire</label><select id="pc-prim" data-ch="prim">${[400, 230].map((v) => option(v, v + " V", P.prim)).join("")}</select><label class="ch" for="pc-sec">Secondaire</label><select id="pc-sec" data-ch="sec">${[24, 48, 230].map((v) => option(v, v + " V", P.sec)).join("")}</select>`;
     if (pc.type === "moteur6") h += `<label class="ch" for="pc-plaque">Plaque signalétique</label><select id="pc-plaque" data-ch="plaque">${option("400/690", "400 V / 690 V (étoile-triangle sur 400 V)", P.plaque)}${option("230/400", "230 V / 400 V (étoile sur 400 V)", P.plaque)}</select>`;
+    if (pc.type === "automate") {
+      const r = PR.resume(pc.prog);
+      h += `<div class="pn-carte"><div class="eyebrow">Programme</div><p><b>${esc(r.texte)}</b>${r.vide ? " · vide" : ""}</p>${r.erreurs ? `<p style="color:var(--bad);font-size:.85rem">${r.erreurs} erreur${r.erreurs > 1 ? "s" : ""} à corriger.</p>` : r.alertes ? `<p style="color:var(--warn);font-size:.85rem">${r.alertes} remarque${r.alertes > 1 ? "s" : ""}.</p>` : ""}<div class="rang"><button class="btn" type="button" data-pa="programmer">Programmer ${esc(pc.ref || "l'automate")}</button></div></div>
+        <p class="discret">+24V et 0V : alimentation. COM : commun des entrées (au 0 V). C0 : commun des sorties %Q0.0 à %Q0.3 ; C1 : de %Q0.4 à %Q0.7. AQ0 : sortie 0-10 V (%QW0).</p>`;
+    }
+    if (pc.type === "variateur") {
+      const nb = (k, lib, min, max, pas, aide) => `<label class="ch" for="pc-${k}">${lib}</label><input type="number" id="pc-${k}" data-ch="${k}" value="${esc(P[k])}" min="${min}" max="${max}" step="${pas}" inputmode="decimal"${aide ? ` title="${esc(aide)}"` : ""}>`;
+      h += `<label class="ch" for="pc-vref">Consigne de vitesse</label><select id="pc-vref" data-ch="ref">${option("AI1", "entrée AI1 (0-10 V : potentiomètre ou automate)", P.ref)}${option("molette", "molette du variateur (réglée pendant la simulation)", P.ref)}</select>
+        <div class="deux">${nb("hsp", "Grande vitesse HSP (Hz)", 1, 100, 1)}${nb("lsp", "Petite vitesse LSP (Hz)", 0, 100, 1)}</div>
+        <div class="deux">${nb("acc", "Accélération ACC (s)", 0.1, 600, 0.1, "temps pour aller de 0 à 50 Hz")}${nb("dec", "Décélération DEC (s)", 0.1, 600, 0.1, "temps pour aller de 50 Hz à 0")}</div>
+        <details class="pn-plus"><summary>Vitesses présélectionnées</summary><div class="deux">${nb("sp2", "SP2 : LI3 (Hz)", 0, 100, 1)}${nb("sp3", "SP3 : LI4 (Hz)", 0, 100, 1)}</div>${nb("sp4", "SP4 : LI3 et LI4 (Hz)", 0, 100, 1)}<p class="discret">Une vitesse présélectionnée remplace la consigne AI1 (ou la molette).</p></details>
+        <p class="discret">R1A-R1C : contact fermé quand le variateur est prêt (sous tension, sans défaut). Le +24V et le COM du variateur alimentent ses entrées LI.</p>`;
+    }
+    if (pc.type === "potentiometre") h += `<label class="ch" for="pc-pos">Position du curseur au départ (%)</label><input type="number" id="pc-pos" data-ch="pos" value="${esc(P.pos)}" min="0" max="100" step="5" inputmode="numeric">`;
     h += `<div class="rang"><button class="btn sec" type="button" data-pa="tourner">Tourner</button><button class="btn sec" type="button" data-pa="dupliquer">Dupliquer</button><button class="btn sec" type="button" data-pa="supprimer">Supprimer</button></div>`;
     return h;
   }
@@ -938,6 +1048,12 @@
       if (!Number.isFinite(x) || x <= 0) { majPanneau(); return; }
       pc.p[k] = k === "delai" ? clamp(Math.round(x * 10) / 10, 0.1, 600) : clamp(x, 0.1, 1000);
     } else if (k === "poles" || k === "prim" || k === "sec") pc.p[k] = Number(v);
+    else if (/^(hsp|lsp|acc|dec|sp2|sp3|sp4|pos)$/.test(k)) {
+      const x = Number(String(v).replace(",", "."));
+      if (!Number.isFinite(x)) { majPanneau(); return; }
+      const [a, b] = { hsp: [1, 100], lsp: [0, 100], acc: [0.1, 600], dec: [0.1, 600], sp2: [0, 100], sp3: [0, 100], sp4: [0, 100], pos: [0, 100] }[k];
+      pc.p[k] = clamp(Math.round(x * 10) / 10, a, b);
+    }
     else {
       pc.p[k] = v;
       if (k === "contact" && M.AVEC_NUM.indexOf(pc.type) >= 0) { const n = M.numeroContact(schema, pc); if (n) pc.p.num = n; }
@@ -1109,6 +1225,7 @@
 .sy-t.pot{font-weight:700;font-size:10.5px;fill:#15202b}.sy-t.gros{font-family:Arial,sans-serif;font-weight:700;font-size:17px;fill:#15202b}
 .sy-t.moyen{font-family:Arial,sans-serif;font-size:10.5px;fill:#15202b}.sy-t.petit{font-family:Arial,sans-serif;font-size:7.5px;font-weight:700;fill:#15202b;stroke:none}
 .fil{stroke:#15202b;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}.jonction{fill:#15202b}
+.sy .corps-a{fill:#fff}.sy .led{fill:#fff;stroke:#77838f;stroke-width:.8}.sy .ecran{fill:#17261c}.ecran-t{fill:#69db7c;font-family:Consolas,monospace;font-size:11px;font-weight:700}.sy .fin2{stroke-width:1.1}
 .ca{font-family:Arial,Helvetica,sans-serif;fill:#15202b}.ca-l{stroke:#15202b;stroke-width:1;fill:none}`;
   let logoURI = null;
   async function logo() {
@@ -1163,6 +1280,9 @@
         <tr><td>Molette, <span class="kbd">+</span> <span class="kbd">−</span> <span class="kbd">0</span></td><td>Zoomer, dézoomer, tout voir.</td></tr>
         <tr><td><span class="kbd">Échap</span></td><td>Arrêter le fil en cours ou l'outil, ne plus rien choisir.</td></tr>
       </table>
+      <h3 style="margin-top:14px">L'automate et le variateur</h3>
+      <p class="discret"><b>L'automate (API)</b> s'alimente en 24 V continu. Une entrée (%I0.0…) vaut 1 quand elle reçoit le +24 V (le COM des entrées va au 0 V). Ses sorties à relais (%Q0.0…) ferment un contact entre leur commun (C0, C1) et la sortie : on y branche les bobines, les voyants, ou les entrées d'un variateur. Clique sur l'automate, puis <b>Programmer</b> : en <b>Ladder</b> (des contacts et des bobines) ou en <b>GRAFCET</b> (des étapes et des transitions). En simulation, clique sur l'automate pour voir son programme en direct.</p>
+      <p class="discret"><b>Le variateur</b> reçoit le réseau sur L1, L2, L3 et fait tourner le moteur branché sur U, V, W. LI1 (marche avant) et LI2 (marche arrière) s'activent avec son +24V ; la vitesse vient de AI1 (0-10 V : potentiomètre ou sortie AQ0 d'un automate), de sa molette, ou des vitesses présélectionnées (LI3, LI4). Il accélère et ralentit suivant ses rampes (ACC, DEC).</p>
       <h3 style="margin-top:14px">Les repères</h3>
       <p class="discret">Une bobine et ses contacts portent le <b>même repère</b> (KM1) : c'est comme ça que la simulation sait quels contacts bougent quand KM1 est alimenté. Les numéros des bornes suivent les règles : 13-14 et 43-44 pour les contacts à fermeture, 21-22 et 31-32 pour les contacts à ouverture, 95-96 et 97-98 pour le relais thermique, 55-56 et 67-68 pour les contacts temporisés, A1-A2 pour les bobines.</p>`;
     ouvrirDialogue("d-aide");
@@ -1177,7 +1297,8 @@
     { cat: "prot", items: [{ type: "fusible", nom: "Fusible" }, { type: "sectionneur", nom: "Sectionneur" }, { type: "disjoncteur", p: { poles: 2 }, nom: "Disjoncteur 2P" }, { type: "disjoncteur", p: { poles: 3 }, nom: "Disjoncteur 3P" }, { type: "disj_moteur", nom: "Disj. moteur" }, { type: "thermique", nom: "Relais thermique" }] },
     { cat: "cmd", items: [{ type: "bp_no", nom: "BP marche" }, { type: "bp_nf", nom: "BP arrêt" }, { type: "arret_urgence", nom: "Arrêt d'urgence" }, { type: "selecteur", nom: "Sélecteur" }, { type: "interrupteur", nom: "Interrupteur" }, { type: "fdc_no", nom: "Fin de course NO" }, { type: "fdc_nf", nom: "Fin de course NF" }, { type: "capteur", nom: "Capteur" }] },
     { cat: "rel", items: [{ type: "bobine", nom: "Bobine KM" }, { type: "poles", nom: "Pôles KM" }, { type: "contact_no", nom: "Contact NO" }, { type: "contact_nf", nom: "Contact NF" }, { type: "relais", nom: "Relais KA" }, { type: "tempo_travail", nom: "Tempo. travail" }, { type: "tempo_repos", nom: "Tempo. repos" }, { type: "contact_tno", nom: "Contact tempo. NO" }, { type: "contact_tnf", nom: "Contact tempo. NF" }, { type: "contact_th_nf", nom: "Thermique 95-96" }, { type: "contact_th_no", nom: "Thermique 97-98" }] },
-    { cat: "rec", items: [{ type: "voyant", p: { couleur: "vert" }, nom: "Voyant" }, { type: "moteur", nom: "Moteur 3~" }, { type: "moteur6", nom: "Moteur 6 bornes" }] }
+    { cat: "rec", items: [{ type: "voyant", p: { couleur: "vert" }, nom: "Voyant" }, { type: "moteur", nom: "Moteur 3~" }, { type: "moteur6", nom: "Moteur 6 bornes" }] },
+    { cat: "api", items: [{ type: "automate", nom: "Automate (API)" }, { type: "variateur", nom: "Variateur" }, { type: "potentiometre", nom: "Potentiomètre" }] }
   ];
   const ITEMS = {};
   function construirePalette() {
@@ -1267,6 +1388,7 @@
   window.SchemasAtelier = {
     schema: () => schema, simulation: () => sim, etat: () => simE, vue: () => Object.assign({}, vue), choix: () => [...sel], outil: () => outil, doc: () => Object.assign({}, doc),
     versEcran: (gx, gy) => { const r = svg.getBoundingClientRect(); return [r.left + vue.x + gx * G * vue.z, r.top + vue.y + gy * G * vue.z]; },
-    charger: (s) => chargerSchema(M.valider(s)), ouvrirExemple, ouvrirDefi, verifierDefi, simuler: basculerSim, dessiner, svgExport
+    charger: (s) => chargerSchema(M.valider(s)), ouvrirExemple, ouvrirDefi, verifierDefi, simuler: basculerSim, dessiner, svgExport,
+    programmer: (ref) => ouvrirProgramme(schema.pieces.find((q) => q.type === "automate" && (!ref || q.ref === ref)))
   };
 })();

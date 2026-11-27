@@ -200,6 +200,64 @@
         tx.push(T(40, -11, "réseau 3~ 400 V 50 Hz", "middle", "info"));
         break;
       }
+      case "automate": {
+        // boîtier ; en haut l'alimentation et les entrées, en bas les sorties à relais et la sortie analogique
+        h += R(-120, -50, 220, 100, "corps-a" + (sim && E.grille ? " grille" : ""), ` rx="4"`);
+        h += P("M-120 -11H100M-120 11H100", null, "fin");
+        const vert = (x, y, t, a) => `<text x="${x}" y="${y}" class="sy-t num" text-anchor="${a}" dominant-baseline="central" transform="rotate(-90 ${x} ${y})">${t}</text>`;
+        for (const b of M.bornesLocales(pc)) {
+          const x = b.x * 10, haut = b.y < 0;
+          h += P(haut ? `M${x} -60V-50` : `M${x} 60V50`, c[b.id]);
+          h += vert(x, haut ? -46 : 46, b.n, haut ? "end" : "start");
+          const k = /^I(\d)$/.exec(b.id) || /^Q(\d)$/.exec(b.id);
+          if (k) {
+            const on = sim && (b.id[0] === "I" ? E.alim && E.entrees && E.entrees[+k[1]] : E.actif && E.sorties && E.sorties[+k[1]]);
+            h += R(x - 3, haut ? -18 : 13, 6, 5, "led" + (on ? (b.id[0] === "I" ? " on-e" : " on-s") : "") + (sim && b.id[0] === "I" && E.ko && E.ko.indexOf(+k[1]) >= 0 ? " ko" : ""), ` rx="1"`);
+          }
+        }
+        // voyant RUN et état
+        const run = sim && E.actif, stop = sim && E.alim && !E.run;
+        h += `<circle cx="-104" cy="0" r="4" class="led${run ? " on-e" : stop ? " on-s" : sim && E.grille ? " ko" : ""}"/>`;
+        tx.push(T(-96, 0.5, sim ? (E.grille ? "détruit" : run ? "RUN" : stop ? "STOP" : E.alim ? "" : "hors tension") : "RUN", "start", "petit"));
+        tx.push(T(-10, 0.5, ref, "middle", "ref"));
+        const mil = [];
+        if (sim && run && E.X && E.X.length) mil.push(E.X.map((n) => "X" + n).join(" "));
+        if (sim && run && E.aq > 0) mil.push("AQ0 " + String(Math.round(E.aq * 10) / 10).replace(".", ",") + " V");
+        tx.push(T(60, 0.5, sim ? mil.join(" · ") : "automate", "middle", "info"));
+        break;
+      }
+      case "variateur": {
+        h += R(-30, -40, 100, 200, "corps-a" + (sim && E.grille ? " grille" : ""), ` rx="4"`);
+        for (const b of M.bornesLocales(pc)) {
+          const x = b.x * 10, y = b.y * 10;
+          if (b.d === "n") { h += P(`M${x} ${y}V-40`, c[b.id]); tx.push(T(x, -33, b.n, "middle", "num")); }
+          else if (b.d === "s") { h += P(`M${x} ${y}V160`, c[b.id]); tx.push(T(x, 153, b.n, "middle", "num")); }
+          else {
+            h += P(`M80 ${y}H70`, c[b.id]); tx.push(T(66, y, b.n, "end", "num"));
+            const li = /^LI(\d)$/.exec(b.id);
+            if (li && sim && E.LI && E.LI[+li[1] - 1]) h += `<circle cx="44" cy="${y}" r="2.8" class="led on-e"/>`;
+          }
+        }
+        // afficheur
+        const f = sim ? (E.f || 0) : 0, af = Math.abs(f);
+        const ecran = !sim ? "ATV" : E.grille ? "----" : E.defaut ? E.defaut : !E.alim ? "" : af >= 0.05 ? (Math.round(af * 10) / 10).toFixed(1) : "rdY";
+        h += R(-22, -24, 44, 20, "ecran", ` rx="2"`) + `<text x="0" y="-13.5" class="ecran-t" text-anchor="middle" dominant-baseline="central">${ecran}</text>`;
+        if (sim && af >= 0.05) tx.push(T(0, 6, f > 0 ? "▶ avant" : "◀ arrière", "middle", "info"));
+        // symbole du convertisseur de fréquence (IEC) : carré barré, ~ fixe en haut, ~ variable en bas
+        h += R(-22, 22, 40, 40, "fin2") + P("M-22 62L18 22", null, "fin2");
+        tx.push(T(-11, 33, "~", "middle", "moyen"), T(8, 51, "~", "middle", "moyen"));
+        h += P("M-2 58L16 44M16 44l-5.5 1M16 44l-1.2 5.4", null, "fin2");
+        tx.push(T(-34, 6, ref, "end", "ref"), T(-34, 18, "3~ 400 V", "end", "info"));
+        break;
+      }
+      case "potentiometre": {
+        h += P("M-20 -20H12V-16", c["1"]) + P("M-20 20H12V16", c["3"]) + P("M-20 0H3", c["2"]);
+        h += R(6, -16, 12, 32, "corps-b") + `<path d="M0 -4.2L6.5 0L0 4.2Z" class="act plein"/>`;
+        tx.push(T(-15, -26, "1", "middle"), T(-15, -6, "2", "middle"), T(-15, 26, "3", "middle"));
+        tx.push(T(22, -5, ref, "start", "ref"));
+        if (sim) tx.push(T(22, 9, Math.round((E.pos || 0) * 100) + " %", "start", "info"));
+        break;
+      }
       default: h += R(-8, -8, 16, 16);
     }
     return { corps: h, textes: tx };

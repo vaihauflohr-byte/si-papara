@@ -3,7 +3,8 @@
 Page : `entrainements/schemas.html` (en ligne : https://si.ka-ilei.com/entrainements/schemas.html).
 L'équivalent de Schemaplic (et en partie de CADe SIMU) dans le navigateur, sans rien installer : on dessine le
 schéma de commande et le schéma de puissance avec les symboles normalisés (IEC 60617, comme en électrotechnique),
-puis on appuie sur **Simuler**.
+puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable** (programmé en **Ladder** ou en
+**GRAFCET** dans la page) et un **variateur de vitesse** (rampes, deux sens, consigne 0-10 V), et les faire travailler ensemble.
 
 - HTML, CSS et JavaScript « à la main » : aucune bibliothèque, aucun CDN. Une fois ouverte, la page marche sans réseau
   (le service worker du site garde chaque fichier au premier passage).
@@ -42,7 +43,28 @@ puis on appuie sur **Simuler**.
 5. **Défis** : un schéma à compléter ; « Vérifier » rejoue des essais sur le schéma de l'élève (appuyer sur S2,
    lâcher, surcharge…) et dit, étape par étape, ce qui marche et ce qui ne marche pas, avec un conseil. « Un indice »
    donne une phrase et un petit schéma d'aide.
-6. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
+6. **Automate** (catégorie « Automate et variateur ») : on le câble comme un vrai (alimentation 24 V continu,
+   boutons et capteurs sur les entrées %I0.0…%I0.7 depuis le +24 V, COM au 0 V ; bobines, voyants ou entrées d'un
+   variateur sur les sorties à relais %Q0.0…%Q0.7, avec leur commun C0 ou C1 ; consigne 0-10 V sur AQ0). Un clic sur
+   l'automate, puis **Programmer** ouvre l'éditeur :
+   - **Ladder** : un réseau par ligne de logique, 5 cases de contacts et une case de sortie par ligne ; toucher une
+     case pour y mettre un contact (à fermeture, à ouverture, front montant ou descendant), un fil, ou une sortie
+     (bobine, S, R, temporisation TON ou TOF, compteur CTU, consigne en volts sur AQ0) ; les boutons **+** entre deux
+     lignes posent les liaisons verticales (le OU). Les fils manquants se posent tout seuls quand c'est évident ;
+   - **GRAFCET** : étapes (numéro, initiale, actions continues, conditionnelles « si… », mises à 1 ou à 0 à
+     l'activation, comptage, consigne AQ0) et transitions (de, vers, réceptivité : `dcy · a`, `a + b`, `/a`, `↑dcy`,
+     `t/X2/3s`, `%C0.V >= 3`, `1`) ; le GRAFCET est dessiné à côté, boucles à gauche, renvois pour les cas compliqués ;
+   - **Mnémoniques** : un nom pour chaque adresse (S1 au lieu de %I0.0), proposés d'après le câblage (« Proposer
+     d'après le câblage » suit même les contacts de verrouillage jusqu'à la bobine). Renommer met à jour les réceptivités.
+   Les erreurs du programme sont listées en haut (variable inconnue, étape absente, bobine écrite deux fois…).
+   En simulation, un clic sur l'automate ouvre la **vue en direct** (réseaux sous tension en vert, contacts fermés,
+   étapes actives avec leur jeton, transitions validées en orange) ; le panneau montre ses voyants d'entrées et de
+   sorties, ses étapes actives, ses temporisations, et le bouton RUN / STOP.
+7. **Variateur** : réseau sur L1, L2, L3, moteur sur U, V, W ; LI1 marche avant et LI2 marche arrière quand elles
+   reçoivent le +24V du variateur ; vitesse par AI1 (0-10 V : potentiomètre sur +10V, AI1, COM, ou sortie AQ0 d'un
+   automate), par sa molette, ou par les vitesses présélectionnées (LI3, LI4) ; rampes ACC et DEC. L'afficheur montre
+   `rdY` ou la fréquence ; le panneau donne l'ordre reçu, la consigne et un curseur pour la molette ou le potentiomètre.
+8. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
    fichier `.json` (à rendre au professeur, à rouvrir sur un autre appareil), image PNG ou SVG avec un cartouche
    (logo du lycée, titre, nom de l'élève connecté, date), impression A4 paysage.
 
@@ -60,6 +82,10 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `signalisation` | le même, plus H1 (vert, marche) par KM1 43-44 et H2 (orange, défaut) par F1 97-98 |
 | `inversion` | inversion du sens de marche, L1 et L3 croisées par KM2, verrouillage électrique KM1 21-22 / KM2 21-22 |
 | `etoile-triangle` | démarrage étoile-triangle : KM1 ligne, KM2 étoile, KM3 triangle, KA1 temporisé travail 3 s, verrouillage KM2/KM3, commande en 24 V par le transformateur T1 400/24 V |
+| `api-ladder` | marche-arrêt par automate : S1, S2, F1 95-96 sur %I0.0 à %I0.2, KM1 et H1 sur %Q0.0 et %Q0.1 ; programme en Ladder avec auto-maintien |
+| `api-grafcet` | aller-retour d'un chariot : dcy, a, b sur les entrées, KM1 et KM2 (verrouillage câblé en plus) ; GRAFCET 0 → 1 (KM1) → 2 (pause, `t/X2/3s`) → 3 (KM2) → 0 |
+| `api-variateur` | automate et variateur : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz ; 10 V avec S4 : 50 Hz), C0 au +24V du variateur, rampes de 2 s |
+| `variateur-pot` | variateur seul : interrupteurs S2 (LI1) et S3 (LI2) sur son +24V, potentiomètre R1 sur +10V, AI1, COM |
 
 ## Les défis (`exemples.js`, `DEFIS`)
 
@@ -71,6 +97,10 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `d4-signal` | Signalisation marche et défaut | repos : tout éteint ; marche : H1 ; surcharge : H2 et pas H1 ; réarmement : H2 éteint |
 | `d5-verrou` | Ajoute le verrouillage électrique | S2 : sens 1 ; S3 pendant KM1 : KM2 ne colle pas, pas de court-circuit ; S1 ; S3 : sens 2 ; S2 pendant KM2 : KM1 ne colle pas |
 | `d6-puissance` | Câble le circuit de puissance | repos : arrêt ; S2 : sens 1 ; le courant traverse Q1 et F1 ; PE du moteur à la terre ; S1 : arrêt |
+| `d7-ladder` | Programme l'automate en Ladder (câblage fait, programme vide, mnémoniques donnés) | repos ; S2 : KM1 et le moteur ; S2 lâché : maintien et H1 ; S1 : arrêt ; S1 lâché : reste arrêté ; surcharge F1 : arrêt ; réarmement : pas de redémarrage seul |
+| `d8-grafcet` | Complète le GRAFCET du chariot (étapes 0 et 1 données) | repos ; dcy : KM1 ; b : KM2 ; a : arrêt ; attente ; dcy : nouveau cycle |
+| `d9-variateur` | Relie l'automate au variateur (programme fait) | repos : arrêt ; S2 : 25 Hz en avant, sens 1 ; S4 : 50 Hz ; S1 : arrêt après la rampe ; S3 : arrière, sens 2 |
+| `d10-potentiometre` | Le potentiomètre de vitesse | S2 : 25 Hz (R1 à 50 %) ; R1 à fond : 50 Hz ; R1 à 20 % : 10 Hz ; S3 : marche arrière |
 
 Pour chaque défi, on vérifie aussi qu'il n'y a eu **aucun court-circuit** pendant l'essai, et que les appareils du
 départ sont toujours là (sinon : « ne supprime pas et ne renomme pas les appareils du départ »).
@@ -81,6 +111,8 @@ La réussite est gardée par élève (nom de la session du site, sinon « local 
 | Fichier | Rôle |
 |---|---|
 | `../schemas.html` | la page : en-tête du site, barre d'outils, palette, feuille, panneau, fenêtres, styles (clair et sombre) |
+| `automate.js` | l'**automate**, sans la page (marche dans Node) : adresses et mnémoniques, lecture sûre d'un programme (`validerProg`), analyse des réceptivités (`parser`), compilation et erreurs (`analyser`), exécution (`creerAutomate` : `demarrer`, `scan`, `prochain`, `etat`) |
+| `programme.js` | l'**éditeur de programme** (fenêtre « Programmer ») : grille Ladder, formulaires et dessin du GRAFCET, table des mnémoniques et propositions d'après le câblage ; la **vue en direct** pendant la simulation |
 | `modele.js` | le **modèle**, sans la page (marche dans Node) : catalogue des symboles (bornes, paramètres, préfixe du repère), rotation, liste des liaisons (`netlist`), repères et numéros automatiques, tracé automatique des fils (`router`), lecture sûre d'un `.json` (`valider`) |
 | `symboles.js` | les **dessins** SVG de chaque symbole, au repos ou dans l'état de la simulation (couleur de chaque borne, contact ouvert ou fermé…) ; icônes de la palette |
 | `moteur.js` | le **moteur de simulation**, séparé de l'interface (marche dans Node) ; `scenario()` rejoue les essais des défis |
@@ -89,6 +121,12 @@ La réussite est gardée par élève (nom de la session du site, sinon « local 
 
 Coordonnées : en carreaux de grille (un carreau = 10 px à zoom 100 %). Un schéma est un objet
 `{ format: "schemas-papara", version: 1, titre, pieces: [{ id, type, x, y, rot, ref, p }], fils: [{ id, pts: [[x, y], …] }] }`.
+Un automate a en plus son programme dans `prog` :
+`{ lang: "ladder" | "grafcet", noms: { "%I0.0": "S1", … }, ladder: [réseaux], grafcet: { etapes, transitions } }`.
+Un réseau Ladder : `{ com, l: [{ c: [5 cases], s: sortie }], v: [[limites des liaisons verticales entre la ligne i et i + 1]] }` ;
+une case : `null`, `{ t: "f" }` (fil), `{ t: "no" | "nf" | "p" | "n", v: "%I0.0" }` ; une sortie : `{ t: "bob" | "s" | "r", v }`,
+`{ t: "ton" | "tof", v: "%TM0", p: secondes }`, `{ t: "ctu", v: "%C0", p: nombre }`, `{ t: "ana", x: volts }`.
+Une étape : `{ n, init, com, actions: [{ t: "n" | "s" | "r" | "inc" | "ana", v, x, si }] }` ; une transition : `{ de: [1], vers: [2], r: "dcy · a" }`.
 
 ## Le moteur de simulation (`moteur.js`)
 
@@ -122,20 +160,54 @@ Coordonnées : en carreaux de grille (un carreau = 10 px à zoom 100 %). Un sch�
 - Le temps est simulé : `avancer(ms)`. La page avance au rythme de l'écran ; les essais des défis utilisent une
   horloge fictive (instantanés, toujours le même résultat).
 
+### Automate et variateur
+
+- **Automate** (`automate`, repère API1) : alimenté quand il reçoit 24 V continu entre +24V et 0V, dans le bon sens
+  (230 V ~ sur l'alimentation : il est détruit). Une entrée %I0.k vaut 1 quand elle reçoit 24 V continu par rapport à
+  COM (dans un sens ou dans l'autre) ; une entrée qui reçoit le réseau est détruite. Une sortie à relais est un
+  contact entre son commun (C0 pour %Q0.0 à %Q0.3, C1 pour %Q0.4 à %Q0.7) et %Q0.k, fermé quand l'automate est en
+  RUN et que le programme met %Q0.k à 1 ; elle commute du 230 V ~ comme du 24 V. Après chaque point fixe électrique,
+  l'automate lit ses entrées et fait ses cycles (`scan`) jusqu'à ce que plus rien ne change ; si une sortie a changé,
+  on refait le point fixe, et ainsi de suite (un état déjà vu : « l'automate et le câblage s'entretiennent »).
+  Mise sous tension ou passage en RUN : démarrage à froid (étapes initiales, bits, tempos et compteurs à 0).
+- **Ladder** : chaque cycle lit les réseaux dans l'ordre ; la puissance part du rail de gauche, une case vide coupe,
+  un contact passe selon sa variable, les liaisons verticales réunissent deux lignes (OU) ; une ligne qui a une
+  sortie est reliée à sa sortie après son dernier élément. Bobine : la variable suit la ligne ; S et R : mise à 1, à 0
+  (R remet aussi une tempo ou un compteur à zéro) ; TON, TOF : temporisations %TMk (`%TM0` dans un contact = sa
+  sortie) ; CTU : compteur %Ck (`%C0` dans un contact : la valeur est atteinte) ; consigne : AQ0 prend la tension
+  quand la ligne est alimentée. Fronts : un cycle seulement. Une bobine écrite dans deux réseaux : remarque.
+- **GRAFCET** (IEC 60848) : toutes les transitions franchissables sont franchies ensemble, une étape activée et
+  désactivée en même temps reste active, évolutions fugaces jusqu'à stabilité (un front ne franchit qu'une transition) ;
+  les actions continues ne sortent que dans la situation stable ; S, R et +1 s'exécutent à l'activation ; les
+  temporisations `t/X2/3s` (ou `3s/X2`) comptent depuis l'activation de l'étape.
+- Le temps : les fins de temporisation sont des événements (`prochain()`), comme les relais temporisés.
+- **Variateur** (`variateur`, repère U1) : prêt quand L1, L2, L3 reçoivent trois phases (deux seulement : défaut
+  `PHF`) ; le réseau sur U, V ou W, ou sur une borne de commande, le détruit. Ses bornes +24V et COM sont le +24 V et
+  le 0 V de la commande (le même potentiel que les repères +24 V et 0 V : les communs sont reliés). LI1 : avant,
+  LI2 : arrière (les deux : il ne démarre pas). Consigne : vitesse présélectionnée si LI3 ou LI4 (SP2, SP3, SP4), sinon
+  AI1 (0 à 10 V entre LSP et HSP) ou la molette. La fréquence suit les rampes (ACC : temps de 0 à 50 Hz, DEC : de 50 Hz
+  à 0) et passe par 0 pour changer de sens ; U, V, W donnent alors trois phases à cette fréquence, deux phases croisées
+  en marche arrière. Le moteur branché dessus tourne à `fréquence / 50` de sa vitesse, dans le sens de l'ordre des
+  phases. R1A-R1C : fermé quand le variateur est prêt.
+- **Tensions 0-10 V** : calculées à part, après le point fixe : la sortie AQ0 d'un automate, le +10V d'un variateur
+  et le curseur d'un potentiomètre (diviseur entre ses bornes 1 et 3) sont des sources ; AI1 lit la tension de son
+  nœud par rapport au 0 V (plus de 10 V : remarque).
+
 Ce que le moteur ne calcule pas : les courants et les impédances (deux bobines en série ne collent pas, mais sans
-calcul de tension partagée), le verrouillage mécanique, les temps de réponse des contacteurs, les capteurs 3 fils
-(PNP/NPN), les variateurs.
+calcul de tension partagée), le verrouillage mécanique, les temps de réponse des contacteurs et le temps de cycle de
+l'automate, les capteurs 3 fils (PNP/NPN), les entrées analogiques de l'automate, la régulation du variateur (couple,
+glissement : le moteur suit la fréquence).
 
-### Pour plus tard : automate et système animé
+### Pour plus tard : système animé
 
-Le moteur ne dépend pas de la page. Un automate (Ladder, GRAFCET) ou une partie opérative animée (style Factory I/O)
-n'aura qu'à :
+Le moteur ne dépend pas de la page. Une partie opérative animée (style Factory I/O : un chariot qui actionne ses fins
+de course) n'aura qu'à :
 - agir sur les appareils : `sim.action(ref, quoi)` avec `appuyer`, `relacher`, `basculer`, `maintenir`, `surcharge`,
-  `rearmer`, `ouvrir`, `fermer` (un fin de course actionné par le chariot = `action("S3", "appuyer")`) ;
-- lire l'état : `sim.etat().appareils` (bobines alimentées, moteurs : sens, vitesse `w` de −1 à 1, couplage…) ;
+  `rearmer`, `ouvrir`, `fermer`, `regler` (potentiomètre, molette : de 0 à 1), `run`, `stop` (automate) ;
+- lire l'état : `sim.etat().appareils` (bobines alimentées, moteurs : sens, vitesse `w` de −1 à 1, couplage,
+  variateur ; automate : entrées, sorties, étapes actives ; variateur : fréquence `fs`) ;
 - avancer le temps : `sim.avancer(ms)`.
-Une sortie d'automate deviendra un nouveau type de symbole « contact » commandé par le programme, une entrée une
-« charge » dont on lit la tension. Dans la page, `window.SchemasAtelier` donne accès au schéma et à la simulation en cours.
+Dans la page, `window.SchemasAtelier` donne accès au schéma et à la simulation en cours.
 
 ## Ajouter…
 
@@ -146,7 +218,8 @@ Une sortie d'automate deviendra un nouveau type de symbole « contact » command
 - **un exemple** : une entrée dans `EXEMPLES` avec `construire()` (fonctions `b.p(type, x, y, repère, paramètres)`
   et `b.f([x, y], …)` pour les fils).
 - **un défi** : une entrée dans `DEFIS` : `depart()`, `exige` (appareils à garder), `etapes` :
-  `{ texte, faire: [["appuyer", "S2"]], attendre: ms, verifier: { KM1: true, H1: false, M1: "sens1" | "sens2" | "arret" | "marche" | "etoile" | "triangle", court: false }, protege: [["F1", "M1"]], terre: ["M1"], si: "conseil si l'étape échoue" }`.
+  `{ texte, faire: [["appuyer", "S2"], ["regler", "R1", 0.8]], attendre: ms, verifier: { KM1: true, H1: false, M1: "sens1" | "sens2" | "arret" | "marche" | "etoile" | "triangle", U1: 25 | "arret" | "avant" | "arriere", API1: "X2", court: false }, protege: [["F1", "M1"]], terre: ["M1"], si: "conseil si l'étape échoue" }`.
+  Un automate du départ reçoit son programme : `pc.prog = SA.validerProg({ … })` (voir `automate24` dans `exemples.js`).
   Vérifier que le départ échoue et que la solution réussit (voir les essais).
 
 ## Ce qui reste dans le navigateur (localStorage)
@@ -156,7 +229,7 @@ Une sortie d'automate deviendra un nouveau type de symbole « contact » command
 | `schemas:libre` | « Mon schéma », gardé à chaque modification |
 | `schemas:defi:<nom>:<défi>` | le schéma de l'élève pour chaque défi |
 | `schemas:progres:<nom>` | les défis réussis (lu aussi par le tableau de bord du site) |
-| `schemas:nbdefis` | nombre de défis (pour « n / 6 » sur le tableau de bord) |
+| `schemas:nbdefis` | nombre de défis (pour « n / 10 » sur le tableau de bord) |
 | `schemas:copies` | « Mes schémas » (30 copies au plus ; une copie est faite automatiquement avant d'ouvrir un exemple ou un fichier) |
 | `schemas:dernier` | ce qui était ouvert (schéma libre ou défi), pour y revenir |
 
@@ -171,6 +244,12 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   tensions qui ne conviennent pas, moteur sur deux phases (déclenchement du thermique, moteur grillé), sens de
   rotation, étoile-triangle, surtension, liaisons (croisement / jonction), numéros automatiques, tracé des fils,
   lecture des fichiers ;
+- `t_auto.js`, `t_sim.js` (Node, `/tmp/api/`) : réceptivités (toutes les écritures), Ladder (auto-maintien, branche au
+  milieu, télérupteur par front, TON, TOF, compteur, consigne), GRAFCET (front, tempo, évolution fugace, divergence et
+  convergence ET, S/R et comptage), erreurs ; les quatre exemples simulés (rampes, inversion à la volée, verrouillage
+  par le programme) ; les défis 7 à 10 (départ refusé, solution acceptée) ;
+- `e2e_api.py` (Playwright, PC et téléphone) : programmer au doigt et à la souris (cases, liaison, GRAFCET,
+  mnémoniques renommés), simuler, vue en direct, variateur, curseur du potentiomètre, défi ;
 - `e2e_bureau.py`, `e2e_telephone.py`, `e2e_liens.py` (Playwright) : PC 1280×860 à la souris et au clavier,
   téléphone 390×844 au doigt (glisser, pincer, appui long, par `Input.dispatchTouchEvent`) en mode sombre, tablette
   en portrait, liens du tableau de bord ; aucune erreur de script.

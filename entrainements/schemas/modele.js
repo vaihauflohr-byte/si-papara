@@ -90,9 +90,36 @@
     bornes: () => [{ id: "U1", x: -2, y: -4, d: "n", n: "U1" }, { id: "V1", x: 0, y: -4, d: "n", n: "V1" }, { id: "W1", x: 2, y: -4, d: "n", n: "W1" },
       { id: "U2", x: -2, y: 5, d: "s", n: "U2" }, { id: "V2", x: 0, y: 5, d: "s", n: "V2" }, { id: "W2", x: 2, y: 5, d: "s", n: "W2" }, { id: "PE", x: 4, y: -4, d: "n", n: "PE" }] });
 
+  // Automate et variateur
+  // libre(id) : cette borne peut rester sans fil (pas de rond orange, pas de remarque)
+  const BORNES_API = (() => {
+    const L = [{ id: "p24", x: -11, y: -6, d: "n", n: "+24V" }, { id: "m0", x: -9, y: -6, d: "n", n: "0V" }, { id: "COM", x: -7, y: -6, d: "n", n: "COM" }];
+    for (let k = 0; k < 8; k++) L.push({ id: "I" + k, x: -5 + 2 * k, y: -6, d: "n", n: "%I0." + k });
+    L.push({ id: "C0", x: -11, y: 6, d: "s", n: "C0" });
+    for (let k = 0; k < 4; k++) L.push({ id: "Q" + k, x: -9 + 2 * k, y: 6, d: "s", n: "%Q0." + k });
+    L.push({ id: "C1", x: -1, y: 6, d: "s", n: "C1" });
+    for (let k = 4; k < 8; k++) L.push({ id: "Q" + k, x: 1 + 2 * (k - 4), y: 6, d: "s", n: "%Q0." + k });
+    L.push({ id: "AQ0", x: 9, y: 6, d: "s", n: "AQ0" });
+    return L;
+  })();
+  def("automate", { nom: "Automate programmable (API)", court: "Automate", cat: "api", pref: "API", boite: [-12.4, -6, 10.4, 6],
+    libre: (id) => id !== "p24" && id !== "m0", bornes: () => BORNES_API });
+  const BORNES_VAR = [
+    { id: "L1", x: -2, y: -5, d: "n", n: "L1" }, { id: "L2", x: 0, y: -5, d: "n", n: "L2" }, { id: "L3", x: 2, y: -5, d: "n", n: "L3" }, { id: "PE", x: 4, y: -5, d: "n", n: "PE" },
+    { id: "U", x: -2, y: 17, d: "s", n: "U" }, { id: "V", x: 0, y: 17, d: "s", n: "V" }, { id: "W", x: 2, y: 17, d: "s", n: "W" }, { id: "PE2", x: 4, y: 17, d: "s", n: "PE" },
+    { id: "R1A", x: 8, y: -3, d: "e", n: "R1A" }, { id: "R1C", x: 8, y: -1, d: "e", n: "R1C" }, { id: "P24", x: 8, y: 1, d: "e", n: "+24V" },
+    { id: "LI1", x: 8, y: 3, d: "e", n: "LI1" }, { id: "LI2", x: 8, y: 5, d: "e", n: "LI2" }, { id: "LI3", x: 8, y: 7, d: "e", n: "LI3" }, { id: "LI4", x: 8, y: 9, d: "e", n: "LI4" },
+    { id: "P10", x: 8, y: 11, d: "e", n: "+10V" }, { id: "AI1", x: 8, y: 13, d: "e", n: "AI1" }, { id: "COM", x: 8, y: 15, d: "e", n: "COM" }];
+  def("variateur", { nom: "Variateur de vitesse (ATV)", court: "Variateur", cat: "api", pref: "U",
+    p: { hsp: 50, lsp: 0, acc: 3, dec: 3, sp2: 10, sp3: 25, sp4: 50, ref: "AI1" }, boite: [-3.4, -5, 8, 17],
+    libre: (id) => !/^(L1|L2|L3|U|V|W)$/.test(id), bornes: () => BORNES_VAR });
+  // potentiomètre : les trois bornes à gauche (1 en haut, 2 = curseur, 3 en bas), à poser contre +10V, AI1, COM d'un variateur
+  def("potentiometre", { nom: "Potentiomètre de consigne", court: "Potentiomètre", cat: "api", pref: "R", p: { pos: 50 }, boite: [-2, -2.8, 2.4, 2.8],
+    bornes: () => [{ id: "1", x: -2, y: -2, d: "o", n: "1" }, { id: "2", x: -2, y: 0, d: "o", n: "2" }, { id: "3", x: -2, y: 2, d: "o", n: "3" }] });
+
   const CATS = [
     { id: "alim", nom: "Alimentation" }, { id: "prot", nom: "Protection" }, { id: "cmd", nom: "Commande" },
-    { id: "rel", nom: "Contacteurs et relais" }, { id: "rec", nom: "Récepteurs" }];
+    { id: "rel", nom: "Contacteurs et relais" }, { id: "rec", nom: "Récepteurs" }, { id: "api", nom: "Automate et variateur" }];
 
   /* familles utiles au moteur et à l'éditeur */
   const BOBINES = ["bobine", "relais", "tempo_travail", "tempo_repos"];
@@ -316,6 +343,9 @@
     return prefixe + (n + 1);
   }
   const entier = (v, min, max, d) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : d; };
+  // le programme d'un automate est vérifié par automate.js (chargé avant l'éditeur, ou par require dans Node)
+  function automateJs() { if (typeof module === "object" && module.exports) { try { return require("./automate.js"); } catch (e) { return null; } } return g.SchemasAutomate || null; }
+  const libreOk = (pc, id) => { const T = TYPES[pc.type]; return !!(T && T.libre && T.libre(id)); };
   const texte = (v, max) => String(v == null ? "" : v).replace(/[\u0000-\u001f<>]/g, "").slice(0, max);
   function valider(o) {
     if (!o || typeof o !== "object") throw new Error("Ce fichier ne contient pas de schéma.");
@@ -328,7 +358,9 @@
       for (const k of Object.keys(T.p)) if (q.p && q.p[k] != null) p[k] = typeof T.p[k] === "number" ? Math.max(0, Math.min(1e5, Number(q.p[k]) || T.p[k])) : texte(q.p[k], 16);
       let id = texte(q.id, 20) || "p"; if (!/^p\d+$/.test(id) || ids.has(id)) id = "p" + (ids.size + 1000 + Math.floor(Math.random() * 1e6));
       ids.add(id);
-      s.pieces.push({ id, type: q.type, x: entier(q.x, -2000, 2000, 0), y: entier(q.y, -2000, 2000, 0), rot: entier(q.rot, 0, 3, 0), ref: texte(q.ref, 12), p });
+      const pc = { id, type: q.type, x: entier(q.x, -2000, 2000, 0), y: entier(q.y, -2000, 2000, 0), rot: entier(q.rot, 0, 3, 0), ref: texte(q.ref, 12), p };
+      if (q.type === "automate") { const SA = automateJs(); pc.prog = SA ? SA.validerProg(q.prog) : (q.prog && typeof q.prog === "object" ? JSON.parse(JSON.stringify(q.prog)) : undefined); }
+      s.pieces.push(pc);
     }
     const fids = new Set();
     for (const f of o.fils.slice(0, 2000)) {
@@ -349,6 +381,6 @@
 
   const API = { G, TYPES, CATS, BOBINES, TEMPOS, ORGANES, CONTACTS_LIES, AVEC_NUM, POTENTIELS, TENSIONS, COULEURS, DIRS,
     rotP, rotDir, paire, parametres, nature, bornesLocales, bornesAbs, boiteLocale, boiteAbs, surSegment, surFil,
-    netlist, nettoyer, router, prochainRef, numeroContact, appareilsPour, nouveau, cloner, nouvelId, valider, bornesDe, FORMAT };
+    netlist, nettoyer, router, prochainRef, numeroContact, appareilsPour, nouveau, cloner, nouvelId, valider, bornesDe, libreOk, FORMAT };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasModele = API;
 })(typeof window !== "undefined" ? window : globalThis);

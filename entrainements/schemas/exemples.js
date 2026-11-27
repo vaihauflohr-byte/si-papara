@@ -7,6 +7,7 @@
 (function (g) {
   "use strict";
   const M = (typeof module === "object" && module.exports) ? require("./modele.js") : g.SchemasModele;
+  const SA = (typeof module === "object" && module.exports) ? require("./automate.js") : g.SchemasAutomate;
 
   function plan(titre) {
     const s = M.nouveau(titre);
@@ -50,6 +51,132 @@
     if (o.sansThermique) b.f([22, 10], [22, 18]); else b.f([22, 10], [22, 11]).f([22, 17], [22, 18]);
     b.f([22, 24], [22, 25]).f([22, 31], [22, 32]).f([22, 38], [22, 39]);
     if (!o.sansMaintien) b.f([22, 25], [28, 25]).f([28, 31], [22, 31]);
+  }
+
+  /* ---------- automate et variateur ---------- */
+  const N = null;
+  const ct = (t, v) => ({ t, v });
+  // les programmes (adresses dans le programme ; l'éditeur affiche les mnémoniques)
+  function progMA() {
+    return { lang: "ladder", noms: { "%I0.0": "S1", "%I0.1": "S2", "%I0.2": "F1", "%Q0.0": "KM1", "%Q0.1": "H1" }, ladder: [
+      { com: "Marche S2, arrêt S1, auto-maintien, thermique F1", l: [
+        { c: [ct("no", "%I0.1"), ct("no", "%I0.0"), ct("no", "%I0.2"), N, N], s: { t: "bob", v: "%Q0.0" } },
+        { c: [ct("no", "%Q0.0"), N, N, N, N], s: null }], v: [[1]] },
+      { com: "Voyant de marche", l: [{ c: [ct("no", "%Q0.0"), N, N, N, N], s: { t: "bob", v: "%Q0.1" } }], v: [] }] };
+  }
+  const NOMS_CHARIOT = { "%I0.0": "dcy", "%I0.1": "a", "%I0.2": "b", "%Q0.0": "KM1", "%Q0.1": "KM2" };
+  function progChariot() {
+    return { lang: "grafcet", noms: Object.assign({}, NOMS_CHARIOT), grafcet: {
+      etapes: [{ n: 0, init: true, com: "attente", actions: [] }, { n: 1, com: "aller à droite", actions: [{ t: "n", v: "%Q0.0" }] },
+        { n: 2, com: "pause", actions: [] }, { n: 3, com: "retour à gauche", actions: [{ t: "n", v: "%Q0.1" }] }],
+      transitions: [{ de: [0], vers: [1], r: "dcy" }, { de: [1], vers: [2], r: "b" }, { de: [2], vers: [3], r: "t/X2/3s" }, { de: [3], vers: [0], r: "a" }] } };
+  }
+  function progVariateur() {
+    return { lang: "ladder", noms: { "%I0.0": "S1", "%I0.1": "S2", "%I0.2": "S3", "%I0.3": "S4", "%Q0.0": "AVANT", "%Q0.1": "ARRIERE", "%QW0": "VITESSE" }, ladder: [
+      { com: "Marche avant S2, auto-maintien, arrêt S1", l: [
+        { c: [ct("no", "%I0.1"), ct("no", "%I0.0"), ct("nf", "%Q0.1"), N, N], s: { t: "bob", v: "%Q0.0" } },
+        { c: [ct("no", "%Q0.0"), N, N, N, N], s: null }], v: [[1]] },
+      { com: "Marche arrière (S3)", l: [
+        { c: [ct("no", "%I0.2"), ct("no", "%I0.0"), ct("nf", "%Q0.0"), N, N], s: { t: "bob", v: "%Q0.1" } },
+        { c: [ct("no", "%Q0.1"), N, N, N, N], s: null }], v: [[1]] },
+      { com: "S4 tourné : grande vitesse (10 V → 50 Hz)", l: [{ c: [ct("no", "%I0.3"), N, N, N, N], s: { t: "ana", x: 10 } }], v: [] },
+      { com: "S4 au repos : petite vitesse (5 V → 25 Hz)", l: [{ c: [ct("nf", "%I0.3"), N, N, N, N], s: { t: "ana", x: 5 } }], v: [] }] };
+  }
+  // l'automate et son alimentation 24 V : API à (ax, 24) ; entrées en haut (y = 18), sorties en bas (y = 30)
+  function automate24(b, ax, prog) {
+    const pc = b.p("automate", ax, 24, "API1"); pc.prog = SA.validerProg(prog);
+    b.p("alim", ax - 8, 14, "", { pot: "0V" }, 0);                       // sur le fil 0V – COM
+    b.f([ax - 9, 18], [ax - 9, 16], [ax - 7, 16], [ax - 7, 18]);
+    return pc;
+  }
+  // les boutons et capteurs des entrées : le premier droit au-dessus de %I0.0, les autres en escalier (tous les 6 pas)
+  function entrees(b, ax, L) {
+    const x0 = ax - 5, xs = L.map((_, k) => x0 + 6 * k);
+    b.p("alim", ax - 8, 1, "", { pot: "+24" }, 0);
+    b.f([ax - 11, 18], [ax - 11, 4], [xs[xs.length - 1], 4], [xs[xs.length - 1], 6]).f([ax - 8, 3], [ax - 8, 4]);
+    L.forEach(([type, ref, p], k) => {
+      const x = xs[k]; b.p(type, x, 9, ref, p);
+      if (k < L.length - 1) b.f([x, 4], [x, 6]);
+      if (k === 0) b.f([x, 12], [x, 18]); else b.f([x, 12], [x, 14 + k], [x0 + 2 * k, 14 + k], [x0 + 2 * k, 18]);
+    });
+  }
+  function exempleApiLadder(sansProg) {
+    const b = plan(sansProg ? "Défi · Programme l'automate" : "Marche-arrêt par automate (Ladder)");
+    puissanceDirecte(b);
+    const ap = automate24(b, 36, progMA());
+    if (sansProg) ap.prog = SA.validerProg({ lang: "ladder", noms: progMA().noms });
+    entrees(b, 36, [["bp_nf", "S1", { num: "11-12" }], ["bp_no", "S2", { num: "13-14" }], ["contact_th_nf", "F1", { num: "95-96" }]]);
+    // sorties : L → F2 → C0 ; %Q0.0 → KM1 ; %Q0.1 → H1
+    b.p("alim", 19, 19, "", { pot: "L" }, 0); b.p("fusible", 19, 27, "F2", { cal: 2 });
+    b.f([19, 21], [19, 24]).f([19, 30], [25, 30]);
+    b.p("bobine", 33, 36, "KM1", { tension: "230~" }); b.p("voyant", 39, 36, "H1", { couleur: "vert", tension: "230~" });
+    b.f([27, 30], [27, 32], [33, 32], [33, 33]).f([29, 30], [29, 31], [39, 31], [39, 33]);
+    b.p("alim", 36, 45, "", { pot: "N" });
+    b.f([33, 39], [33, 41], [39, 41], [39, 39]).f([36, 43], [36, 41]);
+    return b.s;
+  }
+  function puissanceInversion(b) {
+    b.p("reseau", 2, 0);
+    b.p("sectionneur", 4, 6, "Q1", { cal: 10 });
+    b.p("poles", 4, 16, "KM1");
+    b.p("poles", 14, 16, "KM2");
+    b.p("thermique", 4, 26, "F1", { cal: 6 });
+    b.p("moteur", 4, 36, "M1");
+    for (const x of [2, 4, 6]) b.f([x, 2], [x, 3]).f([x, 9], [x, 13]).f([x, 19], [x, 23]).f([x, 29], [x, 32]);
+    b.f([2, 10], [12, 10], [12, 13]).f([4, 11], [14, 11], [14, 13]).f([6, 12], [16, 12], [16, 13]);
+    b.f([12, 19], [12, 20], [6, 20]).f([14, 19], [14, 21], [4, 21]).f([16, 19], [16, 22], [2, 22]);
+    b.f([10, 2], [10, 8], [19, 8], [19, 31], [8, 31], [8, 32]);
+  }
+  function exempleApiGrafcet(prog, titre) {
+    const b = plan(titre || "Aller-retour d'un chariot (GRAFCET)");
+    puissanceInversion(b);
+    automate24(b, 40, prog || progChariot());
+    entrees(b, 40, [["bp_no", "S2", { num: "13-14" }], ["fdc_no", "S3", { num: "13-14" }], ["fdc_no", "S4", { num: "13-14" }]]);
+    // sorties : L → F2 → F1 95-96 → C0 ; verrouillage électrique câblé en plus du programme
+    b.p("alim", 23, 13, "", { pot: "L" }, 0); b.p("fusible", 23, 19, "F2", { cal: 2 }); b.p("contact_th_nf", 23, 26, "F1", { num: "95-96" });
+    b.f([23, 15], [23, 16]).f([23, 22], [23, 23]).f([23, 29], [23, 30], [29, 30]);
+    b.p("contact_nf", 37, 36, "KM2", { num: "21-22" }); b.p("bobine", 37, 43, "KM1", { tension: "230~" });
+    b.p("contact_nf", 43, 36, "KM1", { num: "21-22" }); b.p("bobine", 43, 43, "KM2", { tension: "230~" });
+    b.f([31, 30], [31, 32], [37, 32], [37, 33]).f([33, 30], [33, 31], [43, 31], [43, 33]);
+    b.f([37, 39], [37, 40]).f([43, 39], [43, 40]);
+    b.p("alim", 40, 52, "", { pot: "N" });
+    b.f([37, 46], [37, 48], [43, 48], [43, 46]).f([40, 50], [40, 48]);
+    return b.s;
+  }
+  // puissance avec variateur : réseau, Q1, U1, M1 (bornier de commande de U1 à x = 12, y = 28 à 46)
+  function puissanceVariateur(b, p) {
+    b.p("reseau", 2, 14);
+    b.p("disj_moteur", 4, 21, "Q1", { cal: 6 });
+    b.p("variateur", 4, 31, "U1", Object.assign({ acc: 2, dec: 2, ref: "AI1" }, p || {}));
+    b.p("moteur", 4, 56, "M1");
+    for (const x of [2, 4, 6]) b.f([x, 16], [x, 18]).f([x, 24], [x, 26]).f([x, 48], [x, 52]);
+    b.f([10, 16], [10, 25], [8, 25], [8, 26]).f([8, 48], [8, 52]);
+  }
+  function exempleVariateurApi(sansFils) {
+    const b = plan(sansFils ? "Défi · Relie l'automate au variateur" : "Automate et variateur : deux sens, deux vitesses");
+    puissanceVariateur(b);
+    automate24(b, 36, progVariateur());
+    entrees(b, 36, [["bp_nf", "S1", { num: "11-12" }], ["bp_no", "S2", { num: "13-14" }], ["bp_no", "S3", { num: "13-14" }], ["selecteur", "S4", { num: "13-14", contact: "no" }]]);
+    b.p("alim", 16, 48, "", { pot: "0V" });
+    if (!sansFils) {
+      b.f([25, 30], [25, 32], [12, 32]);     // C0 ← +24V du variateur
+      b.f([27, 30], [27, 34], [12, 34]);     // %Q0.0 → LI1 (avant)
+      b.f([29, 30], [29, 36], [12, 36]);     // %Q0.1 → LI2 (arrière)
+      b.f([45, 30], [45, 44], [12, 44]);     // AQ0 → AI1 (consigne 0-10 V)
+      b.f([12, 46], [16, 46]);               // COM du variateur au 0 V commun
+    }
+    return b.s;
+  }
+  function exempleVariateurPot(sansPot) {
+    const b = plan(sansPot ? "Défi · Le potentiomètre de vitesse" : "Variateur : marche avant/arrière et potentiomètre");
+    puissanceVariateur(b);
+    b.p("interrupteur", 20, 30, "S2", { num: "13-14" });
+    b.p("interrupteur", 26, 30, "S3", { num: "13-14" });
+    b.f([12, 32], [16, 32], [16, 25], [26, 25], [26, 27]).f([20, 25], [20, 27]);
+    b.f([20, 33], [20, 34], [12, 34]).f([26, 33], [26, 36], [12, 36]);
+    b.p("potentiometre", 16, 44, "R1", { pos: 50 });
+    if (!sansPot) b.f([12, 42], [14, 42]).f([12, 44], [14, 44]).f([12, 46], [14, 46]);
+    return b.s;
   }
 
   /* ---------- les exemples ---------- */
@@ -128,7 +255,19 @@
         b.f([65, 48], [65, 49]).f([65, 55], [65, 56]).f([73, 48], [73, 49]).f([73, 55], [73, 56]);
         b.f([47, 12], [47, 13], [41, 13], [41, 63], [73, 63], [73, 62]).f([49, 62], [49, 63]).f([57, 62], [57, 63]).f([65, 62], [65, 63]);
         return b.s;
-      } }
+      } },
+    { id: "api-ladder", titre: "Marche-arrêt par automate (Ladder)", niveau: "Automate",
+      resume: "S1, S2 et F1 sur les entrées de API1, KM1 et H1 sur ses sorties. Le programme en Ladder fait l'auto-maintien.",
+      construire() { return exempleApiLadder(); } },
+    { id: "api-grafcet", titre: "Aller-retour d'un chariot (GRAFCET)", niveau: "Automate",
+      resume: "dcy : le chariot va à droite (KM1) jusqu'à b, attend 3 s, revient (KM2) jusqu'à a. Clique sur S3 et S4 pour dire où il est.",
+      construire() { return exempleApiGrafcet(); } },
+    { id: "api-variateur", titre: "Automate et variateur : deux sens, deux vitesses", niveau: "Variateur",
+      resume: "API1 commande U1 : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz, 10 V : 50 Hz avec S4). Rampes de 2 s.",
+      construire() { return exempleVariateurApi(); } },
+    { id: "variateur-pot", titre: "Variateur, inverseur et potentiomètre", niveau: "Variateur",
+      resume: "S2 : marche avant (LI1), S3 : marche arrière (LI2), alimentés par le +24V du variateur. Le potentiomètre R1 règle la vitesse sur AI1.",
+      construire() { return exempleVariateurPot(); } }
   ];
   function inversion(verrou) {
     const b = plan(verrou ? "Inversion du sens de marche" : "Inversion du sens de marche (sans verrouillage)");
@@ -282,9 +421,67 @@
         { texte: "Le courant du moteur traverse Q1 et F1", protege: [["Q1", "M1"], ["F1", "M1"]], si: "Chaque phase doit traverser le sectionneur Q1 (il protège avec ses fusibles) et le relais thermique F1 (il surveille le courant)." },
         { texte: "La carcasse du moteur est à la terre", terre: ["M1"], si: "Relie la borne PE du moteur à la borne PE du réseau : c'est le fil vert et jaune qui protège les personnes." },
         { texte: "S1 : le moteur s'arrête", faire: [["appuyer", "S1"], ["relacher", "S1"]], verifier: { M1: "arret" }, si: "Quand KM1 retombe, le moteur doit s'arrêter : les trois phases doivent passer par les pôles de KM1." }
+      ] },
+    { id: "d7-ladder", titre: "Programme l'automate en Ladder", niveau: 2,
+      resume: "Marche, arrêt et auto-maintien, mais dans le programme.",
+      consigne: "<p>Le câblage est fait : <b>S1</b> (arrêt) sur %I0.0, <b>S2</b> (marche) sur %I0.1, le contact <b>F1</b> 95-96 sur %I0.2 ; <b>KM1</b> sur %Q0.0 et <b>H1</b> sur %Q0.1. Clique sur l'automate <b>API1</b>, puis sur <b>Programmer</b>, et écris le programme en Ladder :</p><ul><li>S2 met le moteur en marche, et il <b>reste en marche</b> quand on lâche S2 ;</li><li><b>S1</b> l'arrête, une <b>surcharge</b> (F1) aussi ;</li><li>H1 s'allume quand KM1 est commandé.</li></ul><p class=\"discret\">Attention : S1 est un bouton à ouverture. Au repos il est fermé, donc %I0.0 vaut 1 : dans le programme, il se met avec un contact <b>à fermeture</b>.</p>",
+      indice: "Réseau 1 : S2 sur la première ligne, KM1 (contact) juste en dessous, relié par une liaison verticale (c'est l'auto-maintien), puis S1 et F1 en série, et la bobine KM1. Réseau 2 : un contact KM1 et la bobine H1.",
+      depart() { return exempleApiLadder(true); },
+      exige: { API1: "automate", KM1: "contacteur", H1: "voyant", S1: "bouton", S2: "bouton", F1: "thermique" },
+      etapes: [
+        { texte: "Au repos : KM1 n'est pas commandé", verifier: { KM1: false }, si: "KM1 colle alors que personne n'appuie : as-tu mis S2 avec un contact à ouverture ? Ou la ligne de KM1 est-elle vide ?" },
+        { texte: "J'appuie sur S2 : KM1 colle, le moteur tourne", faire: [["appuyer", "S2"]], verifier: { KM1: true, M1: "marche" }, si: "KM1 doit coller quand on appuie sur S2. Vérifie le premier réseau : S2 (%I0.1), S1 (%I0.0) et F1 (%I0.2) avec des contacts à fermeture, puis la bobine KM1 (%Q0.0)." },
+        { texte: "Je lâche S2 : KM1 reste collé et H1 est allumé", faire: [["relacher", "S2"]], verifier: { KM1: true, H1: true }, si: "Il faut l'auto-maintien : un contact KM1 (%Q0.0) en parallèle avec S2 (une ligne en dessous, reliée par une liaison verticale). Et un réseau KM1 → H1." },
+        { texte: "J'appuie sur S1 : KM1 retombe", faire: [["appuyer", "S1"]], verifier: { KM1: false }, si: "S1 doit arrêter : il se met en série, après le OU de S2 et de KM1." },
+        { texte: "Je lâche S1 : le moteur reste arrêté, H1 éteint", faire: [["relacher", "S1"]], verifier: { KM1: false, H1: false }, si: "Le moteur repart quand tu lâches S1 : l'auto-maintien ne doit pas contourner S1." },
+        { texte: "S2, puis surcharge : F1 arrête le moteur", faire: [["appuyer", "S2"], ["relacher", "S2"], ["surcharge", "F1"]], verifier: { KM1: false }, si: "Quand F1 déclenche, %I0.2 passe à 0 : mets F1 (%I0.2) en série avec S1." },
+        { texte: "Je réarme F1 : le moteur ne repart pas tout seul", faire: [["rearmer", "F1"]], verifier: { KM1: false }, si: "Après le réarmement, il faut appuyer de nouveau sur S2." }
+      ] },
+    { id: "d8-grafcet", titre: "Complète le GRAFCET du chariot", niveau: 2,
+      resume: "Aller à droite, retour à gauche, et on attend.",
+      consigne: "<p>Quand on appuie sur <b>dcy</b> (S2), le chariot part à droite (<b>KM1</b>) : c'est déjà programmé (étapes 0 et 1). Complète le GRAFCET de <b>API1</b> :</p><ul><li>quand le chariot arrive à droite (<b>b</b>, fin de course S4), il repart à gauche (<b>KM2</b>) ;</li><li>quand il arrive à gauche (<b>a</b>, S3), il s'arrête et attend un nouveau dcy.</li></ul><p class=\"discret\">Pendant la simulation, clique sur S3 et S4 pour dire où est le chariot.</p>",
+      indice: "Ajoute l'étape 2 avec l'action KM2. Puis deux transitions : de 1 vers 2 avec la réceptivité b, et de 2 vers 0 avec la réceptivité a.",
+      depart() {
+        const pr = progChariot();
+        pr.grafcet.etapes = pr.grafcet.etapes.slice(0, 2); pr.grafcet.transitions = pr.grafcet.transitions.slice(0, 1);
+        return exempleApiGrafcet(pr, "Défi · Le GRAFCET du chariot");
+      },
+      exige: { API1: "automate", KM1: "contacteur", KM2: "contacteur", S2: "bouton", S3: "fdc", S4: "fdc" },
+      etapes: [
+        { texte: "Au repos : rien ne bouge", verifier: { KM1: false, KM2: false }, si: "Au départ, seule l'étape initiale 0 est active, et elle n'a pas d'action." },
+        { texte: "dcy : le chariot part à droite", faire: [["appuyer", "S2"], ["relacher", "S2"]], verifier: { KM1: true, KM2: false }, si: "La transition 0 → 1 (dcy) et l'action KM1 de l'étape 1 étaient déjà là : ne les efface pas." },
+        { texte: "Il arrive à droite (b) : il repart à gauche", faire: [["basculer", "S4"]], verifier: { KM1: false, KM2: true }, si: "Quand b passe à 1, il faut passer de l'étape 1 à une étape qui commande KM2 : ajoute l'étape 2 (action KM2) et la transition 1 → 2 (réceptivité b)." },
+        { texte: "Il arrive à gauche (a) : il s'arrête", faire: [["basculer", "S4"], ["basculer", "S3"]], verifier: { KM1: false, KM2: false }, si: "Quand a passe à 1, le GRAFCET doit revenir à l'étape 0 : ajoute la transition 2 → 0 avec la réceptivité a." },
+        { texte: "Il attend un nouveau départ", faire: [["basculer", "S3"]], attendre: 600, verifier: { KM1: false, KM2: false }, si: "À l'étape 0, rien ne doit bouger tant qu'on n'appuie pas sur dcy." },
+        { texte: "dcy : il repart à droite", faire: [["appuyer", "S2"], ["relacher", "S2"]], verifier: { KM1: true, KM2: false }, si: "Après un aller-retour, dcy doit relancer un cycle : la dernière transition doit ramener à l'étape 0." }
+      ] },
+    { id: "d9-variateur", titre: "Relie l'automate au variateur", niveau: 3,
+      resume: "Ordres de marche sur LI1 et LI2, consigne sur AI1.",
+      consigne: "<p>Le programme de <b>API1</b> est prêt : <b>%Q0.0</b> = marche avant, <b>%Q0.1</b> = marche arrière, la sortie analogique <b>AQ0</b> = la consigne de vitesse (5 V ou 10 V avec S4). Câble l'automate au variateur <b>U1</b> :</p><ul><li><b>C0</b> (le commun des sorties) au <b>+24V</b> du variateur ;</li><li><b>%Q0.0</b> à <b>LI1</b>, <b>%Q0.1</b> à <b>LI2</b> ;</li><li><b>AQ0</b> à <b>AI1</b>, et le <b>COM</b> du variateur au 0 V.</li></ul>",
+      indice: "Une sortie à relais est un contact entre C0 et %Q0.0 : C0 reçoit le +24V du variateur, et quand le relais se ferme, le +24 V arrive sur LI1. AI1 se mesure par rapport à COM : relie COM au repère 0 V posé à côté.",
+      depart() { return exempleVariateurApi(true); },
+      exige: { API1: "automate", U1: "variateur", M1: "moteur", S1: "bouton", S2: "bouton", S3: "bouton" },
+      etapes: [
+        { texte: "Au repos : le moteur est arrêté", verifier: { U1: "arret", M1: "arret" }, si: "Le variateur ne doit tourner que sur un ordre de l'automate." },
+        { texte: "S2 : marche avant, petite vitesse (25 Hz)", faire: [["appuyer", "S2"], ["relacher", "S2"]], attendre: 2500, verifier: { U1: 25, M1: "sens1" }, si: "Il faut le +24V du variateur sur C0, %Q0.0 sur LI1 (marche avant), et AQ0 sur AI1 (5 V donnent 25 Hz)." },
+        { texte: "S4 : grande vitesse (50 Hz)", faire: [["basculer", "S4"]], attendre: 3000, verifier: { U1: 50 }, si: "Avec S4, l'automate envoie 10 V sur AQ0 : AQ0 doit aller sur AI1, et COM au 0 V." },
+        { texte: "S1 : le moteur s'arrête (rampe de décélération)", faire: [["appuyer", "S1"], ["relacher", "S1"]], attendre: 3000, verifier: { U1: "arret", M1: "arret" }, si: "S1 coupe %Q0.0 : LI1 ne reçoit plus le +24 V et le variateur ralentit jusqu'à l'arrêt." },
+        { texte: "S3 : marche arrière", faire: [["basculer", "S4"], ["appuyer", "S3"], ["relacher", "S3"]], attendre: 2500, verifier: { U1: "arriere", M1: "sens2" }, si: "La marche arrière, c'est %Q0.1 sur LI2." }
+      ] },
+    { id: "d10-potentiometre", titre: "Le potentiomètre de vitesse", niveau: 2,
+      resume: "Câbler la consigne 0-10 V d'un variateur.",
+      consigne: "<p>Le variateur <b>U1</b> prend sa consigne de vitesse sur <b>AI1</b> : 0 V donne 0 Hz, 10 V donnent 50 Hz. Câble le potentiomètre <b>R1</b> :</p><ul><li>sa borne <b>1</b> au <b>+10V</b> du variateur ;</li><li>son curseur <b>2</b> à <b>AI1</b> ;</li><li>sa borne <b>3</b> au <b>COM</b>.</li></ul><p class=\"discret\">S2 donne l'ordre de marche avant (LI1), S3 l'ordre de marche arrière (LI2). Pendant la simulation, règle R1 dans le panneau.</p>",
+      indice: "Les trois bornes de R1 sont en face de +10V, AI1 et COM : trois petits fils horizontaux.",
+      depart() { return exempleVariateurPot(true); },
+      exige: { U1: "variateur", R1: "potentiometre", M1: "moteur", S2: "interrupteur", S3: "interrupteur" },
+      etapes: [
+        { texte: "S2 : le moteur tourne en avant (R1 à 50 % : 25 Hz)", faire: [["basculer", "S2"]], attendre: 3000, verifier: { U1: 25, M1: "sens1" }, si: "À 50 %, le curseur de R1 donne 5 V à AI1, donc 25 Hz. Relie 1 au +10V, 2 à AI1, 3 au COM." },
+        { texte: "R1 à fond : 50 Hz", faire: [["regler", "R1", 1]], attendre: 3000, verifier: { U1: 50 }, si: "R1 à fond : le curseur est sur la borne 1, qui doit être au +10V." },
+        { texte: "R1 à 20 % : 10 Hz", faire: [["regler", "R1", 0.2]], attendre: 4000, verifier: { U1: 10 }, si: "À 20 %, le curseur donne 2 V : la borne 3 doit être au COM (0 V)." },
+        { texte: "S2 coupé, S3 : marche arrière", faire: [["basculer", "S2"], ["basculer", "S3"]], attendre: 3000, verifier: { U1: "arriere", M1: "sens2" }, si: "S3 commande LI2 (marche arrière) : il est déjà câblé, ne le change pas." }
       ] }
   ];
 
-  const API = { EXEMPLES, DEFIS, inversion, plan };
+  const API = { EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasExemples = API;
 })(typeof window !== "undefined" ? window : globalThis);

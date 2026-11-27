@@ -12,24 +12,33 @@
      petite sur le chemin déclenche (fusible, disjoncteur) ; sans protection, toute l'alimentation est coupée ;
    - temporisations et échauffement des moteurs en temps simulé (avancer(ms)) : les essais utilisent une
      horloge fictive, la page avance au rythme de l'écran.
-   Prévu pour plus tard : un automate ou un système animé n'aura qu'à agir sur les appareils (action())
-   et à lire l'état (etat()).
+   Automate (API) : ses entrées lisent le 24 V continu entre Ix et COM, ses sorties à relais ferment
+   Cx-Qx ; après chaque point fixe, l'automate fait ses cycles, et si une sortie change on recommence.
+   Variateur : alimenté par L1, L2, L3, il fournit U, V, W (fréquence variable, rampes ACC/DEC, sens
+   par l'ordre des phases) ; ses entrées LI1…LI4 lisent son +24 V ; la consigne vient de AI1 (0-10 V),
+   de la molette ou des vitesses présélectionnées. Les tensions analogiques (0-10 V) sont calculées à part.
+   Prévu pour plus tard : un système animé n'aura qu'à agir sur les appareils (action()) et à lire l'état (etat()).
    ===================================================================== */
 (function (g) {
   "use strict";
   const M = (typeof module === "object" && module.exports) ? require("./modele.js") : g.SchemasModele;
+  const SA = (typeof module === "object" && module.exports) ? require("./automate.js") : g.SchemasAutomate;
 
   /* ---------- appareils ---------- */
   const PRINCIPAL = { bobine: "contacteur", relais: "relais", tempo_travail: "travail", tempo_repos: "repos", thermique: "thermique",
     sectionneur: "sectionneur", disjoncteur: "disjoncteur", disj_moteur: "disj_moteur", fusible: "fusible",
     bp_no: "bouton", bp_nf: "bouton", arret_urgence: "au", selecteur: "selecteur", interrupteur: "interrupteur",
-    fdc_no: "fdc", fdc_nf: "fdc", capteur: "capteur", transfo: "transfo", voyant: "voyant", moteur: "moteur", moteur6: "moteur" };
+    fdc_no: "fdc", fdc_nf: "fdc", capteur: "capteur", transfo: "transfo", voyant: "voyant", moteur: "moteur", moteur6: "moteur",
+    automate: "automate", variateur: "variateur", potentiometre: "potentiometre" };
   const MULTI = new Set(["bouton", "au", "selecteur", "interrupteur", "fdc", "capteur"]);   // plusieurs contacts pour un même appareil
   const A_BOBINE = new Set(["contacteur", "relais", "travail", "repos"]);
   const NOM_SORTE = { contacteur: "le contacteur", relais: "le relais", travail: "le relais temporisé", repos: "le relais temporisé",
     thermique: "le relais thermique", sectionneur: "le sectionneur", disjoncteur: "le disjoncteur", disj_moteur: "le disjoncteur-moteur",
     fusible: "le fusible", bouton: "le bouton", au: "l'arrêt d'urgence", selecteur: "le sélecteur", interrupteur: "l'interrupteur",
-    fdc: "le fin de course", capteur: "le capteur", transfo: "le transformateur", voyant: "le voyant", moteur: "le moteur" };
+    fdc: "le fin de course", capteur: "le capteur", transfo: "le transformateur", voyant: "le voyant", moteur: "le moteur",
+    automate: "l'automate", variateur: "le variateur", potentiometre: "le potentiomètre" };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const nf1 = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
 
   /* ---------- potentiels ---------- */
   const BASE = {
@@ -73,7 +82,10 @@
         case "disjoncteur": case "disj_moteur": Object.assign(d, { ferme: true, declenche: false }); break;
         case "fusible": d.fondu = false; break;
         case "bouton": Object.assign(d, { appuye: false, maintenu: false }); break;
-        case "moteur": Object.assign(d, { w: 0, sens: 0, etatM: "arret", couplage: null, chauffe: 0, tente: false, grille: false }); break;
+        case "moteur": Object.assign(d, { w: 0, sens: 0, etatM: "arret", couplage: null, chauffe: 0, tente: false, grille: false, var: null }); break;
+        case "automate": Object.assign(d, { alim: false, grille: false, run: d.run === false ? false : true, actif: false, entrees: new Array(8).fill(false), sorties: new Array(8).fill(false), aq: 0, ko: new Set(), instable: false, api: SA.creerAutomate(d.principal && d.principal.prog), alimTxt: "" }); break;
+        case "variateur": Object.assign(d, { alim: false, grille: false, defaut: null, fs: 0, cible: 0, dir: 1, LI: [false, false, false, false], ai1: 0, ordre: 0, deux: false, fRef: 0, origine: "AI1", molette: d.molette == null ? 0.5 : d.molette, aiTrop: false }); break;
+        case "potentiometre": d.pos = clamp((Number(P.pos) || 0) / 100, 0, 1); break;
         default: d.actionne = false;
       }
     }
@@ -122,7 +134,7 @@
     {
       const L = [];
       for (const l of net.libres) {
-        const pc = pieces.find((q) => q.id === l.piece); if (!pc || pc.type === "reseau") continue;
+        const pc = pieces.find((q) => q.id === l.piece); if (!pc || pc.type === "reseau" || M.libreOk(pc, l.borne)) continue;
         const b = M.bornesLocales(pc).find((q) => q.id === l.borne);
         if (pc.type === "alim") { const P = M.parametres(pc); L.push("repère " + ((M.POTENTIELS.find((x) => x.id === P.pot) || {}).nom || P.pot)); }
         else L.push(((pc.ref || M.TYPES[pc.type].court) + " " + ((b && b.n) || "")).trim());
@@ -173,12 +185,17 @@
         for (let k = 0; k < 3; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), ferme: () => true, therm: d });
       } else if (T === "fusible" && d) {
         cond.push({ pc, i: 0, n1: nd(pc, "a"), n2: nd(pc, "b"), ferme: () => !d.fondu, prot: { d, cal: Number(P.cal) || 2, sorte: "fusible" } });
+      } else if (T === "automate" && d) {
+        for (let k = 0; k < 8; k++) cond.push({ pc, i: k, n1: nd(pc, k < 4 ? "C0" : "C1"), n2: nd(pc, "Q" + k), ferme: () => d.actif && d.sorties[k] });
+      } else if (T === "variateur" && d) {
+        cond.push({ pc, i: 0, n1: nd(pc, "R1A"), n2: nd(pc, "R1C"), ferme: () => d.alim && !d.grille && !d.defaut });
+        cond.push({ pc, i: 1, n1: nd(pc, "PE"), n2: nd(pc, "PE2"), ferme: () => true });   // la borne de terre traverse le variateur
       }
     }
     const condValides = cond.filter((c) => c.n1 >= 0 && c.n2 >= 0);
 
     /* ----- les sources ----- */
-    const sources = [];
+    const sources = [], analog = [];   // analog : sources de tension 0-10 V (sortie AQ0, +10 V, curseur d'un potentiomètre)
     for (const pc of pieces) {
       const P = M.parametres(pc);
       if (pc.type === "alim") sources.push({ n: nd(pc, "a"), pot: POT_ALIM[P.pot] || "L1", actif: () => true });
@@ -189,8 +206,27 @@
         INFO[k + "-"] = { chaud: false, net: k, v: sec, nom: `${d.ref} 0 V` };
         d.pots = [k + "+", k + "-"];
         sources.push({ n: nd(pc, "s2"), pot: k + "+", actif: () => d.alim && !d.grille }, { n: nd(pc, "s1"), pot: k + "-", actif: () => d.alim && !d.grille });
+      } else if (pc.type === "variateur") {
+        const d = devDe.get(pc.id), k = "V:" + d.cle;
+        ["U", "V", "W"].forEach((b, i) => { INFO[k + ":" + b] = { chaud: true, net: k, ph: i, nom: `${d.ref} ${b}`, var: d }; sources.push({ n: nd(pc, b), pot: k + ":" + b, actif: () => sortieVar(d) }); });
+        d.k = k;
+        sources.push({ n: nd(pc, "P24"), pot: "+24", actif: () => d.alim && !d.grille }, { n: nd(pc, "COM"), pot: "0V", actif: () => d.alim && !d.grille });
+        analog.push({ n: nd(pc, "P10"), valeur: () => 10, actif: () => d.alim && !d.grille });
+      } else if (pc.type === "automate") {
+        const d = devDe.get(pc.id);
+        analog.push({ n: nd(pc, "AQ0"), valeur: () => d.aq, actif: () => d.actif });
+      } else if (pc.type === "potentiometre") {
+        const d = devDe.get(pc.id), src = { n: nd(pc, "2"), actif: () => true };
+        src.valeur = (uf, m, prof) => {   // diviseur de tension : le curseur entre les bornes 1 et 3
+          const v1 = vNoeud(uf, m, nd(pc, "1"), src, prof + 1), v3 = vNoeud(uf, m, nd(pc, "3"), src, prof + 1);
+          if (v1 == null && v3 == null) return null;
+          if (v1 == null) return v3; if (v3 == null) return v1;
+          return v3 + d.pos * (v1 - v3);
+        };
+        analog.push(src);
       }
     }
+    const sortieVar = (d) => d.alim && !d.grille && !d.defaut && (Math.abs(d.cible) > 0 || Math.abs(d.fs) > 1e-9);
 
     /* ----- les récepteurs ----- */
     const charges = [];
@@ -226,6 +262,7 @@
       if ((A.net === "R" && A.chaud && B.net === "PE") || (B.net === "R" && B.chaud && A.net === "PE")) return { v: 230, ac: true, terre: true };
       if (A.net === "DC" && B.net === "DC") return { v: 24, ac: false };
       if (A.net === B.net && A.net.indexOf("T:") === 0) return { v: A.v, ac: true };
+      if (A.net === B.net && A.net.indexOf("V:") === 0) return { v: 400, ac: true, variateur: true };   // entre deux sorties d'un variateur
       return { inconnu: true };
     }
     function juger(ch, u) {
@@ -277,9 +314,8 @@
     }
     const signature = () => bobines.map((d) => (d.alim ? "1" : "0")).join("");
 
-    let dernier = null;
-    function evaluer() {
-      sale = false;
+    let dernier = null, vibrent = new Set();
+    function pointFixe() {
       const vus = new Map(), histo = [], bloques = new Set();
       vus.set(signature(), 0);
       let uf = null, m = null;
@@ -312,6 +348,25 @@
         }
         vus.set(sig, histo.length);
       }
+      for (const d of bloques) vibrent.add(d.cle);
+      return { uf, m };
+    }
+    let oscilleAvant = false;
+    function evaluer() {
+      sale = false;
+      vibrent = new Set();
+      let uf = null, m = null, oscille = false;
+      const vus = new Set();
+      for (let tour = 0; tour < 40; tour++) {
+        ({ uf, m } = pointFixe());
+        const sig = electronique(uf, m);
+        if (sig === null) break;           // rien n'a changé : le schéma est stable
+        if (vus.has(sig)) { oscille = true; break; }
+        vus.add(sig);
+        if (tour === 39) oscille = true;
+      }
+      if (oscille && !oscilleAvant) log("alerte", "L'automate et le câblage s'entretiennent : une sortie change, ce qui change une entrée, qui rechange la sortie… (le schéma oscille).", {});
+      oscilleAvant = oscille;
       // voyants
       for (const ch of charges) {
         if (ch.sorte !== "voyant") continue;
@@ -320,7 +375,7 @@
         ch.d.alim = j.on && !ch.d.grille;
       }
       // oscillations
-      const vib = new Set([...bloques].map((d) => d.cle));
+      const vib = vibrent;
       for (const k of vib) if (!vibrentAvant.has(k)) log("alerte", `${dev[k].ref} vibre : sa bobine se coupe elle-même (un de ses propres contacts à ouverture est en série avec elle ?).`, { refs: [dev[k].ref] });
       vibrentAvant = vib;
       // moteurs
@@ -328,22 +383,134 @@
       dernier = { uf, m };
     }
 
+    /* ----- automates et variateurs : mis à jour après chaque point fixe ----- */
+    const automates = appareils.filter((d) => d.sorte === "automate" && d.principal);
+    const variateurs = appareils.filter((d) => d.sorte === "variateur" && d.principal);
+    const NOMB = { P24: "+24V", LI1: "LI1", LI2: "LI2", LI3: "LI3", LI4: "LI4", COM: "COM", P10: "+10V", AI1: "AI1" };
+    /* tension 0-10 V d'un nœud, par rapport au 0 V (null : en l'air ; NaN : alternatif ou mélange) */
+    function vNoeud(uf, m, n, sauf, prof) {
+      if (n < 0 || prof > 4) return null;
+      const r = uf.find(n), e = m.get(r);
+      if (e && e.size) { if (e.size > 1) return NaN; const p = e.values().next().value; return p === "+24" ? 24 : p === "0V" ? 0 : NaN; }
+      for (const a of analog) if (a !== sauf && a.n >= 0 && a.actif() && uf.find(a.n) === r) return a.valeur(uf, m, prof);
+      return null;
+    }
+    function sigElec() {
+      let x = "";
+      for (const d of automates) { x += (d.actif ? "1" : "0") + (d.grille ? "g" : ""); for (const b of d.sorties) x += b ? "1" : "0"; x += ";"; }
+      for (const d of variateurs) x += (d.alim ? "1" : "0") + (d.grille ? "g" : "") + (d.defaut || "") + (sortieVar(d) ? "1" : "0") + ";";
+      return x;
+    }
+    function electronique(uf, m) {
+      if (!automates.length && !variateurs.length) return null;
+      const avant = sigElec();
+      for (const d of automates) majAutomate(d, uf, m);
+      for (const d of variateurs) majVariateur(d, uf, m);
+      const apres = sigElec();
+      return apres === avant ? null : apres;
+    }
+    function majAutomate(d, uf, m) {
+      const pc = d.principal, pb = (b) => potDe(uf, m, nd(pc, b));
+      const pp = pb("p24"), u = tension(pp, pb("m0"));
+      let alim = false, quoi = "";
+      if (u.v && u.ac && u.v >= 100) {
+        if (!d.grille) { d.grille = true; log("erreur", `${d.ref} reçoit ${txtTension(u)} sur son alimentation : il est détruit ! Cet automate s'alimente en 24 V continu (bornes +24V et 0V).`, { refs: [d.ref] }); }
+      } else if (u.v === 24 && !u.ac) { if (pp === "+24") alim = true; else quoi = "inverse"; }
+      else if (u.v) quoi = "nature";
+      d.alimTxt = quoi;
+      d.alim = alim && !d.grille;
+      const actif = d.alim && d.run;
+      if (actif && !d.actif) d.api.demarrer(t);   // mise sous tension, ou passage en RUN : démarrage à froid
+      d.actif = actif;
+      const pcom = pb("COM");
+      for (let k = 0; k < 8; k++) {
+        const pi = pb("I" + k), i = info(pi);
+        if (i && i.chaud && (i.net === "R" || (i.net.indexOf("T:") === 0 && i.v >= 100)) && !d.ko.has(k)) {
+          d.ko.add(k);
+          log("erreur", `L'entrée %I0.${k} de ${d.ref} reçoit ${nomPot(pi)} (alternatif) : elle est détruite ! Les entrées se câblent en 24 V continu : +24 V → bouton ou capteur → %I0.${k}, et la borne COM au 0 V.`, { refs: [d.ref] });
+        }
+        const ui = tension(pi, pcom);
+        d.entrees[k] = d.alim && !d.ko.has(k) && ui.v === 24 && !ui.ac;
+      }
+      if (d.actif) { const r = d.api.scan(d.entrees, t); d.sorties = r.Q; d.aq = r.aq; const e = d.api.etat(); d.instable = e.instable; d.fugaces = e.fugaces; }
+      else { d.sorties = new Array(8).fill(false); d.aq = 0; d.instable = false; d.fugaces = false; }
+    }
+    function detruire(d, pourquoi) { d.grille = true; d.alim = false; d.fs = 0; d.cible = 0; log("erreur", `${d.ref} est détruit : ${pourquoi}.`, { refs: [d.ref] }); }
+    function majVariateur(d, uf, m) {
+      const pc = d.principal, P = M.parametres(pc), pb = (b) => potDe(uf, m, nd(pc, b));
+      if (!d.grille) for (const b of ["U", "V", "W"]) {
+        const p = pb(b), i = info(p);
+        if (i && i.chaud && i.net === "R") { detruire(d, `le réseau (${nomPot(p)}) arrive sur sa borne ${b}. U, V, W sont des sorties : le réseau se branche sur L1, L2, L3`); break; }
+      }
+      if (!d.grille) for (const b of Object.keys(NOMB)) {
+        const p = pb(b), i = info(p);
+        if (i && i.chaud && (i.net === "R" || (i.net.indexOf("T:") === 0 && i.v >= 100))) { detruire(d, `sa borne ${NOMB[b]} reçoit ${nomPot(p)}. Les bornes de commande sont en 24 V continu (et 0-10 V pour AI1)`); break; }
+      }
+      const ph = ["L1", "L2", "L3"].map((b) => { const i = info(pb(b)); return i && i.chaud && i.net === "R" ? i.ph : null; });
+      const n = new Set(ph.filter((x) => x !== null)).size;
+      const avant = d.alim && !d.defaut && Math.abs(d.fs) > 0.05;
+      d.defaut = !d.grille && n > 0 && n < 3 ? "PHF" : null;
+      d.alim = n === 3 && !d.grille;
+      if (!d.alim || d.defaut) { if (avant) log("alerte", `${d.ref} n'est plus alimenté : le moteur s'arrête en roue libre.`, { refs: [d.ref] }); d.fs = 0; }
+      const pcom = pb("COM");
+      d.LI = ["LI1", "LI2", "LI3", "LI4"].map((b) => { const u = tension(pb(b), pcom); return d.alim && !d.defaut && u.v === 24 && !u.ac; });
+      const av = d.LI[0], ar = d.LI[1];
+      d.deux = av && ar;
+      d.ordre = av && !ar ? 1 : ar && !av ? -1 : 0;
+      const hsp = clamp(Number(P.hsp) || 50, 1, 100), lsp = clamp(Number(P.lsp) || 0, 0, hsp);
+      const ps = (d.LI[2] ? 1 : 0) + (d.LI[3] ? 2 : 0);
+      const v = vNoeud(uf, m, nd(pc, "AI1"), null, 0);
+      d.ai1 = v == null || !Number.isFinite(v) ? 0 : clamp(v, 0, 30);
+      d.aiTrop = Number.isFinite(v) && v > 10.5;
+      let f;
+      if (ps) { f = Number([0, P.sp2, P.sp3, P.sp4][ps]) || 0; d.origine = "SP" + (ps + 1); }
+      else if (P.ref === "molette") { f = lsp + (hsp - lsp) * d.molette; d.origine = "molette"; }
+      else { f = lsp + (hsp - lsp) * clamp(d.ai1 / 10, 0, 1); d.origine = "AI1"; }
+      d.fRef = clamp(f, lsp, hsp);
+      d.cible = d.alim && !d.defaut ? d.ordre * d.fRef : 0;
+      d.dir = d.fs !== 0 ? Math.sign(d.fs) : d.cible !== 0 ? Math.sign(d.cible) : d.dir;
+      INFO[d.k + ":V"].ph = d.dir > 0 ? 1 : 2; INFO[d.k + ":W"].ph = d.dir > 0 ? 2 : 1;   // marche arrière : deux phases croisées
+    }
+    function taux(d) { const P = M.parametres(d.principal); return { acc: 50 / clamp(Number(P.acc) || 3, 0.1, 600) / 1000, dec: 50 / clamp(Number(P.dec) || 3, 0.1, 600) / 1000 }; }   // Hz par ms
+    function rampe(d, dt) {
+      if (!d.alim || d.defaut || d.grille) { d.fs = 0; return; }
+      const c = d.cible, { acc, dec } = taux(d);
+      let f = d.fs, reste = dt;
+      for (let k = 0; k < 4 && reste > 1e-9 && f !== c; k++) {
+        if (f !== 0 && Math.sign(f) !== Math.sign(c)) { const tz = Math.abs(f) / dec; if (tz <= reste) { f = 0; reste -= tz; } else { f -= Math.sign(f) * dec * reste; reste = 0; } }
+        else if (Math.abs(c) > Math.abs(f)) { const tz = (Math.abs(c) - Math.abs(f)) / acc; if (tz <= reste) { f = c; reste -= tz; } else { f += Math.sign(c) * acc * reste; reste = 0; } }
+        else { const tz = (Math.abs(f) - Math.abs(c)) / dec; if (tz <= reste) { f = c; reste -= tz; } else { f -= Math.sign(f) * dec * reste; reste = 0; } }
+      }
+      d.fs = f;
+    }
+    function finRampe(d) {
+      if (!d.alim || d.defaut || d.grille || d.fs === d.cible) return Infinity;
+      const { acc, dec } = taux(d), f = d.fs, c = d.cible;
+      const dt = f !== 0 && Math.sign(f) !== Math.sign(c) ? Math.abs(f) / dec : Math.abs(c) > Math.abs(f) ? (Math.abs(c) - Math.abs(f)) / acc : (Math.abs(f) - Math.abs(c)) / dec;
+      return t + Math.max(dt, 0.001);
+    }
+
     /* ----- moteurs ----- */
-    const phaseDe = (p) => { const i = info(p); return i && i.net === "R" && i.chaud ? i.ph : null; };
+    const phaseDe = (p) => { const i = info(p); return i && i.chaud && (i.net === "R" || i.net.indexOf("V:") === 0) ? i.ph : null; };
+    const varDe = (L) => { const V = L.map((p) => (info(p) && info(p).var) || null); return V.every((v) => v && v === V[0]) ? V[0] : V.some(Boolean) ? "mixte" : null; };
     function sensDe(ph) { return (ph[1] - ph[0] + 3) % 3 === 1 ? 1 : -1; }
     function analyserMoteur(mo, uf, m) {
       const pc = mo.pc, d = mo.d, pb = (b) => potDe(uf, m, nd(pc, b));
       let etatM = "arret", sens = 0, couplage = null, niveau = 0, detail = "";
       const avecAutre = (L) => L.some((p) => p && phaseDe(p) === null);
+      let vr = null;
       if (pc.type === "moteur") {
         const P = ["U", "V", "W"].map(pb), ph = P.map(phaseDe), n = new Set(ph.filter((x) => x !== null)).size;
-        if (n === 3) { etatM = "marche"; sens = sensDe(ph); niveau = 1; }
+        vr = varDe(P);
+        if (vr === "mixte") detail = "branchement";
+        else if (n === 3) { etatM = "marche"; sens = sensDe(ph); niveau = 1; }
         else if (n === 2) etatM = "2ph";
         if (avecAutre(P) && n > 0) detail = "branchement";
       } else {
         const P = d.principal ? M.parametres(d.principal) : {}, nominal = P.plaque === "230/400" ? 230 : 400;
         const h = ["U1", "V1", "W1"].map(pb), b = ["U2", "V2", "W2"].map(pb), ph1 = h.map(phaseDe);
         const r2 = ["U2", "V2", "W2"].map((x) => uf.find(Math.max(0, nd(pc, x))));
+        vr = varDe(h);
         const n1 = new Set(ph1.filter((x) => x !== null)).size;
         const toutes = new Set(h.concat(b).map(phaseDe).filter((x) => x !== null)).size;
         const u = [0, 1, 2].map((k) => tension(h[k], b[k]));
@@ -361,18 +528,21 @@
         }
         if (avecAutre(h) && toutes > 0) detail = "branchement";
       }
+      if (vr === "mixte") { etatM = "arret"; niveau = 0; vr = null; }
       if (d.grille) { etatM = "grille"; niveau = 0; sens = 0; }
-      d.etatM = etatM; d.couplage = couplage; d.niveau = niveau; d.detail = detail;
+      d.etatM = etatM; d.couplage = couplage; d.niveau = niveau; d.detail = detail; d.var = vr;
       if (etatM === "marche" || etatM === "surtension") d.sens = sens;
       d.terre = potDe(uf, m, nd(pc, "PE")) === "PE";
     }
     const chauffant = (d) => !d.grille && (d.etatM === "2ph" || d.etatM === "couplage" || d.etatM === "surtension");
     function integrer(dt) {
+      for (const d of variateurs) rampe(d, dt);
       for (const { d } of moteurs) {
         let cible = 0;
-        if (d.etatM === "marche" || d.etatM === "surtension") cible = d.sens * d.niveau;
+        const marche = d.etatM === "marche" || d.etatM === "surtension";
+        if (marche) cible = d.sens * d.niveau * (d.var ? Math.abs(d.var.fs) / 50 : 1);
         else if (d.etatM === "2ph" && Math.abs(d.w) > 0.25) cible = Math.sign(d.w) * 0.8;   // il tournait : il continue en peinant
-        d.w += (cible - d.w) * (1 - Math.exp(-dt / 700));
+        d.w += (cible - d.w) * (1 - Math.exp(-dt / (marche && d.var ? 140 : 700)));   // sur variateur, le moteur suit la rampe
         if (Math.abs(d.w) < 1e-4 && cible === 0) d.w = 0;
         if (chauffant(d)) d.chauffe += dt; else d.chauffe = Math.max(0, d.chauffe - dt / 2);
         if (!chauffant(d) && d.chauffe === 0) d.tente = false;
@@ -415,6 +585,8 @@
         const seuil = d.tente ? SEUIL_GRILLE : SEUIL_TH;
         if (d.chauffe < seuil - 1e-6) e = Math.min(e, t + (seuil - d.chauffe));
       }
+      for (const d of automates) if (d.actif) { const pe = d.api.prochain(); if (pe < Infinity) e = Math.min(e, Math.max(pe, t + 0.001)); }
+      for (const d of variateurs) e = Math.min(e, finRampe(d));
       return e;
     }
     function avancer(ms) {
@@ -435,8 +607,13 @@
       if (quoi === "appuyer") { if (S === "bouton") d.appuye = true; else if (MULTI.has(S)) d.actionne = true; else return false; }
       else if (quoi === "relacher") { if (S === "bouton") d.appuye = false; else if (S !== "au" && MULTI.has(S)) d.actionne = false; else return false; }
       else if (quoi === "maintenir") { if (S !== "bouton") return false; d.maintenu = valeur == null ? !d.maintenu : !!valeur; }
+      else if (quoi === "regler") {   // potentiomètre, ou molette du variateur : valeur de 0 à 1
+        const v = clamp(Number(valeur) || 0, 0, 1);
+        if (S === "potentiometre") d.pos = v; else if (S === "variateur") d.molette = v; else return false;
+      } else if (quoi === "run" || quoi === "stop") { if (S !== "automate") return false; d.run = quoi === "run"; }
       else if (quoi === "basculer") {
-        if (S === "bouton") d.maintenu = !d.maintenu;
+        if (S === "automate") d.run = !d.run;
+        else if (S === "bouton") d.maintenu = !d.maintenu;
         else if (MULTI.has(S)) d.actionne = !d.actionne;
         else if (S === "sectionneur" || S === "disjoncteur" || S === "disj_moteur") { if (d.ferme) d.ferme = false; else { d.ferme = true; d.declenche = false; } }
         else if (S === "thermique") d.declenche = !d.declenche;
@@ -461,7 +638,7 @@
     function rearmerAlimentation() { if (!defaut) return false; defaut = null; log("info", "Alimentation remise."); evaluer(); return true; }
     function reinitialiser() {
       for (const d of appareils) etatInitial(d);
-      defaut = null; t = 0; journal.length = 0; courts.length = 0; vibrentAvant = new Set(); evaluer(); return api;
+      defaut = null; t = 0; journal.length = 0; courts.length = 0; vibrentAvant = new Set(); oscilleAvant = false; evaluer(); return api;
     }
 
     /* ----- ce que la page (ou un essai) lit ----- */
@@ -487,6 +664,25 @@
         if ((d.etatM === "marche" || d.etatM === "surtension") && !d.terre) L.push({ niveau: "info", texte: `${d.ref} : sa carcasse n'est pas reliée à la terre (borne PE). Danger en cas de défaut !`, refs: [d.ref] });
       }
       for (const k of vibrentAvant) L.push({ niveau: "alerte", texte: `${dev[k].ref} vibre : sa bobine se coupe elle-même.`, refs: [dev[k].ref] });
+      for (const d of automates) {
+        const nE = d.api.erreurs.length;
+        if (d.grille) L.push({ niveau: "erreur", texte: `${d.ref} est détruit (mauvaise alimentation). Corrige le schéma, puis « Tout remettre à zéro ».`, refs: [d.ref] });
+        else if (!d.alim) L.push({ niveau: "alerte", texte: d.alimTxt === "inverse" ? `${d.ref} : son alimentation est inversée (le +24 V arrive sur la borne 0V).` : d.alimTxt === "nature" ? `${d.ref} s'alimente en 24 V continu : il ne marche pas en alternatif.` : `${d.ref} n'est pas alimenté : relie sa borne +24V au +24 V et sa borne 0V au 0 V.`, refs: [d.ref] });
+        else if (!d.run) L.push({ niveau: "info", texte: `${d.ref} est en STOP : il n'exécute pas son programme et ses sorties restent ouvertes.`, refs: [d.ref] });
+        if (nE) L.push({ niveau: "alerte", texte: `Le programme de ${d.ref} a ${nE > 1 ? nE + " erreurs" : "une erreur"} : ${d.api.erreurs[0].texte}`, refs: [d.ref] });
+        if (d.actif && d.instable) L.push({ niveau: "alerte", texte: `Le programme de ${d.ref} ne se stabilise pas : une sortie change à chaque cycle (une bobine se coupe elle-même ?).`, refs: [d.ref] });
+        if (d.actif && d.fugaces) L.push({ niveau: "alerte", texte: `Le GRAFCET de ${d.ref} tourne en rond sans s'arrêter : des réceptivités toujours vraies forment une boucle.`, refs: [d.ref] });
+        for (const k of d.ko) L.push({ niveau: "erreur", texte: `L'entrée %I0.${k} de ${d.ref} est détruite (« Tout remettre à zéro » après correction).`, refs: [d.ref] });
+      }
+      for (const d of variateurs) {
+        if (d.grille) L.push({ niveau: "erreur", texte: `${d.ref} est détruit. Corrige le schéma, puis « Tout remettre à zéro ».`, refs: [d.ref] });
+        else if (d.defaut === "PHF") L.push({ niveau: "alerte", texte: `${d.ref} affiche PHF : il manque une phase sur ses bornes L1, L2, L3.`, refs: [d.ref] });
+        else if (d.alim) {
+          if (d.deux) L.push({ niveau: "alerte", texte: `${d.ref} reçoit en même temps l'ordre avant (LI1) et l'ordre arrière (LI2) : il ne démarre pas.`, refs: [d.ref] });
+          else if (d.ordre && d.fRef < 0.05) L.push({ niveau: "alerte", texte: d.origine === "AI1" ? `${d.ref} a l'ordre de marche, mais sa consigne est 0 Hz : AI1 reçoit 0 V. Branche un potentiomètre (+10V, AI1, COM), la sortie analogique d'un automate, ou une vitesse présélectionnée (LI3, LI4).` : `${d.ref} a l'ordre de marche, mais sa consigne est 0 Hz.`, refs: [d.ref] });
+          if (d.aiTrop) L.push({ niveau: "alerte", texte: `L'entrée AI1 de ${d.ref} reçoit plus de 10 V : c'est une entrée 0-10 V (consigne).`, refs: [d.ref] });
+        }
+      }
       for (const d of appareils) {
         if (d.sorte === "thermique" && d.declenche) L.push({ niveau: "alerte", texte: `${d.ref || "Le relais thermique"} a déclenché : « Réarmer » quand le défaut est réglé.`, refs: [d.ref] });
         if ((d.sorte === "disjoncteur" || d.sorte === "disj_moteur") && d.declenche) L.push({ niveau: "alerte", texte: `${d.ref} a déclenché : « Réarmer » quand le défaut est réglé.`, refs: [d.ref] });
@@ -520,14 +716,20 @@
         else if (d.sorte === "fusible") o.fondu = d.fondu;
         else if (d.sorte === "moteur") Object.assign(o, { etatM: d.etatM, w: d.w, sens: d.sens, couplage: d.couplage, chauffe: d.chauffe / SEUIL_TH, grille: d.grille, terre: d.terre });
         if (d.sorte === "bouton") { o.appuye = d.appuye; o.maintenu = d.maintenu; }
+        if (d.sorte === "automate") Object.assign(o, { alim: d.alim, actif: d.actif, run: d.run, grille: d.grille, entrees: d.entrees.slice(), sorties: d.sorties.slice(), aq: d.aq, ko: [...d.ko], X: d.actif ? d.api.etat().X : [] });
+        if (d.sorte === "variateur") Object.assign(o, { alim: d.alim, grille: d.grille, defaut: d.defaut, f: d.fs, cible: d.cible, LI: d.LI.slice(), ordre: d.ordre });
+        if (d.sorte === "potentiometre") o.pos = d.pos;
         if (pc.type === "contact_tno" || pc.type === "contact_tnf") { o.prog = progression(d); o.enCours = o.prog > 0 && o.prog < 1; }
       }
       const appareilsEtat = {};
       for (const d of appareils) {
         if (!d.ref || appareilsEtat[d.ref]) continue;
         const o = { sorte: d.sorte, actionne: actionne(d) };
-        for (const k of ["alim", "grille", "declenche", "ferme", "fondu", "fondus", "appuye", "maintenu", "actionne", "etatM", "sens", "couplage", "w", "terre", "delai"]) if (d[k] !== undefined) o[k] = Array.isArray(d[k]) ? d[k].slice() : d[k];
+        for (const k of ["alim", "grille", "declenche", "ferme", "fondu", "fondus", "appuye", "maintenu", "actionne", "etatM", "sens", "couplage", "w", "terre", "delai",
+          "run", "actif", "entrees", "sorties", "aq", "fs", "cible", "defaut", "LI", "ai1", "ordre", "fRef", "origine", "pos", "molette", "deux"]) if (d[k] !== undefined) o[k] = Array.isArray(d[k]) ? d[k].slice() : d[k];
         if (A_BOBINE.has(d.sorte)) o.prog = progression(d);
+        if (d.sorte === "automate") { o.api = d.api.etat(); o.erreurs = d.api.erreurs.length; o.ko = [...d.ko]; }
+        if (d.sorte === "moteur" && d.var) o.variateur = d.var.ref;
         appareilsEtat[d.ref] = o;
       }
       const recents = new Set();
@@ -544,7 +746,8 @@
       appuyer: (r) => action(r, "appuyer"), relacher: (r) => action(r, "relacher"), basculer: (r) => action(r, "basculer"),
       surcharge: (r) => action(r, "surcharge"), rearmer: (r) => action(r, "rearmer"),
       temps: () => t, journal: () => journal.slice(), netlist: net, appareils: () => appareils.map((d) => ({ ref: d.ref, sorte: d.sorte })),
-      enMarche: () => moteurs.some(({ d }) => Math.abs(d.w) > 0.002 || d.etatM !== "arret") || bobines.some((d) => (d.sorte === "travail" || d.sorte === "repos") && progression(d) > 0 && progression(d) < 1),
+      enMarche: () => moteurs.some(({ d }) => Math.abs(d.w) > 0.002 || d.etatM !== "arret") || bobines.some((d) => (d.sorte === "travail" || d.sorte === "repos") && progression(d) > 0 && progression(d) < 1) || variateurs.some((d) => d.fs !== 0 || d.cible !== 0),
+      regler: (r, v) => action(r, "regler", v),
       prochainEvenement: prochain, aDefaut: () => !!defaut
     };
     evaluer();
@@ -573,6 +776,18 @@
       return { ok, dit, attendu: `${ref} doit être ${ATTENDU_MOTEUR[attendu] || attendu}` };
     }
     if (a.sorte === "thermique") { const ok = !!a.declenche === !!attendu; return { ok, dit: `${ref} ${a.declenche ? "a déclenché" : "n'a pas déclenché"}` }; }
+    if (a.sorte === "variateur") {
+      const f = a.fs || 0, af = Math.abs(f), dit = a.grille ? `${ref} est détruit` : !a.alim ? `${ref} n'est pas alimenté` : af < 0.05 ? `${ref} est à l'arrêt (0 Hz)` : `${ref} tourne ${f > 0 ? "en avant" : "en arrière"} à ${String(Math.round(af * 10) / 10).replace(".", ",")} Hz`;
+      if (attendu === "arret" || attendu === false) return { ok: af < 0.05, dit, attendu: `${ref} doit être à l'arrêt` };
+      if (typeof attendu === "number") return { ok: Math.abs(af - attendu) <= Math.max(1, attendu * 0.03), dit, attendu: `${ref} doit tourner à ${attendu} Hz` };
+      if (attendu === "avant" || attendu === "arriere") return { ok: attendu === "avant" ? f > 0.05 : f < -0.05, dit, attendu: `${ref} doit tourner ${attendu === "avant" ? "en avant" : "en arrière"}` };
+      return { ok: af > 0.05, dit, attendu: `${ref} doit tourner` };
+    }
+    if (a.sorte === "automate") {
+      const m = /^X(\d+)$/.exec(String(attendu));
+      if (m) { const X = (a.api && a.api.X) || [], ok = !!a.actif && X.indexOf(+m[1]) >= 0; return { ok, dit: a.actif ? `étapes actives de ${ref} : ${X.map((n) => "X" + n).join(", ") || "aucune"}` : `${ref} n'est pas en marche`, attendu: `l'étape ${m[1]} de ${ref} doit être active` }; }
+      return { ok: !!a.actif === !!attendu, dit: a.actif ? `${ref} est en marche (RUN)` : `${ref} n'est pas en marche`, attendu: `${ref} doit être ${attendu ? "en marche" : "arrêté"}` };
+    }
     if (a.sorte === "bouton" || a.sorte === "au" || a.sorte === "fdc") return { ok: !!a.actionne === !!attendu, dit: `${ref} ${a.actionne ? "est actionné" : "n'est pas actionné"}` };
     const quoi = a.sorte === "voyant" ? (a.alim ? "est allumé" : "est éteint") : (a.alim ? "est alimenté" : "n'est pas alimenté");
     return { ok: !!a.alim === !!attendu, dit: `${ref} ${quoi}`, attendu: `${ref} doit ${a.sorte === "voyant" ? (attendu ? "être allumé" : "être éteint") : (attendu ? "être alimenté" : "ne pas être alimenté")}` };
@@ -587,7 +802,7 @@
     }
     const out = []; let ok = true;
     for (const e of etapes) {
-      for (const [quoi, ref] of e.faire || []) sim.action(ref, quoi);
+      for (const [quoi, ref, val] of e.faire || []) sim.action(ref, quoi, val);
       if (e.attendre) sim.avancer(e.attendre);
       const res = []; let bon = true;
       for (const [ref, att] of Object.entries(e.verifier || {})) { const c = constat(sim, ref, att); res.push(c); if (!c.ok) bon = false; }
