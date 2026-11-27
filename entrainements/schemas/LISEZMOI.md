@@ -76,7 +76,11 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
      dans le panneau de simulation) ; deux interrupteurs de niveau en repère d'instrument, LSL (niveau bas, 20 %) et
      LSH (niveau haut, 80 %), basculent quand l'eau les atteint (le cercle passe au vert). Si la pompe ne s'arrête
      pas, la cuve déborde.
-   - **Capteur 3 fils** (catégorie « Commande », PNP ou NPN, sortie NO ou NC, inductif ou capacitif) : BN (marron)
+   - **Tapis et caisses** : le tapis avance quand son moteur tourne (tambour moteur M) ; une caisse sort du magasin
+     chaque fois que le tapis a avancé de l'écart réglé (30 % de sa longueur : une caisse toutes les 1,8 s pour un
+     tapis de 6 s), passe devant la cellule (aux 6/10 du tapis) puis tombe dans le bac. Le panneau dit combien de
+     caisses sont passées devant le capteur, combien sont dans le bac, combien restent dans le magasin (0 : sans fin).
+   - **Capteur 3 fils** (catégorie « Commande », PNP ou NPN, sortie NO ou NC, inductif, capacitif ou optique) : BN (marron)
      au +24 V, BU (bleu) au 0 V, BK (noir) : la sortie. En simulation, le losange se colore quand il détecte et le
      contact de sortie se ferme quand la sortie est active. Branché à l'envers : il ne marche pas, et « ce qui se
      passe » le dit.
@@ -103,6 +107,7 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `api-grafcet` | aller-retour d'un chariot : dcy, a, b sur les entrées, KM1 et KM2 (verrouillage câblé en plus) ; GRAFCET 0 → 1 (KM1) → 2 (pause, `t/X2/3s`) → 3 (KM2) → 0 ; le chariot PO1 (M1, course de 4 s) actionne lui-même S3 (a) et S4 (b) |
 | `va-et-vient` | va-et-vient en logique câblée, sur l'inversion de sens : S2 lance KM1 (à droite), S4 (11-12) coupe KM1 et S4 (13-14) lance KM2 (retour, auto-maintien), S3 (11-12) l'arrête ; chariot PO1 |
 | `cuve` | remplissage d'une cuve : pompe M1 (démarrage direct par KM1), niveaux B1 (bas) et B2 (haut) en détecteurs capacitifs 3 fils PNP sur %I0.2 et %I0.3, S1 et S2 (mise hors service, en service) ; Ladder : `S2 → S AUTO`, `/S1 → R AUTO`, `AUTO · /B1 → S KM1`, `B2 + /AUTO → R KM1`, `KM1 → H1` |
+| `tapis` | un lot de 5 caisses : S1 (arrêt), S2 (marche), S3 (acquittement), cellule optique PNP B1 sur %I0.0 à %I0.3, KM1 (tapis) et H1 (lot complet, orange) ; GRAFCET : 0 (R %C0) → S2 → 1 (KM1) → ↑B1 → 2 (KM1, %C0 + 1) → `C0.V < 5` → 1, ou `C0.V >= 5` → 3 (H1) → S3 → 0 ; et 1 → /S1 → 0 |
 | `api-variateur` | automate et variateur : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz ; 10 V avec S4 : 50 Hz), C0 au +24V du variateur, rampes de 2 s |
 | `variateur-pot` | variateur seul : interrupteurs S2 (LI1) et S3 (LI2) sur son +24V, potentiomètre R1 sur +10V, AI1, COM |
 
@@ -121,6 +126,7 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `d9-variateur` | Relie l'automate au variateur (programme fait) | repos : arrêt ; S2 : 25 Hz en avant, sens 1 ; S4 : 50 Hz ; S1 : arrêt après la rampe ; S3 : arrière, sens 2 |
 | `d10-potentiometre` | Le potentiomètre de vitesse | S2 : 25 Hz (R1 à 50 %) ; R1 à fond : 50 Hz ; R1 à 20 % : 10 Hz ; S3 : marche arrière |
 | `d11-cuve` | Remplis la cuve (câblage fait, programme vide) | S2 : la pompe attend (cuve à moitié) ; sous B1 : elle démarre, H1 ; à B2 : arrêt, pas de débordement ; l'eau redescend un peu : elle ne repart pas (une bobine « KM1 = /B2 » ferait battre la pompe) ; S1 : hors service, même sous B1 ; S2 : elle repart |
+| `d13-tapis` | Compte les caisses (câblage fait, programme Ladder vide) | repos ; S2 : le tapis démarre ; après la 5e caisse : arrêt, H1 ; S2 ne relance pas un lot complet ; S3 : acquittement ; S2 : 5 nouvelles caisses (10 en tout), arrêt ; S3, S2 : repart ; S1 : arrêt |
 | `d12-va-et-vient` | Le chariot revient tout seul (les deux contacts de S4 manquent) | repos : chariot à gauche ; S2 : KM1, sens 1 ; arrivé à droite : KM1 retombe, KM2, sens 2 ; retour : arrêt à gauche sur S3 ; jamais en butée, F1 pas déclenché |
 
 Le défi 8 (GRAFCET) garde des fins de course actionnés à la main (sans chariot) : ses essais cliquent sur S3 et S4.
@@ -144,7 +150,7 @@ la page (« Lire les symboles ») montre chaque symbole avec son numéro.
 | interrupteur | 07-07-01 | commande manuelle, symbole général |
 | fin de course | 07-08-01, 07-08-02 | petit triangle rectangle posé sur la lame, du côté de la came |
 | détecteur 2 fils | 07-20-02 (02-13-06) | losange et deux traits parallèles au contact, liaison en pointillé |
-| détecteur 3 fils | 07-19-02 | boîte : losange de détection, contact de sortie, bobine (inductif) ou condensateur (capacitif) ; BN +, BU −, BK |
+| détecteur 3 fils | 07-19-02 | boîte : losange de détection, contact de sortie, bobine (inductif), condensateur (capacitif) ou photodiode (optique) ; BN +, BU −, BK |
 | contacts temporisés | 07-05-01 à 07-05-04 | « parachute » : ouvert vers le contact pour le travail (retardé à l'action), à l'opposé pour le repos ; même sens pour un contact à fermeture ou à ouverture |
 | contact du relais thermique | 02-13-25 | décrochement du dispositif thermique |
 | bobines | 07-15-01, 07-15-07 (repos : case noircie), 07-15-08 (travail : case avec une croix) | |
@@ -157,7 +163,8 @@ la page (« Lire les symboles ») montre chaque symbole avec son numéro.
 | automate, variateur | boîte avec ses bornes | les voyants de l'automate et l'afficheur du variateur n'apparaissent qu'en simulation ; variateur : symbole du convertisseur (06-14) |
 | cuve (partie opérative) | ISO 10628, ISO 1219 | réservoir à l'air libre, pompe (cercle et triangle plein vers la sortie) et son moteur M, vanne ; interrupteurs de niveau en repère d'instrument (LSL, LSH) |
 
-Le chariot reste un dessin de la machine (rail, butées, fins de course à levier et galet), pas un symbole.
+Le chariot et le tapis restent des dessins de la machine (rail, butées, fins de course à levier et galet ; bande,
+rouleaux, magasin, cellule, bac), pas des symboles.
 
 ## Les fichiers
 
@@ -268,8 +275,13 @@ Une étape : `{ n, init, com, actions: [{ t: "n" | "s" | "r" | "inc" | "ana", v,
   0 V ; à l'envers : non alimenté, remarque) et un contact de sortie entre BN et BK (PNP) ou BU et BK (NPN), fermé
   quand il est alimenté et que la détection (`NO`) ou son absence (`NC`) le demande. Une entrée d'automate voit
   24 V entre l'entrée et COM dans un sens ou dans l'autre : un NPN marche avec COM au +24 V.
+- **Tapis** : position de la bande `pos` (en longueurs de tapis, sans limite), même vitesse et même moteur-frein que le
+  chariot. La caisse k a son avant à `pos − k·écart` (sur le tapis entre 0 et 1, longueur 0,08) ; la cellule regarde le
+  point 0,6 : elle est actionnée quand une caisse est dessous. Le prochain événement est le prochain bord de caisse
+  devant la cellule, dans un sens ou dans l'autre : aucun front n'est manqué, même en avançant de plusieurs secondes.
 - **Défis** : `verifier: { PO1: "gauche" | "droite" | "en-route" }` (chariot ; toute autre valeur : jamais en butée),
-  `{ PO1: 60 }` (cuve à 60 % ± 4 ; toute autre valeur : jamais débordé).
+  `{ PO1: 60 }` (cuve à 60 % ± 4 ; toute autre valeur : jamais débordé), `{ PO1: 5 }` (tapis : 5 caisses passées devant
+  la cellule), `{ PO1: "arret" }`.
 
 Ce que le moteur ne calcule pas : les courants et les impédances (deux bobines en série ne collent pas, mais sans
 calcul de tension partagée), le verrouillage mécanique, les temps de réponse des contacteurs et le temps de cycle de
@@ -307,7 +319,7 @@ Dans la page, `window.SchemasAtelier` donne accès au schéma et à la simulatio
 | `schemas:libre` | « Mon schéma », gardé à chaque modification |
 | `schemas:defi:<nom>:<défi>` | le schéma de l'élève pour chaque défi |
 | `schemas:progres:<nom>` | les défis réussis (lu aussi par le tableau de bord du site) |
-| `schemas:nbdefis` | nombre de défis (pour « n / 12 » sur le tableau de bord) |
+| `schemas:nbdefis` | nombre de défis (pour « n / 13 » sur le tableau de bord) |
 | `schemas:copies` | « Mes schémas » (30 copies au plus ; une copie est faite automatiquement avant d'ouvrir un exemple ou un fichier) |
 | `schemas:dernier` | ce qui était ouvert (schéma libre ou défi), pour y revenir |
 
@@ -330,7 +342,10 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   mnémoniques renommés), simuler, vue en direct, variateur, curseur du potentiomètre, défi ;
 - `t_po.js` (Node) : cycle GRAFCET avec le chariot, va-et-vient câblé, chariot sans fin de course (butée, moteur
   bloqué, F1 déclenche), cuve (démarrage au niveau bas, arrêt au niveau haut, sans consommation), programme naïf qui
-  fait battre la pompe, capteurs PNP et NPN (NO, NC, à l'envers), deux chariots sur un moteur, défis 11 et 12 ;
+  fait battre la pompe, capteurs PNP et NPN (NO, NC, à l'envers), deux chariots sur un moteur, tapis (GRAFCET de
+  l'exemple : 5 puis 10 caisses, arrêt par S1, magasin limité), défis 11, 12 et 13 ;
+- `e2e_tapis.py` (Playwright, PC et téléphone) : les caisses avancent, la cellule les voit, GRAFCET en direct, arrêt
+  à 5 caisses, carte du tapis, défi 13 refusé au départ ;
 - `e2e_po.py` (Playwright, PC et téléphone) : le chariot avance et actionne ses fins de course, clic sur un capteur
   piloté (bulle), cartes « Parties opératives », curseur de consommation, va-et-vient au doigt, palette, panneau ;
 - `e2e_bureau.py`, `e2e_telephone.py`, `e2e_liens.py` (Playwright) : PC 1280×860 à la souris et au clavier,

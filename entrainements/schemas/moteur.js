@@ -29,14 +29,14 @@
     sectionneur: "sectionneur", disjoncteur: "disjoncteur", disj_moteur: "disj_moteur", fusible: "fusible",
     bp_no: "bouton", bp_nf: "bouton", arret_urgence: "au", selecteur: "selecteur", interrupteur: "interrupteur",
     fdc_no: "fdc", fdc_nf: "fdc", capteur: "capteur", transfo: "transfo", voyant: "voyant", moteur: "moteur", moteur6: "moteur",
-    automate: "automate", variateur: "variateur", potentiometre: "potentiometre", capteur3: "capteur", chariot: "chariot", cuve: "cuve" };
+    automate: "automate", variateur: "variateur", potentiometre: "potentiometre", capteur3: "capteur", chariot: "chariot", cuve: "cuve", tapis: "tapis" };
   const MULTI = new Set(["bouton", "au", "selecteur", "interrupteur", "fdc", "capteur"]);   // plusieurs contacts pour un même appareil
   const A_BOBINE = new Set(["contacteur", "relais", "travail", "repos"]);
   const NOM_SORTE = { contacteur: "le contacteur", relais: "le relais", travail: "le relais temporisé", repos: "le relais temporisé",
     thermique: "le relais thermique", sectionneur: "le sectionneur", disjoncteur: "le disjoncteur", disj_moteur: "le disjoncteur-moteur",
     fusible: "le fusible", bouton: "le bouton", au: "l'arrêt d'urgence", selecteur: "le sélecteur", interrupteur: "l'interrupteur",
     fdc: "le fin de course", capteur: "le capteur", transfo: "le transformateur", voyant: "le voyant", moteur: "le moteur",
-    automate: "l'automate", variateur: "le variateur", potentiometre: "le potentiomètre", chariot: "le chariot", cuve: "la cuve" };
+    automate: "l'automate", variateur: "le variateur", potentiometre: "le potentiomètre", chariot: "le chariot", cuve: "la cuve", tapis: "le tapis" };
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const nf1 = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
 
@@ -84,6 +84,7 @@
         case "bouton": Object.assign(d, { appuye: false, maintenu: false }); break;
         case "moteur": Object.assign(d, { w: 0, sens: 0, etatM: "arret", couplage: null, chauffe: 0, tente: false, grille: false, var: null, bloque: false }); break;
         case "chariot": Object.assign(d, { pos: P.depart === "droite" ? 1 : P.depart === "milieu" ? 0.5 : 0, vit: 0, butee: 0, butees: 0 }); break;
+        case "tapis": Object.assign(d, { pos: 0, vit: 0, vues: 0, bac: 0, entrees: 0 }); break;
         case "cuve": Object.assign(d, { niv: clamp((Number(P.niveau) || 0) / 100, 0, 1), conso: clamp((Number(P.conso) || 0) / 100, 0, 1), deborde: false, debords: 0, vide: false, envers: false }); break;
         case "automate": Object.assign(d, { alim: false, grille: false, run: d.run === false ? false : true, actif: false, entrees: new Array(8).fill(false), sorties: new Array(8).fill(false), aq: 0, ko: new Set(), instable: false, api: SA.creerAutomate(d.principal && d.principal.prog), alimTxt: "" }); break;
         case "variateur": Object.assign(d, { alim: false, grille: false, defaut: null, fs: 0, cible: 0, dir: 1, LI: [false, false, false, false], ai1: 0, ordre: 0, deux: false, fRef: 0, origine: "AI1", molette: d.molette == null ? 0.5 : d.molette, aiTrop: false }); break;
@@ -503,21 +504,34 @@
       return t + Math.max(dt, 0.001);
     }
 
-    /* ----- partie opérative animée : chariot sur rail, cuve et pompe ----- */
+    /* ----- partie opérative animée : chariot sur rail, cuve et pompe, tapis et caisses ----- */
     // Elle lit l'état d'un moteur (sens, vitesse) et actionne des fins de course ou des capteurs, par leurs repères.
-    const systemes = appareils.filter((d) => (d.sorte === "chariot" || d.sorte === "cuve") && d.principal);
+    const systemes = appareils.filter((d) => (d.sorte === "chariot" || d.sorte === "cuve" || d.sorte === "tapis") && d.principal);
+    // tapis : longueur 1 ; une caisse (longueur W_T) arrive à gauche chaque fois que le tapis a avancé de « ecart » ;
+    // l'avant de la caisse k est à pos − k·ecart ; le capteur regarde le point XS_T ; au bout (1), la caisse tombe dans le bac
+    const XS_T = 0.6, W_T = 0.08;
+    const geoT = (s) => { const P = M.parametres(s.principal); return { d: clamp((Number(P.ecart) || 30) / 100, 0.12, 1), N: Math.max(0, Math.round(Number(P.caisses) || 0)) }; };
+    function caisseDevant(s) {
+      const G = geoT(s), u = s.pos - XS_T; if (u < -1e-9) return false;
+      const k = Math.floor((u + 1e-9) / G.d); if (G.N && k >= G.N) return false;
+      return u - k * G.d <= W_T + 1e-9;
+    }
+    function compterT(s) {   // caisses vues par le capteur (leur avant l'a atteint), tombées dans le bac, sorties du magasin
+      const G = geoT(s), nb = (u) => (u < -1e-9 ? 0 : Math.min(G.N || Infinity, Math.floor((u + 1e-9) / G.d) + 1));
+      s.vues = nb(s.pos - XS_T); s.bac = nb(s.pos - 1 - W_T); s.entrees = nb(s.pos);
+    }
     // seuils des capteurs, avec un peu d'hystérésis : un fin de course est actionné à 4 % du bout et relâché à 5 % ;
     // le capteur de niveau bas retombe sous 20 % (et remonte à 22 %), le capteur haut monte à 80 % (et retombe sous 78 %)
     const SEUILS_CH = [0, 0.04, 0.05, 0.95, 0.96, 1], SEUILS_CU = [0, 0.2, 0.22, 0.78, 0.8, 1], TAU_CH = 120;
     for (const s of systemes) {
-      const P = M.parametres(s.principal), ch = s.sorte === "chariot", nom = `${ch ? "Le chariot" : "La cuve"} ${s.ref}`;
+      const P = M.parametres(s.principal), ch = s.sorte === "chariot", cu = s.sorte === "cuve", nom = `${ch ? "Le chariot" : cu ? "La cuve" : "Le tapis"} ${s.ref}`;
       const lien = (r, quoi) => {
         r = String(r || "").trim(); if (!r) return null;
         const d = dev[r];
         if (!d) remarques.push({ niveau: "alerte", texte: `${nom} : aucun appareil ne porte le repère ${r} (${quoi}).`, refs: [s.ref] });
         return d || null;
       };
-      const m = lien(P.moteur, ch ? "son moteur" : "sa pompe");
+      const m = lien(P.moteur, cu ? "sa pompe" : "son moteur");
       s.mot = m && m.sorte === "moteur" ? m : null;
       if (m && !s.mot) remarques.push({ niveau: "alerte", texte: `${nom} : ${m.ref} n'est pas un moteur.`, refs: [s.ref] });
       const capt = (r, quoi) => {
@@ -528,7 +542,8 @@
         return d;
       };
       if (ch) { s.cG = capt(P.gauche, "fin de course gauche"); s.cD = capt(P.droite, "fin de course droite"); }
-      else { s.cB = capt(P.bas, "niveau bas"); s.cH = capt(P.haut, "niveau haut"); }
+      else if (cu) { s.cB = capt(P.bas, "niveau bas"); s.cH = capt(P.haut, "niveau haut"); }
+      else { s.cC = capt(P.capteur, "capteur des caisses"); compterT(s); }
     }
     function appliquerCapteurs() {
       let change = false;
@@ -539,6 +554,8 @@
         if (s.sorte === "chariot") {
           if (s.cG) poser(s.cG, s.cG.actionne ? s.pos < 0.05 - E : s.pos <= 0.04 + E);
           if (s.cD) poser(s.cD, s.cD.actionne ? s.pos > 0.95 + E : s.pos >= 0.96 - E);
+        } else if (s.sorte === "tapis") {
+          if (s.cC) poser(s.cC, caisseDevant(s));
         } else {
           if (s.cB) poser(s.cB, s.cB.actionne ? s.niv > 0.2 + E : s.niv >= 0.22 - E);
           if (s.cH) poser(s.cH, s.cH.actionne ? s.niv > 0.78 + E : s.niv >= 0.8 - E);
@@ -561,7 +578,12 @@
     function integrerSystemes(dt) {
       for (const s of systemes) if (s.mot) s.mot.bloque = false;   // bloqué si au moins un chariot force contre une butée
       for (const s of systemes) {
-        if (s.sorte === "chariot") {
+        if (s.sorte === "tapis") {   // comme le chariot, sans butée : le tapis (moteur-frein) suit son moteur en 0,12 s
+          const vt = vitCible(s, false), e = Math.exp(-dt / TAU_CH);
+          s.pos += vt * dt + (s.vit - vt) * TAU_CH * (1 - e);
+          s.vit = vt + (s.vit - vt) * e;
+          compterT(s);
+        } else if (s.sorte === "chariot") {
           const vt = vitCible(s, false), e = Math.exp(-dt / TAU_CH);
           let p = s.pos + vt * dt + (s.vit - vt) * TAU_CH * (1 - e);   // le chariot (moteur-frein) suit son moteur en 0,12 s
           s.vit = vt + (s.vit - vt) * e;
@@ -586,6 +608,20 @@
       if (appliquerCapteurs()) sale = true;
     }
     function prochainSysteme(s) {
+      if (s.sorte === "tapis") {   // le prochain bord de caisse devant le capteur, dans un sens ou dans l'autre
+        const vt = vitCible(s, true), vm = Math.max(Math.abs(s.vit), Math.abs(vt));
+        if (vm < 1e-12) return Infinity;
+        const G = geoT(s), u = s.pos - XS_T;
+        let dist;
+        if (u < 0) dist = -u;
+        else {
+          const k = Math.floor(u / G.d), r = u - k * G.d;
+          if (G.N && k >= G.N) return Infinity;
+          const devant = r <= W_T;
+          dist = Math.min(devant ? W_T - r : G.d - r, devant ? r : r - W_T);
+        }
+        return t + Math.max(dist / vm, 0.5);
+      }
       let x, vm, seuils;
       if (s.sorte === "chariot") {
         x = s.pos; seuils = SEUILS_CH;
@@ -853,6 +889,7 @@
         // partie opérative : sa position (ou son niveau), et l'état des capteurs qu'elle actionne (null : pas relié)
         const ac = (x) => (x ? !!x.actionne : null);
         if (d.sorte === "chariot") Object.assign(o, { po: 1, pos: d.pos, vit: d.vit, butee: d.butee, cg: ac(d.cG), cd: ac(d.cD), mot: d.mot ? d.mot.ref : null });
+        if (d.sorte === "tapis") Object.assign(o, { po: 1, pos: d.pos, vit: d.vit, vues: d.vues, bac: d.bac, reste: geoT(d).N ? geoT(d).N - d.entrees : -1, cc: ac(d.cC), mot: d.mot ? d.mot.ref : null });
         if (d.sorte === "cuve") Object.assign(o, { po: 1, niv: d.niv, deborde: d.deborde, vide: d.vide, pompe: debitCuve(d, false) > 0, conso: d.conso, cb: ac(d.cB), ch: ac(d.cH), mot: d.mot ? d.mot.ref : null });
         if (pc.type === "capteur3") Object.assign(o, { alim: d.alim, grille: d.grille });
         if (d.pilote) o.pilote = d.piloteRef;
@@ -864,7 +901,7 @@
         const o = { sorte: d.sorte, actionne: actionne(d) };
         for (const k of ["alim", "grille", "declenche", "ferme", "fondu", "fondus", "appuye", "maintenu", "actionne", "etatM", "sens", "couplage", "w", "terre", "delai",
           "run", "actif", "entrees", "sorties", "aq", "fs", "cible", "defaut", "LI", "ai1", "ordre", "fRef", "origine", "pos", "molette", "deux",
-          "vit", "butee", "butees", "niv", "conso", "deborde", "debords", "vide", "envers", "piloteRef", "bloque"]) if (d[k] !== undefined) o[k] = Array.isArray(d[k]) ? d[k].slice() : d[k];
+          "vit", "butee", "butees", "niv", "conso", "deborde", "debords", "vide", "envers", "piloteRef", "bloque", "vues", "bac", "entrees"]) if (d[k] !== undefined) o[k] = Array.isArray(d[k]) ? d[k].slice() : d[k];
         if (A_BOBINE.has(d.sorte)) o.prog = progression(d);
         if (d.sorte === "automate") { o.api = d.api.etat(); o.erreurs = d.api.erreurs.length; o.ko = [...d.ko]; }
         if (d.sorte === "moteur" && d.var) o.variateur = d.var.ref;
@@ -928,6 +965,13 @@
       if (attendu === "droite") return { ok: a.pos >= 0.95, dit, attendu: `le chariot ${ref} doit être à droite` };
       if (attendu === "en-route") return { ok: a.pos > 0.05 && a.pos < 0.95, dit, attendu: `le chariot ${ref} doit être en route` };
       return { ok: !a.butees, dit, attendu: `le chariot ${ref} ne doit jamais forcer contre une butée` };
+    }
+    if (a.sorte === "tapis") {
+      const roule = Math.abs(a.vit || 0) * 1000 > 0.02, n = a.vues || 0;
+      const dit = `le tapis ${ref} ${roule ? "avance" : "est arrêté"}, ${n} caisse${n > 1 ? "s sont passées" : " est passée"} devant le capteur`;
+      if (typeof attendu === "number") return { ok: n === attendu, dit, attendu: `il faut ${attendu} caisse${attendu > 1 ? "s" : ""} passée${attendu > 1 ? "s" : ""} devant le capteur` };
+      if (attendu === "arret") return { ok: !roule, dit, attendu: `le tapis ${ref} doit être arrêté` };
+      return { ok: roule, dit, attendu: `le tapis ${ref} doit avancer` };
     }
     if (a.sorte === "cuve") {
       const dit = `la cuve ${ref} est remplie à ${Math.round((a.niv || 0) * 100)} %${a.debords ? ", elle a débordé" : ""}`;

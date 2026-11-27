@@ -201,6 +201,49 @@
     b.p("cuve", 58, 34, "PO1", { moteur: "M1", bas: "B1", haut: "B2", duree: 10, conso: 40, niveau: 50 });
     return b.s;
   }
+  // tapis : S1 (arrêt, à ouverture), S2 (marche), S3 (acquittement), B1 (cellule optique PNP) ; KM1 le tapis, H1 lot complet
+  const NOMS_TAPIS = { "%I0.0": "S1", "%I0.1": "S2", "%I0.2": "S3", "%I0.3": "B1", "%Q0.0": "KM1", "%Q0.1": "H1", "%C0": "LOT" };
+  function progTapisGrafcet() {
+    return { lang: "grafcet", noms: Object.assign({}, NOMS_TAPIS), grafcet: {
+      etapes: [
+        { n: 0, init: true, com: "attente, compteur à 0", actions: [{ t: "r", v: "%C0" }] },
+        { n: 1, com: "le tapis avance", actions: [{ t: "n", v: "%Q0.0" }] },
+        { n: 2, com: "une caisse de plus", actions: [{ t: "n", v: "%Q0.0" }, { t: "inc", v: "%C0" }] },
+        { n: 3, com: "lot complet", actions: [{ t: "n", v: "%Q0.1" }] }],
+      transitions: [{ de: [0], vers: [1], r: "S2" }, { de: [1], vers: [2], r: "↑B1" }, { de: [1], vers: [0], r: "/S1" },
+        { de: [2], vers: [1], r: "C0.V < 5" }, { de: [2], vers: [3], r: "C0.V >= 5" }, { de: [3], vers: [0], r: "S3" }] } };
+  }
+  function progTapisLadder() {
+    return { lang: "ladder", noms: Object.assign({}, NOMS_TAPIS), ladder: [
+      { com: "Chaque caisse devant B1 compte 1 ; à 5, le lot est complet", l: [{ c: [ct("no", "%I0.3"), N, N, N, N], s: { t: "ctu", v: "%C0", p: 5 } }], v: [] },
+      { com: "S2 : le tapis démarre, si le lot n'est pas complet", l: [{ c: [ct("no", "%I0.1"), ct("nf", "%C0"), N, N, N], s: { t: "s", v: "%Q0.0" } }], v: [] },
+      { com: "S1, ou lot complet : le tapis s'arrête", l: [{ c: [ct("nf", "%I0.0"), N, N, N, N], s: { t: "r", v: "%Q0.0" } }, { c: [ct("no", "%C0"), N, N, N, N], s: null }], v: [[1]] },
+      { com: "H1 : lot complet", l: [{ c: [ct("no", "%C0"), N, N, N, N], s: { t: "bob", v: "%Q0.1" } }], v: [] },
+      { com: "S3 : acquittement, le compteur repart de 0", l: [{ c: [ct("no", "%I0.2"), N, N, N, N], s: { t: "r", v: "%C0" } }], v: [] }] };
+  }
+  function exempleTapis(defi) {
+    const b = plan(defi ? "Défi · Compte les caisses" : "Tapis : un lot de 5 caisses (GRAFCET)");
+    puissanceDirecte(b);
+    automate24(b, 36, defi ? { lang: "ladder", noms: Object.assign({}, NOMS_TAPIS) } : progTapisGrafcet());
+    // entrées : +24 V en haut (y = 2), 0 V des capteurs juste dessous (y = 4)
+    b.p("alim", 22, -1, "", { pot: "+24" }, 0);
+    b.f([22, 1], [22, 2], [49, 2]).f([25, 18], [25, 2]);
+    b.p("alim", 55, 1, "", { pot: "0V" }, 0);
+    b.f([55, 3], [55, 4], [51, 4]);
+    b.p("bp_nf", 31, 9, "S1", { num: "11-12" }); b.p("bp_no", 37, 9, "S2", { num: "13-14" }); b.p("bp_no", 43, 9, "S3", { num: "13-14" });
+    b.p("capteur3", 50, 9, "B1", { type: "PNP", sortie: "NO", detection: "optique" });
+    b.f([31, 6], [31, 2]).f([37, 6], [37, 2]).f([43, 6], [43, 2]).f([49, 6], [49, 2]).f([51, 6], [51, 4]);
+    b.f([31, 12], [31, 18]).f([37, 12], [37, 15], [33, 15], [33, 18]).f([43, 12], [43, 16], [35, 16], [35, 18]).f([50, 12], [50, 17], [37, 17], [37, 18]);
+    // sorties : L → F2 → F1 95-96 → C0 ; %Q0.0 → KM1 (tapis), %Q0.1 → H1 (lot complet)
+    b.p("alim", 19, 13, "", { pot: "L" }, 0); b.p("fusible", 19, 19, "F2", { cal: 2 }); b.p("contact_th_nf", 19, 26, "F1", { num: "95-96" });
+    b.f([19, 15], [19, 16]).f([19, 22], [19, 23]).f([19, 29], [19, 30], [25, 30]);
+    b.p("bobine", 33, 36, "KM1", { tension: "230~" }); b.p("voyant", 39, 36, "H1", { couleur: "orange", tension: "230~" });
+    b.f([27, 30], [27, 32], [33, 32], [33, 33]).f([29, 30], [29, 31], [39, 31], [39, 33]);
+    b.p("alim", 36, 45, "", { pot: "N" });
+    b.f([33, 39], [33, 41], [39, 41], [39, 39]).f([36, 43], [36, 41]);
+    b.p("tapis", 48, 57, "PO1", { moteur: "M1", sens: "1", capteur: "B1", duree: 6, ecart: 30, caisses: 0 });
+    return b.s;
+  }
   // va-et-vient en logique câblée : S2 lance le chariot à droite, S4 le renvoie à gauche, S3 l'arrête
   function exempleVaEtVient(defi) {
     const b = plan(defi ? "Défi · Le chariot revient tout seul" : "Va-et-vient d'un chariot (logique câblée)");
@@ -329,6 +372,9 @@
     { id: "cuve", titre: "Remplissage d'une cuve (automate, capteurs PNP)", niveau: "Partie opérative",
       resume: "S2 met en service : la pompe M1 démarre sous le niveau bas (B1) et s'arrête au niveau haut (B2). Programme en Ladder avec S et R ; niveaux détectés par des capteurs capacitifs 3 fils PNP.",
       construire() { return exempleCuve(); } },
+    { id: "tapis", titre: "Tapis : un lot de 5 caisses (GRAFCET)", niveau: "Partie opérative",
+      resume: "S2 lance le tapis ; à chaque caisse vue par la cellule B1, l'étape 2 ajoute 1 au compteur %C0. À 5 caisses, le tapis s'arrête et H1 s'allume ; S3 acquitte, S1 arrête. Un GRAFCET avec un compteur et un choix (divergence en OU).",
+      construire() { return exempleTapis(); } },
     { id: "api-variateur", titre: "Automate et variateur : deux sens, deux vitesses", niveau: "Variateur",
       resume: "API1 commande U1 : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz, 10 V : 50 Hz avec S4). Rampes de 2 s.",
       construire() { return exempleVariateurApi(); } },
@@ -581,9 +627,25 @@
         { texte: "Il arrive à droite : KM1 retombe et KM2 le ramène", attendre: 4500, verifier: { KM1: false, KM2: true, M1: "sens2" }, si: "Quand le chariot actionne S4, son contact à ouverture coupe KM1 et son contact à fermeture lance KM2." },
         { texte: "Il revient à gauche et s'arrête sur S3", attendre: 4500, verifier: { KM1: false, KM2: false, PO1: "gauche" }, si: "KM2 doit se maintenir après le départ de S4 (son contact 13-14), et S3 l'arrête à gauche." },
         { texte: "Le chariot n'a jamais forcé contre une butée, F1 n'a pas déclenché", verifier: { PO1: "sans-butee", F1: false }, si: "Le moteur doit s'arrêter sur les fins de course, avant les butées." }
+      ] },
+    { id: "d13-tapis", titre: "Compte les caisses", niveau: 3,
+      resume: "Programmer un compteur (CTU) en Ladder : le tapis s'arrête après 5 caisses.",
+      consigne: "<p>Le câblage est fait : <b>S1</b> (arrêt, à ouverture) sur %I0.0, <b>S2</b> (marche) sur %I0.1, <b>S3</b> (acquittement) sur %I0.2, et la cellule <b>B1</b>, qui voit passer les caisses, sur %I0.3 ; le moteur du tapis <b>KM1</b> sur %Q0.0 et le voyant <b>H1</b> (lot complet) sur %Q0.1. Programme <b>API1</b> en Ladder :</p><ul><li><b>S2</b> fait démarrer le tapis, <b>S1</b> l'arrête ;</li><li>chaque caisse qui passe devant B1 est comptée : à la <b>5e caisse</b>, le tapis s'arrête et <b>H1</b> s'allume ;</li><li>tant que le lot n'est pas acquitté, S2 ne relance pas le tapis ; <b>S3</b> acquitte : H1 s'éteint et le compte repart de 0.</li></ul><p class=\"discret\">Une caisse passe devant B1 toutes les 1,8 s environ.</p>",
+      indice: "Un compteur CTU %C0 réglé à 5, commandé par un contact B1 : il compte chaque front montant. Le contact %C0 vaut 1 quand le compte est atteint. Puis : S2 et non %C0 → S KM1 ; S1 (contact à ouverture, car S1 est à ouverture) ou %C0 → R KM1 ; %C0 → H1 ; S3 → R %C0.",
+      depart() { return exempleTapis(true); },
+      exige: { API1: "automate", KM1: "contacteur", H1: "voyant", S1: "bouton", S2: "bouton", S3: "bouton", B1: "capteur", PO1: "tapis" },
+      etapes: [
+        { texte: "Au repos : le tapis est arrêté", verifier: { KM1: false, H1: false }, si: "Au repos, KM1 ne doit pas être alimenté." },
+        { texte: "S2 : le tapis démarre et reste en marche", faire: [["appuyer", "S2"], ["relacher", "S2"]], attendre: 300, verifier: { KM1: true, M1: "sens1" }, si: "S2 doit mettre KM1 à 1 avec une bobine S, pour que le tapis continue quand on lâche S2." },
+        { texte: "Après la 5e caisse, le tapis s'arrête et H1 s'allume", attendre: 11200, verifier: { KM1: false, H1: true, PO1: 5 }, si: "Compte les caisses avec un compteur CTU %C0 réglé à 5 et commandé par B1 ; quand %C0 est atteint, remets KM1 à 0 (bobine R) et allume H1." },
+        { texte: "S2 : le tapis ne repart pas tant que le lot n'est pas acquitté", faire: [["appuyer", "S2"], ["relacher", "S2"]], attendre: 300, verifier: { KM1: false }, si: "Mets un contact à ouverture %C0 en série avec S2 : on ne relance pas un lot complet." },
+        { texte: "S3 : acquittement, H1 s'éteint", faire: [["appuyer", "S3"], ["relacher", "S3"]], attendre: 200, verifier: { H1: false }, si: "S3 doit remettre le compteur à 0 (bobine R sur %C0)." },
+        { texte: "S2 : un nouveau lot de 5 caisses, puis arrêt", faire: [["appuyer", "S2"], ["relacher", "S2"]], attendre: 9600, verifier: { KM1: false, H1: true, PO1: 10 }, si: "Après l'acquittement, le compte repart de 0 : 5 nouvelles caisses, et le tapis s'arrête." },
+        { texte: "S3 puis S2 : le tapis repart", faire: [["appuyer", "S3"], ["relacher", "S3"], ["appuyer", "S2"], ["relacher", "S2"]], attendre: 600, verifier: { KM1: true, H1: false }, si: "Après S3, le compte est à 0 : S2 doit relancer le tapis." },
+        { texte: "S1 : le tapis s'arrête tout de suite", faire: [["appuyer", "S1"], ["relacher", "S1"]], attendre: 300, verifier: { KM1: false }, si: "S1 (à ouverture) doit remettre KM1 à 0 : un contact à ouverture S1 sur la bobine R." }
       ] }
   ];
 
-  const API = { EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, progCuve, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot, exempleCuve, exempleVaEtVient };
+  const API = { EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, progCuve, progTapisGrafcet, progTapisLadder, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot, exempleCuve, exempleVaEtVient, exempleTapis };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasExemples = API;
 })(typeof window !== "undefined" ? window : globalThis);

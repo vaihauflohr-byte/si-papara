@@ -123,6 +123,8 @@
   // Partie opérative animée (pas de bornes) : elle lit le moteur et actionne les capteurs, par leurs repères
   def("chariot", { nom: "Chariot sur rail (partie opérative)", court: "Chariot", cat: "po", pref: "PO", sansRot: true, boite: [-16, -5, 16, 5],
     p: { moteur: "M1", sens: "1", gauche: "S3", droite: "S4", duree: 4, depart: "gauche" }, bornes: () => [] });
+  def("tapis", { nom: "Tapis roulant et caisses (partie opérative)", court: "Tapis", cat: "po", pref: "PO", sansRot: true, boite: [-16, -7.4, 16.5, 5.4],
+    p: { moteur: "M1", sens: "1", capteur: "B1", duree: 6, ecart: 30, caisses: 0 }, bornes: () => [] });
   def("cuve", { nom: "Cuve et pompe (partie opérative)", court: "Cuve", cat: "po", pref: "PO", sansRot: true, boite: [-10, -8.4, 12.5, 8.4],
     p: { moteur: "M1", bas: "B1", haut: "B2", duree: 10, conso: 40, niveau: 50 }, bornes: () => [] });
 

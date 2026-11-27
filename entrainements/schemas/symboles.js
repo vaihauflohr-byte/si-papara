@@ -23,6 +23,15 @@
      L'éditeur s'en sert aussi pour les animer à chaque image, sans tout redessiner. */
   function geoChariot(pos) { const xc = n1(-122 + 244 * c01(pos)); return { xc, a: n1((xc * 11.459) % 360) }; }
   function geoCuve(niv) { const h = n1(113 * c01(niv)); return { y: n1(57 - h), h }; }
+  /* tapis (mêmes réglages que le moteur de simulation : capteur à 0,6 de la longueur, caisse de 0,08) :
+     l'avant de chaque caisse posée sur le tapis (en pixels), le décalage de la bande et l'angle du rouleau */
+  const XS_T = 0.6, W_T = 0.08;
+  function geoTapis(pos, ecart, nb) {
+    const d = Math.max(0.12, Math.min(1, (Number(ecart) || 30) / 100)), N = Math.max(0, Math.round(Number(nb) || 0)), p = Number(pos) || 0;
+    const cx = [], kmax = Math.floor(p / d + 1e-9), kmin = Math.max(0, Math.ceil((p - 1 - W_T) / d - 1e-9));
+    for (let k = kmax; k >= kmin; k--) { if (N && k >= N) continue; const x = p - k * d; if (x >= -1e-9 && x - W_T <= 1) cx.push(n1(-120 + 240 * x)); }
+    return { cx, off: n1(-((p * 240) % 12)), a: n1(((p * 240) / 7 * 57.2958) % 360), places: Math.ceil((1 + W_T) / d) + 1 };
+  }
 
   /* contact à deux bornes, vertical, bornes a (haut, y = -30) et b (bas, y = +30), dessiné selon EN 60617-7
      o : { nat: "no"|"nf", ferme, ca, cb, act: null|"bp"|"au"|"rot"|"man"|"fdc"|"prox"|"th"|"t+"|"t-", pousse } */
@@ -289,7 +298,9 @@
         h += P("M-18 -2L-9 -11L0 -2L-9 7Z", null, "act" + (sim && E.actionne && !E.grille ? " detecte" : "")) + P("M-11 -9V5M-7 -9V5", null, "act fin3");
         // contact de sortie, couché ; dessiné fermé quand la sortie est active
         h += nc ? P(`M3 -7H7V-3.8M17 -7H14L${ferme ? "6 -4.6" : "6.4 -11"}`) : P(`M3 -7H7M17 -7H14L${ferme ? "6.6 -8.3" : "6.4 -11"}`);
-        h += p.detection === "capacitif" ? P("M3 6H8.5M8.5 2.2V9.8M11.5 2.2V9.8M11.5 6H17") : P("M3 6H5A2 2 0 0 1 9 6A2 2 0 0 1 13 6A2 2 0 0 1 17 6");
+        h += p.detection === "capacitif" ? P("M3 6H8.5M8.5 2.2V9.8M11.5 2.2V9.8M11.5 6H17")
+          : p.detection === "optique" ? P("M3 6H6.5M6.5 3V9M12.5 3V9L6.5 6L12.5 3M12.5 6H17") + P("M11 1.4L8.6 -1M9.2 2.4L6.8 0", null, "fin3") + `<path d="M8 -1.6L9.6 -1.4L9.4 0.2ZM6.2 -0.6L7.8 -0.4L7.6 1.2Z" class="plein"/>`
+          : P("M3 6H5A2 2 0 0 1 9 6A2 2 0 0 1 13 6A2 2 0 0 1 17 6");
         if (sim && E.grille) h += P("M-17 -12L17 12M-17 12L17 -12", null, "barre");
         tx.push(T(-4.5, -21.5, "+", "middle", "moyen"), T(4.5, -21.5, "−", "middle", "moyen"));
         tx.push(T(-14, -24, "BN", "end", "num", "#9c6b3c"), T(14, -24, "BU", "start", "num", "#1c7ed6"), T(4, 24, "BK", "start"), T(-4, 24, p.type === "NPN" ? "NPN" : "PNP", "end", "info"));
@@ -323,6 +334,39 @@
           + `</g>`;
         tx.push(T(0, -40, ref, "middle", "ref"), T(0, -28, "chariot · moteur " + (p.moteur || "?"), "middle", "info"));
         if (sim && E.butee) tx.push(T(E.butee < 0 ? -112 : 112, 42, "en butée !", "middle", "alerte"));
+        break;
+      }
+      case "tapis": {
+        // le tapis vu de face : bande sur deux rouleaux (celui de droite est un tambour moteur M), magasin de caisses à gauche,
+        // capteur au-dessus de la bande, bac au bout ; en simulation, la bande et les caisses avancent
+        const g = geoTapis(sim ? E.pos : 0, p.ecart, p.caisses), mv = sim && Math.abs(E.vit || 0) * 1000 > 0.02 ? Math.sign(E.vit) : 0;
+        const on = sim && !!E.cc, reste = sim ? E.reste : Math.round(Number(p.caisses) || 0) || -1;
+        let hach = ""; for (let x = -144; x <= 160; x += 12) hach += `M${x} 40l-6 6`;
+        h += P(hach, null, "fin") + P("M-150 40H162", null, "rail") + P("M-110 7L-102 40M110 7L102 40", null, "fin2");
+        // magasin (deux caisses en attente, s'il en reste)
+        h += P("M-143 -70V-28M-117 -70V-31", null, "paroi");
+        if (reste !== 0) h += R(-139.6, -44, 19.2, 15, "caisse", ` rx="1.5"`) + (reste < 0 || reste > 1 ? R(-139.6, -60, 19.2, 15, "caisse", ` rx="1.5"`) : "");
+        // bande et rouleaux
+        h += `<path d="M-120 -9H120A9 9 0 0 1 120 9H-120A9 9 0 0 1 -120 -9Z" class="bande"/>` + `<path d="M-120 -6H120" class="bande-m" data-bande="${esc(pc.id)}" style="stroke-dashoffset:${g.off}"/>`;
+        h += `<g data-roul="-120" transform="rotate(${g.a} -120 0)"><circle cx="-120" cy="0" r="6.5" class="roue"/>${P("M-126.5 0H-113.5M-120 -6.5V6.5", null, "fin")}</g>`;
+        h += `<circle cx="120" cy="0" r="6.5" class="corps-m${mv ? " tourne" : ""}"/>` + texte(120, 0.4, "M", "petit");
+        // caisses
+        h += `<g data-tapis="${esc(pc.id)}" data-ecart="${esc(p.ecart)}" data-nb="${esc(p.caisses)}">`;
+        for (let j = 0; j < g.places; j++) { const x = g.cx[j]; h += `<rect data-caisse="${j}" x="${x != null ? n1(x - 19.2) : -200}" y="-25" width="19.2" height="16" rx="1.5" class="caisse"${x == null ? ' style="display:none"' : ""}/>`; }
+        h += `</g>`;
+        // capteur au-dessus de la bande, et son faisceau
+        const xs = -120 + 240 * XS_T;
+        if (String(p.capteur || "").trim()) {
+          h += P(`M${xs} -70V-48`, null, "fin2") + R(xs - 7, -48, 14, 10, "po-fdc" + (on ? " on" : ""), ` rx="2"`) + P(`M${xs} -38V-10`, null, "faisceau" + (on ? " on" : ""));
+          tx.push(T(xs + 10, -43, p.capteur, "start", "ref"));
+        }
+        // bac au bout du tapis
+        h += P("M130 14V40H160V14", null, "paroi");
+        if (sim && E.bac) tx.push(T(145, 30, String(E.bac), "middle", "moyen"));
+        if (mv) h += P(mv > 0 ? "M-12 24H12M12 24l-5 -4M12 24l-5 4" : "M12 24H-12M-12 24l5 -4M-12 24l5 4", null, "sens");
+        tx.push(T(-60, -62, ref, "middle", "ref"), T(-60, -50, "tapis · moteur " + (p.moteur || "?"), "middle", "info"), T(97, 20, p.moteur || "?", "end", "ref"));
+        tx.push(T(145, 51, "bac", "middle", "info"));
+        if (sim) tx.push(T(-20, 33, `${E.vues || 0} caisse${(E.vues || 0) > 1 ? "s" : ""} vue${(E.vues || 0) > 1 ? "s" : ""}`, "middle", "info"));
         break;
       }
       case "cuve": {
@@ -376,6 +420,7 @@
   /* icônes simplifiées des parties opératives (le vrai dessin est trop large pour la palette) */
   const ICONES = {
     chariot: `<svg viewBox="-36 -22 72 44" class="sy" aria-hidden="true" focusable="false"><path d="M-33 13H33" class="rail"/><rect x="-34" y="-2" width="4" height="15" class="butee"/><rect x="30" y="-2" width="4" height="15" class="butee"/><rect x="-30" y="-18" width="9" height="6" class="po-fdc"/><rect x="21" y="-18" width="9" height="6" class="po-fdc"/><path d="M-12 -3L-10 -6H10L12 -3Z" class="came"/><rect x="-14" y="-3" width="28" height="11" rx="2" class="corps-po"/><circle cx="-7" cy="10" r="3" class="roue"/><circle cx="7" cy="10" r="3" class="roue"/><path d="M-8 -12H8M8 -12l-3 -2.5M8 -12l-3 2.5" class="sens"/></svg>`,
+    tapis: `<svg viewBox="-36 -22 72 44" class="sy" aria-hidden="true" focusable="false"><path d="M-27 2H27A3 3 0 0 1 27 8H-27A3 3 0 0 1 -27 2Z" class="bande"/><rect x="-18" y="-6" width="9" height="8" rx="1" class="caisse"/><rect x="4" y="-6" width="9" height="8" rx="1" class="caisse"/><rect x="-2" y="-19" width="6" height="5" rx="1" class="po-fdc"/><path d="M1 -14V-7" class="faisceau"/><path d="M-22 16L-26 8M22 16L26 8M-32 16H32" class="fin"/></svg>`,
     cuve: `<svg viewBox="-34 -24 68 48" class="sy" aria-hidden="true" focusable="false"><rect x="-13" y="-1" width="26" height="20" class="eau"/><path d="M-14 -20V20H14V-20" class="paroi"/><path d="M-13 -10H13M-13 10H13" class="repere"/><path d="M-27 9V-23H-6V-19" class="tuyau"/><circle cx="-27" cy="14" r="5" class="corps-m"/><path d="M-27 9L-29.6 13.4H-24.4Z" class="plein"/><circle cx="21" cy="-10" r="4" class="instr"/><circle cx="21" cy="10" r="4" class="instr"/></svg>`
   };
   /* l'icône d'un symbole pour la palette (repère du symbole, sans texte) */
@@ -390,6 +435,6 @@
     return `<svg viewBox="${x0} ${y0} ${w} ${h}" class="sy" aria-hidden="true" focusable="false">${d.corps}${lab}</svg>`;
   }
 
-  const API = { dessiner, icone, geoChariot, geoCuve, COUL_POT, COUL_VOYANT, NOM_POT };
+  const API = { dessiner, icone, geoChariot, geoCuve, geoTapis, COUL_POT, COUL_VOYANT, NOM_POT };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasSymboles = API;
 })(typeof window !== "undefined" ? window : globalThis);
