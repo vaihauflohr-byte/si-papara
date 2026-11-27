@@ -11,14 +11,14 @@
 <style>
 /* ===== Atelier schémas : la page est une application plein écran ===== */
 :root{--p-l1:#e03131;--p-l2:#e8590c;--p-l3:#9c36b5;--p-n:#1c7ed6;--p-pe:#2f9e44;--p-plus:#e03131;--p-court:#f700a8;
-  --sc-feuille:#fcfdfe;--sc-point:#c3ccd6;--sc-bobine:#ffd43b;--sc-libre:#f08c00;--sc-barre:#f4f7f9;--sc-ombre:0 6px 22px rgba(15,25,40,.18)}
+  --sc-feuille:#fcfdfe;--sc-point:#c3ccd6;--sc-bobine:#ffd43b;--sc-libre:#f08c00;--sc-barre:#f4f7f9;--sc-ombre:0 6px 22px rgba(15,25,40,.18);--sc-fo-fil:#0b7285;--sc-fo-renvoi:#6741d9}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--p-l1:#ff6b6b;--p-l2:#ffa94d;--p-l3:#da77f2;--p-n:#4dabf7;--p-pe:#69db7c;--p-plus:#ff6b6b;--p-court:#ff4fd8;
-  --sc-feuille:#0f161d;--sc-point:#2b3846;--sc-bobine:#d9a400;--sc-libre:#ffa94d;--sc-barre:#141c24;--sc-ombre:0 6px 22px rgba(0,0,0,.5)}}
+  --sc-feuille:#0f161d;--sc-point:#2b3846;--sc-bobine:#d9a400;--sc-libre:#ffa94d;--sc-barre:#141c24;--sc-ombre:0 6px 22px rgba(0,0,0,.5);--sc-fo-fil:#66d9e8;--sc-fo-renvoi:#b197fc}}
 :root[data-theme="dark"]{color-scheme:dark;
   --ground:#0d1318;--paper:#141c24;--paper-2:#19232d;--ink:#e2e8ee;--ink-2:#a9b5c1;--ink-3:#7b8894;--rule:#28343f;--rule-2:#1f2a34;--line-strong:#c8d2dc;
   --accent:#8fb0ee;--accent-soft:#1a2a44;--accent-ink:#0d1318;--good:#6ccb97;--good-soft:#132d1f;--bad:#ff8f84;--bad-soft:#3a1714;--warn:#e8b75a;--warn-soft:#32270e;
   --p-l1:#ff6b6b;--p-l2:#ffa94d;--p-l3:#da77f2;--p-n:#4dabf7;--p-pe:#69db7c;--p-plus:#ff6b6b;--p-court:#ff4fd8;
-  --sc-feuille:#0f161d;--sc-point:#2b3846;--sc-bobine:#d9a400;--sc-libre:#ffa94d;--sc-barre:#141c24;--sc-ombre:0 6px 22px rgba(0,0,0,.5)}
+  --sc-feuille:#0f161d;--sc-point:#2b3846;--sc-bobine:#d9a400;--sc-libre:#ffa94d;--sc-barre:#141c24;--sc-ombre:0 6px 22px rgba(0,0,0,.5);--sc-fo-fil:#66d9e8;--sc-fo-renvoi:#b197fc}
 :root[data-theme="dark"] .logo-img{filter:invert(1)}
 html,body{height:100%}
 body.sc-app{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;overscroll-behavior:none}
@@ -503,6 +503,19 @@ table.raccourcis{border-collapse:collapse;width:100%;font-size:.88rem;margin-top
 table.raccourcis td{border-top:1px solid var(--rule);padding:5px 6px;vertical-align:top}
 table.raccourcis td:first-child{white-space:nowrap;width:1%}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:8px;font-size:.9rem;z-index:100;box-shadow:var(--sc-ombre);max-width:90vw}
+/* repérage du folio : colonnes, numéros de fils, renvois (folio.js) */
+.fo-c{fill:none;stroke:var(--ink-3);stroke-width:.8}
+.fo-n{font-family:var(--f-mono);font-weight:600;font-size:10px;fill:var(--ink-2);text-anchor:middle;dominant-baseline:central}
+.fo-f{font-family:var(--f-mono);font-weight:600;font-size:8.5px;fill:var(--sc-fo-fil);stroke:var(--sc-feuille);stroke-width:3px;paint-order:stroke;stroke-linejoin:round}
+.fo-r,.fo-k{font-family:var(--f-mono);font-weight:500;font-size:7.5px;fill:var(--sc-fo-renvoi);stroke:var(--sc-feuille);stroke-width:2.6px;paint-order:stroke;stroke-linejoin:round}
+.fo{pointer-events:none}
+/* nomenclature et bornier */
+.nomen{width:100%;border-collapse:collapse;font-size:.9rem;margin:6px 0 14px}
+.nomen th,.nomen td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+.nomen th{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.05em;font-size:.78rem;color:var(--ink-2);background:var(--paper-2)}
+.nomen td:first-child{font-weight:700;white-space:nowrap}
+.nomen td.n{font-family:var(--f-mono);white-space:nowrap}
+.nomen-defil{overflow-x:auto}
 /* impression : seulement le schéma, avec son cartouche */
 #sc-impression{display:none}
 @media print{
@@ -511,6 +524,10 @@ table.raccourcis td:first-child{white-space:nowrap;width:1%}
   body.sc-app>*:not(#sc-impression){display:none!important}
   #sc-impression{display:block}
   #sc-impression svg{width:100%;height:auto;max-height:190mm}
+  #sc-impression .nomen{font:10pt/1.3 Arial,sans-serif;color:#000}
+  #sc-impression .nomen th{background:#eee;color:#000}
+  #sc-impression h1{font:700 14pt Arial,sans-serif;margin:0 0 4mm}
+  #sc-impression h2{font:700 11pt Arial,sans-serif;margin:5mm 0 2mm}
 }
 </style>
 </head>
@@ -531,6 +548,7 @@ table.raccourcis td:first-child{white-space:nowrap;width:1%}
   <button class="sc-b" type="button" data-o="main" aria-pressed="false" title="Déplacer la feuille (H, ou glisser avec le bouton droit)"><svg viewBox="0 0 24 24"><path d="M8 12V6.5a1.5 1.5 0 013 0V11m0-5.5V5a1.5 1.5 0 013 0v6m0-4.5a1.5 1.5 0 013 0V14c0 3.6-2.4 6-6 6-2.6 0-4.2-1.4-5.6-3.6L4.2 13a1.5 1.5 0 012.5-1.6L8 13"/></svg><span>Feuille</span></button>
   <button class="sc-b" type="button" data-o="volt" aria-pressed="false" disabled title="Voltmètre : mesurer la tension entre deux bornes (pendant la simulation)"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><rect x="8" y="6" width="8" height="4.5" rx="1"/><circle cx="12" cy="15.5" r="2.6"/><path d="M12 15.5l1.6-1.6"/></svg><span>Voltmètre</span></button>
   <button class="sc-b" type="button" data-a="chrono" aria-pressed="false" title="Chronogramme : l'état de chaque élément au fil du temps (pendant la simulation)"><svg viewBox="0 0 24 24"><path d="M3 18h3.5V7H11v11h3.5V7H19v11h2"/></svg><span>Chronogramme</span></button>
+  <button class="sc-b" type="button" data-a="folio" aria-pressed="false" title="Repérage du folio : colonnes, numéros de fils, renvois des contacts sous les bobines (la nomenclature est dans Fichier)"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 9h16M9.3 9v10M14.7 9v10"/><path d="M6.4 7h.01M12 7h.01M17.4 7h.01"/></svg><span>Repérage</span></button>
   <span class="sc-sep"></span>
   <button class="sc-b" type="button" data-a="tourner" title="Tourner d'un quart de tour (R)"><svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 11-2.1-5"/><path d="M17.5 3v4.2h-4.2"/></svg><span>Tourner</span></button>
   <button class="sc-b" type="button" data-a="supprimer" title="Supprimer (Suppr)"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V4.5h4V7M7 7l1 13h8l1-13"/></svg><span>Supprimer</span></button>
@@ -569,6 +587,7 @@ table.raccourcis td:first-child{white-space:nowrap;width:1%}
 <dialog class="sc-d" id="d-exemples"><div class="d-tete"><h2>Exemples tout faits</h2><button class="d-x" type="button" data-fermer aria-label="Fermer">×</button></div><div class="d-corps" id="d-exemples-c"></div></dialog>
 <dialog class="sc-d" id="d-defis"><div class="d-tete"><h2>Défis</h2><button class="d-x" type="button" data-fermer aria-label="Fermer">×</button></div><div class="d-corps" id="d-defis-c"></div></dialog>
 <dialog class="sc-d sc-prog" id="d-prog"><div class="d-tete"><h2 id="d-prog-t">Programmer l'automate</h2><button class="d-x" type="button" data-fermer aria-label="Fermer">×</button></div><div class="d-corps" id="d-prog-c"></div></dialog>
+<dialog class="sc-d" id="d-nomen"><div class="d-tete"><h2>Nomenclature et bornier</h2><button class="d-x" type="button" data-fermer aria-label="Fermer">×</button></div><div class="d-corps" id="d-nomen-c"></div></dialog>
 <dialog class="sc-d" id="d-aide"><div class="d-tete"><h2>Comment ça marche</h2><button class="d-x" type="button" data-fermer aria-label="Fermer">×</button></div><div class="d-corps" id="d-aide-c"></div></dialog>
 <div id="sc-impression"></div>
 <input type="file" id="sc-import" accept=".json,application/json" hidden>
@@ -576,6 +595,7 @@ table.raccourcis td:first-child{white-space:nowrap;width:1%}
 <script src="schemas/automate.js"></script>
 <script src="schemas/modele.js"></script>
 <script src="schemas/symboles.js"></script>
+<script src="schemas/folio.js"></script>
 <script src="schemas/moteur.js"></script>
 <script src="schemas/exemples.js"></script>
 <script src="schemas/programme.js"></script>

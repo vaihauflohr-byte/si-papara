@@ -19,7 +19,8 @@
   const nf = (x, d) => Number(x).toLocaleString("fr-FR", { maximumFractionDigits: d == null ? 1 : d });
   const session = lire("sip_session");
   const QUI = session && session.nom ? String(session.nom) : "local";
-  const CLE = { libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, dep: (id) => "schemas:dep:" + QUI + ":" + id, depProgres: "schemas:depannage:" + QUI, prep: "schemas:prep:" + QUI, defiStats: "schemas:defistats:" + QUI, envois: "schemas:envois:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
+  const FO = window.SchemasFolio || null;   // repérage du folio et nomenclature (folio.js)
+  const CLE = { folio: "schemas:folio", libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, dep: (id) => "schemas:dep:" + QUI + ":" + id, depProgres: "schemas:depannage:" + QUI, prep: "schemas:prep:" + QUI, defiStats: "schemas:defistats:" + QUI, envois: "schemas:envois:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
 
   const DOIGT = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);   // écran tactile sans souris
   const svg = $("sc-svg"), monde = $("sc-monde"), fond = $("sc-fond"), grilleR = $("sc-grille"), pn = $("sc-panneau"), vueEl = $("sc-vue");
@@ -112,9 +113,18 @@
   const libreOkL = (s, l) => { const pc = s.pieces.find((q) => q.id === l.piece); return !!pc && M.libreOk(pc, l.borne); };
   let demande = false;
   function rendre() { if (!demande) { demande = true; requestAnimationFrame(() => { demande = false; dessiner(); }); } }
+  /* repérage du folio : colonnes, numéros de fils, renvois (calculés une fois par netlist) */
+  let folio = !!lire(CLE.folio), folioCache = null;
+  const analyseFolio = (net) => { if (!folioCache || folioCache.net !== net || folioCache.s !== schema) folioCache = { net, s: schema, A: FO.analyser(schema, net) }; return folioCache.A; };
+  function basculerFolio(v) {
+    folio = v == null ? !folio : !!v; garder(CLE.folio, folio);
+    const b = document.querySelector('#sc-barre [data-a="folio"]'); if (b) b.setAttribute("aria-pressed", String(folio));
+    rendre();
+  }
   function dessiner() {
     const net = sim ? sim.netlist : (netEdit || (netEdit = M.netlist(schema)));
     let h = svgSchema(schema, net, sim ? simE : null, { sel, libres: !sim });
+    if (folio && FO) h += FO.svg(schema, analyseFolio(net), G);
     if (!sim) {
       for (const id of sel) {
         const pc = pieceParId(id); if (!pc) continue;
@@ -1852,6 +1862,7 @@
         <button type="button" data-f="png"><span><b>Image PNG</b><small>Le schéma avec son cartouche, pour un compte rendu</small></span></button>
         <button type="button" data-f="svg"><span><b>Image SVG</b><small>Dessin vectoriel (net à toutes les tailles)</small></span></button>
         <button type="button" data-f="imprimer"><span><b>Imprimer</b><small>Feuille A4 paysage</small></span></button>
+        <button type="button" data-f="nomenclature"><span><b>Nomenclature et bornier</b><small>La liste des appareils (repère, désignation, caractéristiques, colonnes) et le bornier X1 des appareils du terrain</small></span></button>
         <button type="button" data-f="preparer"><span><b>Préparer un dépannage (professeur)</b><small>Cache une panne dans ce schéma, puis donne le lien aux élèves : tous la même panne, et leur note t'arrive</small></span></button>
       </div>
       <h3 style="margin-top:16px">Mes schémas <span class="discret">(dans ce navigateur)</span></h3>
@@ -1863,6 +1874,25 @@
     for (const b of C.querySelectorAll("[data-x]")) b.onclick = () => { const L2 = lire(CLE.copies) || []; L2.splice(+b.dataset.x, 1); garder(CLE.copies, L2); ouvrirFichier(); };
     ouvrirDialogue("d-fichier");
   }
+  function ouvrirNomenclature() {
+    if (!FO) return;
+    const A = FO.analyser(schema, M.netlist(schema));
+    const tN = A.nomenclature.length ? `<div class="nomen-defil"><table class="nomen"><thead><tr><th>Repère</th><th>Désignation</th><th>Caractéristiques</th><th>Colonnes</th></tr></thead><tbody>${A.nomenclature.map((r) =>
+      `<tr><td>${esc(r.ref)}</td><td>${esc(r.designation)}</td><td>${esc(r.caracteristiques)}</td><td class="n">${r.colonnes.join(", ")}</td></tr>`).join("")}</tbody></table></div>` : `<p class="discret">Aucun appareil repéré sur la feuille.</p>`;
+    const tB = A.bornier.length ? `<div class="nomen-defil"><table class="nomen"><thead><tr><th>Borne</th><th>Fil</th><th>Côté armoire</th><th>Côté terrain</th></tr></thead><tbody>${A.bornier.map((r) =>
+      `<tr><td>X1:${r.borne}</td><td class="n">${esc(r.fil)}</td><td class="n">${esc(r.armoire)}</td><td class="n">${esc(r.terrain)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="discret">Aucun appareil du terrain (moteur, capteur, fin de course, électrovanne) relié à l'armoire.</p>`;
+    $("d-nomen-c").innerHTML = `<p class="discret">${esc(schema.titre || "Schéma")} · ${A.n} colonne${A.n > 1 ? "s" : ""} de ${A.W} pas. Les numéros de fils et les colonnes sont ceux du <b>Repérage</b> (barre d'outils).</p>
+      <h3>Nomenclature</h3>${tN}<h3>Bornier X1 <span class="discret">(appareils du terrain)</span></h3>${tB}
+      <div class="rang"><button class="btn" type="button" id="nm-copier">Copier</button><button class="btn sec" type="button" id="nm-csv">Télécharger (CSV)</button><button class="btn sec" type="button" id="nm-imprimer">Imprimer</button></div>
+      <p class="discret">« Copier » : à coller dans un tableur ou un traitement de texte. Le CSV s'ouvre dans Excel ou LibreOffice.</p>`;
+    $("nm-copier").onclick = async () => { try { await navigator.clipboard.writeText(FO.tableaux(A, "\t")); toast("Nomenclature copiée."); } catch (e) { toast("La copie n'a pas marché : télécharge le CSV."); } };
+    $("nm-csv").onclick = () => telecharger(new Blob(["\ufeff" + FO.tableaux(A, ";")], { type: "text/csv;charset=utf-8" }), "nomenclature-" + nomFichier() + ".csv");
+    $("nm-imprimer").onclick = () => {
+      $("sc-impression").innerHTML = `<h1>${esc(schema.titre || "Schéma")} : nomenclature</h1>${$("d-nomen-c").querySelectorAll(".nomen-defil")[0] ? $("d-nomen-c").querySelectorAll(".nomen-defil")[0].innerHTML : ""}${A.bornier.length ? `<h2>Bornier X1</h2>${$("d-nomen-c").querySelectorAll(".nomen-defil")[1].innerHTML}` : ""}`;
+      fermerDialogues(); setTimeout(() => window.print(), 80);
+    };
+    ouvrirDialogue("d-nomen");
+  }
   function telecharger(blob, nom) {
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nom; document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
@@ -1870,6 +1900,7 @@
   const nomFichier = () => (schema.titre || "schema").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase().slice(0, 50) || "schema";
   async function actionFichier(f) {
     if (f === "preparer") { ouvrirPreparation(); return; }
+    if (f === "nomenclature") { ouvrirNomenclature(); return; }
     if (f === "nouveau") { if (sim) arreterSim(); quitterDoc(); chargerSchema(M.nouveau()); fermerDialogues(); if (history.replaceState) history.replaceState(null, "", location.pathname); return; }
     if (f === "json") { telecharger(new Blob([JSON.stringify(schema, null, 1)], { type: "application/json" }), nomFichier() + ".json"); toast("Fichier exporté."); return; }
     if (f === "copie") { const nom = ($("f-nom").value || schema.titre || "Mon schéma").trim().slice(0, 80); const L = lire(CLE.copies) || []; L.unshift({ id: Date.now(), nom, t: Date.now(), schema: M.cloner(schema) }); garder(CLE.copies, L.slice(0, 30)); toast("Copie enregistrée."); ouvrirFichier(); return; }
@@ -1917,7 +1948,8 @@
   }
   async function svgExport() {
     const s = schema, net = M.netlist(s), b = M.bornesDe(s);
-    const x0 = b[0] * G - 60, y0 = b[1] * G - 34, w = Math.max(560, (b[2] - b[0]) * G + 110), h = (b[3] - b[1]) * G + 70;
+    const fo = folio && FO ? 26 : 0;   // le repérage ajoute la bande des colonnes en haut
+    const x0 = b[0] * G - 60, y0 = b[1] * G - 34 - fo, w = Math.max(560, (b[2] - b[0]) * G + 110), h = (b[3] - b[1]) * G + 70 + fo;
     const L = await logo(), ch = 46, yc = y0 + h + 8;
     const date = new Date().toLocaleDateString("fr-FR");
     const qui = QUI !== "local" ? QUI : "";
@@ -1926,7 +1958,7 @@
       <text class="ca" x="${x0 + 58}" y="${yc + 35}" font-size="14" font-weight="700">${esc(s.titre || "Schéma")}</text>
       <text class="ca" x="${x0 + w - 8}" y="${yc + 18}" font-size="10" text-anchor="end">${esc(qui)}</text>
       <text class="ca" x="${x0 + w - 8}" y="${yc + 35}" font-size="10" text-anchor="end">${esc(date)}</text>`;
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0 - 10} ${y0 - 10} ${w + 20} ${h + ch + 28}" width="${w + 20}" height="${h + ch + 28}"><style>${CSS_EXPORT}</style><rect x="${x0 - 10}" y="${y0 - 10}" width="${w + 20}" height="${h + ch + 28}" fill="#fff"/>${svgSchema(s, net, null, {})}${cart}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0 - 10} ${y0 - 10} ${w + 20} ${h + ch + 28}" width="${w + 20}" height="${h + ch + 28}"><style>${CSS_EXPORT}${fo ? FO.CSS : ""}</style><rect x="${x0 - 10}" y="${y0 - 10}" width="${w + 20}" height="${h + ch + 28}" fill="#fff"/>${svgSchema(s, net, null, {})}${fo ? FO.svg(s, FO.analyser(s, net), G) : ""}${cart}</svg>`;
   }
   async function pngExport() {
     const t = await svgExport();
@@ -1998,6 +2030,7 @@
       <p class="discret">Les symboles suivent la norme <b>NF EN 60617</b> (le numéro de chaque symbole est noté dessous). Ce qui compte, c'est le petit signe à gauche du contact : il dit <b>qui l'actionne</b>.</p>
       <div class="sym-g">${SYMBOLES_AIDE.map(([t, p, nom, ref, o]) => `<figure>${SY.icone(t, p, o)}<figcaption>${esc(nom)}<small>${esc(ref)}</small></figcaption></figure>`).join("")}</div>
       <h3 style="margin-top:14px">Les repères</h3>
+      <p class="discret"><b>Repérage</b> (barre d'outils) : comme sur un vrai folio, des colonnes numérotées en haut de la feuille, un numéro sur chaque fil (les fils reliés entre eux ont le même numéro ; L, N, +24, 0V, PE et L1, L2, L3 gardent leur nom) et, sous chaque bobine, ses contacts avec la colonne où ils sont (« 13-14 NO /4 » : le contact 13-14 est dans la colonne 4). Près de chaque contact, « /2 » : sa bobine est dans la colonne 2. <b>Fichier → Nomenclature et bornier</b> : la liste des appareils et le bornier X1, à copier, télécharger ou imprimer.</p>
       <p class="discret">Une bobine et ses contacts portent le <b>même repère</b> (KM1) : c'est comme ça que la simulation sait quels contacts bougent quand KM1 est alimenté. Les numéros des bornes suivent les règles : 13-14 et 43-44 pour les contacts à fermeture, 21-22 et 31-32 pour les contacts à ouverture, 95-96 et 97-98 pour le relais thermique, 55-56 et 67-68 pour les contacts temporisés, A1-A2 pour les bobines.</p>`;
     ouvrirDialogue("d-aide");
     garder(CLE.aide, 1);
@@ -2056,7 +2089,8 @@
   $("sc-voile").addEventListener("click", fermerPalette);
   const ACTIONS = { palette: () => document.body.classList.toggle("pal-ouverte"), fichier: ouvrirFichier, exemples: ouvrirExemples, defis: ouvrirDefis, aide: ouvrirAide,
     tourner, supprimer, annuler, refaire, moins: () => zoomCentre(1 / 1.25), plus: () => zoomCentre(1.25), ajuster: () => ajusterVue(), simuler: basculerSim,
-    chrono: () => { if (sim) CH.basculer(); } };
+    chrono: () => { if (sim) CH.basculer(); }, folio: () => { if (FO) basculerFolio(); } };
+  { const b = document.querySelector('#sc-barre [data-a="folio"]'); if (b) { b.setAttribute("aria-pressed", String(folio)); if (!FO) b.hidden = true; } }
   for (const b of document.querySelectorAll("#sc-barre [data-a]")) b.addEventListener("click", () => ACTIONS[b.dataset.a]());
   for (const b of document.querySelectorAll("#sc-barre [data-o]")) b.addEventListener("click", () => choisirOutil(b.dataset.o));
   function majBoutons() {

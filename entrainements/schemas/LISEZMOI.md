@@ -153,6 +153,16 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    Fenêtre de 10 s à 2 min, « Figer », « Effacer », « Lignes » (choisir ce qui est tracé), « Image » (PNG pour un
    compte rendu). En bas de la feuille sur PC (poignée pour l'agrandir), en haut au téléphone. Rouvert tout seul à la
    simulation suivante s'il l'était.
+14. **Repérage du folio** (bouton « Repérage » de la barre d'outils, `folio.js`) : comme sur un vrai folio, des
+   **colonnes** de 10 pas numérotées en haut de la feuille ; des **numéros de fils** (une équipotentielle reliée à un
+   repère de potentiel ou au réseau garde son nom : L, N, +24, 0V, PE, L1, L2, L3 ; les autres sont numérotées 1, 2, 3…
+   colonne par colonne, de haut en bas) ; sous chaque bobine, les **renvois** de ses contacts (pôles 1-2 3-4 5-6, 13-14
+   NO, 21-22 NF…) avec leur colonne, à droite de chaque relais thermique ceux de ses 95-96 / 97-98, et près de chaque
+   contact la colonne de sa bobine (« /4 »). Il reste affiché en simulation et dans les images, l'impression et le PDF.
+15. **Nomenclature et bornier** (Fichier) : un appareil par repère (désignation, caractéristiques : calibre, tension
+   de bobine, contacts utilisés, rôle dans une partie opérative ; colonnes où il apparaît) et le **bornier X1** des
+   appareils du terrain (moteurs, capteurs, fins de course, électrovannes) : borne, numéro de fil, côté armoire, côté
+   terrain. « Copier » (pour un tableur), « Télécharger (CSV) », « Imprimer ».
 
 Raccourcis : `V` choisir, `F` fil, `H` feuille, `R` tourner, `Suppr` supprimer, `Ctrl+Z` / `Ctrl+Y` annuler /
 rétablir, `Ctrl+D` dupliquer, `Ctrl+C` / `Ctrl+V`, flèches pour déplacer d'un carreau, molette ou `+` `−` `0` pour
@@ -317,6 +327,7 @@ rouleaux, magasin, cellule, bacs, volet), pas des symboles.
 | `symboles.js` | les **dessins** SVG de chaque symbole, au repos ou dans l'état de la simulation (couleur de chaque borne, contact ouvert ou fermé…) ; icônes de la palette |
 | `moteur.js` | le **moteur de simulation**, séparé de l'interface (marche dans Node) ; `scenario()` rejoue les essais des défis |
 | `exemples.js` | les exemples et les défis, construits sur la grille (puissance à gauche, commande à droite) |
+| `folio.js` | le **repérage du folio** et la **nomenclature** (sans accès à la page, testé en Node) : `analyser(schéma)` (colonnes, noms des équipotentielles, étiquettes des fils, renvois, nomenclature, bornier X1), `svg(schéma, analyse)` (le dessin par-dessus la feuille), `tableaux(analyse, séparateur)` (texte pour « Copier » et le CSV), `CSS` (pour les images exportées) |
 | `chrono.js` | le **chronogramme** : les lignes d'après le schéma (`construire`), l'enregistrement des changements (`echantillon`, 10 min gardées), le tracé SVG, l'image PNG |
 | `editeur.js` | l'**éditeur** : dessin de la feuille, souris et doigt, clavier, historique, sauvegarde, panneau, simulation à l'écran, défis, fichiers, aide |
 
@@ -513,6 +524,7 @@ Dans la page, `window.SchemasAtelier` donne accès au schéma et à la simulatio
 | `schemas:nbdefis` | nombre de défis (pour « n / 13 » sur le tableau de bord) |
 | `schemas:copies` | « Mes schémas » (30 copies au plus ; une copie est faite automatiquement avant d'ouvrir un exemple ou un fichier) |
 | `schemas:dernier` | ce qui était ouvert (schéma libre ou défi), pour y revenir |
+| `schemas:folio` | le repérage du folio est affiché (`true`) ou non |
 
 `<nom>` : le nom de la session du site (`sip_session`), sinon `local`.
 
@@ -553,6 +565,10 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   panne d'entraînement trouvée → envoyée ; un défi réussi avant le suivi part à l'ouverture, une seule fois ; espace
   prof BTS 1 → STI → Atelier schémas (cases vertes et orange, info-bulles, statistiques, « Réussi par »), moyenne du
   suivi intacte, détail de l'élève, téléphone ;
+- `t_folio.js` (Node, dans `/tmp/folio`) : colonnes, numéros de fils (une équipotentielle = un nom), renvois de KM1 avec
+  leurs colonnes, nomenclature triée (relais temporisé, transformateur), bornier de la station, CSV, feuille vide ;
+- `e2e_folio.py` (Playwright, PC et téléphone) : le bouton « Repérage » (colonnes, fils, renvois, gardé au
+  rechargement et en simulation), la nomenclature et le bornier (marche-arrêt, barrière), le CSV, l'image exportée ;
 - `e2e_chrono.py` (Playwright) : marche-arrêt (impulsion de S2, KM1 qui reste collé, vitesse du moteur), repère et
   écart de temps, figer, fenêtre, lignes, image, effacer, rouvert après relance ; étoile-triangle (contact temporisé,
   couplage étoile puis triangle) ; automate en GRAFCET (étapes, entrées et sorties) ; téléphone ;
