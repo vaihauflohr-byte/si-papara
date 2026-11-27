@@ -344,6 +344,9 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   d'abord, chaque réponse est mise en cache). La page charge `assets/appli.js` pour que le service worker soit
   enregistré même si l'élève arrive directement sur l'atelier.
 - Les relais temporisés sont repérés KA (KA1 temporisé), comme les relais auxiliaires.
+- Repères : on garde l'usage français des sujets de BTS (KM contacteur, KA relais, S bouton, H voyant, F protection,
+  Q sectionneur ou disjoncteur, M moteur, T transformateur, B capteur, U variateur), choisi par le professeur le
+  26 novembre. La NF EN IEC 81346-2 (2019) donnerait QA, KF, SF, PF…
 - Les voyants : vert = marche, orange = défaut (code de couleur IEC 60757 à côté du symbole : GN, RD, OG, YE, WH, BU).
 - Les sectionneurs et disjoncteurs sont dessinés ouverts (position de repos), mais la simulation démarre fermée,
   pour pouvoir essayer tout de suite.
