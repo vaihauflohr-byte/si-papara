@@ -17,7 +17,7 @@
   const kk = (q) => q[0] + "," + q[1];
   const nf = (x, d) => Number(x).toLocaleString("fr-FR", { maximumFractionDigits: d == null ? 1 : d });
   const session = lire("sip_session");
-  const QUI = session && session.nom ? String(session.nom).slice(0, 40) : "local";
+  const QUI = session && session.nom ? String(session.nom) : "local";
   const CLE = { libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
 
   const svg = $("sc-svg"), monde = $("sc-monde"), fond = $("sc-fond"), grilleR = $("sc-grille"), pn = $("sc-panneau"), vueEl = $("sc-vue");
@@ -446,7 +446,7 @@
       if (Math.hypot(q[0] * G - w[0], q[1] * G - w[1]) <= r) { geste = { type: "bout", f: fs, end, orig: copie(fs.pts), depart: q.slice(), sx: e.clientX, sy: e.clientY, bouge: false }; return; }
     }
     const bo = borneA(w, r);
-    if (bo) { geste = { type: "tirer", depart: { x: bo.b.x, y: bo.b.y, d: bo.b.d }, pc: bo.pc, sx: e.clientX, sy: e.clientY, bouge: false, clic: false }; return; }
+    if (bo) { geste = { type: "tirer", depart: { x: bo.b.x, y: bo.b.y, d: bo.b.d }, pc: bo.pc, w, tac, sx: e.clientX, sy: e.clientY, bouge: false, clic: false }; return; }
     const pc = pieceA(w, tac ? 4 : 1);
     const ajout = e.shiftKey || e.ctrlKey || e.metaKey || multi;
     if (pc) {
@@ -567,7 +567,12 @@
       case "tirer": {
         if (!g0.bouge) {
           if (g0.clic) { brouillon = { pts: [[g0.depart.x, g0.depart.y]], dir: g0.depart.d }; curseur = null; bulle("Clique pour faire un coin, puis sur une borne pour finir le fil. Échap pour annuler.", 4000); rendre(); }
-          else if (g0.pc) { sel = new Set([g0.pc.id]); retenir(g0.pc); rendre(); majPanneau(); majBoutons(); }
+          else if (g0.pc) {
+            // un clic tout près d'une borne, mais sur un fil (fil très court entre deux bornes) : on choisit le fil
+            const fh = filA(g0.w, rayon(g0.tac ? 10 : 5)), dB = Math.hypot(g0.depart.x * G - g0.w[0], g0.depart.y * G - g0.w[1]);
+            if (fh && dB > rayon(g0.tac ? 7 : 3)) sel = new Set([fh.f.id]); else { sel = new Set([g0.pc.id]); retenir(g0.pc); }
+            rendre(); majPanneau(); majBoutons();
+          }
           return;
         }
         const c = cibleFil(w, rayon(tac ? 22 : 10), brouillon.pts[0]);
@@ -653,7 +658,7 @@
     else if (o === "fil") bulle("Glisse d'une borne à une autre, ou clique borne par borne. Les coins se font tout seuls.", 3500);
     else bulle("");
     svg.style.cursor = o === "main" ? "grab" : o === "fleche" ? "" : "crosshair";
-    rendre();
+    majBoutons(); rendre();
   }
 
   /* =====================================================================
@@ -964,7 +969,12 @@
     const v = $("df-verif"); if (!v) return;
     v.onclick = verifierDefi;
     $("df-indice").onclick = () => { indiceVu = !indiceVu; $("df-indice-z").hidden = !indiceVu; };
-    $("df-raz").onclick = () => { const D = defiParId(doc.defi); if (!D) return; if (sim) arreterSim(); chargerSchema(D.depart()); bulle("Le défi est revenu à son départ.", 2500); };
+    const raz = $("df-raz");
+    raz.onclick = () => {   // en deux temps : un clic de travers n'efface pas le travail
+      const D = defiParId(doc.defi); if (!D) return;
+      if (!raz.dataset.sur) { raz.dataset.sur = "1"; raz.textContent = "Sûr ? Tout effacer"; raz.classList.add("ko"); setTimeout(() => { if (raz.isConnected) { delete raz.dataset.sur; raz.textContent = "Recommencer"; raz.classList.remove("ko"); } }, 3500); return; }
+      if (sim) arreterSim(); chargerSchema(D.depart()); bulle("Le défi est revenu à son départ.", 2500);
+    };
     $("df-quitter").onclick = quitterDefi;
     const s = $("df-suivant"); if (s) s.onclick = () => { const k = X.DEFIS.findIndex((d) => d.id === doc.defi); if (k >= 0 && k + 1 < X.DEFIS.length) ouvrirDefi(X.DEFIS[k + 1].id); };
   }
@@ -1169,7 +1179,8 @@
   ];
   const ITEMS = {};
   function construirePalette() {
-    let h = `<p class="pal-astuce">Choisis un symbole, puis clique sur la feuille. Tu peux aussi le glisser.</p>`;
+    const doigt = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    let h = `<p class="pal-astuce">${doigt ? "Touche un symbole, puis touche la feuille à l'endroit où le poser." : "Choisis un symbole, puis clique sur la feuille. Tu peux aussi le glisser."}</p>`;
     PALETTE.forEach((c, ci) => {
       const cat = M.CATS.find((x) => x.id === c.cat);
       h += `<div class="pal-cat"><h3>${esc(cat.nom)}</h3><div class="pal-g">${c.items.map((it, i) => { const k = ci + "-" + i; ITEMS[k] = Object.assign({ k }, it); return `<button class="pal-i" type="button" data-k="${k}" title="${esc(M.TYPES[it.type].nom)}" aria-pressed="false">${SY.icone(it.type, it.p)}<span>${esc(it.nom)}</span></button>`; }).join("")}</div></div>`;
@@ -1233,6 +1244,7 @@
   }
 
   /* ---------- démarrage ---------- */
+  garder("schemas:nbdefis", X.DEFIS.length);   // lu par le tableau de bord du site (assets/app.js) : « n / 6 défis réussis »
   construirePalette();
   if (session && session.nom) $("sc-qui").textContent = session.nom;
   new ResizeObserver(() => appliquerVue()).observe(vueEl);

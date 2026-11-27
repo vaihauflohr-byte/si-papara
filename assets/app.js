@@ -200,6 +200,7 @@
       <div id="appli-bandeau"></div>
       ${SIP.flash ? SIP.flash.tuile(s.niveau, hist) : ""}
       ${/^BTS2/.test(s.niveau) ? tuileDevoirs(hist) + tuileProjet() + tuileE4(hist) : ""}
+      ${/^BTS/.test(s.niveau) ? tuileSchemas(s) : ""}
       ${s.niveau === "2SI" ? tuilePlaneur(hist) : ""}
       ${grille}
       ${blocsModules(modules, hist)}
@@ -222,6 +223,18 @@
         <div><div class="eyebrow">Seconde SI · projet de l'année</div><div class="bac-titre">Mon projet <span>le planeur qui va le plus loin</span></div>
         <p class="discret" style="margin:0">Le défi et le cahier des charges, les étapes, l'atelier 3D, ton carnet d'essais et la façon dont le projet est noté.</p></div>
         <div class="bac-d"><div><div class="grand">${faites}<small> / ${ids.length}</small></div><div class="discret">séries du projet faites</div></div><span class="btn">Ouvrir →</span></div>
+      </a>`;
+  }
+
+  // BTS (et Terminale SI, dans « Aller plus loin ») : l'atelier schémas (entrainements/schemas.html), dessiner puis simuler un schéma électrique.
+  // Les défis réussis restent dans le navigateur de l'élève (clé schemas:progres:<nom>, écrite par entrainements/schemas/editeur.js).
+  function defisSchemas(s) { try { return Object.keys(JSON.parse(localStorage.getItem("schemas:progres:" + ((s && s.nom) || "local"))) || {}).length; } catch (e) { return 0; } }
+  function tuileSchemas(s) {
+    const n = defisSchemas(s), tot = +localStorage.getItem("schemas:nbdefis") || 6;
+    return `<a class="carte bac-hero ${n >= tot ? "fait" : ""}" href="entrainements/schemas.html">
+        <div><div class="eyebrow">Électrotechnique · schémas de commande et de puissance</div><div class="bac-titre">Atelier schémas <span>dessiner, puis simuler</span></div>
+        <p class="discret" style="margin:0">Les symboles normalisés, les fils, puis « Simuler » : boutons, contacteurs, relais thermique, temporisations, moteur. Des exemples tout faits et des défis corrigés.</p></div>
+        <div class="bac-d">${n ? `<div><div class="grand">${n}<small> / ${tot}</small></div><div class="discret">défis réussis</div></div>` : ""}<span class="btn">Ouvrir →</span></div>
       </a>`;
   }
 
@@ -630,6 +643,9 @@
       ${nbFiches ? `<a class="carte tuile" href="#/methode">
         <div class="discret">Réussir l'écrit</div><div class="grand">${nbFiches}<small> fiches</small></div>
         <div class="discret">Calculer, conclure, gérer ton temps.</div></a>` : ""}
+      ${(() => { const n = defisSchemas(SIP.session.get()); return `<a class="carte tuile" href="entrainements/schemas.html">
+        <div class="discret">Atelier schémas</div><div class="grand">${n ? `${n}<small> défi${n > 1 ? "s" : ""}</small>` : "Simuler"}</div>
+        <div class="discret">Dessiner un schéma électrique et le simuler : contacteurs, relais, moteur.</div></a>`; })()}
     </div>`;
   }
   function vueMethode() {
