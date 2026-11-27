@@ -5,9 +5,10 @@
    (analyseur de réseau, oscilloscope, sondes), exploiter les résultats, corréler simulation et mesure,
    quantifier les écarts entre performances souhaitées, mesurées et simulées, en chercher la cause,
    proposer des solutions pour les réduire, puis un protocole nouveau pour la séance.
-   Trois bancs simulés, proches des bancs d'un labo d'électrotechnique (systèmes et valeurs inventés) :
-   station de pompage (vanne ou variateur), monte-charge (variateur et glissement), qualité de l'énergie
-   (harmoniques et courant de neutre). Valeurs tirées à chaque essai, mesures bruitées.
+   Six bancs simulés, aux systèmes et valeurs inventés. Gestion de l'énergie : station de pompage (vanne ou
+   variateur), monte-charge (variateur et glissement), qualité de l'énergie (harmoniques et neutre).
+   Systèmes d'information : l'oscilloscope en main (un oscilloscope qu'on règle soi-même : déclenchement,
+   couplage, monocoup, sonde, repliement), bus I2C, bus CAN. Valeurs tirées à chaque essai, mesures bruitées.
    Routes #admission-tp-<banc> ; essai en cours dans le navigateur (tp-<banc>) ; notes dans st.tp.
    Conclusion orale facultative, notée sur 4 par l'IA (getSample).
    Chargé après le moteur (agreg/index.html) : st, save, app, esc, fmt, parse, okf, getSample.
@@ -114,6 +115,9 @@
       } else for (let i = 0; i <= N; i++) d += (i ? 'L' : 'M') + (x0 + 10 * D * i / N).toFixed(1) + ' ' + Y(c.f(10 * o.tdiv * i / N)).toFixed(1);
       s += `<path d="${d}" fill="none" stroke="${c.c}" stroke-width="${c.w || 1.8}" stroke-linejoin="round"/><path d="M${x0 - 14} ${zy - 7}L${x0 - 2} ${zy}L${x0 - 14} ${zy + 7}Z" fill="${c.c}"/>`;
     });
+    (o.hls || []).forEach((h) => { const y = y0 + 4 * D - h.y * D; s += `<line x1="${x0}" y1="${y.toFixed(1)}" x2="${x0 + 10 * D}" y2="${y.toFixed(1)}" stroke="${h.c || '#bb6bd9'}" stroke-width="1.5" stroke-dasharray="6 4"/>` + T(x0 + 10 * D - 4, y - 6, h.t || '', { fs: 14, a: 'end', c: h.c || '#d9a6f2', w: 700 }); });
+    (o.curs || []).forEach((c, k) => { const x = x0 + c.x * D; s += `<line x1="${x.toFixed(1)}" y1="${y0}" x2="${x.toFixed(1)}" y2="${y0 + 8 * D}" stroke="#eb5757" stroke-width="1.5" stroke-dasharray="5 3"/>` + T(x + 4, y0 + 8 * D - 8 - 18 * k, c.t || 'C' + (k + 1), { fs: 13, c: '#ff8f8f', w: 700 }); });
+    if (o.lect) s += `<rect x="${x0 + 10 * D - 210}" y="${y0 + 6}" width="204" height="28" rx="4" fill="#0e2230" stroke="#eb5757"/>` + T(x0 + 10 * D - 108, y0 + 25, o.lect, { fs: 15, a: 'middle', c: '#ffc4c4', w: 700, f: MONO });
     if (o.trig != null) s += `<path d="M${x0 + o.trig * D - 7} ${y0 - 12}L${x0 + o.trig * D + 7} ${y0 - 12}L${x0 + o.trig * D} ${y0 - 2}Z" fill="#f2994a"/>`;
     o.bas.forEach((b, k) => { s += T(x0, y0 + 8 * D + 26 + 22 * k, b[0], { fs: 15, c: b[1] || '#dfe8ee', w: 600 }); });
     return svg(W, H, s, o.alt || 'oscillogramme');
@@ -127,6 +131,123 @@
     L.forEach(([r, v], k) => { const x = m.l + sl * (k + 0.5), w = sl * 0.56; s += `<rect x="${(x - w / 2).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${w.toFixed(1)}" height="${(Y(0) - Y(v)).toFixed(1)}" fill="${r === 1 ? '#12566f' : r % 3 === 0 ? '#c9483b' : '#e0a83a'}"/>` + T(x, Y(v) - 7, F(v), { fs: 17, a: 'middle', w: 700 }) + T(x, m.t + ph + 21, r, { fs: 16, a: 'middle' }); });
     s += T(m.l + pw / 2, H - 9, o.xl, { fs: 15, a: 'middle' }) + `<text transform="translate(17 ${m.t + ph / 2}) rotate(-90)" font-size="15" text-anchor="middle" fill="#183047">${o.yl}</text>`;
     return svg(W, H, s, o.alt);
+  }
+
+
+  /* ---------- l'oscilloscope qu'on règle soi-même ----------
+     Champ { k: 'osc', sig: { 1: [...], 2: [...] }, sonde: sondes réellement branchées, init: réglages de départ,
+     but: critères du bon réglage, att: le réglage attendu en clair, sol: un réglage juste (pour les essais) }.
+     Les signaux sont décrits par morceaux (continu, sinus, créneau, scie, bruit, trame série) : rien que des données.
+     500 points par écran : à base de temps trop lente, le repliement apparaît comme sur un oscilloscope numérique. */
+  const VDIV = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10];
+  const TDIV = [1e-6, 2e-6, 5e-6, 1e-5, 2e-5, 5e-5, 1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 0.1, 0.2];
+  const NPTS = 500, MODES = { auto: 'Auto', normal: 'Normal', mono: 'Monocoup' };
+  const tnom = (t) => (t >= 1e-3 ? fmt(dec(t * 1e3, 6), 3) + ' ms' : fmt(dec(t * 1e6, 6), 3) + ' µs');
+  const vnom = (v) => (v >= 1 ? fmt(v, 3) + ' V' : fmt(dec(v * 1e3, 6), 3) + ' mV');
+  const alea = (x) => { const s = Math.sin(x * 12.9898 + 78.233) * 43758.5453; return s - Math.floor(s); };
+  // tension à la pointe de la sonde ; ev : instant où la carte envoie ses trames (null : pas encore)
+  function val(L, t, ev) {
+    let v = 0;
+    for (const c of L) {
+      if (c.t === 'dc') v += c.v;
+      else if (c.t === 'sin') v += (c.o || 0) + c.a * Math.sin(2 * Math.PI * c.f * t + (c.ph || 0));
+      else if (c.t === 'car') { const P = 1 / c.f, u = ((t % P) + P) % P, th = c.dc * P; v += u < th ? c.bas + (c.haut - c.bas) * (1 - Math.exp(-u / c.rc)) : c.haut + (c.bas - c.haut) * (1 - Math.exp(-(u - th) / c.rc)); }
+      else if (c.t === 'scie') { const P = 1 / c.f, u = (((t % P) + P) % P) / P; v += u < 0.85 ? c.pp * (0.5 - u / 0.85) : c.pp * (-0.5 + (u - 0.85) / 0.15); }
+      else if (c.t === 'bruit') v += c.a * (2 * alea(Math.floor(t * 2e6)) - 1);
+      else if (c.t === 'uart') {
+        let x = c.vh;
+        if (ev != null && t >= ev) { const Tb = 1 / c.baud, Tf = 10 * Tb + c.gap, k = Math.floor((t - ev) / Tf); if (k < c.oct.length) { const b = Math.floor((t - ev - k * Tf) / Tb); if (b === 0) x = 0; else if (b <= 8) x = (c.oct[k] >> (b - 1)) & 1 ? c.vh : 0; } }
+        v += x;
+      }
+    }
+    return v;
+  }
+  const moyL = (L) => L.reduce((s, c) => s + (c.t === 'dc' ? c.v : c.t === 'sin' ? (c.o || 0) : c.t === 'car' ? c.bas + c.dc * (c.haut - c.bas) : c.t === 'uart' ? c.vh : 0), 0);
+  const perL = (L) => Math.max(0, ...L.map((c) => (c.f ? 1 / c.f : 0)));
+  // ce qu'affiche la voie k, en volts « à la pointe » d'après le réglage de sonde et le couplage
+  const affV = (f, s, k, t, ev) => { const L = f.sig[k]; if (!L || s['c' + k] === 'GND') return 0; return (val(L, t, ev) - (s['c' + k] === 'AC' ? moyL(L) : 0)) * s['p' + k] / f.sonde[k]; };
+  // instants où la voie source franchit le niveau dans le sens choisi
+  function franchit(f, s, a, b, ev, premier) {
+    const k = s.src, N = 6000, dt = (b - a) / N, out = [], avant = (v) => (s.pente === '-' ? v > s.niv : v < s.niv);
+    let t0 = a, v0 = affV(f, s, k, a, ev);
+    for (let i = 1; i <= N; i++) {
+      const t1 = a + i * dt, v1 = affV(f, s, k, t1, ev);
+      if (avant(v0) && !avant(v1)) {
+        let lo = t0, hi = t1;
+        for (let j = 0; j < 30; j++) { const m = (lo + hi) / 2; if (avant(affV(f, s, k, m, ev))) lo = m; else hi = m; }
+        out.push(hi); if (premier) return out;
+      }
+      t0 = t1; v0 = v1;
+    }
+    return out;
+  }
+  // ce que montre l'écran : traces (en divisions), traces fantômes si l'image défile, état, message
+  function acquis(f, s) {
+    const W = 10 * s.t, ch = [1, 2].filter((k) => f.sig[k]);
+    const trace = (deb, ev) => ch.map((k) => ({ k, pts: Array.from({ length: NPTS + 1 }, (_, i) => (s['o' + k] || 0) + affV(f, s, k, deb + W * i / NPTS, ev) / s['v' + k]) }));
+    if (f.ev) {
+      const m = { pasmono: 'Le bouton Armer sert en mode Monocoup : choisis d’abord ce mode.', vu: 'La trame est passée sans rester à l’écran : en mode Auto, l’oscilloscope rebalaye aussitôt.' };
+      if (s.etat === 'capture') return { tr: trace(s.tcap - s.t, 0), etat: 'Stop', msg: s.mode === 'mono' ? 'Trame saisie et figée.' : 'Trame saisie : c’est la dernière qui a déclenché.' };
+      if (s.mode === 'auto') return { tr: trace(-W, null), etat: 'Auto', msg: m[s.etat] || 'Ligne au repos : la carte n’envoie rien tant qu’on n’appuie pas sur son bouton.' };
+      if (s.mode === 'mono') return { tr: [], etat: s.etat === 'arme' ? 'Armé' : 'Stop', msg: s.etat === 'arme' ? (s.rien ? 'Rien n’a déclenché : vérifie la source, le front et le niveau, puis réarme.' : 'Armé : appuie sur le bouton de la carte.') : 'Monocoup : arme l’oscilloscope, puis appuie sur le bouton de la carte.' };
+      return { tr: [], etat: 'Attente', msg: s.rien ? 'Rien n’a déclenché : vérifie la source, le front et le niveau.' : (m[s.etat] || 'Normal : en attente de déclenchement.') };
+    }
+    const P = perL(f.sig[s.src] || []), a = 0.0123, tt = P ? franchit(f, s, a, a + 2.2 * P, null, true)[0] : undefined;
+    if (tt != null) return { tr: trace(tt - s.t, null), etat: 'Déclenché', msg: '' };
+    if (s.mode === 'auto') { const L = [0.13, 0.47, 0.81].map((u) => trace(a + u * Math.max(P, W), null)); return { tr: L[0], fant: L.slice(1), etat: 'Auto', msg: 'Non déclenché : l’image défile.' }; }
+    return { tr: [], etat: 'Attente', msg: 'En attente de déclenchement : rien ne s’affiche.' };
+  }
+  // la carte envoie ses trames (bouton) : ce que l'oscilloscope en garde dépend du mode
+  function envoyer(f, s) {
+    s.rien = 0;
+    if (s.mode === 'auto') { s.etat = 'vu'; return; }
+    if (s.mode === 'mono' && s.etat !== 'arme') return;
+    const u = f.sig[1].find((c) => c.t === 'uart'), Tb = 1 / u.baud, Tf = 10 * Tb + u.gap;
+    const X = franchit(f, s, -2 * Tb, u.oct.length * Tf + 2 * Tb, 0, s.mode === 'mono');
+    if (!X.length) { s.rien = 1; if (s.mode !== 'mono') s.etat = 'stop'; return; }
+    let tc = X[0];
+    if (s.mode === 'normal') { let fin = -Infinity; X.forEach((t) => { if (t >= fin) { tc = t; fin = t + 9 * s.t; } }); }
+    s.etat = 'capture'; s.tcap = tc; s.cap = Math.min(u.oct.length, Math.floor(Math.max(0, tc) / Tf) + 1);
+  }
+  // la trace de la voie k tient-elle à l'écran, et sur combien de divisions ?
+  function cadre(f, s, k) { const A = acquis(f, s), c = A.tr.find((x) => x.k === k); if (!c || A.fant) return { ok: false, span: 0 }; const mn = Math.min(...c.pts), mx = Math.max(...c.pts); return { ok: mn >= -4 && mx <= 4, span: mx - mn }; }
+  function jugeOsc(f, s) {
+    if (!s || typeof s !== 'object') return false;
+    return f.but.every(([k, op, v]) => {
+      if (k === 'cadre') { const r = cadre(f, s, op); return r.ok && r.span >= v; }
+      const x = s[k];
+      if (op === 'eq') return x === v;
+      if (op === 'un') return v.includes(x);
+      if (op === 'in') return typeof x === 'number' && x >= v[0] - 1e-12 && x <= v[1] + 1e-12;
+      return false;
+    });
+  }
+  function ecranOsc(f, s) {
+    const A = acquis(f, s), D = 50, x0 = 18, y0 = 26, W = 10 * D + 2 * x0, ch = [1, 2].filter((k) => f.sig[k]), H = 8 * D + y0 + 34 + 22 * ch.length;
+    const col = { 1: '#f2c94c', 2: '#56ccf2' }, Y = (y) => Math.max(y0 + 1, Math.min(y0 + 8 * D - 1, y0 + 4 * D - y * D)).toFixed(1);
+    let g = `<rect width="${W}" height="${H}" rx="12" fill="#26323b"/><rect x="${x0}" y="${y0}" width="${10 * D}" height="${8 * D}" fill="#07131b"/>`;
+    for (let i = 1; i < 10; i++) g += `<line x1="${x0 + i * D}" y1="${y0}" x2="${x0 + i * D}" y2="${y0 + 8 * D}" stroke="#2e4b5d" stroke-dasharray="2 5"/>`;
+    for (let j = 1; j < 8; j++) g += `<line x1="${x0}" y1="${y0 + j * D}" x2="${x0 + 10 * D}" y2="${y0 + j * D}" stroke="#2e4b5d" stroke-dasharray="2 5"/>`;
+    g += `<line x1="${x0}" y1="${y0 + 4 * D}" x2="${x0 + 10 * D}" y2="${y0 + 4 * D}" stroke="#4d7489"/><line x1="${x0 + 5 * D}" y1="${y0}" x2="${x0 + 5 * D}" y2="${y0 + 8 * D}" stroke="#4d7489"/>`;
+    for (let k = 1; k < 50; k++) g += `<line x1="${x0 + k * D / 5}" y1="${y0 + 4 * D - 3}" x2="${x0 + k * D / 5}" y2="${y0 + 4 * D + 3}" stroke="#4d7489"/>`;
+    for (let k = 1; k < 40; k++) g += `<line x1="${x0 + 5 * D - 3}" y1="${y0 + k * D / 5}" x2="${x0 + 5 * D + 3}" y2="${y0 + k * D / 5}" stroke="#4d7489"/>`;
+    const chemin = (pts) => pts.map((y, i) => (i ? 'L' : 'M') + (x0 + 10 * D * i / NPTS).toFixed(1) + ' ' + Y(y)).join('');
+    (A.fant || []).forEach((L) => L.forEach((c) => { g += `<path d="${chemin(c.pts)}" fill="none" stroke="${col[c.k]}" stroke-width="1.4" opacity="0.45"/>`; }));
+    A.tr.forEach((c) => { g += `<path d="${chemin(c.pts)}" fill="none" stroke="${col[c.k]}" stroke-width="1.8" stroke-linejoin="round"/>`; });
+    ch.forEach((k) => { const zy = +Y(s['o' + k] || 0); g += `<path d="M${x0 - 16} ${zy - 7}L${x0 - 3} ${zy}L${x0 - 16} ${zy + 7}Z" fill="${col[k]}"/>`; });
+    if (f.sig[s.src]) { const ny = y0 + 4 * D - ((s['o' + s.src] || 0) + s.niv / s['v' + s.src]) * D; if (ny > y0 && ny < y0 + 8 * D) g += `<path d="M${x0 + 10 * D + 16} ${(ny - 7).toFixed(1)}L${x0 + 10 * D + 3} ${ny.toFixed(1)}L${x0 + 10 * D + 16} ${(ny + 7).toFixed(1)}Z" fill="#f2994a"/>`; }
+    g += `<path d="M${x0 + D - 7} ${y0 - 13}L${x0 + D + 7} ${y0 - 13}L${x0 + D} ${y0 - 3}Z" fill="#f2994a"/>` + T(x0 + 10 * D, y0 - 8, A.etat, { fs: 14, a: 'end', c: A.etat === 'Déclenché' || A.etat === 'Stop' ? '#6fcf97' : '#f2994a', w: 700 });
+    ch.forEach((k, j) => { g += T(x0, y0 + 8 * D + 26 + 22 * j, `CH${k} : ${vnom(s['v' + k])}/div · ${s['c' + k]} · sonde ×${s['p' + k]}${f.nom && f.nom[k] ? ' · ' + f.nom[k] : ''}`, { fs: 15, c: col[k], w: 600 }); });
+    g += T(x0, y0 + 8 * D + 26 + 22 * ch.length, `${tnom(s.t)}/div · déclenchement CH${s.src} ${s.pente === '-' ? '↓' : '↑'} ${fmt(s.niv, 3)} V · ${MODES[s.mode]}`, { fs: 15, c: '#dfe8ee', w: 600 });
+    return { svg: svg(W, H, g, 'Écran de l’oscilloscope'), msg: A.msg };
+  }
+  // l'écran et ses commandes
+  function panneau(f, i, s, fige) {
+    const E = ecranOsc(f, s), ch = [1, 2].filter((k) => f.sig[k]);
+    const sel = (r, L, lab) => `<label class="tp-oc"><span>${lab}</span><select data-r="${r}">${L.map(([v, t]) => `<option value="${v}"${String(s[r]) === String(v) ? ' selected' : ''}>${t}</option>`).join('')}</select></label>`;
+    const voie = (k) => `<fieldset class="tp-ofs"><legend>Voie ${k}${f.nom && f.nom[k] ? ' · ' + esc(f.nom[k]) : ''}</legend>${sel('v' + k, VDIV.map((v) => [v, vnom(v) + '/div']), 'Sensibilité')}${sel('c' + k, [['DC', 'DC'], ['AC', 'AC'], ['GND', 'GND']], 'Couplage')}${sel('o' + k, [4, 3, 2, 1, 0, -1, -2, -3, -4].map((v) => [v, (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + ' div']), 'Position du zéro')}${sel('p' + k, [[1, '×1'], [10, '×10']], 'Sonde')}</fieldset>`;
+    const ctl = fige ? '' : `<div class="tp-ctl">${ch.map(voie).join('')}<fieldset class="tp-ofs"><legend>Horizontal</legend>${sel('t', TDIV.map((v) => [v, tnom(v) + '/div']), 'Base de temps')}</fieldset><fieldset class="tp-ofs"><legend>Déclenchement</legend>${sel('src', ch.map((k) => [k, 'CH' + k]), 'Source')}${sel('pente', [['+', 'front montant'], ['-', 'front descendant']], 'Front')}<label class="tp-oc"><span>Niveau (V)</span><input data-r="niv" inputmode="decimal" autocomplete="off" value="${esc(String(s.niv).replace('.', ','))}"></label>${sel('mode', [['auto', 'Auto'], ['normal', 'Normal'], ['mono', 'Monocoup']], 'Mode')}</fieldset>${f.ev ? `<div class="btns"><button type="button" class="b sec" data-arm="${i}">Armer</button><button type="button" class="b" data-ev="${i}">${esc(f.evb || 'Appuyer sur le bouton de la carte')}</button></div>` : ''}</div>`;
+    return `<div class="tp-osc" data-f="${i}"><div class="tp-ecr">${E.svg}</div><p class="tp-ost">${esc(E.msg)}</p>${ctl}</div>`;
   }
 
   /* =====================================================================
@@ -189,7 +310,8 @@
     const seuil = tire(Ls), okE = E >= seuil;
     const Pmod = P1N * (Q / QN) ** 3, ecM = Math.abs(P1S - Pmod) / Pmod * 100;
     const dedans = Math.random() < 0.5, delta = dedans ? al(0.1, 0.45) * E3.disp : E3.disp + al(1.5, 4);
-    const Psim = Math.round(Pmoy / (1 + (Math.random() < 0.5 ? 1 : -1) * delta / 100)), ecS = Math.abs(Pmoy - Psim) / Psim * 100;
+    let Psim = Math.round(Pmoy / (1 + (Math.random() < 0.5 ? 1 : -1) * delta / 100)); if (Math.abs(Pmoy - Psim) < 0.3) Psim += 1;
+    const ecS = Math.abs(Pmoy - Psim) / Psim * 100;
     // les courbes hauteur-débit
     const dq = pasNet(1.2 * QN, 6), x1 = haut(1.2 * QN, dq), y1 = haut(H0 * 1.1, 5);
     const qs = (a, b) => Array.from({ length: 121 }, (_, k) => a + (b - a) * k / 120);
@@ -504,10 +626,331 @@
     throw new Error('tirage impossible');
   }
 
+
+  /* =====================================================================
+     Banc 4 — l'oscilloscope en main : une carte à microcontrôleur
+     Rapport de l'interne 2025 : des candidats ne savent pas utiliser la synchronisation, le couplage AC/DC,
+     le déclenchement monocoup. On règle soi-même l'oscilloscope, comme au labo.
+     ===================================================================== */
+  const champOsc = (o) => Object.assign({ k: 'osc', c: 'mes', sonde: { 1: 10, 2: 10 } }, o);
+  const bases = (a, b) => TDIV.filter((t) => t >= a * (1 - 1e-9) && t <= b * (1 + 1e-9));
+  const lesBases = (L) => L.map(tnom).join(' ou ') + '/div';
+  const SUB = (x) => `<tspan baseline-shift="sub" font-size="10">${x}</tspan>`;
+  function schemaCarte() {
+    let s = `<rect x="16" y="40" width="116" height="62" rx="8" fill="#eef5f8" stroke="#12566f" stroke-width="2"/>` + T(74, 66, 'bloc secteur', { a: 'middle', fs: 13 }) + T(74, 86, '5 V', { a: 'middle', fs: 14, w: 700 });
+    s += `<path d="M132 71 H176" stroke="#183047" stroke-width="2.5"/><rect x="176" y="20" width="236" height="214" rx="10" fill="#e8f3ec" stroke="#2f6f4e" stroke-width="2"/>` + T(294, 44, 'carte à microcontrôleur', { a: 'middle', w: 700, fs: 14, c: '#2f6f4e' });
+    s += `<rect x="196" y="62" width="84" height="74" rx="4" fill="#183047"/>` + T(238, 104, 'µC', { a: 'middle', c: '#fff', w: 700, fs: 17 }) + `<circle cx="214" cy="190" r="11" fill="#c9483b"/>` + T(232, 195, 'bouton', { fs: 13 });
+    s += `<rect x="300" y="160" width="84" height="40" rx="5" fill="#fff" stroke="#587083"/>` + T(342, 185, 'filtre RC', { a: 'middle', fs: 12 });
+    ['MLI', '+5 V', 'TX série', 'capteur', 'entrée filtre', 'sortie filtre'].forEach((t, k) => { const y = 66 + 28 * k; s += `<line x1="412" y1="${y}" x2="436" y2="${y}" stroke="#183047" stroke-width="2"/><circle cx="440" cy="${y}" r="5" fill="#fff" stroke="#183047" stroke-width="2"/>` + T(452, y + 5, `TP${k + 1} · ${t}`, { fs: 13 }); });
+    s += T(16, 258, 'Oscilloscope numérique à deux voies, deux sondes ×10 ; masses des sondes sur la masse de la carte.', { fs: 12, c: '#587083' });
+    return svg(640, 268, s, 'La carte, ses points de test et l’oscilloscope');
+  }
+  function genOscillo() {
+    const VH = tire([3.3, 5]);
+    // 1. un créneau MLI : déclenchement
+    const fP = Math.round(al(700, 2600) / 10) * 10, dcy = tire([0.25, 0.4, 0.6, 0.75]), TP = 1 / fP, b1 = bases(TP / 5, TP / 2), v1 = VH === 5 ? 1 : 0.5;
+    const f1 = champOsc({ l: 'L’oscilloscope', nom: { 1: 'TP1 · MLI', 2: 'non branchée' },
+      sig: { 1: [{ t: 'car', bas: 0, haut: VH, f: fP, dc: dcy, rc: 1.5e-6 }], 2: [{ t: 'dc', v: 0 }] },
+      init: { v1: 5, v2: 1, c1: 'DC', c2: 'DC', o1: 0, o2: -2, p1: 10, p2: 10, t: TDIV.find((x) => x >= 2 * TP), src: 2, pente: '+', niv: 1.5, mode: 'auto', etat: 'stop' },
+      but: [['src', 'eq', 1], ['niv', 'in', [0.15 * VH, 0.85 * VH]], ['mode', 'un', ['auto', 'normal']], ['t', 'in', [TP / 5, TP / 2]], ['cadre', 1, 4]],
+      att: `déclenchement sur CH1, niveau entre ${F(0.15 * VH)} et ${F(0.85 * VH)} V, mode Auto ou Normal ; ${lesBases(b1)} pour 2 à 5 périodes ; ${vnom(v1)}/div et zéro à −3 div, pour que le créneau tienne en entier sur au moins 4 divisions` });
+    f1.sol = Object.assign({}, f1.init, { v1, o1: -3, t: b1[0], src: 1, niv: dec(VH / 2, 2) });
+    // 2. l'ondulation du +5 V : couplage AC
+    const vR = tire([0.005, 0.01, 0.02]), rip = dec(vR * al(4.4, 6.4), 4), Vdc = dec(al(4.97, 5.06), 3);
+    const seuilR = tire([0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.1, 0.12, 0.15].filter((x) => Math.abs(x - rip) / rip >= 0.2)), okR = rip <= seuilR;
+    const f2 = champOsc({ l: 'L’oscilloscope', nom: { 1: 'TP2 · +5 V' },
+      sig: { 1: [{ t: 'dc', v: Vdc }, { t: 'scie', pp: rip, f: 100 }, { t: 'bruit', a: 0.0004 }] },
+      init: { v1: 1, c1: 'DC', o1: -3, p1: 10, t: 5e-3, src: 1, pente: '+', niv: 2.5, mode: 'auto', etat: 'stop' },
+      but: [['c1', 'eq', 'AC'], ['src', 'eq', 1], ['niv', 'in', [-0.3 * rip, 0.3 * rip]], ['mode', 'un', ['auto', 'normal']], ['t', 'in', [2e-3, 5e-3]], ['cadre', 1, 4]],
+      att: `couplage AC (il retire les ${F(Vdc)} V continus), ${vnom(vR)}/div, zéro au centre ; déclenchement sur CH1 à 0 V (entre ${F(-300 * rip)} et ${F(300 * rip)} mV), Auto ou Normal ; 2 ou 5 ms/div pour voir 2 à 5 périodes de 10 ms` });
+    f2.sol = Object.assign({}, f2.init, { v1: vR, c1: 'AC', o1: 0, t: 2e-3, niv: 0 });
+    // 3. une trame série unique : monocoup
+    const nomB = tire([9600, 19200]), eps = (Math.random() < 0.5 ? 1 : -1) * (Math.random() < 0.5 ? al(0.3, 0.9) : al(3.2, 4.6)) / 100, baud = nomB * (1 + eps), Tb = 1 / baud;
+    const CAR = [...'ABCDEFGHJKLMNPRSTUVWXYZ0123456789'], c1 = tire(CAR), c2 = tire(CAR.filter((x) => x !== c1)), o1c = c1.charCodeAt(0), o2c = c2.charCodeAt(0);
+    const b3 = bases(10 * Tb / 9, 10 * Tb / 4);
+    const f3 = champOsc({ l: 'L’oscilloscope', nom: { 1: 'TP3 · TX série' }, ev: 1, evb: 'Appuyer sur le bouton de la carte',
+      sig: { 1: [{ t: 'uart', vh: VH, baud, oct: [o1c, o2c], gap: al(4, 9) * Tb }] },
+      init: { v1: 2, c1: 'DC', o1: -2, p1: 10, t: 1e-3, src: 1, pente: '+', niv: dec(VH / 2, 2), mode: 'auto', etat: 'stop' },
+      but: [['mode', 'eq', 'mono'], ['src', 'eq', 1], ['pente', 'eq', '-'], ['niv', 'in', [0.15 * VH, 0.85 * VH]], ['etat', 'eq', 'capture'], ['cap', 'eq', 1], ['t', 'in', [10 * Tb / 9, 10 * Tb / 4]], ['cadre', 1, 2.5]],
+      att: `mode Monocoup, source CH1, front descendant (le bit de start fait tomber la ligne de ${F(VH)} V à 0), niveau vers ${F(VH / 2)} V ; ${lesBases(b3)} pour que la trame de 10 bits tienne à l’écran ; armer, puis appuyer sur le bouton : la première trame reste figée` });
+    { const s = Object.assign({}, f3.init, { v1: 1, o1: -2, t: b3[0], pente: '-', mode: 'mono', etat: 'arme' }); envoyer(f3, s); f3.sol = s; }
+    const bitsL = Array.from({ length: 8 }, (_, j) => (o1c >> j) & 1), bin8 = o1c.toString(2).padStart(8, '0'), hex = o1c.toString(16).toUpperCase();
+    // 4. le débit, aux curseurs
+    const t4 = b3[0], d9 = sig(9 * Tb * 1e6, 4), baudA = 9 / (d9 * 1e-6), ecB = Math.abs(baudA - nomB) / nomB * 100, okB = ecB <= 2;
+    const uart = (t) => val(f3.sig[1], t - t4, 0);
+    const fig4 = osc({ tdiv: t4, trig: 1, alt: 'Trame série figée, avec deux curseurs', ch: [{ f: uart, div: 1, z: -2, c: '#f2c94c', marche: 1, n: 6000, w: 2 }],
+      curs: [{ x: 1, t: 'C1' }, { x: 1 + 9 * Tb / t4, t: 'C2' }], lect: `Δt = ${fmt(d9, 4)} µs`,
+      bas: [[`CH1 : 1 V/div · sonde ×10 · TX série`, '#f2c94c'], [`Base de temps : ${tnom(t4)}/div · monocoup`, '#dfe8ee']] });
+    // 5. la sonde ×10
+    // la sensibilité d'abord, puis une amplitude qui y tient sur 4,4 à 7,2 divisions
+    const vS = tire([0.1, 0.2, 0.5]), aS = dec(vS * al(2.2, 3.6), 2), fs5 = Math.round(al(80, 400)), off = dec(VH / 2, 2), T5 = 1 / fs5, b5 = bases(T5 / 5, T5 / 2);
+    let sol5 = null;
+    for (const o of [0, -1, -2, -3, -4]) if (!sol5 && o + (off - aS) / vS >= -3.8 && o + (off + aS) / vS <= 3.8) sol5 = { v1: vS, c1: 'DC', o1: o, niv: off };
+    if (!sol5) sol5 = { v1: vS, c1: 'AC', o1: 0, niv: 0 };
+    const f5 = champOsc({ l: 'L’oscilloscope', nom: { 1: 'TP4 · capteur' },
+      sig: { 1: [{ t: 'sin', o: off, a: aS, f: fs5 }] },
+      init: { v1: 0.1, c1: 'DC', o1: -2, p1: 1, t: b5[0], src: 1, pente: '+', niv: dec(off / 10, 3), mode: 'auto', etat: 'stop' },
+      but: [['p1', 'eq', 10], ['src', 'eq', 1], ['mode', 'un', ['auto', 'normal']], ['t', 'in', [T5 / 5, T5 / 2]], ['cadre', 1, 4]],
+      att: `voie réglée sur sonde ×10, puisque c’est une sonde ×10 qui est branchée ; puis ${vnom(sol5.v1)}/div en ${sol5.c1}${sol5.c1 === 'DC' ? ` avec le zéro à ${sol5.o1} div` : ''}, et le niveau de déclenchement repris dans le signal, pour qu’il tienne sur au moins 4 divisions` });
+    f5.sol = Object.assign({}, f5.init, sol5, { p1: 10 });
+    // 6. le repliement
+    const kA = tire([1, 2]), fA = Math.round(kA * NPTS / (10 * 0.02) + al(12, 28)), TA = 1 / fA, b6 = bases(TA / 5, TA / 2), fAl = Math.abs(fA - kA * NPTS / 0.2);
+    const f6 = champOsc({ l: 'L’oscilloscope', nom: { 1: 'TP5 · entrée filtre' },
+      sig: { 1: [{ t: 'sin', o: 0, a: 1, f: fA }] },
+      init: { v1: 0.5, c1: 'DC', o1: 0, p1: 10, t: 0.02, src: 1, pente: '+', niv: 0, mode: 'auto', etat: 'stop' },
+      but: [['t', 'in', [TA / 5, TA / 2]], ['src', 'eq', 1], ['niv', 'in', [-0.7, 0.7]], ['mode', 'un', ['auto', 'normal']], ['cadre', 1, 3]],
+      att: `${lesBases(b6)}, pour voir 2 à 5 vraies périodes ; le reste pouvait rester tel quel` });
+    f6.sol = Object.assign({}, f6.init, { t: b6[0] });
+    // 7. le déphasage du filtre RC
+    let R7, C7, fcN; do { R7 = tire([1000, 2200, 4700, 10000]); C7 = tire([10e-9, 22e-9, 47e-9, 100e-9]); fcN = 1 / (2 * Math.PI * R7 * C7); } while (fcN < 250 || fcN > 3500);
+    const bonC = Math.random() < 0.55, Cr = bonC ? C7 * (1 + al(-0.08, 0.08)) : C7 * tire([2.2, 0.47]), fcR = 1 / (2 * Math.PI * R7 * Cr);
+    const f7 = Math.round(fcR * al(0.6, 1.6) / 10) * 10, phi = Math.atan(f7 / fcR), dt7 = phi / (2 * Math.PI * f7);
+    const dtA = sig(dt7 * 1e6, 3), phiA = 360 * f7 * dtA * 1e-6, fcM = f7 / Math.tan(phiA * Math.PI / 180), ecF = Math.abs(fcM - fcN) / fcN * 100, okF = ecF <= 10;
+    const t7 = bases(1 / (5 * f7), 1 / (2 * f7))[0], G = 1 / Math.hypot(1, f7 / fcR);
+    const fig7 = osc({ tdiv: t7, alt: 'Entrée et sortie du filtre, curseurs sur les passages par zéro', ch: [{ f: (t) => Math.sin(2 * Math.PI * f7 * (t - 2 * t7)), div: 0.5, z: 0, c: '#f2c94c', n: 1500, w: 2 }, { f: (t) => G * Math.sin(2 * Math.PI * f7 * (t - 2 * t7 - dt7)), div: 0.5, z: 0, c: '#56ccf2', n: 1500, w: 2 }],
+      curs: [{ x: 2, t: 'C1' }, { x: 2 + dt7 / t7, t: 'C2' }], lect: `Δt = ${fmt(dtA, 3)} µs`,
+      bas: [['CH1 : 0,5 V/div · entrée du filtre', '#f2c94c'], ['CH2 : 0,5 V/div · sortie du filtre', '#56ccf2'], [`Base de temps : ${tnom(t7)}/div`, '#dfe8ee']] });
+    const intro = `<p><b>Le banc.</b> Une carte à microcontrôleur, alimentée par un bloc secteur 5 V, pilote une sortie MLI, lit un capteur à travers un filtre RC et envoie ses mesures par liaison série quand on appuie sur son bouton. Points de test TP1 à TP6 ; oscilloscope numérique à deux voies, deux sondes ×10.</p>
+      <p><b>La problématique.</b> La carte envoie parfois des mesures fausses. L’alimentation, la liaison série ou le filtre du capteur sont-ils en cause ?</p>
+      <p><b>Le cahier des charges.</b> Ondulation du +5 V au plus ${F(seuilR * 1000)} mV crête à crête ; liaison série à ${F(nomB, 5)} bauds, à ± 2 % ; fréquence de coupure du filtre à ± 10 % de sa valeur nominale.</p>`;
+    const qsL = [
+      { t: 'Une image stable', lab: 'Conduire la mesure · déclenchement', text: '<p>CH1 est sur la sortie MLI (TP1) ; rien n’est branché sur CH2. L’oscilloscope a été mal réglé : l’image défile. Règle-le pour obtenir une image stable, avec 2 à 5 périodes à l’écran et le créneau entier sur au moins 4 divisions. Puis mesure.</p>', fig: schemaCarte(),
+        fields: [f1, num('Fréquence f du signal MLI', fP, 'Hz', 'exp', { tol: 0.04 }), num('Rapport cyclique', dcy * 100, '%', 'exp', { abs: 3 })],
+        corr: `L’image défilait parce que l’oscilloscope se déclenchait sur CH2, où rien n’est branché : le niveau de 1,5 V n’y est jamais franchi, et en Auto l’oscilloscope balaye quand même, à des instants quelconques. On déclenche sur le signal qu’on regarde (CH1), à un niveau qu’il franchit (entre 0 et ${F(VH)} V). Une période dure ${F(TP * 1e6)} µs : pour 2 à 5 périodes sur 10 divisions, ${lesBases(b1)}. Mesures : T = ${F(TP * 1e6)} µs, donc f = 1 / T = <b>${F(fP, 4)} Hz</b> ; l’état haut dure ${F(dcy * TP * 1e6)} µs, soit un rapport cyclique de <b>${F(dcy * 100)} %</b>.`,
+        hint: 'Sur quelle voie se déclenche l’oscilloscope ? Ce niveau est-il franchi par le signal ?' },
+      { t: 'L’ondulation de l’alimentation', lab: 'Conduire la mesure · couplage AC', text: `<p>CH1 est maintenant sur le +5 V (TP2). Le multimètre lit ${F(Vdc)} V. Règle l’oscilloscope pour mesurer l’ondulation : elle doit occuper au moins 4 divisions, sur une image stable.</p>`, fig: rangee(afficheur('Multimètre (continu) sur TP2', F(Vdc), 'V')),
+        fields: [Object.assign({}, f2), num('Ondulation crête à crête', rip * 1000, 'mV', 'exp', { tol: 0.1 }), choix(`L’ondulation est-elle sous ${F(seuilR * 1000)} mV ?`, okR ? 'Oui' : 'Non', [okR ? 'Non' : 'Oui'], 'ecart')],
+        corr: `En couplage DC, la trace est à ${F(Vdc)} V : à quelques millivolts par division, elle sortirait de l’écran. Le couplage AC retire la composante continue (un condensateur en série dans la voie) : il ne reste que l’ondulation, qu’on grossit à ${vnom(vR)}/div. Elle fait <b>${F(rip * 1000)} mV</b> crête à crête, à 100 Hz : le redressement double alternance du bloc secteur. ${okR ? `C’est sous ${F(seuilR * 1000)} mV : tenu.` : `C’est au-dessus de ${F(seuilR * 1000)} mV : non tenu, l’alimentation peut fausser les conversions du capteur.`} Attention : le couplage AC déforme les signaux très lents ; pour une valeur continue, on revient en DC.`,
+        hint: 'Comment voir quelques dizaines de millivolts posés sur 5 V ?' },
+      { t: 'Saisir une trame unique', lab: 'Conduire la mesure · monocoup', text: `<p>CH1 est sur la ligne TX de la liaison série (TP3), au repos à ${F(VH)} V. Quand on appuie sur le bouton, la carte envoie deux trames l’une après l’autre, puis plus rien. Saisis la première et décode-la.</p>`, fig: schemaCarte(),
+        fields: [f3, num('Octet de la première trame (en décimal, ou en hexadécimal avec 0x)', o1c, '', 'exp', { abs: 0.5 }), num('Durée d’un bit T<sub>b</sub>', Tb * 1e6, 'µs', 'exp', { tol: 0.04 })],
+        corr: `En Auto, la trame traverse l’écran et disparaît. En Normal, l’oscilloscope se redéclenche sur la seconde trame et garde la dernière. En Monocoup, il s’arme, attend le premier front descendant (le bit de start fait tomber la ligne à 0) et fige ce qu’il a vu. Lecture : start à 0, puis 8 bits de données, poids faible en premier, puis stop à 1. Bits dans l’ordre d’arrivée : ${bitsL.join(' ')} ; remis poids fort à gauche : ${bin8} = <b>${o1c}</b> = 0x${hex}, le caractère « ${c1} » en ASCII. Du début du start au début du stop, il y a 9 bits : T<sub>b</sub> ≈ <b>${F(Tb * 1e6)} µs</b>.`,
+        hint: 'Une trame qui ne passe qu’une fois : quel mode garde l’image ? Et sur quel front commence une trame série ?' },
+      { t: 'Le débit de la liaison', lab: 'Exploiter · quantifier l’écart', text: `<p>Les curseurs encadrent le start et les 8 bits de données (du premier front descendant au front montant du stop). La liaison doit tourner à ${F(nomB, 5)} bauds, à ± 2 %.</p>`, fig: fig4,
+        fields: [num('Débit réel', baudA, 'bauds', 'exp', { tol: 0.01 }), num('Écart relatif au débit nominal', ecB, '%', 'ecart', { abs: 0.3 }), choix('Le débit est-il conforme ?', okB ? 'Oui' : 'Non', [okB ? 'Non' : 'Oui'], 'ecart')],
+        corr: `Δt = ${fmt(d9, 4)} µs pour 9 bits : T<sub>b</sub> = ${F(d9 / 9)} µs, débit = 1 / T<sub>b</sub> = <b>${F(baudA, 4)} bauds</b>. Écart = |${F(baudA, 4)} − ${F(nomB, 5)}| / ${F(nomB, 5)} = <b>${F(ecB, 2)} %</b> : ${okB ? 'dans les ± 2 %, conforme.' : 'au-delà de ± 2 %, non conforme. Le récepteur lit chaque bit de plus en plus loin de son milieu et se trompe sur les derniers : d’où des mesures fausses. Cause probable : l’oscillateur RC interne du microcontrôleur ; un quartz règle le problème.'}`,
+        hint: 'Combien de bits entre les deux curseurs ?' },
+      { t: 'La sonde ×10', lab: 'Conduire la mesure · sonde', text: `<p>CH1 est sur la sortie du capteur (TP4). Le multimètre lit ${F(off)} V en continu, mais l’oscilloscope affiche un signal autour de ${F(off / 10)} V. Corrige le réglage, puis mesure l’amplitude crête à crête, le signal occupant au moins 4 divisions.</p>`, fig: rangee(afficheur('Multimètre (continu) sur TP4', F(off), 'V')),
+        fields: [f5, num('Amplitude crête à crête du signal du capteur', 2 * aS, 'V', 'exp', { tol: 0.07 }), choix('Pourquoi l’écran affichait-il 10 fois moins ?', 'La voie était réglée pour une sonde ×1, alors que la sonde branchée divise par 10', ['La voie était en couplage AC', 'Le capteur était mal alimenté', 'La base de temps était trop lente'], 'crit')],
+        corr: `La sonde ×10 divise la tension par 10 avant l’oscilloscope ; si la voie est réglée sur ×1, l’oscilloscope ne remultiplie pas, et tout s’affiche 10 fois trop petit : ${F(off / 10)} V au lieu de ${F(off)} V. Réglée sur ×10, la voie montre le vrai signal : <b>${F(2 * aS)} V</b> crête à crête (${F(aS)} V d’amplitude autour de ${F(off)} V).${sol5.c1 === 'AC' ? ` Pour le grossir, le couplage AC retire les ${F(off)} V continus.` : ''} Réflexe : avant toute mesure, vérifier que la voie connaît la sonde branchée.`,
+        hint: 'Compare la valeur du multimètre et celle de l’écran. Quel réglage de voie fait un facteur 10 ?' },
+      { t: 'Une fausse sinusoïde', lab: 'Analyse critique · repliement', text: '<p>CH1 est sur l’entrée du filtre (TP5). À cette base de temps, l’écran montre une belle sinusoïde lente. Trop belle ? Règle la base de temps pour voir le vrai signal, et mesure sa fréquence.</p>',
+        fields: [f6, num('Fréquence réelle du signal', fA, 'Hz', 'exp', { tol: 0.04 }), choix('Pourquoi l’image de départ était-elle fausse ?', 'À cette base de temps, l’oscilloscope prenait moins de deux points par période : il dessinait une fausse sinusoïde lente (repliement)', ['Le déclenchement était mal réglé', 'La sonde était mal compensée', 'Le signal a changé de fréquence entre-temps'], 'crit')],
+        corr: `À 20 ms/div, l’écran couvre 200 ms avec 500 points : un point toutes les 0,4 ms, soit 2 500 points par seconde. Le signal fait ${F(fA, 4)} Hz : moins de deux points par période. L’oscilloscope relie des points pris à des endroits différents de périodes différentes et dessine une fausse sinusoïde de |${F(fA, 4)} − ${F(kA * 2500, 4)}| = ${F(fAl)} Hz : c’est le repliement. À ${lesBases(b6)}, on voit les vraies périodes : T = ${F(TA * 1e6)} µs, f = <b>${F(fA, 4)} Hz</b>. Réflexe : changer de base de temps et vérifier que la fréquence lue ne change pas.`,
+        hint: 'Combien de points l’oscilloscope prend-il sur l’écran entier ? Et combien de périodes du signal y a-t-il ?' },
+      { t: 'Le filtre du capteur', lab: 'Confronter modèle et mesure', text: `<p>Un sinus de ${F(f7, 4)} Hz entre dans le filtre RC passe-bas (R = ${F(R7 / 1000)} kΩ, C = ${F(C7 * 1e9)} nF, condensateur à ± 10 %). Les curseurs mesurent le retard Δt entre les passages par zéro, en montant, de l’entrée et de la sortie.</p>`, fig: fig7,
+        fields: [num('Déphasage |φ| de la sortie sur l’entrée', phiA, '°', 'exp', { tol: 0.03 }), num('Fréquence de coupure mesurée f<sub>c</sub> = f / tan |φ|', fcM, 'Hz', 'mod', { tol: 0.04 }),
+          choix(`Comparée à 1 / (2πRC) = ${F(fcN)} Hz`, okF ? 'L’écart reste sous les 10 % de tolérance : le filtre est conforme' : 'L’écart dépasse les 10 % : le condensateur monté n’est pas le bon', [okF ? 'L’écart dépasse les 10 % : le condensateur monté n’est pas le bon' : 'L’écart reste sous les 10 % de tolérance : le filtre est conforme', 'On ne peut pas comparer sans la réponse à un échelon'], 'ecart')],
+        corr: `|φ| = 360° × f × Δt = 360 × ${F(f7, 4)} × ${F(dtA)} × 10<sup>−6</sup> = <b>${F(phiA)}°</b>. Pour un passe-bas du premier ordre, tan |φ| = f / f<sub>c</sub>, donc f<sub>c</sub> = ${F(f7, 4)} / tan(${F(phiA)}°) = <b>${F(fcM)} Hz</b>. Écart avec ${F(fcN)} Hz : ${F(ecF, 2)} %. ${okF ? 'Sous les 10 % de tolérance : conforme.' : 'Bien au-delà des 10 % : le condensateur (ou la résistance) monté n’est pas celui du schéma ; le filtre ne coupe pas là où il faut.'}`,
+        hint: 'Un retard Δt sur une période T, c’est un déphasage de 360° × Δt / T.' },
+      { t: 'La séance', lab: 'Transposer en séance', text: '<p>Pour ta séance (BTS ou BUT), il faut un protocole nouveau, différent de ce que tu viens de faire, et une évaluation qui regarde la démarche autant que le résultat.</p>', fig: schemaCarte(),
+        fields: [choix('Protocole nouveau', 'Un signal inconnu à stabiliser, puis une trame à saisir en monocoup, avec une fiche où chaque réglage est justifié : source, front, niveau, mode, base de temps, couplage', ['Relever des valeurs sur un écran déjà réglé par le professeur', 'Laisser la touche Autoset tout régler', 'Retirer la terre de l’oscilloscope pour mesurer plus facilement'], 'seance'),
+          choix('Ce que tu évalues', 'La justification de chaque réglage, puis la mesure avec son unité', ['Le temps mis pour obtenir une image', 'Le nombre de réglages essayés', 'La seule valeur finale'], 'seance')],
+        corr: 'L’Autoset règle tout sans faire réfléchir, et échoue sur une trame unique. Un écran déjà réglé ne fait travailler que la lecture. Retirer la terre de l’oscilloscope est interdit : sa carcasse pourrait se retrouver sous tension. Un signal inconnu, puis une trame à saisir, avec des réglages à justifier, fait travailler ce que le jury reproche aux candidats eux-mêmes : déclenchement, couplage, monocoup. On évalue la démarche (chaque réglage justifié) autant que la valeur trouvée.' },
+    ];
+    const bilan = [`MLI : ${F(fP, 4)} Hz, rapport cyclique ${F(dcy * 100)} %.`,
+      `Ondulation du +5 V : ${F(rip * 1000)} mV crête à crête, à 100 Hz (limite ${F(seuilR * 1000)} mV : ${okR ? 'tenue' : 'dépassée'}), mesurée en couplage AC.`,
+      `Liaison série : premier octet ${o1c} (« ${c1} »), 9 bits en ${fmt(d9, 4)} µs, débit ${F(baudA, 4)} bauds pour ${F(nomB, 5)} nominaux, écart ${F(ecB, 2)} % (± 2 % : ${okB ? 'conforme' : 'non conforme, oscillateur à corriger'}).`,
+      `Sonde ×10 mal déclarée : affichage 10 fois trop faible, corrigé ; signal du capteur ${F(2 * aS)} V crête à crête.`,
+      `Repliement à 20 ms/div : fausse sinusoïde de ${F(fAl)} Hz ; vraie fréquence ${F(fA, 4)} Hz.`,
+      `Filtre RC : f_c mesurée ${F(fcM)} Hz pour ${F(fcN)} Hz nominaux, écart ${F(ecF, 2)} % : ${okF ? 'conforme' : 'mauvais composant'}.`];
+    return { intro, bilan, prob: `La carte envoie parfois des mesures fausses : l’alimentation (ondulation ≤ ${F(seuilR * 1000)} mV), la liaison série (${F(nomB, 5)} bauds ± 2 %) ou le filtre du capteur (± 10 %) sont-ils en cause ?`, qs: qsL };
+  }
+
+  /* =====================================================================
+     Banc 5 — bus I2C : le capteur ne répond plus en mode rapide
+     Rapport de l'interne 2025 : connaissances insuffisantes sur les bus I2C et CAN.
+     Norme I2C : t_r (30 % → 70 % de V_DD) ≤ 1 000 ns à 100 kHz, ≤ 300 ns à 400 kHz ; 3 mA au plus à l'état bas, V_OL ≤ 0,4 V.
+     ===================================================================== */
+  function schemaI2C(Rp) {
+    const res = (x, y1, y2) => `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="#183047" stroke-width="2"/><rect x="${x - 6}" y="${(y1 + y2) / 2 - 15}" width="12" height="30" fill="#fff" stroke="#183047" stroke-width="2"/>`;
+    let s = `<rect x="16" y="86" width="144" height="120" rx="8" fill="#183047"/>` + T(88, 140, 'microcontrôleur', { a: 'middle', c: '#fff', fs: 13, w: 700 }) + T(88, 160, '(maître)', { a: 'middle', c: '#cfe0ea', fs: 12 });
+    s += `<rect x="480" y="86" width="144" height="120" rx="8" fill="#eef5f8" stroke="#12566f" stroke-width="2"/>` + T(552, 140, 'capteur', { a: 'middle', fs: 13, w: 700 }) + T(552, 160, '(esclave)', { a: 'middle', fs: 12 });
+    s += `<path d="M160 120 H480 M160 172 H480" stroke="#183047" stroke-width="2.5"/>` + T(170, 114, 'SCL', { fs: 13, w: 700 }) + T(170, 166, 'SDA', { fs: 13, w: 700 });
+    s += `<line x1="196" y1="40" x2="262" y2="40" stroke="#c9483b" stroke-width="2.5"/>` + T(268, 45, `V${SUB('DD')} = 3,3 V`, { fs: 13, c: '#c9483b', w: 700 }) + res(206, 40, 120) + res(246, 40, 172) + `<circle cx="206" cy="120" r="3.5" fill="#183047"/><circle cx="246" cy="172" r="3.5" fill="#183047"/>` + T(194, 76, `R${SUB('p')}`, { fs: 13, w: 700, a: 'end' }) + T(194, 96, `${F(Rp / 1000)} kΩ`, { fs: 12, a: 'end' });
+    s += `<rect x="300" y="102" width="130" height="88" rx="6" fill="none" stroke="#8a4513" stroke-dasharray="5 4"/>` + T(365, 210, 'câble rallongé', { a: 'middle', fs: 12, c: '#8a4513' });
+    s += `<circle cx="456" cy="120" r="5" fill="#f2c94c" stroke="#183047"/><circle cx="456" cy="172" r="5" fill="#56ccf2" stroke="#183047"/>` + T(440, 236, 'sondes : CH1 sur SCL, CH2 sur SDA', { fs: 12, c: '#587083', a: 'middle' });
+    return svg(640, 248, s, 'Le bus I2C du banc');
+  }
+  function genI2C() {
+    const VDD = 3.3, Rp = tire([4700, 10000]), Cb = (Rp === 4700 ? al(95, 215) : al(45, 102)) * 1e-12, tau = Rp * Cb, tr = 0.8473 * tau;
+    const addr = tire([0x18, 0x19, 0x40, 0x44, 0x45, 0x48, 0x49, 0x4a, 0x4b, 0x5c, 0x68, 0x76, 0x77]), rw = tire([0, 1]), data = Math.floor(al(16, 240));
+    const fSCL = Math.round(al(92, 100)) * 1000, Tb = 1 / fSCL;
+    // la trame à 100 kHz : instants des changements de SCL et de SDA (lignes à drain ouvert)
+    const bits = []; for (let j = 6; j >= 0; j--) bits.push((addr >> j) & 1); bits.push(rw, 0); for (let j = 7; j >= 0; j--) bits.push((data >> j) & 1); bits.push(rw ? 1 : 0);
+    const t0 = 0.8 * Tb, scl = [[0, 1], [t0 + 0.4 * Tb, 0]], sda = [[0, 1], [t0, 0]]; let niv = 0;
+    bits.forEach((b, j) => { const tl = t0 + 0.4 * Tb + j * Tb; if (b !== niv) { sda.push([tl + 0.25 * Tb, b]); niv = b; } scl.push([tl + 0.5 * Tb, 1], [tl + Tb, 0]); });
+    const ligne = (L) => (t) => { let k = 0; for (let j = 0; j < L.length; j++) if (L[j][0] <= t) k = j; const [ti, n] = L[k], d = t - ti; return k === 0 ? (n ? VDD : 0) : n ? VDD * (1 - Math.exp(-d / tau)) : VDD * Math.exp(-d / 15e-9); };
+    const t20 = 2e-5, trame = (o) => osc(Object.assign({ tdiv: t20, trig: t0 / t20, alt: 'Début d’un échange I2C : SCL et SDA', ch: [{ f: ligne(scl), div: 2, z: 0.6, c: '#f2c94c', n: 2400, w: 1.8 }, { f: ligne(sda), div: 2, z: -2.8, c: '#56ccf2', n: 2400, w: 1.8 }],
+      bas: [['CH1 : 2 V/div · sonde ×10 · SCL', '#f2c94c'], ['CH2 : 2 V/div · sonde ×10 · SDA', '#56ccf2'], ['Base de temps : 20 µs/div · monocoup sur SDA ↓', '#dfe8ee']] }, o || {}));
+    const tR1 = t0 + 0.9 * Tb, d8 = sig(8 * Tb * 1e6, 4);
+    const bin = addr.toString(2).padStart(7, '0'), hex = addr.toString(16).toUpperCase();
+    // le front montant de SDA, zoomé
+    const t2 = 2e-7, fr = (t) => (t < 1.5 * t2 ? 0 : VDD * (1 - Math.exp(-(t - 1.5 * t2) / tau)));
+    const figR = osc({ tdiv: t2, alt: 'Front montant de SDA, zoomé', ch: [{ f: fr, div: 0.5, z: -3.3, c: '#56ccf2', n: 1500, w: 2 }],
+      hls: [{ y: -3.3 + 0.3 * VDD / 0.5, t: `30 % de V${SUB('DD')}` }, { y: -3.3 + 0.7 * VDD / 0.5, t: `70 % de V${SUB('DD')}` }],
+      bas: [['CH2 : 0,5 V/div · sonde ×10 · SDA', '#56ccf2'], ['Base de temps : 200 ns/div · bus à 400 kHz', '#dfe8ee']] });
+    const CbP = Cb * 1e12, RpMax = 300e-9 / (0.8473 * Cb), E12 = [1000, 1200, 1500, 1800, 2200, 2700, 3300, 3900, 4700, 5600, 6800, 8200];
+    const Rbon = E12.filter((r) => r <= 0.9 * RpMax).pop() || 1000, kO = (r) => (r >= 1000 ? `${F(r / 1000)} kΩ` : `${r} Ω`);
+    const figRC = svg(640, 210, `<line x1="80" y1="30" x2="200" y2="30" stroke="#c9483b" stroke-width="2.5"/>` + T(206, 35, `V${SUB('DD')} = 3,3 V`, { fs: 13, c: '#c9483b', w: 700 }) + `<line x1="130" y1="30" x2="130" y2="60" stroke="#183047" stroke-width="2"/><rect x="122" y="60" width="16" height="44" fill="#fff" stroke="#183047" stroke-width="2"/>` + T(150, 88, `R${SUB('p')} = ${F(Rp / 1000)} kΩ`, { fs: 13 }) + `<line x1="130" y1="104" x2="130" y2="128" stroke="#183047" stroke-width="2"/><line x1="40" y1="128" x2="330" y2="128" stroke="#183047" stroke-width="2.5"/>` + T(336, 133, 'SDA', { fs: 13, w: 700 }) + `<line x1="250" y1="128" x2="250" y2="150" stroke="#183047" stroke-width="2"/><line x1="232" y1="150" x2="268" y2="150" stroke="#183047" stroke-width="3"/><line x1="232" y1="158" x2="268" y2="158" stroke="#183047" stroke-width="3"/><line x1="250" y1="158" x2="250" y2="180" stroke="#183047" stroke-width="2"/><path d="M238 180 H262 M243 186 H257 M248 192 H252" stroke="#183047" stroke-width="2"/>` + T(276, 160, `C${SUB('b')} : câble, entrées, sondes`, { fs: 13 }) + `<line x1="60" y1="128" x2="60" y2="150" stroke="#183047" stroke-width="2"/><rect x="44" y="150" width="32" height="28" rx="3" fill="#eef5f8" stroke="#12566f"/>` + T(60, 170, 'T', { a: 'middle', fs: 13, w: 700 }) + T(96, 200, 'drain ouvert : T tire à 0, R<tspan baseline-shift="sub" font-size="10">p</tspan> remonte', { fs: 12, c: '#587083' }) + T(470, 60, 'montée : charge de C<tspan baseline-shift="sub" font-size="10">b</tspan> par R<tspan baseline-shift="sub" font-size="10">p</tspan>', { fs: 13, a: 'middle', c: '#12566f', w: 700 }) + T(470, 84, 't<tspan baseline-shift="sub" font-size="10">r</tspan> (30 % → 70 %) = 0,8473 · R<tspan baseline-shift="sub" font-size="10">p</tspan> · C<tspan baseline-shift="sub" font-size="10">b</tspan>', { fs: 14, a: 'middle', w: 700 }), 'Le modèle du front montant : R_p charge C_b');
+    const intro = `<p><b>Le banc.</b> Une platine de prototypage : un microcontrôleur (maître) lit un capteur (esclave) sur un bus I2C alimenté en 3,3 V, avec deux résistances de tirage R<sub>p</sub> = ${F(Rp / 1000)} kΩ. Sur la nouvelle carte, le câble vers le capteur est plus long.</p>
+      <p><b>La problématique.</b> À 100 kHz, la lecture marche ; à 400 kHz (mode rapide), elle échoue. Pourquoi, et comment corriger ?</p>
+      <p><b>Le cahier des charges.</b> Norme I2C : temps de montée (de 30 % à 70 % de V<sub>DD</sub>) au plus 1 000 ns à 100 kHz et 300 ns à 400 kHz ; courant d’un port à l’état bas au plus 3 mA, avec V<sub>OL</sub> ≤ 0,4 V.</p>`;
+    const qsL = [
+      { t: 'L’objectif de la mesure', lab: 'Identifier l’objectif', text: '<p>Avant de toucher au programme, le jury attend que tu dises ce que tu vas observer.</p>', fig: schemaI2C(Rp),
+        fields: [choix('Ce qu’il faut observer', 'Les fronts de SCL et SDA, et la réponse du capteur (ACK), à 100 kHz puis à 400 kHz', ['La tension d’alimentation, au multimètre seulement', 'Le programme du microcontrôleur, ligne par ligne', 'La température mesurée par le capteur'], 'obj'),
+          choix('Pourquoi comparer 100 et 400 kHz ?', 'Un défaut de fronts trop lents apparaît d’abord quand les bits raccourcissent', ['Pour vérifier que le capteur supporte la chaleur', 'Parce que l’adresse change avec la vitesse', 'Parce que le mode rapide utilise une autre tension'], 'obj')],
+        corr: 'Le programme marche à 100 kHz : le défaut est donc dans les signaux, pas dans le code. On regarde la forme des fronts de SCL et SDA et la réponse du capteur (le bit ACK). À 400 kHz, un bit dure quatre fois moins : un front trop lent, qui passait à 100 kHz, n’a plus le temps d’atteindre le niveau haut.',
+        hint: 'Le même programme marche à 100 kHz : qu’est-ce qui change à 400 kHz ?' },
+      { t: 'Brancher et déclencher', lab: 'Élaborer le protocole', text: '<p>Deux voies d’oscilloscope pour SCL et SDA. L’échange ne passe qu’une fois quand le microcontrôleur interroge le capteur.</p>', fig: schemaI2C(Rp),
+        fields: [choix('Les sondes', 'Deux sondes ×10, de faible capacité, masses sur la masse de la carte', ['Deux sondes ×1, pour plus de sensibilité', 'Une seule sonde, qu’on passe de SDA à SCL', 'Le multimètre en fréquencemètre sur SCL'], 'proto'),
+          choix('Le déclenchement', 'Monocoup, sur le front descendant de SDA : bus au repos, c’est la condition START', ['Auto, sur le front montant de SCL', 'Normal, sur le front montant de SDA', 'Aucun : la touche Autoset suffit'], 'proto')],
+        corr: 'Une sonde ×1 ajoute environ 100 pF sur la ligne : elle ralentirait elle-même les fronts qu’on veut mesurer. La sonde ×10 n’ajoute que 10 à 15 pF. Il faut deux voies à la fois, pour lire SDA au rythme de SCL. L’échange ne passe qu’une fois : on déclenche en monocoup sur le premier front descendant de SDA, bus au repos (SCL haut) : c’est la condition START, le début de tout échange.',
+        hint: 'Que fait la capacité d’une sonde à un front qui monte par une résistance de tirage ?' },
+      { t: 'Lire la trame', lab: 'Conduire la mesure · exploiter', text: '<p>Le bus tourne à 100 kHz. Voici le début de l’échange, saisi en monocoup.</p>', fig: trame(),
+        fields: [num('Adresse du capteur sur 7 bits (en décimal, ou en hexadécimal avec 0x)', addr, '', 'exp', { abs: 0.5 }), choix('Le 8e bit (R/W)', rw ? '1 : le maître veut lire' : '0 : le maître veut écrire', [rw ? '0 : le maître veut écrire' : '1 : le maître veut lire'], 'exp'),
+          choix('Le 9e bit', 'ACK : le capteur tire SDA à 0, il a reconnu son adresse', ['NACK : SDA reste à 1, personne ne répond', 'Le bit de stop', 'Un bit de parité'], 'exp')],
+        corr: `START : SDA descend pendant que SCL est haut. Ensuite, on lit SDA à chaque impulsion de SCL (SDA ne change que quand SCL est bas). Les 7 premiers bits, poids fort en premier : ${bin} = <b>${addr}</b> = 0x${hex}. Le 8e bit vaut ${rw} : ${rw ? 'lecture' : 'écriture'}. Au 9e coup d’horloge, le maître relâche SDA et le capteur la tire à 0 : c’est l’ACK, il a reconnu son adresse. Viennent ensuite les 8 bits de la donnée.`,
+        hint: 'Repère le START, puis lis SDA à chaque fois que SCL est haut.' },
+      { t: 'L’horloge et la règle de lecture', lab: 'Exploiter les résultats', text: '<p>Les curseurs encadrent 8 périodes de SCL (du 1er au 9e front montant).</p>', fig: trame({ curs: [{ x: tR1 / t20, t: 'C1' }, { x: (tR1 + 8 * Tb) / t20, t: 'C2' }], lect: `Δt = ${fmt(d8, 4)} µs` }),
+        fields: [num('Fréquence de SCL', 8 / (d8 * 1e-6) / 1000, 'kHz', 'exp', { tol: 0.02 }), choix('La règle de l’I2C', 'SDA ne change que quand SCL est bas ; elle est lue quand SCL est haut (sauf START et STOP)', ['SDA est lue sur chaque front descendant de SDA', 'SCL et SDA changent toujours en même temps', 'SDA est lue quand SCL est bas'], 'exp')],
+        corr: `8 périodes en ${fmt(d8, 4)} µs : T = ${F(d8 / 8)} µs, f = <b>${F(8 / d8 * 1000)} kHz</b>, un peu moins que 100 kHz (le maître attend que SCL soit vraiment remontée). La règle : la donnée change pendant que SCL est bas et elle est lue quand SCL est haut. Les seules exceptions sont START (SDA descend, SCL haut) et STOP (SDA monte, SCL haut) : c’est ainsi qu’on les reconnaît.`,
+        hint: 'Combien de périodes entre les deux curseurs ?' },
+      { t: 'Le front montant à 400 kHz', lab: 'Conduire la mesure · exploiter', text: '<p>Le bus passe à 400 kHz. Zoom sur un front montant de SDA ; les pointillés marquent 30 % et 70 % de V<sub>DD</sub>.</p>', fig: figR,
+        fields: [num('Temps de montée t<sub>r</sub> de SDA (de 30 % à 70 % de V<sub>DD</sub>)', tr * 1e9, 'ns', 'exp', { tol: 0.08 }), choix('Conséquence à 400 kHz', 'SDA n’a pas fini de monter quand elle est lue : le capteur ou le maître lisent de faux bits', ['Aucune : seul le niveau bas compte en I2C', 'Le bus repasse de lui-même à 100 kHz', 'Le capteur chauffe et se met en sécurité'], 'crit')],
+        corr: `Le front franchit 30 % puis 70 % de V<sub>DD</sub> : t<sub>r</sub> ≈ <b>${F(tr * 1e9)} ns</b>. C’est moins que les 1 000 ns permis à 100 kHz (d’où une lecture qui marche), mais bien plus que les 300 ns du mode rapide. À 400 kHz, SCL reste haut à peine plus d’1 µs : SDA monte encore quand on la lit, et un 1 peut être lu comme un 0.`,
+        hint: 'Compte les divisions entre les deux pointillés, à 200 ns/div.' },
+      { t: 'La capacité du bus', lab: 'Confronter modèle et mesure', text: '<p>Sur une ligne à drain ouvert, le transistor tire à 0 ; pour remonter, c’est la résistance de tirage qui charge la capacité de la ligne.</p>', fig: figRC,
+        fields: [num('Capacité du bus C<sub>b</sub> déduite de t<sub>r</sub>', CbP, 'pF', 'mod', { tol: 0.1 }), choix('D’où vient cette capacité ?', 'Du câble rallongé, des entrées des circuits et des sondes', ['Des résistances de tirage', 'Du quartz du microcontrôleur', 'De l’alimentation 3,3 V'], 'mod')],
+        corr: `C<sub>b</sub> = t<sub>r</sub> / (0,8473 · R<sub>p</sub>) = ${F(tr * 1e9)} × 10<sup>−9</sup> / (0,8473 × ${F(Rp, 4)}) = <b>${F(CbP)} pF</b>. Un câble fait typiquement 50 à 100 pF par mètre, et chaque entrée ajoute quelques picofarads : le câble rallongé explique le défaut. La norme limite C<sub>b</sub> à 400 pF, mais à R<sub>p</sub> = ${F(Rp / 1000)} kΩ le mode rapide n’est plus tenu.`,
+        hint: 'Isole C<sub>b</sub> dans la formule du dessin.' },
+      { t: 'Le remède', lab: 'Réduire l’écart', text: '<p>Il faut un front plus rapide sans dépasser le courant permis à l’état bas.</p>',
+        fig: tableur('Contraintes', ['Grandeur', 'Valeur'], [['V<sub>DD</sub>', '3,3 V'], ['V<sub>OL</sub> maximale', '0,4 V'], ['Courant à l’état bas', '3 mA au plus'], ['t<sub>r</sub> en mode rapide', '300 ns au plus'], ['C<sub>b</sub> (question 6)', `${F(CbP)} pF`]]),
+        fields: [num('R<sub>p</sub> maximale pour t<sub>r</sub> ≤ 300 ns', RpMax / 1000, 'kΩ', 'crit', { tol: 0.1 }), choix('Résistance de tirage à monter', kO(Rbon), [kO(Rp), '470 Ω', '22 kΩ'], 'crit')],
+        corr: `R<sub>p</sub> max = 300 × 10<sup>−9</sup> / (0,8473 × ${F(CbP)} × 10<sup>−12</sup>) = <b>${F(RpMax / 1000)} kΩ</b>. R<sub>p</sub> min = (3,3 − 0,4) / 3 mA ≈ 0,97 kΩ : en dessous, le port ne peut plus tirer la ligne sous 0,4 V. On prend une valeur normalisée entre les deux, avec de la marge : <b>${kO(Rbon)}</b>. ${kO(Rp)} est la cause du défaut, 470 Ω dépasse le courant permis, 22 kΩ ralentirait encore. Autre remède : raccourcir le câble, ou ajouter un circuit tampon pour bus I2C.`,
+        hint: 'Le front doit être assez rapide (R<sub>p</sub> petite), mais le courant à l’état bas limité (R<sub>p</sub> pas trop petite).' },
+      { t: 'La séance', lab: 'Transposer en séance', text: '<p>Pour ta séance (BTS CIEL ou BUT GEII), un protocole nouveau, et ce que les étudiants devraient observer.</p>', fig: schemaI2C(Rp),
+        fields: [choix('Protocole nouveau', 'Mesurer t<sub>r</sub> pour trois résistances de tirage et deux longueurs de câble, tracer t<sub>r</sub> en fonction de R<sub>p</sub> · C<sub>b</sub>, et retrouver la limite du mode rapide', ['Refaire le décodage de la même trame', 'Monter la fréquence jusqu’à la panne, sans mesurer', 'Retirer les résistances de tirage pour voir ce qui se passe'], 'seance'),
+          choix('Ce que les étudiants devraient observer', 't<sub>r</sub> est proportionnel au produit R<sub>p</sub> · C<sub>b</sub>', ['t<sub>r</sub> ne dépend que de la fréquence du bus', 't<sub>r</sub> diminue quand R<sub>p</sub> augmente', 't<sub>r</sub> est le même quelle que soit la longueur du câble'], 'seance')],
+        corr: 'Faire varier R<sub>p</sub> et la longueur, mesurer t<sub>r</sub> et tracer t<sub>r</sub> = f(R<sub>p</sub> · C<sub>b</sub>) fait découvrir le modèle et la règle de choix des résistances : c’est un protocole nouveau, qui mêle mesure, modèle et choix de composant. Refaire le décodage n’apporte rien de neuf ; monter la fréquence sans mesurer ne montre pas la cause ; sans tirage, les lignes restent à 0 et rien ne marche.' },
+    ];
+    const bilan = [`Trame à ${F(8 / d8 * 1000)} kHz : adresse ${addr} (0x${hex}), R/W = ${rw}, ACK du capteur.`,
+      `Front montant de SDA : t_r ≈ ${F(tr * 1e9)} ns (≤ 1 000 ns à 100 kHz : tenu ; ≤ 300 ns à 400 kHz : non tenu).`,
+      `Modèle t_r = 0,8473 R_p C_b : C_b ≈ ${F(CbP)} pF avec R_p = ${F(Rp / 1000)} kΩ, dû au câble rallongé.`,
+      `Remède : R_p ≤ ${F(RpMax / 1000)} kΩ et ≥ 0,97 kΩ ; valeur retenue ${kO(Rbon)} (ou câble raccourci, ou tampon I2C).`];
+    return { intro, bilan, prob: 'Le capteur répond à 100 kHz mais pas à 400 kHz depuis que le câble est plus long : pourquoi, et comment corriger ?', qs: qsL };
+  }
+
+  /* =====================================================================
+     Banc 6 — bus CAN : des trames erronées depuis qu'on a modifié le bus
+     ISO 11898-2 : 120 Ω à chaque extrémité ; dominant : CAN_H − CAN_L ≈ 2 V (1,5 V au moins à l'émission) ;
+     le récepteur lit « dominant » au-dessus de 0,9 V, « récessif » sous 0,5 V.
+     ===================================================================== */
+  function schemaCAN() {
+    let s = `<path d="M60 90 H600 M60 128 H600" stroke="#183047" stroke-width="2.5"/>` + T(30, 95, 'CAN_H', { fs: 12, w: 700, a: 'middle' }) + T(30, 133, 'CAN_L', { fs: 12, w: 700, a: 'middle' });
+    s += `<path d="M90 90 q8 19 0 38 M570 90 q8 19 0 38" fill="none" stroke="#587083"/>`;
+    [[110, 'capteur'], [330, 'boîtier ajouté'], [550, 'afficheur']].forEach(([x, t]) => { s += `<line x1="${x}" y1="90" x2="${x}" y2="170" stroke="#183047" stroke-width="2"/><line x1="${x + 18}" y1="128" x2="${x + 18}" y2="170" stroke="#183047" stroke-width="2"/><rect x="${x - 40}" y="170" width="98" height="46" rx="6" fill="#eef5f8" stroke="#12566f" stroke-width="2"/>` + T(x + 9, 198, t, { a: 'middle', fs: 13, w: 700 }); });
+    [[70, '?'], [330 + 70, '?'], [600, '?']].forEach(([x, t], k) => { s += `<rect x="${x - 14}" y="96" width="28" height="26" rx="3" fill="#fff" stroke="#c9483b" stroke-width="2" stroke-dasharray="${k === 1 ? '4 3' : '0'}"/>` + T(x, 114, t, { a: 'middle', fs: 13, c: '#c9483b', w: 700 }); });
+    s += T(330, 40, 'paire torsadée rallongée · terminaisons de 120 Ω : où sont-elles ?', { a: 'middle', fs: 13, c: '#587083' });
+    return svg(640, 232, s, 'Le bus CAN du banc');
+  }
+  function genCAN() {
+    const deb = tire([125, 250, 500]), Tb = 1e-3 / deb, defaut = Math.random() < 0.6 ? 'manque' : 'trop', Rmes = defaut === 'manque' ? 120 : 40, nT = defaut === 'manque' ? 1 : 3;
+    const Vd = dec(defaut === 'manque' ? al(2.2, 2.4) : al(1.4, 1.6), 2), dlc = Math.floor(al(1, 9));
+    const brut = (id) => { const b = [0]; for (let j = 10; j >= 0; j--) b.push((id >> j) & 1); b.push(0, 0, 0); for (let j = 3; j >= 0; j--) b.push((dlc >> j) & 1); return b; };
+    const bourre = (b) => { const out = [], st = []; let n = 0, der = -1; b.forEach((x) => { out.push(x); st.push(0); n = x === der ? n + 1 : 1; der = x; if (n === 5) { out.push(1 - x); st.push(1); der = 1 - x; n = 1; } }); return { out, st }; };
+    let id, B, nId, iso;
+    for (;;) {
+      id = Math.floor(al(0x40, 0x7f0)); B = bourre(brut(id));
+      let bi = -1; nId = 0; for (let j = 0; j < B.out.length; j++) { if (!B.st[j]) { bi++; if (bi === 12) break; } else nId++; }
+      iso = -1; for (let j = 3; j < B.out.length - 1; j++) if (B.out[j] !== B.out[j - 1] && B.out[j] !== B.out[j + 1]) { iso = j; break; }
+      if (nId >= 1 && B.st.filter(Boolean).length <= 3 && iso >= 0) break;
+    }
+    const bitsS = B.out, N = bitsS.length, hexId = id.toString(16).toUpperCase(), binId = id.toString(2).padStart(11, '0');
+    // CAN_H − CAN_L : SOF à t = 0 ; fronts adoucis ; oscillations amorties quand une terminaison manque, parasite quand l'écart est faible
+    const reponse = (u, de, a) => a + (de - a) * Math.exp(-u / (0.04 * Tb)) + (defaut === 'manque' && de !== a ? (a - de) * 0.7 * Math.exp(-u / (0.25 * Tb)) * Math.sin(2 * Math.PI * 3 * u / Tb) : 0);
+    const parasite = (t) => (defaut === 'trop' ? 0.1 * (0.6 * Math.sin(2 * Math.PI * 2.3 * t / Tb) + 0.4 * Math.sin(2 * Math.PI * 5.1 * t / Tb + 1)) : 0);
+    const niveau = (j) => (j < 0 ? 0 : bitsS[Math.min(N - 1, j)] ? 0 : Vd);
+    const diff = (t) => { if (t < 0) return parasite(t); const k = Math.min(N - 1, Math.floor(t / Tb)); return reponse(t - k * Tb, niveau(k - 1), niveau(k)) + parasite(t); };
+    const tdN = { 125: 1e-5, 250: 5e-6, 500: 2e-6 }[deb];
+    const figN = osc({ tdiv: tdN, trig: 1, alt: 'CAN_H et CAN_L au début d’une trame', ch: [{ f: (t) => 2.5 + diff(t - tdN) / 2, div: 1, z: -3, c: '#f2c94c', n: 2000, w: 1.8 }, { f: (t) => 2.5 - diff(t - tdN) / 2, div: 1, z: -3, c: '#56ccf2', n: 2000, w: 1.8 }],
+      bas: [['CH1 : 1 V/div · CAN_H (zéro à −3 div)', '#f2c94c'], ['CH2 : 1 V/div · CAN_L (zéro à −3 div)', '#56ccf2'], [`Base de temps : ${tnom(tdN)}/div`, '#dfe8ee']] });
+    const tdZ = Tb / 4, tIso = iso * Tb;
+    const figZ = osc({ tdiv: tdZ, alt: 'Un bit isolé, zoomé, entre deux curseurs', ch: [{ f: (t) => diff(t + tIso - 3 * tdZ), div: 1, z: -2, c: '#bb6bd9', n: 1500, w: 2 }],
+      curs: [{ x: 3, t: 'C1' }, { x: 7, t: 'C2' }], lect: `Δt = ${fmt(Tb * 1e6, 4)} µs`, bas: [['Voie math : CH1 − CH2 · 1 V/div', '#d9a6f2'], [`Base de temps : ${tnom(tdZ)}/div`, '#dfe8ee']] });
+    // le chronogramme du début de trame (voie math)
+    const chrono = (() => {
+      const W = 640, m = { l: 58, r: 12, t: 36, b: 60 }, wB = (W - m.l - m.r) / N, H = 230, h = 110, Y = (v) => m.t + h - v / (Vd * 1.3) * h;
+      let s = `<rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${h}" fill="#fff" stroke="#9fb3c2"/>`;
+      [0, 1, 2].filter((v) => v <= Vd * 1.3).forEach((v) => { s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="#dde6ec"/>` + T(m.l - 6, Y(v) + 5, `${v} V`, { fs: 13, a: 'end', c: '#42596b' }); });
+      for (let j = 0; j <= N; j++) { const x = m.l + j * wB; s += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${m.t}" y2="${m.t + h}" stroke="#e3eaf0" stroke-dasharray="3 3"/>`; if (j < N) s += T(x + wB / 2, m.t + h + 18, j + 1, { fs: 12, a: 'middle', c: '#42596b' }); }
+      let d = `M${m.l} ${Y(bitsS[0] ? 0 : Vd).toFixed(1)}`; for (let j = 0; j < N; j++) { const y = Y(bitsS[j] ? 0 : Vd).toFixed(1); d += `L${(m.l + j * wB).toFixed(1)} ${y}L${(m.l + (j + 1) * wB).toFixed(1)} ${y}`; }
+      s += `<path d="${d}" fill="none" stroke="#8e44ad" stroke-width="2.4" stroke-linejoin="round"/>` + T(m.l + wB / 2, m.t - 8, 'SOF', { fs: 13, a: 'middle', w: 700, c: '#8e44ad' });
+      s += T(m.l, H - 14, 'numéro du bit sur la ligne (bits de bourrage compris)', { fs: 13, c: '#42596b' }) + T(W - m.r, m.t - 10, 'voie math : CAN_H − CAN_L', { fs: 13, a: 'end', c: '#42596b' });
+      return svg(W, H, s, 'Début de la trame, bit par bit');
+    })();
+    // l'arbitrage
+    const A = Math.floor(al(0x80, 0x7ff)), p = Math.floor(al(3, 10)), bp = 1 << (11 - p), haute = 0x7ff & ~((bp << 1) - 1);
+    const Bb = (A & haute) | (~A & bp) | (Math.floor(al(0, bp)) & (bp - 1)), gagneA = (A & bp) === 0, hx = (x) => '0x' + x.toString(16).toUpperCase().padStart(3, '0');
+    const nomA = 'capteur', nomBb = 'afficheur', gagnant = gagneA ? nomA : nomBb, perdant = gagneA ? nomBb : nomA;
+    // le zoom sur un front récessif : oscillations, ou écart trop faible
+    const figF = osc({ tdiv: Tb / 4, alt: 'Retour à l’état récessif, avec les seuils du récepteur', ch: [{ f: (t) => { const u = t - 2 * Tb / 4; return (u < 0 ? Vd : reponse(u, Vd, 0)) + parasite(t); }, div: 0.5, z: -1.5, c: '#bb6bd9', n: 1500, w: 2 }],
+      hls: [{ y: -1.5 + 0.9 / 0.5, t: 'seuil dominant 0,9 V', c: '#eb5757' }, { y: -1.5 + 0.5 / 0.5, t: 'seuil récessif 0,5 V', c: '#f2994a' }],
+      bas: [['Voie math : CH1 − CH2 · 0,5 V/div', '#d9a6f2'], [`Base de temps : ${tnom(Tb / 4)}/div`, '#dfe8ee']] });
+    const intro = `<p><b>Le banc.</b> Un bus CAN didactique : un nœud capteur et un nœud afficheur reliés par une paire torsadée, à ${deb} kbit/s, émetteurs-récepteurs alimentés en 5 V. On vient de rallonger le bus et d’y ajouter un boîtier.</p>
+      <p><b>La problématique.</b> Depuis, l’afficheur reçoit des trames erronées. D’où vient le défaut ?</p>
+      <p><b>Le cahier des charges.</b> Un bus CAN haute vitesse se termine par une résistance de 120 Ω à chacune de ses deux extrémités. À l’état dominant, CAN_H − CAN_L vaut environ 2 V (au moins 1,5 V) ; le récepteur lit « dominant » au-dessus de 0,9 V et « récessif » sous 0,5 V.</p>`;
+    const qsL = [
+      { t: 'L’objectif de la mesure', lab: 'Identifier l’objectif', text: '<p>Le jury attend que tu dises ce que tu vérifies, et dans quel ordre.</p>', fig: schemaCAN(),
+        fields: [choix('Ce qu’il faut vérifier d’abord', 'Le câblage (terminaisons) et la forme du signal différentiel, avant de lire les trames', ['Le programme des deux nœuds, ligne par ligne', 'La tension d’alimentation au multimètre seulement', 'Le contenu des données, sans regarder le signal'], 'obj'),
+          choix('Pourquoi le CAN transmet-il en différentiel ?', 'Un parasite s’ajoute presque pareil sur CAN_H et CAN_L : leur différence n’en garde presque rien', ['Pour doubler le débit', 'Pour alimenter les nœuds par le bus', 'Pour pouvoir se passer de masse'], 'obj')],
+        corr: 'Le défaut est apparu quand on a touché au câblage : on commence par le câblage (terminaisons) et par la forme du signal, puis on lit les trames. Le récepteur ne regarde que la différence CAN_H − CAN_L : un parasite qui s’ajoute aux deux fils de la paire torsadée disparaît dans la différence.',
+        hint: 'Qu’a-t-on modifié juste avant l’apparition du défaut ?' },
+      { t: 'Les terminaisons', lab: 'Élaborer le protocole · mesurer', text: '<p>Bus hors tension, ohmmètre entre CAN_H et CAN_L.</p>', fig: schemaCAN() + rangee(afficheur('Ohmmètre CAN_H – CAN_L', F(Rmes * bruit(1, 0.01), 3), 'Ω')),
+        fields: [num('Nombre de résistances de 120 Ω en place', nT, '', 'exp', { abs: 0.4 }), choix('Conclusion', defaut === 'manque' ? 'Il en manque une : on doit lire 60 Ω, deux 120 Ω en parallèle, une à chaque extrémité' : 'Il y en a une de trop : on doit lire 60 Ω, deux 120 Ω seulement, aux deux extrémités', [defaut === 'manque' ? 'Il y en a une de trop : on doit lire 60 Ω, deux 120 Ω seulement, aux deux extrémités' : 'Il en manque une : on doit lire 60 Ω, deux 120 Ω en parallèle, une à chaque extrémité', 'Tout est normal : chaque nœud a sa résistance de 120 Ω'], 'exp')],
+        corr: `n résistances de 120 Ω en parallèle font 120 / n : ${Rmes} Ω, donc <b>${nT}</b> ${nT > 1 ? 'résistances' : 'résistance'}. On attend 60 Ω : une terminaison à chaque extrémité, et seulement là. ${defaut === 'manque' ? 'Il en manque une : l’extrémité ouverte renvoie le signal (réflexions).' : 'Le boîtier ajouté au milieu a sa propre terminaison : elle charge le bus et l’écart différentiel baisse.'} La mesure se fait hors tension : un ohmmètre sur un bus alimenté donne n’importe quoi.`,
+        hint: 'Que vaut la résistance de n résistances de 120 Ω en parallèle ?' },
+      { t: 'Les niveaux du signal', lab: 'Conduire la mesure · exploiter', text: '<p>CAN_H (CH1) et CAN_L (CH2) au début d’une trame, les deux zéros à −3 div.</p>', fig: figN,
+        fields: [num('Écart V<sub>H</sub> − V<sub>L</sub> à l’état dominant', Vd, 'V', 'exp', { tol: 0.08 }), choix('L’état dominant code', 'un 0 logique : il l’emporte sur un 1 récessif envoyé en même temps', ['un 1 logique', 'l’absence de message', 'une erreur de transmission'], 'exp')],
+        corr: `Au repos (récessif), CAN_H et CAN_L sont tous deux à 2,5 V : écart nul. À l’état dominant, CAN_H monte à ${F(2.5 + Vd / 2)} V et CAN_L descend à ${F(2.5 - Vd / 2)} V : écart <b>${F(Vd)} V</b>. Le dominant code un 0 : si un nœud émet 0 pendant qu’un autre émet 1, le bus est dominant, et c’est le 0 qui l’emporte. ${defaut === 'manque' ? 'Remarque les oscillations après chaque front.' : 'Remarque l’écart plus faible que les 2 V habituels.'}`,
+        hint: 'Mesure CAN_H et CAN_L pendant un bit dominant, puis fais la différence.' },
+      { t: 'Le débit', lab: 'Exploiter les résultats', text: '<p>Zoom sur un bit isolé (un seul bit entre deux bits contraires), avec deux curseurs sur ses fronts.</p>', fig: figZ,
+        fields: [num('Débit binaire', deb, 'kbit/s', 'exp', { tol: 0.02 }), choix('Pourquoi la longueur maximale du bus baisse-t-elle quand le débit monte ?', 'Pendant l’arbitrage, chaque nœud doit voir l’état du bus avant la fin du bit : l’aller-retour du signal doit tenir dans une partie du bit', ['Parce que la paire torsadée chauffe davantage', 'Parce que les terminaisons consomment plus', 'Parce que le CRC est plus long'], 'exp')],
+        corr: `Un bit isolé dure exactement un temps de bit : T<sub>b</sub> = ${fmt(Tb * 1e6, 4)} µs, débit = 1 / T<sub>b</sub> = <b>${deb} kbit/s</b>. Pendant l’arbitrage, chaque émetteur compare ce qu’il envoie à ce qu’il lit sur le bus, dans le même bit : le signal doit aller au bout du bus et revenir pendant une partie du bit. Plus le bit est court, plus le bus doit l’être (de l’ordre de 40 m à 1 Mbit/s).`,
+        hint: 'Combien de bits entre les curseurs ?' },
+      { t: 'Lire l’identifiant', lab: 'Conduire la mesure · exploiter', text: '<p>Le début d’une trame du capteur, bit par bit. Écart d’environ ' + F(Vd) + ' V : bit dominant, 0 ; 0 V : bit récessif, 1. Après le SOF viennent les 11 bits de l’identifiant, poids fort en premier, puis RTR, IDE, r0 et les 4 bits de longueur (DLC). Après 5 bits identiques, l’émetteur insère un bit inverse, que le récepteur retire : c’est le bourrage.</p>', fig: chrono,
+        fields: [num('Identifiant (en décimal, ou en hexadécimal avec 0x)', id, '', 'exp', { abs: 0.5 }), num('Nombre de bits de bourrage avant le bit RTR', nId, '', 'exp', { abs: 0.4 })],
+        corr: `Lus sur la ligne : ${bitsS.join('')}. On retire ${B.st.filter(Boolean).length > 1 ? 'les bits de bourrage, aux positions' : 'le bit de bourrage, à la position'} ${B.st.map((x, j) => (x ? j + 1 : null)).filter((x) => x).join(', ')} : chacun suit 5 bits identiques. Il reste le SOF (0), puis l’identifiant ${binId} = <b>${id}</b> = 0x${hexId}, puis RTR, IDE, r0 à 0 et DLC = ${dlc}. Bits de bourrage avant le RTR : <b>${nId}</b>. Sans le bourrage, une longue suite de bits identiques ne donnerait plus de fronts pour resynchroniser les horloges des récepteurs.`,
+        hint: 'Compte les bits identiques depuis le SOF : le 6e d’une série de 5 identiques est un bit de bourrage, à sauter.' },
+      { t: 'L’arbitrage', lab: 'Analyse critique', text: '<p>Le capteur et l’afficheur commencent une trame au même instant, avec ces identifiants :</p>',
+        fig: tableur('Identifiants', ['Nœud', 'Identifiant'], [['capteur', hx(A)], ['afficheur', hx(Bb)]]),
+        fields: [choix('Qui gagne l’arbitrage ?', `Le ${gagnant} : au premier bit qui diffère, il envoie un 0 dominant`, [`Le ${perdant}`, 'Aucun : les deux trames sont détruites puis réémises', 'Celui qui a démarré en premier'], 'crit'),
+          num('Rang du bit d’identifiant où le perdant se tait (1 = poids fort)', p, '', 'crit', { abs: 0.4 })],
+        corr: `En binaire, sur 11 bits : ${nomA} ${A.toString(2).padStart(11, '0')}, ${nomBb} ${Bb.toString(2).padStart(11, '0')}. Ils sont identiques jusqu’au bit ${p} (en comptant depuis le poids fort), où le ${gagnant} envoie 0 et le ${perdant} 1. Le bus est dominant : le ${perdant} lit 0 alors qu’il a envoyé 1, il comprend qu’il a perdu et se tait au <b>bit ${p}</b>. Le ${gagnant}, d’identifiant plus petit, continue sans que sa trame soit abîmée : c’est l’arbitrage non destructif, l’identifiant le plus petit est le plus prioritaire.`,
+        hint: 'Écris les deux identifiants en binaire, sur 11 bits, et cherche le premier bit qui diffère.' },
+      { t: 'La cause et le remède', lab: 'Analyse critique · réduire l’écart', text: '<p>Zoom sur le retour à l’état récessif, voie math, avec les seuils du récepteur.</p>', fig: figF,
+        fields: [choix('Cause des trames erronées', defaut === 'manque' ? 'L’extrémité sans terminaison renvoie le signal : il oscille et repasse au-dessus du seuil récessif' : 'Trois terminaisons chargent trop le bus : l’écart dominant baisse et la marge au bruit fond', [defaut === 'manque' ? 'Trois terminaisons chargent trop le bus : l’écart dominant baisse et la marge au bruit fond' : 'L’extrémité sans terminaison renvoie le signal : il oscille et repasse au-dessus du seuil récessif', 'Le débit est trop élevé pour les émetteurs-récepteurs', 'Les identifiants sont trop grands'], 'crit'),
+          choix('Remède', defaut === 'manque' ? 'Poser la résistance de 120 Ω qui manque, à l’extrémité du bus' : 'Retirer la terminaison du boîtier ajouté, qui n’est pas en bout de bus', [defaut === 'manque' ? 'Retirer une terminaison' : 'Ajouter une troisième résistance de 120 Ω', 'Mettre une résistance de 120 Ω au milieu du bus', 'Remplacer la paire torsadée par deux fils séparés'], 'crit')],
+        corr: defaut === 'manque' ? 'Sans terminaison à un bout, le front se réfléchit sur l’extrémité ouverte et revient : le signal oscille et, après un retour au récessif, repasse au-dessus de 0,5 V. Le récepteur peut lire un bit dominant de trop, et la trame est fausse. Les deux 120 Ω, une à chaque extrémité, absorbent l’onde : on pose celle qui manque, au bout du bus, et on doit relire 60 Ω.' : 'Avec trois 120 Ω (40 Ω au lieu de 60 Ω), les émetteurs fournissent un écart plus faible, ici environ ' + F(Vd) + ' V au lieu de 2 V : il reste peu de marge au-dessus du seuil de 0,9 V, et le moindre parasite fait lire un récessif. On retire la terminaison du boîtier ajouté au milieu du bus : seules les deux extrémités en ont une.' },
+      { t: 'La séance', lab: 'Transposer en séance', text: '<p>Pour ta séance (BTS CIEL ou BUT GEII), un protocole nouveau, et ce que les étudiants devraient observer.</p>', fig: schemaCAN(),
+        fields: [choix('Protocole nouveau', 'Mesurer la résistance du bus et observer le signal différentiel avec aucune, une, deux puis trois terminaisons, et relier ce qu’on voit aux trames erronées', ['Refaire le décodage de la trame de l’expérimentation', 'Mesurer la résistance du bus sous tension', 'Débrancher un nœud en pleine trame pour voir l’arbitrage'], 'seance'),
+          choix('Ce que les étudiants devraient observer', 'Sans terminaison, des oscillations après chaque front ; avec deux, un signal propre ; avec trois, un écart différentiel plus faible', ['Le même signal dans tous les cas', 'Un signal propre seulement sans terminaison', 'Un débit qui change avec le nombre de terminaisons'], 'seance')],
+        corr: 'Faire varier le nombre de terminaisons, mesurer la résistance hors tension puis observer le signal relie un câblage à ses effets : c’est un protocole nouveau, qui prépare au diagnostic. Refaire le décodage n’apporte rien de neuf ; un ohmmètre sur un bus alimenté mesure faux ; débrancher un nœud en pleine trame ne montre pas l’arbitrage.' },
+    ];
+    const bilan = [`Bus à ${deb} kbit/s ; ohmmètre hors tension : ${Rmes} Ω, soit ${nT} terminaison${nT > 1 ? 's' : ''} au lieu de 2 (60 Ω attendus).`,
+      `Écart dominant CAN_H − CAN_L : ${F(Vd)} V ; ${defaut === 'manque' ? 'oscillations après les fronts, qui repassent le seuil récessif de 0,5 V' : 'marge réduite au-dessus du seuil dominant de 0,9 V'}.`,
+      `Trame du capteur : identifiant ${id} (0x${hexId}), ${nId} bit${nId > 1 ? 's' : ''} de bourrage avant le RTR ; arbitrage gagné par le ${gagnant} (${hx(gagneA ? A : Bb)}) au bit ${p}.`,
+      `Remède : ${defaut === 'manque' ? 'poser la terminaison de 120 Ω manquante en bout de bus' : 'retirer la terminaison du boîtier ajouté au milieu du bus'} ; relire 60 Ω.`];
+    return { intro, bilan, prob: 'Depuis qu’on a rallongé le bus CAN et ajouté un boîtier, l’afficheur reçoit des trames erronées : d’où vient le défaut ?', qs: qsL };
+  }
+
   const BANCS = {
-    pompe: { titre: 'Station de pompage : vanne ou variateur ?', court: 'puissances, analyseur de réseau, modèle et simulation', eye: 'gestion de l’énergie', duree: 30, gen: genPompe },
-    monte: { titre: 'Monte-charge : variateur et glissement', court: 'oscilloscope et sondes, variation de vitesse', eye: 'variation de vitesse', duree: 30, gen: genMonte },
-    harmo: { titre: 'Qualité de l’énergie : harmoniques et neutre', court: 'appareils TRMS, spectre, puissances, neutre', eye: 'qualité de l’énergie', duree: 30, gen: genHarmo },
+    pompe: { titre: 'Station de pompage : vanne ou variateur ?', court: 'puissances, analyseur de réseau, modèle et simulation', eye: 'gestion de l’énergie', dom: 'ge', duree: 30, gen: genPompe },
+    monte: { titre: 'Monte-charge : variateur et glissement', court: 'oscilloscope et sondes, variation de vitesse', eye: 'variation de vitesse', dom: 'ge', duree: 30, gen: genMonte },
+    harmo: { titre: 'Qualité de l’énergie : harmoniques et neutre', court: 'appareils TRMS, spectre, puissances, neutre', eye: 'qualité de l’énergie', dom: 'ge', duree: 30, gen: genHarmo },
+    oscillo: { titre: 'L’oscilloscope en main : une carte à microcontrôleur', court: 'oscilloscope à régler soi-même : déclenchement, couplage AC, monocoup, sonde, repliement', eye: 'systèmes d’information', dom: 'si', duree: 35, gen: genOscillo },
+    i2c: { titre: 'Bus I2C : le capteur ne répond plus en mode rapide', court: 'trame, adresse et ACK, temps de montée, résistances de tirage', eye: 'systèmes d’information', dom: 'si', duree: 30, gen: genI2C },
+    can: { titre: 'Bus CAN : des trames erronées', court: 'terminaisons, niveaux, débit, identifiant et bourrage, arbitrage', eye: 'systèmes d’information', dom: 'si', duree: 30, gen: genCAN },
   };
 
   /* ---------- la série jouée ---------- */
@@ -530,7 +973,12 @@
 .tp-aide{margin:10px 0}.tp-aide summary{cursor:pointer;color:#12566f;font-weight:600}
 .tp-big{font-size:40px;font-weight:800}.tp-g{width:100%;border-collapse:collapse;font-size:14px}.tp-g td{border-bottom:1px solid #dfe7ee;padding:7px 8px;vertical-align:top}.tp-g td.n{white-space:nowrap;text-align:right;font-weight:700}
 .tp-ok{color:#1f7a53}.tp-ko{color:#a8362b}.tp-q{background:#f4f8fa;border-radius:8px;padding:10px 14px;margin:10px 0;white-space:pre-wrap}.tp-leg{font-size:14px;color:#42596b;margin:6px 0 0}
-.tp-carte{list-style:none;padding:0;margin:8px 0 0}.tp-carte li{margin:10px 0;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}`;
+.tp-carte{list-style:none;padding:0;margin:8px 0 0}.tp-carte li{margin:10px 0;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}.tp-dom{margin:14px 0 2px;font-size:15px;color:#12566f}
+.tp-oscf{margin:6px 0 14px}.tp-osc{margin:4px 0}.tp-ecr svg{max-width:100%;height:auto;display:block}.tp-ost{font-size:14px;color:#9c5221;font-weight:600;margin:6px 0;min-height:1.2em}
+.tp-ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:6px}.tp-ctl .btns{grid-column:1/-1;margin:2px 0 0}
+.tp-ofs{border:1px solid #d3dde5;border-radius:8px;padding:6px 10px 8px;margin:0;display:grid;gap:6px;min-width:0}.tp-ofs legend{font-weight:700;font-size:13px;color:#12566f;padding:0 4px}
+.tp-oc{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}.tp-oc select,.tp-oc input{font:inherit;font-size:14px;padding:5px 6px;border:1px solid #bbccd8;border-radius:6px;background:#fff;color:inherit;max-width:60%}.tp-oc input{width:90px}
+.tp-oatt{font-weight:700;margin:6px 0 0}`;
     document.head.appendChild(s);
   }
 
@@ -557,10 +1005,11 @@
     const minutes = () => Math.max(1, Math.round(((R.fin || Date.now()) - R.t0) / 60000));
     const parComp = () => { const P = {}; R.qs.forEach((q, k) => q.fields.forEach((f, i) => { const c = f.c || 'exp'; if (!P[c]) P[c] = [0, 0]; P[c][1]++; if (R.ok[k] && R.ok[k][i]) P[c][0]++; })); return P; };
     const tete = `<a class="back" href="#admission">← Épreuves d’admission</a><div class="eyebrow">Études expérimentales · ${esc(B.eye)}</div><h1>${esc(B.titre)}</h1>`;
-    const valeur = (f) => fmt(f.a, Math.abs(f.a) >= 1000 ? 4 : 3) + (f.u ? ' ' + f.u : '');
+    const valeur = (f) => (f.k === 'osc' ? f.att : fmt(f.a, Math.abs(f.a) >= 1000 ? 4 : 3) + (f.u ? ' ' + f.u : ''));
     function champs(q, rep, ok) {
       return `<div class="fields">${q.fields.map((f, i) => {
         const r = rep[i], cls = ok ? (ok[i] ? ' good' : ' bad') : '';
+        if (f.k === 'osc') { if (!r || typeof r !== 'object') rep[i] = JSON.parse(JSON.stringify(f.init)); return `<div class="tp-oscf"><span class="tp-fl">${f.l}</span>${panneau(f, i, rep[i], !!ok)}${ok ? `<p class="tp-oatt ${ok[i] ? 'tp-ok' : 'tp-ko'}">${ok[i] ? '✓ Réglage juste.' : 'Réglage attendu : ' + f.att + '.'}</p>` : ''}</div>`; }
         if (f.ch) return `<div class="tp-fch${cls}"><span class="tp-fl">${f.l}</span><div class="tp-opts" role="radiogroup">${f.ch.map((o, j) => `<button type="button" class="tp-opt${r === j ? ' on' : ''}${ok && j === f.a ? ' ok' : ''}${ok && r === j && j !== f.a ? ' ko' : ''}" data-f="${i}" data-o="${j}" role="radio" aria-checked="${r === j}"${ok ? ' disabled' : ''}>${o}</button>`).join('')}</div></div>`;
         return `<div class="fld${cls}"><label for="tpin${i}">${f.l}</label><input id="tpin${i}" data-f="${i}" inputmode="decimal" autocomplete="off" value="${esc(r == null ? '' : r)}"${ok ? ' disabled' : ''}><span class="u">${f.u}</span><span class="fb">${ok ? (ok[i] ? '✓' : 'Attendu : ' + valeur(f)) : ''}</span></div>`;
       }).join('')}</div>`;
@@ -576,6 +1025,7 @@
         <div class="card" id="tpq"><span class="tp-lab">${esc(q.lab)}</span><h2 style="margin:8px 0">${R.i + 1}. ${esc(q.t)}</h2><div class="tp-txt">${q.text}</div>${q.fig ? `<div class="fig tp-fig">${q.fig}</div>` : ''}${q.hint && !ok ? `<details class="tp-aide"><summary>Indice</summary><p>${q.hint}</p></details>` : ''}
         ${ok ? champs(q, rep, ok) : `<form id="tpf" novalidate>${champs(q, rep, null)}<p class="tp-al" hidden></p><div class="btns"><button class="b" type="submit">Valider</button></div></form>`}<div id="tpout">${ok ? retour(q, ok) : ''}</div></div>
         <p class="muted" style="margin-top:18px"><button class="tp-lnk" type="button" data-raz="1">Abandonner cet essai</button> : il ne compte pas, et le suivant aura d’autres valeurs.</p>`;
+      garder();
       if (ok) { const s = document.querySelector('[data-suiv]'); if (s) s.focus({ preventScroll: true }); }
     }
     function blocConclusion() {
@@ -642,22 +1092,43 @@ Réponds en JSON : {"note": 3, "commentaire": "…", "manque": ["…"], "modele"
         rep[i] = j; o.parentNode.querySelectorAll('.tp-opt').forEach((b) => { const on = +b.dataset.o === j; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
         garder(); return;
       }
+      const arm = e.target.closest('[data-arm]'), ev = e.target.closest('[data-ev]');
+      if (arm || ev) {
+        const i = +(arm ? arm.dataset.arm : ev.dataset.ev), f = R.qs[R.i].fields[i], s = R.rep[R.i][i];
+        if (arm) { if (s.mode === 'mono') { s.etat = 'arme'; s.rien = 0; } else s.etat = 'pasmono'; } else envoyer(f, s);
+        majOsc(i); garder(); return;
+      }
       if (e.target.closest('[data-suiv]')) { R.i++; garder(); if (R.i >= R.qs.length) fin(); else question(); window.scrollTo(0, 0); return; }
       if (e.target.closest('[data-raz]') || e.target.closest('[data-refaire]')) { lsSet(cle, null); vue(id); window.scrollTo(0, 0); }
     };
+    // l'oscilloscope : on redessine son écran à chaque réglage, sans toucher au reste de la question
+    const majOsc = (i) => { const w = document.querySelector(`.tp-osc[data-f="${i}"]`); if (!w) return; const E = ecranOsc(R.qs[R.i].fields[i], R.rep[R.i][i]); w.querySelector('.tp-ecr').innerHTML = E.svg; w.querySelector('.tp-ost').textContent = E.msg; };
     app().oninput = (e) => { if (e.target.id === 'tpct') { R.brouillon = e.target.value; garder(); } };
-    app().onchange = null;
+    app().onchange = (e) => {
+      const w = e.target.closest('.tp-osc'), r = e.target.dataset && e.target.dataset.r;
+      if (!w || !r) return;
+      const i = +w.dataset.f, s = R.rep[R.i] && R.rep[R.i][i];
+      if (!s) return;
+      let v = e.target.value;
+      if (r === 'niv') { v = parse(v); if (!isFinite(v)) { e.target.value = String(s.niv).replace('.', ','); return; } }
+      else if (!['c1', 'c2', 'pente', 'mode'].includes(r)) v = Number(v);
+      s[r] = v;
+      if (['src', 'pente', 'niv', 'mode'].includes(r)) { s.etat = 'stop'; s.rien = 0; }
+      majOsc(i); garder();
+    };
+    // Entrée dans la case du niveau : on applique le niveau, on ne valide pas la question
+    app().onkeydown = (e) => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.r === 'niv') { e.preventDefault(); e.target.blur(); } };
     app().onsubmit = (e) => {
       e.preventDefault();
       if (e.target.id === 'tpc') { conclure(e.target); return; }
       if (e.target.id !== 'tpf') return;
       const q = R.qs[R.i], rep = R.rep[R.i] || (R.rep[R.i] = []), al0 = e.target.querySelector('.tp-al');
-      q.fields.forEach((f, i) => { if (!f.ch) { const x = e.target.querySelector(`input[data-f="${i}"]`); rep[i] = x ? x.value : ''; } });
+      q.fields.forEach((f, i) => { if (!f.ch && !f.k) { const x = e.target.querySelector(`input[data-f="${i}"]`); rep[i] = x ? x.value : ''; } });
       garder();
-      const vides = q.fields.filter((f, i) => (f.ch ? rep[i] == null : !String(rep[i] == null ? '' : rep[i]).trim())).length;
+      const vides = q.fields.filter((f, i) => (f.k ? false : f.ch ? rep[i] == null : !String(rep[i] == null ? '' : rep[i]).trim())).length;
       if (vides) { al0.hidden = false; al0.textContent = vides > 1 ? `Il manque ${vides} réponses.` : 'Il manque une réponse.'; return; }
-      if (q.fields.some((f, i) => !f.ch && !isFinite(parse(rep[i])))) { al0.hidden = false; al0.textContent = 'Écris un nombre (ou un calcul) dans chaque case.'; return; }
-      R.ok[R.i] = q.fields.map((f, i) => (f.ch ? rep[i] === f.a : okf(f, parse(rep[i]))));
+      if (q.fields.some((f, i) => !f.ch && !f.k && !isFinite(parse(rep[i])))) { al0.hidden = false; al0.textContent = 'Écris un nombre (ou un calcul) dans chaque case.'; return; }
+      R.ok[R.i] = q.fields.map((f, i) => (f.k === 'osc' ? jugeOsc(f, rep[i]) : f.ch ? rep[i] === f.a : okf(f, parse(rep[i]))));
       garder(); question();
       const out = document.getElementById('tpout'); if (out) out.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
@@ -669,9 +1140,9 @@ Réponds en JSON : {"note": 3, "commentaire": "…", "manque": ["…"], "modele"
     css();
     const S = (st && st.tp) || {};
     return `<div class="card" style="margin-top:16px"><h2 style="margin:0 0 6px">Les études expérimentales : la partie pratique</h2>
-      <p class="muted" style="margin:0 0 6px">Elle compte pour 10 points sur 20 dans chaque épreuve. Sur des bancs simulés, proches de ceux d’un labo d’électrotechnique : identifier l’objectif, choisir et brancher les appareils, mesurer, exploiter, confronter modèle, simulation et mesure, chercher la cause des écarts, puis proposer un protocole nouveau pour la séance. Autres valeurs à chaque essai.</p>
-      <ul class="tp-carte">${Object.keys(BANCS).map((id) => { const B = BANCS[id], x = S[id]; return `<li><a class="b" href="#admission-tp-${id}">${esc(B.titre)}</a><span class="muted">${esc(B.court)} · environ ${B.duree} min${x && x.best != null ? ` · meilleure note ${fmt(x.best, 3)} / 20` : ''}</span></li>`; }).join('')}</ul></div>`;
+      <p class="muted" style="margin:0 0 6px">Elle compte pour 10 points sur 20 dans chaque épreuve. Sur des bancs simulés, proches de ceux d’un labo : identifier l’objectif, choisir et brancher les appareils, mesurer, exploiter, confronter modèle, simulation et mesure, chercher la cause des écarts, puis proposer un protocole nouveau pour la séance. Autres valeurs à chaque essai.</p>
+      ${[['ge', 'Gestion de l’énergie'], ['si', 'Systèmes d’information : l’oscilloscope et les bus, points faibles relevés par le jury']].map(([d, t]) => `<h3 class="tp-dom">${t}</h3><ul class="tp-carte">${Object.keys(BANCS).filter((id) => BANCS[id].dom === d).map((id) => { const B = BANCS[id], x = S[id]; return `<li><a class="b" href="#admission-tp-${id}">${esc(B.titre)}</a><span class="muted">${esc(B.court)} · environ ${B.duree} min${x && x.best != null ? ` · meilleure note ${fmt(x.best, 3)} / 20` : ''}</span></li>`; }).join('')}</ul>`).join('')}</div>`;
   }
 
-  window.ADMISSION_TP = { route: vue, carte, BANCS, COMP };
+  window.ADMISSION_TP = { route: vue, carte, BANCS, COMP, jugeOsc, envoyer, ecranOsc };
 })();

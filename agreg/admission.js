@@ -372,7 +372,7 @@ Réponds en JSON : {"reponses": [{"note": 1.5, "commentaire": "…", "attendu": 
   }
 
   function route(h) {
-    const t = /^admission-tp-([a-z]+)$/.exec(h);
+    const t = /^admission-tp-([a-z0-9]+)$/.exec(h);
     if (t && window.ADMISSION_TP) return ADMISSION_TP.route(t[1]);
     const m = /^admission-lecon-(e1|e2|int)$/.exec(h);
     if (m) return lecon(m[1]);
