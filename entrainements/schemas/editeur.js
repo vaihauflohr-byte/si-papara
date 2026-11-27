@@ -170,6 +170,13 @@
       if (rl) rl.setAttribute("transform", `rotate(${g.a} -120 0)`);
     }
     for (const el of monde.querySelectorAll("[data-tige]")) { const e = o(el, "data-tige"); if (e) el.setAttribute("transform", SY.geoTri(e.r).tige); }
+    for (const el of monde.querySelectorAll("[data-lisse]")) { const e = o(el, "data-lisse"); if (e) el.setAttribute("d", `M0 -22V${SY.geoBarriere(e.pos).y}`); }
+    for (const el of monde.querySelectorAll("[data-voies]")) {
+      const e = o(el, "data-voies"); if (!e) continue;
+      el.querySelectorAll("[data-voiture]").forEach((g, j) => { const x = (e.voitures || [])[j]; if (x == null) g.style.display = "none"; else { g.style.display = ""; g.setAttribute("transform", SY.geoVoiture(x)); } });
+    }
+    for (const el of monde.querySelectorAll("[data-cabine]")) { const e = o(el, "data-cabine"); if (e) el.setAttribute("transform", SY.geoCabine(e.pos).t); }
+    for (const el of monde.querySelectorAll("[data-cable]")) { const e = o(el, "data-cable"); if (e) el.setAttribute("d", SY.geoCabine(e.pos).cable); }
     for (const el of monde.querySelectorAll("[data-volet]")) { const e = o(el, "data-volet"); if (e) el.setAttribute("transform", SY.geoTri(e.r).volet); }
     majCartesPO();
   }
@@ -274,7 +281,7 @@
       if (M.AVEC_NUM.indexOf(item.type) >= 0) { const n = M.numeroContact(schema, pc); if (n) pc.p.num = n; }
       if (T.p.tension !== undefined && !p.tension) pc.p.tension = tensionParDefaut();
       if (item.type === "automate") pc.prog = SA.progDefaut();
-      if (T.cat === "po") { const mo = schema.pieces.find((q) => /^moteur/.test(q.type) && q.ref); if (mo && !p.moteur) pc.p.moteur = mo.ref; }
+      if (T.cat === "po" && pc.type !== "station") { const mo = schema.pieces.find((q) => /^moteur/.test(q.type) && q.ref); if (mo && !p.moteur) pc.p.moteur = mo.ref; }
     }
     return pc;
   }
@@ -428,7 +435,7 @@
     return best;
   }
   const ACTIONNABLES = new Set(["bp_no", "bp_nf", "arret_urgence", "selecteur", "interrupteur", "fdc_no", "fdc_nf", "capteur", "thermique", "contact_th_nf", "contact_th_no", "sectionneur", "disjoncteur", "disj_moteur", "fusible", "automate", "variateur", "potentiometre", "capteur3", "chariot", "cuve", "tapis", "tri"]);
-  const ELEC = /^(automate|variateur|potentiometre)$/, PO = /^(chariot|cuve|tapis|tri)$/;
+  const ELEC = /^(automate|variateur|potentiometre)$/, PO = /^(chariot|cuve|tapis|tri|barriere|montecharge|station)$/;
   const actionnable = (pc) => !!pc && ACTIONNABLES.has(pc.type) && !!pc.ref;
 
   function commencerPan(e) { geste = { type: "pan", sx: e.clientX, sy: e.clientY, vx: vue.x, vy: vue.y, bouge: false, pid: e.pointerId }; svg.style.cursor = "grabbing"; }
@@ -1181,7 +1188,7 @@
   }
   function signature(E) {
     const P = {};
-    for (const [id, o] of Object.entries(E.pieces)) { const c = Object.assign({}, o); if (c.w != null) c.w = Math.round(c.w * 8) / 8; if (c.prog != null) c.prog = Math.round(c.prog * 40) / 40; if (c.chauffe != null) c.chauffe = Math.round(c.chauffe * 4) / 4; if (c.f != null) c.f = Math.round(c.f); if (c.po) { c.mv = Math.abs(c.vit || 0) * 1000 > 0.02 ? Math.sign(c.vit) : 0; delete c.pos; delete c.niv; delete c.vit; delete c.r; } P[id] = c; }
+    for (const [id, o] of Object.entries(E.pieces)) { const c = Object.assign({}, o); if (c.w != null) c.w = Math.round(c.w * 8) / 8; if (c.prog != null) c.prog = Math.round(c.prog * 40) / 40; if (c.chauffe != null) c.chauffe = Math.round(c.chauffe * 4) / 4; if (c.f != null) c.f = Math.round(c.f); if (c.po) { c.mv = Math.abs(c.vit || 0) * 1000 > 0.02 ? Math.sign(c.vit) : 0; delete c.pos; delete c.niv; delete c.vit; delete c.r; delete c.voitures; } P[id] = c; }
     return JSON.stringify([E.noeuds, E.court, P, E.messages.map((m) => m.texte), E.journal.length, E.defaut]);
   }
   function boucle(ts) {
@@ -1212,6 +1219,13 @@
       const so = (simE.appareils[A.piloteRef] || {}).sorte;
       bulle(so === "cuve" ? `${esc(ref)} est un capteur de niveau de la cuve ${esc(A.piloteRef)} : c'est l'eau qui le fait basculer, pas toi.`
         : so === "tapis" ? `${esc(ref)} voit passer les caisses du tapis ${esc(A.piloteRef)} : ce sont elles qui l'actionnent, pas toi.`
+        : so === "station" ? `${esc(ref)} est une électrode de niveau de la station ${esc(A.piloteRef)} : c'est l'eau qui la touche (ou non), pas toi.`
+        : so === "barriere" ? (schema.pieces.some((q) => q.type === "barriere" && q.ref === A.piloteRef && (M.parametres(q).amont === ref || M.parametres(q).aval === ref))
+          ? `${esc(ref)} est une boucle de détection de la barrière ${esc(A.piloteRef)} : ce sont les voitures qui l'actionnent. Envoie une voiture (carte de la barrière, à droite).`
+          : `${esc(ref)} est un fin de course de la barrière ${esc(A.piloteRef)} : c'est la lisse qui l'actionne, pas toi.`)
+        : so === "montecharge" ? (schema.pieces.some((q) => q.type === "montecharge" && q.ref === A.piloteRef && M.parametres(q).porte === ref)
+          ? `${esc(ref)} est le contact de porte du monte-charge ${esc(A.piloteRef)} : ouvre ou ferme la porte avec la carte du monte-charge, à droite.`
+          : `${esc(ref)} est un capteur du monte-charge ${esc(A.piloteRef)} : c'est la cabine qui l'actionne, pas toi.`)
         : so === "tri" ? (schema.pieces.some((q) => q.type === "tri" && q.ref === A.piloteRef && (M.parametres(q).rentre === ref || M.parametres(q).sorti === ref))
           ? `${esc(ref)} est actionné par la tige du vérin du tapis ${esc(A.piloteRef)} : c'est elle qui le pousse, pas toi.`
           : `${esc(ref)} voit tomber les caisses au bout du tapis ${esc(A.piloteRef)} : ce sont elles qui l'actionnent, pas toi.`)
@@ -1362,10 +1376,15 @@
     for (const pc of L) {
       if (vus.has(pc.ref)) continue; vus.add(pc.ref);
       const r = esc(pc.ref), P = M.parametres(pc), ch = pc.type === "chariot", ta = pc.type === "tapis" || pc.type === "tri";
-      h += `<div class="cmd crt" data-ref="${r}" data-type="${pc.type}"><div><b>${r}</b><small>${ch ? "chariot · moteur " : pc.type === "tri" ? "tri · moteur " : ta ? "tapis · moteur " : "cuve · pompe "}${esc(P.moteur || "?")}${pc.type === "tri" ? " · vérin " + esc(P.verin || "?") : ""}</small><span class="etat"></span></div>`
+      const ba = pc.type === "barriere", mc = pc.type === "montecharge", st = pc.type === "station", eau = pc.type === "cuve" || st;
+      const sous = st ? "station · pompes " + ([P.pompe1, P.pompe2, P.pompe3].filter(Boolean).join(", ") || "?")
+        : (ch ? "chariot · moteur " : pc.type === "tri" ? "tri · moteur " : ta ? "tapis · moteur " : ba ? "barrière · moteur " : mc ? "monte-charge · moteur " : "cuve · pompe ") + (P.moteur || "?") + (pc.type === "tri" ? " · vérin " + (P.verin || "?") : "");
+      h += `<div class="cmd crt" data-ref="${r}" data-type="${pc.type}"><div><b>${r}</b><small>${esc(sous)}</small><span class="etat"></span></div>`
         + (pc.type === "tri" ? `<div class="bt"><button type="button" data-e="coincer" title="Simuler une panne : la tige du vérin reste où elle est">Bloquer la tige</button></div>` : "")
-        + (ta ? "" : `<div class="po-jauge${ch ? " ch" : ""}"><i></i></div>`) + `<p class="io-x"></p>`
-        + (ch || ta ? "" : `<label class="curseur">Eau consommée (sortie) <input type="range" min="0" max="100" step="5" data-e="conso"><output></output></label>`) + `</div>`;
+        + (ba ? `<div class="bt"><button type="button" data-e="voiture" title="Une voiture arrive sur la voie, devant la barrière">Une voiture arrive</button></div>` : "")
+        + (mc ? `<div class="bt"><button type="button" data-e="porte" title="Ouvrir ou fermer la porte de la cabine">Ouvrir la porte</button></div>` : "")
+        + (ta ? "" : `<div class="po-jauge${ch || mc ? " ch" : ""}"><i></i></div>`) + `<p class="io-x"></p>`
+        + (eau ? `<label class="curseur">Eau consommée (sortie) <input type="range" min="0" max="100" step="5" data-e="conso"><output></output></label>` : "") + `</div>`;
     }
     return h + `</div>`;
   }
@@ -1389,6 +1408,38 @@
         const roule = Math.abs(A.vit || 0) * 1000 > 0.02, n = A.vues || 0;
         et.textContent = roule ? "le tapis avance" : "arrêté"; et.className = "etat ok";
         x.textContent = [P.capteur ? `${P.capteur} : ${e.cc ? "une caisse devant" : "rien devant"}` : "", `${n} caisse${n > 1 ? "s" : ""} passée${n > 1 ? "s" : ""} devant le capteur`, `${A.bac || 0} dans le bac`, e.reste >= 0 ? `${e.reste} dans le magasin` : ""].filter(Boolean).join(" · ");
+        continue;
+      }
+      if (A.sorte === "barriere") {
+        const pc = schema.pieces.find((q) => q.ref === row.dataset.ref && q.type === "barriere"), P = M.parametres(pc), e = simE.pieces[pc.id] || {}, p = A.pos || 0, n = A.passees || 0, nv = A.voitures || 0;
+        et.textContent = A.surVoiture ? "la lisse touche une voiture !" : A.butee ? `en butée ${A.butee > 0 ? "en haut" : "en bas"} !` : p >= 0.95 ? "levée" : p <= 0.05 ? "baissée" : `lisse à ${Math.round(p * 100)} %`;
+        et.className = "etat " + (A.surVoiture || A.butee ? "ko" : "ok");
+        if (j) j.style.width = (p * 100).toFixed(1) + "%";
+        const bv = row.querySelector('[data-e="voiture"]'); if (bv) bv.disabled = nv >= 5;
+        x.textContent = [capt(P.haut, e.ch, "levée"), capt(P.bas, e.cb, "baissée"), P.amont ? `${P.amont} (boucle amont) : ${e.ca ? "une voiture" : "libre"}` : "", P.aval ? `${P.aval} (boucle aval) : ${e.cv ? "une voiture" : "libre"}` : "",
+          `${n} voiture${n > 1 ? "s" : ""} passée${n > 1 ? "s" : ""}`, nv ? `${nv} sur la voie` : "", A.chocs ? `choc${A.chocs > 1 ? "s" : ""} : ${A.chocs}` : ""].filter(Boolean).join(" · ");
+        continue;
+      }
+      if (A.sorte === "montecharge") {
+        const pc = schema.pieces.find((q) => q.ref === row.dataset.ref && q.type === "montecharge"), P = M.parametres(pc), e = simE.pieces[pc.id] || {}, p = A.pos || 0;
+        const mot = simE.appareils[P.moteur], va = mot && mot.variateur ? simE.appareils[mot.variateur] : null;
+        et.textContent = A.danger ? "bouge porte ouverte !" : A.butee ? `en butée ${A.butee > 0 ? "en haut" : "en bas"} !` : p >= 0.95 ? "en haut (niveau 1)" : p <= 0.05 ? "en bas (niveau 0)" : `entre les deux (${Math.round(p * 100)} %)`;
+        et.className = "etat " + (A.danger || A.butee ? "ko" : "ok");
+        if (j) j.style.left = (p * 100).toFixed(1) + "%";
+        const bp = row.querySelector('[data-e="porte"]'); if (bp) { bp.textContent = A.porte ? "Ouvrir la porte" : "Fermer la porte"; bp.classList.toggle("rouge", !A.porte); }
+        x.textContent = [A.porte ? "porte fermée" : "porte ouverte", capt(P.porte, e.cp, "porte fermée"), capt(P.bas, e.cb, "en bas"), capt(P.ralbas, e.crb, "ralentir en bas"), capt(P.ralhaut, e.crh, "ralentir en haut"), capt(P.haut, e.ch, "en haut"),
+          va && Math.abs(va.fs || 0) > 0.05 ? `${nf(Math.round(Math.abs(va.fs) * 10) / 10)} Hz` : "", A.brusques ? `arrivées trop vite : ${A.brusques}` : ""].filter(Boolean).join(" · ");
+        continue;
+      }
+      if (A.sorte === "station") {
+        const pc = schema.pieces.find((q) => q.ref === row.dataset.ref && q.type === "station"), P = M.parametres(pc), e = simE.pieces[pc.id] || {}, n = A.niv || 0, cn = e.cn || [];
+        et.textContent = `niveau ${Math.round(n * 100)} %` + (A.deborde ? " · déborde !" : A.vide ? " · vide" : "");
+        et.className = "etat " + (A.deborde || A.vide ? "ko" : "ok");
+        if (j) j.style.width = (n * 100).toFixed(1) + "%";
+        const en = (A.pompes || []).map((v, k) => (v ? "P" + (k + 1) : "")).filter(Boolean);
+        const el = (r, k, nom) => (r ? `${r} (${nom}) : ${cn[k] ? "dans l'eau" : "hors de l'eau"}` : "");
+        x.textContent = [en.length ? (en.length > 1 ? en.join(" + ") + " pompent" : en[0] + " pompe") : "aucune pompe ne pompe", el(P.tbas, 0, "très bas"), el(P.bas, 1, "bas"), el(P.haut, 2, "haut"), el(P.thaut, 3, "très haut")].filter(Boolean).join(" · ");
+        const i = row.querySelector('input[data-e="conso"]'); if (i && document.activeElement !== i) { i.value = Math.round((A.conso || 0) * 100); i.parentElement.querySelector("output").textContent = i.value + " %"; }
         continue;
       }
       if (A.sorte === "chariot") {
@@ -1417,6 +1468,8 @@
       const ref = b.closest(".cmd").dataset.ref;
       if (b.dataset.e === "run") { sim.action(ref, "basculer"); majSim(true); }
       else if (b.dataset.e === "coincer") { const A = simE.appareils[ref]; sim.action(ref, "coincer", !(A && A.coince)); majSim(true); }
+      else if (b.dataset.e === "voiture") { if (!sim.action(ref, "voiture")) bulle("Il y a déjà 5 voitures sur la voie.", 2500); majSim(true); }
+      else if (b.dataset.e === "porte") { sim.action(ref, "porte"); majSim(true); }
       else if (b.dataset.e === "voir") { const pc = schema.pieces.find((q) => q.ref === ref && q.type === "automate"); if (pc) { if (PR.live.ref() === ref) PR.live.fermer(); else PR.live.ouvrir(pc, simE); } }
     });
     z.addEventListener("input", (e) => {
@@ -1605,9 +1658,20 @@
         + champRef("rentre", "Fin de course : tige rentrée", capL) + champRef("sorti", "Fin de course : tige sortie", capL)
         + nb("course", "Durée d'une course du vérin (s)", 0.1, 10, 0.1) + nb("duree", "Durée pour qu'une caisse fasse tout le tapis (s)", 1, 120, 0.5)
         + nb("ecart", "Écart entre deux caisses (% de la longueur du tapis)", 12, 100, 1) + nb("caisses", "Caisses dans le magasin (0 : sans fin)", 0, 999, 1);
+      else if (pc.type === "barriere") h += champRef("moteur", "Moteur de la lisse", motL) + `<label class="ch" for="pc-sens">Quand le moteur tourne dans le sens 1, la lisse</label><select id="pc-sens" data-ch="sens">${option("1", "se lève", P.sens)}${option("2", "se baisse", P.sens)}</select>`
+        + champRef("haut", "Fin de course : barrière levée", capL) + champRef("bas", "Fin de course : barrière baissée", capL)
+        + champRef("amont", "Boucle amont (la voiture arrive devant la lisse)", capL) + champRef("aval", "Boucle aval (la voiture est passée)", capL)
+        + nb("duree", "Durée pour lever la lisse (s)", 0.5, 60, 0.5);
+      else if (pc.type === "montecharge") h += champRef("moteur", "Moteur du treuil", motL) + `<label class="ch" for="pc-sens">Quand le moteur tourne dans le sens 1, la cabine</label><select id="pc-sens" data-ch="sens">${option("1", "monte", P.sens)}${option("2", "descend", P.sens)}</select>`
+        + champRef("bas", "Capteur : cabine en bas (niveau 0)", capL) + champRef("haut", "Capteur : cabine en haut (niveau 1)", capL)
+        + champRef("ralbas", "Capteur de ralentissement, en bas", capL) + champRef("ralhaut", "Capteur de ralentissement, en haut", capL) + champRef("porte", "Contact de porte (actionné porte fermée)", capL)
+        + nb("duree", "Durée d'une montée à 50 Hz (s)", 1, 120, 0.5) + `<label class="ch" for="pc-depart">Au départ, la cabine est</label><select id="pc-depart" data-ch="depart">${option("bas", "en bas", P.depart)}${option("haut", "en haut", P.depart)}</select>`;
+      else if (pc.type === "station") h += champRef("pompe1", "Moteur de la pompe P1 (0,75 kW, débit double)", motL) + champRef("pompe2", "Moteur de la pompe P2 (0,37 kW)", motL) + champRef("pompe3", "Moteur de la pompe P3 (0,37 kW)", motL)
+        + champRef("tbas", "Électrode très bas (10 %)", capL) + champRef("bas", "Électrode bas (30 %)", capL) + champRef("haut", "Électrode haut (70 %)", capL) + champRef("thaut", "Électrode très haut (90 %)", capL)
+        + nb("duree", "Durée pour remplir la bâche vide avec P2 seule (s)", 1, 600, 1) + nb("conso", "Eau consommée au départ (% du débit des trois pompes)", 0, 100, 5) + nb("niveau", "Niveau d'eau au départ (%)", 0, 100, 5);
       else h += champRef("moteur", "Moteur de la pompe", motL) + champRef("bas", "Flotteur du niveau bas (20 %)", capL) + champRef("haut", "Flotteur du niveau haut (80 %)", capL)
         + nb("duree", "Durée pour remplir la cuve vide, sans sortie (s)", 1, 600, 1) + nb("conso", "Eau consommée au départ (% du débit de la pompe)", 0, 100, 5) + nb("niveau", "Niveau d'eau au départ (%)", 0, 100, 5);
-      h += `<p class="discret">Les capteurs se relient par leur repère : ce sont eux que ${pc.type === "chariot" ? "le chariot actionne" : pc.type === "tapis" ? "les caisses actionnent" : pc.type === "tri" ? "les caisses et la tige du vérin actionnent" : "l'eau fait basculer"} pendant la simulation.</p>`;
+      h += `<p class="discret">Les capteurs se relient par leur repère : ce sont eux que ${pc.type === "chariot" ? "le chariot actionne" : pc.type === "tapis" ? "les caisses actionnent" : pc.type === "tri" ? "les caisses et la tige du vérin actionnent" : pc.type === "barriere" ? "la lisse et les voitures actionnent" : pc.type === "montecharge" ? "la cabine et sa porte actionnent" : "l'eau fait basculer"} pendant la simulation.</p>`;
     }
     if (pc.type === "potentiometre") h += `<label class="ch" for="pc-pos">Position du curseur au départ (%)</label><input type="number" id="pc-pos" data-ch="pos" value="${esc(P.pos)}" min="0" max="100" step="5" inputmode="numeric">`;
     h += `<div class="rang">${T.sansRot ? "" : `<button class="btn sec" type="button" data-pa="tourner">Tourner</button>`}<button class="btn sec" type="button" data-pa="dupliquer">Dupliquer</button><button class="btn sec" type="button" data-pa="supprimer">Supprimer</button></div>`;
@@ -1639,11 +1703,11 @@
       if (!Number.isFinite(x) || x <= 0) { majPanneau(); return; }
       pc.p[k] = k === "delai" ? clamp(Math.round(x * 10) / 10, 0.1, 600) : clamp(x, 0.1, 1000);
     } else if (k === "poles" || k === "prim" || k === "sec") pc.p[k] = Number(v);
-    else if (T.cat === "po" && /^(moteur|gauche|droite|bas|haut|capteur|verin|rentre|sorti)$/.test(k)) pc.p[k] = String(v).trim().toUpperCase().replace(/[^A-Z0-9_.\-]/g, "").slice(0, 12);
+    else if (T.cat === "po" && /^(moteur|gauche|droite|bas|haut|capteur|verin|rentre|sorti|amont|aval|ralbas|ralhaut|porte|pompe1|pompe2|pompe3|tbas|thaut)$/.test(k)) pc.p[k] = String(v).trim().toUpperCase().replace(/[^A-Z0-9_.\-]/g, "").slice(0, 12);
     else if (T.cat === "po" && /^(duree|conso|niveau|ecart|caisses|course)$/.test(k)) {
       const x = Number(String(v).replace(",", "."));
       if (!Number.isFinite(x)) { majPanneau(); return; }
-      const [a, b] = k === "duree" ? (pc.type === "cuve" ? [1, 600] : pc.type === "tapis" || pc.type === "tri" ? [1, 120] : [0.5, 120]) : k === "ecart" ? [12, 100] : k === "caisses" ? [0, 999] : k === "course" ? [0.1, 10] : [0, 100];
+      const [a, b] = k === "duree" ? (pc.type === "cuve" || pc.type === "station" ? [1, 600] : pc.type === "tapis" || pc.type === "tri" || pc.type === "montecharge" ? [1, 120] : pc.type === "barriere" ? [0.5, 60] : [0.5, 120]) : k === "ecart" ? [12, 100] : k === "caisses" ? [0, 999] : k === "course" ? [0.1, 10] : [0, 100];
       pc.p[k] = clamp(k === "caisses" ? Math.round(x) : Math.round(x * 10) / 10, a, b);
     }
     else if (/^(hsp|lsp|acc|dec|sp2|sp3|sp4|pos)$/.test(k)) {
@@ -1921,6 +1985,7 @@
       <p class="discret"><b>Le variateur</b> reçoit le réseau sur L1, L2, L3 et fait tourner le moteur branché sur U, V, W. LI1 (marche avant) et LI2 (marche arrière) s'activent avec son +24V ; la vitesse vient de AI1 (0-10 V : potentiomètre ou sortie AQ0 d'un automate), de sa molette, ou des vitesses présélectionnées (LI3, LI4). Il accélère et ralentit suivant ses rampes (ACC, DEC).</p>
       <h3 style="margin-top:14px">La partie opérative et les capteurs 3 fils</h3>
       <p class="discret"><b>Le chariot</b>, <b>la cuve</b> et <b>le tapis</b> (catégorie « Partie opérative ») montrent la machine elle-même. On choisit le moteur qui l'entraîne et les repères de ses capteurs : en simulation, le chariot roule et actionne tout seul ses fins de course ; l'eau monte, descend et fait basculer les interrupteurs de niveau (LSL : niveau bas, LSH : niveau haut) ; les caisses du tapis passent devant la cellule, qui les voit une par une : pour les compter, il faut un compteur dans l'automate. <b>Le tapis de tri</b> a en plus un aiguillage : un volet manœuvré par un vérin (dessiné selon l'ISO 1219, avec son distributeur 4/2). Quand la bobine de l'électrovanne (YV) est alimentée, la tige sort et le volet envoie la caisse dans le bac 2 ; sinon, elle tombe dans le bac 1. Pendant la simulation, « Bloquer la tige » (carte du tapis) simule une panne du vérin. Si rien n'arrête le moteur, le chariot force contre la butée (le moteur chauffe) ou la cuve déborde.</p>
+      <p class="discret"><b>Les systèmes du labo</b> (même catégorie) : <b>la barrière levante</b> (vue de dessus) a deux fins de course (levée, baissée) et deux boucles de détection : amont, devant la lisse, et aval, après elle ; « Une voiture arrive » (panneau de simulation) en envoie une, qui attend que la lisse soit levée. La lisse ne doit jamais descendre sur une voiture. <b>Le monte-charge</b> a un capteur à chaque niveau, un capteur de ralentissement avant chaque niveau et un contact de porte (actionné porte fermée) ; avec un variateur, la cabine doit arriver en petite vitesse, et jamais bouger porte ouverte. <b>La station de pompage</b> a trois pompes (P1 débite deux fois plus que P2 ou P3) et quatre électrodes de niveau (10, 30, 70 et 90 %) : l'eau qui touche le bout d'une électrode ferme son contact.</p>
       <p class="discret"><b>Le capteur 3 fils</b> se branche comme dans les machines : BN (marron) au +24 V, BU (bleu) au 0 V, et BK (noir), sa sortie, sur une entrée de l'automate. Un capteur PNP donne du +24 V sur BK quand il détecte ; un NPN donne du 0 V (la charge va alors du +24 V à BK).</p>
       <h3 style="margin-top:14px">Le voltmètre et le dépannage</h3>
       <p class="discret"><b>Chronogramme</b> (pendant la simulation) : une ligne par élément, au fil du temps — boutons et capteurs (1 = actionné), bobines (1 = alimentée), contacts temporisés (1 = fermé), voyants, vitesse et couplage des moteurs, étapes du GRAFCET, fréquence du variateur, position du chariot, niveau de la cuve. ${DOIGT ? "Touche" : "Clique sur"} le tracé pour poser un repère : l'écart de temps avec le curseur s'affiche (pratique pour une temporisation). « Lignes » choisit ce qui est tracé, « Image » l'enregistre pour un compte rendu.</p>
@@ -1948,7 +2013,8 @@
     { cat: "rel", items: [{ type: "bobine", nom: "Bobine KM" }, { type: "poles", nom: "Pôles KM" }, { type: "contact_no", nom: "Contact NO" }, { type: "contact_nf", nom: "Contact NF" }, { type: "relais", nom: "Relais KA" }, { type: "tempo_travail", nom: "Tempo. travail" }, { type: "tempo_repos", nom: "Tempo. repos" }, { type: "contact_tno", nom: "Contact tempo. NO" }, { type: "contact_tnf", nom: "Contact tempo. NF" }, { type: "contact_th_nf", nom: "Thermique 95-96" }, { type: "contact_th_no", nom: "Thermique 97-98" }] },
     { cat: "rec", items: [{ type: "voyant", p: { couleur: "vert" }, nom: "Voyant" }, { type: "electrovanne", nom: "Électrovanne" }, { type: "moteur", nom: "Moteur 3~" }, { type: "moteur6", nom: "Moteur 6 bornes" }] },
     { cat: "api", items: [{ type: "automate", nom: "Automate (API)" }, { type: "variateur", nom: "Variateur" }, { type: "potentiometre", nom: "Potentiomètre" }] },
-    { cat: "po", items: [{ type: "chariot", nom: "Chariot sur rail" }, { type: "cuve", nom: "Cuve et pompe" }, { type: "tapis", nom: "Tapis et caisses" }, { type: "tri", nom: "Tapis de tri (vérin)" }] }
+    { cat: "po", items: [{ type: "chariot", nom: "Chariot sur rail" }, { type: "cuve", nom: "Cuve et pompe" }, { type: "tapis", nom: "Tapis et caisses" }, { type: "tri", nom: "Tapis de tri (vérin)" },
+      { type: "barriere", nom: "Barrière levante" }, { type: "montecharge", nom: "Monte-charge" }, { type: "station", nom: "Station de pompage" }] }
   ];
   const ITEMS = {};
   function construirePalette() {

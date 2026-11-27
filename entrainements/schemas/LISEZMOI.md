@@ -98,11 +98,23 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
      qui tombe pendant que le volet bouge tombe **à côté** : « ce qui se passe » le dit. **Panne** : en simulation, le
      bouton « Bloquer la tige » de la carte du tapis coince la tige où elle est (vérin dessiné en rouge, « bloquée ») ;
      « Débloquer la tige » la répare.
+   - **Les systèmes du labo**, comme ceux des TP et du CCF U51 :
+     **barrière levante** (vue de dessus : la voie, la lisse rayée qui raccourcit en se levant, le fût et son moteur, deux
+     fins de course levée / baissée, deux boucles de détection amont et aval qui passent au vert sous une voiture) ; le
+     bouton « Une voiture arrive » de sa carte envoie une voiture, qui attend que la lisse soit levée. Si la lisse
+     descend sur une voiture, elle reste sur son toit (voiture en rouge, « la lisse touche la voiture ! »).
+     **Monte-charge** (vue de face : la gaine, les deux paliers, le treuil et son câble, la cabine et sa porte) : un
+     capteur par niveau, un capteur de ralentissement avant chaque niveau, un contact de porte ; bouton « Ouvrir la
+     porte » sur sa carte. Bouger porte ouverte est un danger ; avec un variateur, arriver à un niveau à plus de 15 Hz
+     est « trop vite ».
+     **Station de pompage** (schéma de procédé, comme la cuve) : trois pompes P1 (0,75 kW, débit double), P2 et P3
+     (0,37 kW) refoulent dans la bâche ; quatre électrodes de niveau (détection par résistivité, LSLL, LSL, LSH, LSHH
+     à 10, 30, 70 et 90 %) ; curseur « Eau consommée ».
    - **Capteur 3 fils** (catégorie « Commande », PNP ou NPN, sortie NO ou NC, inductif, capacitif ou optique) : BN (marron)
      au +24 V, BU (bleu) au 0 V, BK (noir) : la sortie. En simulation, le losange se colore quand il détecte et le
      contact de sortie se ferme quand la sortie est active. Branché à l'envers : il ne marche pas, et « ce qui se
      passe » le dit.
-   Le panneau de simulation montre où est le chariot, le niveau de la cuve, l'état de leurs capteurs.
+   Le panneau de simulation montre où est le chariot, le niveau de la cuve, la lisse, la cabine, l'état de leurs capteurs.
 9. **Voltmètre** (pendant la simulation, à la place de « Fil » dans la barre d'outils) : un toucher sur une borne pose la
    pointe rouge, le suivant la pointe noire (COM), puis elles alternent. L'écran (en haut à gauche, en bas sur téléphone)
    donne la tension et la suit quand le schéma change : 230 V ~, 400 V ~, 24 V continu avec son signe (−24 V : pointes
@@ -163,6 +175,9 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `tapis` | un lot de 5 caisses : S1 (arrêt), S2 (marche), S3 (acquittement), cellule optique PNP B1 sur %I0.0 à %I0.3, KM1 (tapis) et H1 (lot complet, orange) ; GRAFCET : 0 (R %C0) → S2 → 1 (KM1) → ↑B1 → 2 (KM1, %C0 + 1) → `C0.V < 5` → 1, ou `C0.V >= 5` → 3 (H1) → S3 → 0 ; et 1 → /S1 → 0 |
 | `tri` | tapis de tri, un bac sur deux : S2 (départ), S3 (acquittement), S4 et S5 (vérin rentré, sorti), cellule optique B1 au bout du tapis, sur %I0.0 à %I0.4 ; KM1 (tapis), YV1 (électrovanne du vérin), H1 (lot complet) ; GRAFCET en ET : 0 (R %C0) → `S2 · S4` → {10 (KM1) → `C0.V >= 6` → 11} et {20 → ↓B1 → 21 (%C0 + 1, YV1) → ↓B1 → 22 (%C0 + 1) → `C0.V < 6` → 20, ou `C0.V >= 6` → 23} → {11, 23} → S4 → 30 (H1) → S3 → 0 : 3 caisses dans chaque bac |
 | `tri-surveille` | le même tri, avec H2 (défaut, rouge) sur %Q0.3 et un deuxième GRAFCET, la surveillance du vérin : 50 (initiale) → `t/X21/1s · /S5 + t/X20/1s · /S4` (tige pas sortie 1 s après l'ordre, ou pas rentrée 1 s après) → 51 (« H2 si %S6 ») → `↑S3` → 50 ; dans l'étape 10, « KM1 si /X51 » : le tapis s'arrête pendant le défaut |
+| `barriere` | barrière levante de parking (comme la DECMA-PARK du labo) : inversion de sens KM1 (lever) / KM2 (baisser), automate en GRAFCET ; S2 (badge), S3 et S4 (fins de course levée / baissée), boucles B1 (amont) et B2 (aval) sur %I0.0 à %I0.4, KM1, KM2, H1 (vert) et H2 (rouge) sur %Q0.0 à %Q0.3 (verrouillage KM1 21-22 / KM2 21-22 câblé). 0 → `B1 · S2` → 1 (lever) → `S3` → 2 (vert) → `B2` → 3 → `/B2` (la voiture a quitté la boucle aval) → 4 (baisser) → `S4 · /B2` → 0 ; sécurité 4 → `B2` → 1 (une voiture pendant la descente : la lisse remonte) |
+| `monte-charge` | monte-charge (comme celui du labo : automate et ATV31) : variateur U1 réglé SP2 = 10 Hz, SP3 = 40 Hz ; S1 (arrêt), S2 (monter), S3 (descendre), S4 (porte fermée), B1 / B2 (niveaux 0 et 1), B3 / B4 (ralentissements) sur les 8 entrées ; %Q0.0 → LI1 (montée), %Q0.1 → LI2 (descente), %Q0.2 → LI3 (petite vitesse, SP2), %Q0.3 → LI4 (grande vitesse, SP3), C0 au +24V du variateur. GRAFCET : 0 → 10 (monter vite) → `B4` → 11 (lentement) → `B2` → 0, et 20 / 21 pour descendre ; porte ouverte ou S1 : retour à 0 de partout |
+| `station` | station de pompage (comme la Deltalab SPBE-C du labo) : trois départs moteur (KM1-F1-M1 pour P1, KM2-F2-M2, KM3-F3-M3), les contacts 95-96 en série avec chaque bobine ; S1 (arrêt), S2 (marche), S3 (sélecteur : P3 à la place de P1), électrodes B1 (très bas) à B4 (très haut) sur %I0.0 à %I0.6 ; Ladder : S2 / S1 → %M0 (en service) ; sous B2 → S %M1 (pompe principale) ; sous B1 → S %M2 (P2 en renfort) ; B3 ou hors service → R %M1 et %M2 ; KM1 = M1 · /S3, KM3 = M1 · S3, KM2 = M2 ; H1 (alarme) = B4 + M0 · /B1 |
 | `api-variateur` | automate et variateur : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz ; 10 V avec S4 : 50 Hz), C0 au +24V du variateur, rampes de 2 s |
 | `variateur-pot` | variateur seul : interrupteurs S2 (LI1) et S3 (LI2) sur son +24V, potentiomètre R1 sur +10V, AI1, COM |
 
@@ -412,11 +427,36 @@ Une étape : `{ n, init, com, actions: [{ t: "n" | "s" | "r" | "inc" | "ana", v,
   caisse qui quitte la cellule tombe : `r ≤ 0,2` → bac 1, `r ≥ 0,8` → bac 2, entre les deux → à côté (alerte). Le
   prochain événement est aussi le prochain seuil du vérin. Panne : `action("PO1", "coincer", true | false)` fige `r`
   (journal, message, `coince` dans l'état).
+- **Barrière** (`barriere`) : la lisse va de 0 (baissée) à 1 (levée) en `duree` secondes, comme le chariot (moteur-frein,
+  butées, `sens` : le sens 1 du moteur la lève ou la baisse) ; fins de course `haut` (levée, à 96 %) et `bas` (baissée, à
+  4 %). Les voitures roulent sur une voie (x de −1 à 1,66 ; la lisse en 0 ; x est l'avant de la voiture, longue de 0,4)
+  à 0,25 par seconde, 0,1 au moins entre deux. `action("PO1", "voiture")` en ajoute une (5 au plus). Une voiture attend
+  au pied de la lisse (avant en −0,06) tant que la lisse n'est pas levée à 90 % ; une fois engagée, elle passe. Boucle
+  `amont` de −0,6 à −0,1, boucle `aval` de 0,04 à 0,54 : actionnées dès qu'un bout de voiture est au-dessus. Une
+  voiture sous la lisse (de −0,02 à 0,02) l'arrête à 60 % (son toit) : **choc** (erreur au journal, `chocs`, la voiture
+  en rouge) et, si le moteur pousse vers le bas, il est bloqué comme en butée. Une voiture est **passée** quand elle est
+  tout entière au-delà de la lisse (`passees`). Prochains événements : les seuils de la lisse (dont 60 % et 90 %) et les
+  bords de zones de chaque voiture qui roule.
+- **Monte-charge** (`montecharge`) : la cabine va de 0 (niveau 0) à 1 (niveau 1), comme le chariot ; capteurs `bas` et
+  `haut` à 4 % des bouts, de ralentissement `ralbas` et `ralhaut` à 15 % (relâchés à 16 %), contact de `porte` actionné
+  porte fermée. `action("PO1", "ouvrir" | "fermer" | "porte")` manœuvre la porte. **Danger** (erreur) : le moteur
+  reçoit l'ordre de tourner (contacteur fermé, ou ordre LI1/LI2 au variateur : la rampe de décélération après l'ordre
+  d'arrêt n'en est pas un) porte ouverte. **Arrivée trop vite** (alerte, `brusques`) : avec un variateur, la cabine
+  atteint le capteur d'un niveau à plus de 15 Hz.
+- **Station de pompage** (`station`) : comme la cuve, avec trois pompes (`pompe1` débite 2, `pompe2` et `pompe3` 1 ;
+  une pompe ne débite qu'en sens 1) ; `duree` : temps pour remplir la bâche vide avec une petite pompe ; `conso` en %
+  du débit des trois pompes ensemble (4). Électrodes `tbas`, `bas`, `haut`, `thaut` à 10, 30, 70 et 90 % : dans l'eau
+  à 1 % au-dessus, hors de l'eau à 1 % dessous. Débordement, bâche vide, pompe à l'envers : comme la cuve.
 - **Automate** : `%S6` vaut 1 quand `t mod 1000 < 500` ; si le programme l'utilise, `prochain()` donne la
   demi-seconde suivante.
 - **Défis** : `verifier: { PO1: "gauche" | "droite" | "en-route" }` (chariot ; toute autre valeur : jamais en butée),
   `{ PO1: 60 }` (cuve à 60 % ± 4 ; toute autre valeur : jamais débordé), `{ PO1: 5 }` (tapis : 5 caisses passées devant
   la cellule), `{ PO1: [3, 3] }` (tapis de tri : 3 caisses dans chaque bac, aucune à côté), `{ PO1: "arret" }`.
+  Barrière : `"levee"`, `"baissee"`, `{ PO1: 2 }` (2 voitures passées, sans choc), toute autre valeur : jamais de choc ni
+  de butée. Monte-charge : `"haut"`, `"bas"`, `"en-route"`, `"douce"` (jamais trop vite, jamais en butée, jamais porte
+  ouverte), toute autre valeur : jamais porte ouverte ni en butée. Station : `{ PO1: 70 }` (bâche à 70 % ± 4),
+  `{ PO1: [true, true, false] }` (P1 et P2 pompent, pas P3), toute autre valeur : jamais débordé. Un capteur actionné
+  par une partie opérative se vérifie comme un bouton : `{ B1: true }` (il détecte).
 
 Ce que le moteur ne calcule pas : les courants et les impédances (deux bobines en série ne collent pas, mais sans
 calcul de tension partagée), le verrouillage mécanique, les temps de réponse des contacteurs et le temps de cycle de
@@ -502,6 +542,12 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   transformateur, pôle coupé : 345 V, deux phases) ;
 - `e2e_dep.py` (Playwright, PC et téléphone) : une panne connue (KM1 13-14), fils sans couleur, mesures qui suivent le
   schéma, carte des mesures, erreur de désignation, bonne désignation, réparation, nouvelle panne, quitter, fenêtre ;
+- `t_physique.js` et `t_exemples.js` (Node, dans `/tmp/labo`) : la lisse, les voitures, les boucles, le choc et la lisse
+  posée sur un toit ; la cabine, ses capteurs, la porte, la butée ; la station (débits, électrodes, arrêt à 71 %) ; les
+  trois exemples rejoués en scénario, plus deux programmes faux (la lisse touche la voiture, la cabine arrive trop vite) ;
+- `e2e_labo.py` (Playwright, PC et téléphone) : les trois exemples dessinés et animés (voiture, lisse, cabine, eau),
+  « Une voiture arrive », la porte en route (arrêt sans danger), le curseur de consommation (renfort et alarme), le
+  chronogramme, la palette ;
 - `e2e_suivi_defis.py` (Playwright, base démo du vrai site) : élève pas connecté (rien ne part, il est prévenu) ;
   connectée : 2 essais ratés + indice → 13/20 avec ses détails, pas de renvoi ; un défi du premier coup → 20 ; une
   panne d'entraînement trouvée → envoyée ; un défi réussi avant le suivi part à l'ouverture, une seule fois ; espace

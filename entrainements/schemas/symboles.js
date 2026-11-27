@@ -23,6 +23,12 @@
      L'éditeur s'en sert aussi pour les animer à chaque image, sans tout redessiner. */
   function geoChariot(pos) { const xc = n1(-122 + 244 * c01(pos)); return { xc, a: n1((xc * 11.459) % 360) }; }
   function geoCuve(niv) { const h = n1(113 * c01(niv)); return { y: n1(57 - h), h }; }
+  // barrière (vue de dessus) : la lisse part du pied (0, −22) et traverse la voie ; levée, on la voit raccourcie ;
+  // une voiture (40 px de long) a son avant à 100·x px (x : sa place sur la voie, la lisse en 0)
+  function geoBarriere(pos) { return { y: n1(-22 + 50 * Math.cos(c01(pos) * 85 * Math.PI / 180)) }; }
+  const geoVoiture = (x) => `translate(${n1(100 * (Number(x) || 0))} 0)`;
+  // monte-charge : la cabine monte de 100 px ; le câble descend du treuil (y = −92) au toit de la cabine
+  function geoCabine(pos) { const dy = n1(-100 * c01(pos)); return { t: `translate(0 ${dy})`, cable: `M0 -92V${n1(44 + dy)}` }; }
   /* tapis (mêmes réglages que le moteur de simulation : capteur à 0,6 de la longueur, caisse de 0,08) :
      l'avant de chaque caisse posée sur le tapis (en pixels), le décalage de la bande et l'angle du rouleau */
   const XS_T = 0.6, W_T = 0.08;
@@ -435,6 +441,99 @@
         else if (sim && E.vide) tx.push(T(0, 46, "vide", "middle", "alerte"));
         break;
       }
+      case "barriere": {
+        // vue de dessus : la voie, les deux boucles de détection, le fût (moteur M, fins de course) et la lisse rayée qui traverse
+        // la voie (levée, on la voit raccourcie) ; les voitures roulent de gauche à droite
+        const pos = sim ? E.pos : 0, gb = geoBarriere(pos), mv = sim && Math.abs(E.vit || 0) * 1000 > 0.02 ? Math.sign(E.vit) : 0;
+        h += R(-152, -20, 318, 46, "route") + P("M-152 -20H166M-152 26H166", null, "fin2") + P("M-6 -18V24", null, "arret");
+        const boucle = (x0, x1, r, on, nom) => {
+          h += R(x0, -14, x1 - x0, 34, "boucle" + (on ? " on" : ""), ` rx="4"`);
+          if (String(r || "").trim()) tx.push(T((x0 + x1) / 2, 35, r, "middle", "ref"), T((x0 + x1) / 2, 46, nom, "middle", "info"));
+        };
+        boucle(-60, -10, p.amont, sim && !!E.ca, "amont");
+        boucle(4, 54, p.aval, sim && !!E.cv, "aval");
+        // voitures (5 au plus), coupées au bout de la voie
+        h += `<clipPath id="voie-${esc(pc.id)}"><rect x="-152" y="-30" width="318" height="70"/></clipPath><g clip-path="url(#voie-${esc(pc.id)})" data-voies="${esc(pc.id)}">`;
+        const V = sim ? E.voitures || [] : [], K = sim ? E.chocV || [] : [];
+        for (let j = 0; j < 5; j++) h += `<g data-voiture="${j}" transform="${geoVoiture(V[j] != null ? V[j] : -3)}"${V[j] == null ? ' style="display:none"' : ""}>`
+          + R(-40, -8, 40, 22, "voiture" + (K[j] ? " ko" : ""), ` rx="5"`) + R(-14, -5, 8, 16, "vitre", ` rx="2"`) + R(-36, -5, 5, 16, "vitre", ` rx="1.5"`) + `</g>`;
+        h += `</g>`;
+        // le fût, le moteur et les fins de course de la lisse
+        h += R(-12, -46, 24, 24, "corps-po" + (mv ? " roule" : ""), ` rx="3"`) + `<circle cx="-26" cy="-34" r="7" class="corps-m${mv ? " tourne" : ""}"/>` + texte(-26, -33.6, "M", "petit") + P("M-19 -34H-12");
+        const fdc = (y, r, on, nom) => { if (!String(r || "").trim()) return; h += R(16, y, 13, 9, "po-fdc" + (on ? " on" : ""), ` rx="2"`); tx.push(T(32, y + 4.5, r, "start", "ref"), T(48, y + 4.5, nom, "start", "info")); };
+        fdc(-47, p.haut, sim && !!E.ch, "levée"); fdc(-35, p.bas, sim && !!E.cb, "baissée");
+        h += `<path d="M0 -22V${gb.y}" class="lisse-f" data-lisse="${esc(pc.id)}"/><path d="M0 -22V${gb.y}" class="lisse" data-lisse="${esc(pc.id)}"/><circle cx="0" cy="-22" r="3" class="plein"/>`;
+        if (mv) h += P(mv > 0 ? "M-40 -50V-62M-40 -62l-4 5M-40 -62l4 5" : "M-40 -62V-50M-40 -50l-4 -5M-40 -50l4 -5", null, "sens");
+        tx.push(T(-150, -62, ref, "start", "ref"), T(-150, -50, "barrière · moteur " + (p.moteur || "?"), "start", "info"), T(-26, -48, p.moteur || "?", "middle", "ref"));
+        if (sim) { const n = E.passees || 0; tx.push(T(164, 35, `${n} voiture${n > 1 ? "s" : ""} passée${n > 1 ? "s" : ""}`, "end", "info")); }
+        if (sim && E.surVoiture) tx.push(T(164, 47, "la lisse touche la voiture !", "end", "alerte"));
+        else if (sim && E.chocs) tx.push(T(164, 47, `choc${E.chocs > 1 ? "s" : ""} : ${E.chocs}`, "end", "alerte"));
+        if (sim && E.butee) tx.push(T(-48, -14, "en butée !", "end", "alerte"));
+        break;
+      }
+      case "montecharge": {
+        // vue de face : la gaine, les deux paliers (niveau 0 et niveau 1), le treuil (moteur M) et son câble, la cabine et sa porte ;
+        // les capteurs sur la paroi de droite : niveau bas et haut à 4 % des bouts, ralentissements à 15 %
+        const pos = sim ? E.pos : p.depart === "haut" ? 1 : 0, gc = geoCabine(pos), mv = sim && Math.abs(E.vit || 0) * 1000 > 0.02 ? Math.sign(E.vit) : 0;
+        const ferme = sim ? !!E.porte : true;
+        let hach = ""; for (let x = -110; x <= 36; x += 12) hach += `M${x} 88l-6 6`;
+        h += P(hach, null, "fin") + P("M-112 88H36", null, "rail") + P("M-30 -92V88M30 -92V88", null, "paroi");
+        h += R(-112, -12, 82, 6, "dalle") + P("M-112 -12H-30", null, "fin2");
+        tx.push(T(-110, 80, "niveau 0", "start", "info"), T(-110, -20, "niveau 1", "start", "info"));
+        // treuil
+        h += P("M-18 -92H18", null, "fin2") + `<circle cx="0" cy="-100" r="8" class="corps-m${mv ? " tourne" : ""}"/>` + texte(0, -99.6, "M", "petit");
+        h += `<path d="${gc.cable}" class="cable" data-cable="${esc(pc.id)}"/>`;
+        // cabine (dessinée en bas, déplacée)
+        h += `<g data-cabine="${esc(pc.id)}" transform="${gc.t}">` + R(-26, 44, 52, 44, "corps-po" + (mv ? " roule" : ""), ` rx="2"`) + R(-6, 66, 18, 16, "caisse", ` rx="1.5"`)
+          + (ferme ? P("M-26 46V86", null, "porte") : P("M-26 46V54", null, "porte") + P("M-26 56V86", null, "porte-o")) + R(-31, 44, 6, 6, "po-fdc" + (sim && E.cp ? " on" : ""), ` rx="1"`)
+          + R(26, 84, 5, 4, "came") + `</g>`;
+        const capt = (y, r, on, nom) => { if (!String(r || "").trim()) return; h += R(33, y - 4, 10, 8, "po-fdc" + (on ? " on" : ""), ` rx="2"`); tx.push(T(46, y, r, "start", "ref"), T(62, y, nom, "start", "info")); };
+        capt(-8, p.haut, sim && !!E.ch, "en haut"); capt(4, p.ralhaut, sim && !!E.crh, "ralentir"); capt(72, p.ralbas, sim && !!E.crb, "ralentir"); capt(84, p.bas, sim && !!E.cb, "en bas");
+        if (mv) h += P(mv > 0 ? "M-40 -60V-76M-40 -76l-4 5M-40 -76l4 5" : "M-40 -76V-60M-40 -60l-4 -5M-40 -60l4 -5", null, "sens");
+        tx.push(T(-110, -100, ref, "start", "ref"), T(-110, -88, "monte-charge", "start", "info"), T(12, -100, p.moteur || "?", "start", "ref"));
+        tx.push(T(-110, 36, `porte ${p.porte ? p.porte + " " : ""}${ferme ? "fermée" : "ouverte"}`, "start", ferme ? "info" : "alerte"));
+        if (sim && E.danger) tx.push(T(-110, 48, "porte ouverte en marche !", "start", "alerte"));
+        if (sim && E.butee) tx.push(T(40, E.butee > 0 ? -60 : 98, "en butée !", "start", "alerte"));
+        break;
+      }
+      case "station": {
+        // schéma de procédé : la bâche (comme la cuve), quatre électrodes de niveau (détection par résistivité : l'eau qui touche
+        // le bout d'une électrode ferme le circuit) à 10, 30, 70 et 90 %, trois pompes P1 (0,75 kW), P2 et P3 (0,37 kW)
+        const niv = sim ? E.niv : c01((Number(p.niveau) || 0) / 100), ge = geoCuve(niv);
+        const PO_ = sim ? E.pompes || [] : [], conso = sim ? E.conso || 0 : c01((Number(p.conso) || 0) / 100), cn = sim ? E.cn || [] : [];
+        h += R(-36, ge.y, 72, ge.h, "eau", ` data-eau="${esc(pc.id)}"`);
+        h += P("M-38 -60V58H38V-60", null, "paroi") + P("M8 -60H36", null, "fin2");
+        [["tbas", 0.1, "LSLL", "très bas"], ["bas", 0.3, "LSL", "bas"], ["haut", 0.7, "LSH", "haut"], ["thaut", 0.9, "LSHH", "très haut"]].forEach(([k, L, code, nom], j) => {
+          const y = n1(57 - 113 * L), r = p[k], on = sim && !!cn[j], xe = 12 + 7 * j;
+          h += P(`M-36 ${y}H36`, null, "repere");
+          if (!String(r || "").trim()) return;
+          h += P(`M${xe} -60V${y}`, null, "electrode" + (on ? " on" : "")) + `<circle cx="${xe}" cy="${y}" r="1.8" class="plein"/>`;
+          h += P(`M38 ${y}H45`, null, "fin") + `<circle cx="55" cy="${y}" r="10" class="instr${on ? " on" : ""}"/>` + texte(55, n1(y + 0.4), code, "petit");
+          tx.push(T(68, y - 1, r, "start", "ref"), T(68, y + 9, nom, "start", "info"));
+        });
+        // les trois pompes, empilées : moteur M au-dessus, aspiration à gauche, refoulement vers le collecteur (x = −60)
+        const Y = [56, 14, -28], marche = PO_.some(Boolean);
+        h += P("M-120 70V-28", null, "tuyau") + P("M-60 56V-72H-30V-58", null, "tuyau" + (marche ? " on" : ""));
+        Y.forEach((y, k) => {
+          const mr = p["pompe" + (k + 1)], on = !!PO_[k];
+          if (!String(mr || "").trim()) { h += P(`M-120 ${y}H-112`, null, "fin2"); return; }
+          h += P(`M-120 ${y}H-93`, null, "tuyau" + (on ? " on" : "")) + P(`M-75 ${y}H-60`, null, "tuyau" + (on ? " on" : ""));
+          h += `<circle cx="-84" cy="${y}" r="9" class="corps-m${on ? " tourne" : ""}"/><path d="M-75 ${y}L-82.8 ${y - 4.5}V${y + 4.5}Z" class="plein"/>`;
+          h += P(`M-84 ${y - 9}V${y - 10}`) + `<circle cx="-84" cy="${y - 17}" r="7" class="corps-m${on ? " tourne" : ""}"/>` + texte(-84, n1(y - 16.6), "M", "petit");
+          tx.push(T(-93, y - 17, mr, "end", "ref"), T(-72, y - 7, "P" + (k + 1), "start", "info"));
+        });
+        tx.push(T(-120, 79, "aspiration", "middle", "info"));
+        if (marche) h += P("M-30 -56V-38", null, "jet");
+        const sort = sim && conso > 0 && niv > 0.001;
+        h += P("M0 58V77", null, "tuyau" + (sort ? " on" : "")) + P("M-5 62H5L-5 72H5Z", null, "vanne");
+        if (sort) h += P("M0 78V86", null, "jet");
+        if (sim && E.deborde) h += P("M-40 -58q-7 9 -6 28M40 -58q7 9 6 28", null, "jet");
+        h += texte(-8, -46, Math.round(niv * 100) + " %", "moyen", "middle", ` data-nivt="${esc(pc.id)}"`);
+        tx.push(T(9, 67, "sortie " + Math.round(conso * 100) + " %", "start", "info"), T(-24, -82, ref, "start", "ref"), T(-24, -71, "station de pompage", "start", "info"));
+        if (sim && E.deborde) tx.push(T(44, -70, "déborde !", "start", "alerte"));
+        else if (sim && E.vide) tx.push(T(0, 46, "vide", "middle", "alerte"));
+        break;
+      }
       case "potentiometre": {
         h += P("M-20 -20H12V-16", c["1"]) + P("M-20 20H12V16", c["3"]) + P("M-20 0H3", c["2"]);
         h += R(6, -16, 12, 32, "corps-b") + `<path d="M0 -4.2L6.5 0L0 4.2Z" class="act plein"/>`;
@@ -460,6 +559,11 @@
     tri: `<svg viewBox="-36 -22 72 44" class="sy" aria-hidden="true" focusable="false"><path d="M-30 -6H14A3 3 0 0 1 14 0H-30A3 3 0 0 1 -30 -6Z" class="bande"/><rect x="-20" y="-13" width="8" height="7" rx="1" class="caisse"/><rect x="0" y="-13" width="8" height="7" rx="1" class="caisse"/><path d="M17 1L24 9" class="volet"/><path d="M12 12V20H22V12M26 12V20H34V12" class="paroi"/><rect x="-30" y="8" width="18" height="7" class="verin"/><path d="M-28 11.5H-6" class="tige"/></svg>`,
     cuve: `<svg viewBox="-34 -24 68 48" class="sy" aria-hidden="true" focusable="false"><rect x="-13" y="-1" width="26" height="20" class="eau"/><path d="M-14 -20V20H14V-20" class="paroi"/><path d="M-13 -10H13M-13 10H13" class="repere"/><path d="M-27 9V-23H-6V-19" class="tuyau"/><circle cx="-27" cy="14" r="5" class="corps-m"/><path d="M-27 9L-29.6 13.4H-24.4Z" class="plein"/><circle cx="21" cy="-10" r="4" class="instr"/><circle cx="21" cy="10" r="4" class="instr"/></svg>`
   };
+  Object.assign(ICONES, {
+    barriere: `<svg viewBox="-36 -22 72 44" class="sy" aria-hidden="true" focusable="false"><rect x="-34" y="-4" width="68" height="20" class="route"/><rect x="-26" y="0" width="16" height="11" rx="3" class="voiture"/><rect x="2" y="-17" width="9" height="9" rx="2" class="corps-po"/><path d="M6.5 -8V16" class="lisse-f"/><path d="M6.5 -8V16" class="lisse"/></svg>`,
+    montecharge: `<svg viewBox="-36 -22 72 44" class="sy" aria-hidden="true" focusable="false"><path d="M-12 -18V20M12 -18V20" class="paroi"/><path d="M-30 4H-12M-30 20H12" class="fin2"/><path d="M0 -18V-6" class="cable"/><rect x="-10" y="-6" width="20" height="16" rx="1.5" class="corps-po"/><circle cx="0" cy="-18" r="3.5" class="corps-m"/></svg>`,
+    station: `<svg viewBox="-36 -24 72 48" class="sy" aria-hidden="true" focusable="false"><rect x="-1" y="0" width="26" height="19" class="eau"/><path d="M-2 -20V20H26V-20" class="paroi"/><path d="M14 -20V6M20 -20V-8" class="electrode"/><circle cx="-24" cy="12" r="5" class="corps-m"/><circle cx="-24" cy="-2" r="5" class="corps-m"/><circle cx="-24" cy="-16" r="5" class="corps-m"/><path d="M-19 12H-12V-23H6V-20M-19 -2H-12M-19 -16H-12" class="tuyau"/></svg>`
+  });
   /* l'icône d'un symbole pour la palette (repère du symbole, sans texte) */
   function icone(type, p, opt) {
     if (ICONES[type]) return ICONES[type];
@@ -472,6 +576,6 @@
     return `<svg viewBox="${x0} ${y0} ${w} ${h}" class="sy" aria-hidden="true" focusable="false">${d.corps}${lab}</svg>`;
   }
 
-  const API = { dessiner, icone, geoChariot, geoCuve, geoTapis, geoTri, COUL_POT, COUL_VOYANT, NOM_POT };
+  const API = { dessiner, icone, geoChariot, geoCuve, geoTapis, geoTri, geoBarriere, geoVoiture, geoCabine, COUL_POT, COUL_VOYANT, NOM_POT };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasSymboles = API;
 })(typeof window !== "undefined" ? window : globalThis);

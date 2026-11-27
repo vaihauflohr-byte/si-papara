@@ -130,6 +130,14 @@
     p: { moteur: "M1", sens: "1", capteur: "B1", duree: 6, ecart: 30, caisses: 0 }, bornes: () => [] });
   def("cuve", { nom: "Cuve et pompe (partie opérative)", court: "Cuve", cat: "po", pref: "PO", sansRot: true, boite: [-10, -8.4, 12.5, 8.4],
     p: { moteur: "M1", bas: "B1", haut: "B2", duree: 10, conso: 40, niveau: 50 }, bornes: () => [] });
+  // les systèmes du labo : barrière levante (boucles de détection amont et aval), monte-charge à deux niveaux
+  // (ralentissements, porte), station de pompage (trois pompes : P1 0,75 kW, P2 et P3 0,37 kW ; quatre électrodes)
+  def("barriere", { nom: "Barrière levante et voitures (partie opérative)", court: "Barrière", cat: "po", pref: "PO", sansRot: true, boite: [-16, -7.4, 17, 5.4],
+    p: { moteur: "M1", sens: "1", haut: "S3", bas: "S4", amont: "B1", aval: "B2", duree: 3 }, bornes: () => [] });
+  def("montecharge", { nom: "Monte-charge à deux niveaux (partie opérative)", court: "Monte-charge", cat: "po", pref: "PO", sansRot: true, boite: [-12, -11, 14, 10],
+    p: { moteur: "M1", sens: "1", bas: "B1", haut: "B2", ralbas: "B3", ralhaut: "B4", porte: "S4", duree: 8, depart: "bas" }, bornes: () => [] });
+  def("station", { nom: "Station de pompage à trois pompes (partie opérative)", court: "Station de pompage", cat: "po", pref: "PO", sansRot: true, boite: [-14, -8.8, 13, 8.4],
+    p: { pompe1: "M1", pompe2: "M2", pompe3: "M3", tbas: "B1", bas: "B2", haut: "B3", thaut: "B4", duree: 20, conso: 40, niveau: 50 }, bornes: () => [] });
 
   const CATS = [
     { id: "alim", nom: "Alimentation" }, { id: "prot", nom: "Protection" }, { id: "cmd", nom: "Commande" },

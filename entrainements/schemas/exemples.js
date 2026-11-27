@@ -148,7 +148,7 @@
   function puissanceVariateur(b, p) {
     b.p("reseau", 2, 14);
     b.p("disj_moteur", 4, 21, "Q1", { cal: 6 });
-    b.p("variateur", 4, 31, "U1", Object.assign({ acc: 2, dec: 2, ref: "AI1" }, p || {}));
+    b.p("variateur", 4, 31, "U1", Object.assign({ acc: 2, dec: 2 }, p || {}, { ref: (p && p.ref) || "AI1" }));   // dans l'ordre des réglages (export JSON identique)
     b.p("moteur", 4, 56, "M1");
     for (const x of [2, 4, 6]) b.f([x, 16], [x, 18]).f([x, 24], [x, 26]).f([x, 48], [x, 52]);
     b.f([10, 16], [10, 25], [8, 25], [8, 26]).f([8, 48], [8, 52]);
@@ -369,6 +369,137 @@
   }
 
   /* ---------- les exemples ---------- */
+  /* ---------- les systèmes du labo : barrière, monte-charge, station de pompage ---------- */
+  // jusqu'à 8 entrées sans croisement : les appareils en ligne (tous les 6 pas), leurs fils descendent en escalier vers %I0.k
+  function entreesP(b, ax, L) {
+    const yd = L.length > 7 ? 5 : 7, yb = yd - 5, x0 = ax - 5, xs = L.map((_, k) => x0 + 6 * k);
+    b.p("alim", ax - 8, yb - 3, "", { pot: "+24" }, 0);
+    b.f([ax - 11, 18], [ax - 11, yb], [xs[xs.length - 1], yb]).f([ax - 8, yb - 1], [ax - 8, yb]);
+    L.forEach(([type, ref, p], k) => {
+      const x = xs[k]; b.p(type, x, yd, ref, p);
+      b.f([x, yb], [x, yd - 3]);
+      if (k === 0) b.f([x, yd + 3], [x, 18]); else b.f([x, yd + 3], [x, yd + 4 + k], [x0 + 2 * k, yd + 4 + k], [x0 + 2 * k, 18]);
+    });
+  }
+  // les sorties %Q0.0 à %Q0.3 vers leurs charges, en escalier vers la droite (colonnes x = ax − 2 + 6i) ; C0 ← L par F (et un
+  // contact 95-96 si th) ; une colonne = une charge (y = 45) ou deux en série (y = 38 et 45) ; N en bas (y = 50)
+  function sortiesP(b, ax, L, o) {
+    o = o || {};
+    const xl = ax - 17;
+    b.p("alim", xl, 13, "", { pot: "L" }, 0); b.p("fusible", xl, 19, o.fusible || "F2", { cal: 2 });
+    b.f([xl, 15], [xl, 16]);
+    if (o.th) { b.p("contact_th_nf", xl, 26, o.th, { num: "95-96" }); b.f([xl, 22], [xl, 23]).f([xl, 29], [xl, 30], [ax - 11, 30]); }
+    else b.f([xl, 22], [xl, 30], [ax - 11, 30]);
+    const n = L.length, X = L.map((_, i) => ax - 2 + 6 * i);
+    L.forEach(([k, ch], i) => {
+      const xq = ax - 9 + 2 * k, r = 31 + (n - 1 - i), x = X[i], deux = ch.length > 1;
+      b.f([xq, 30], [xq, r], [x, r], [x, deux ? 35 : 42]);
+      if (deux) { b.p(ch[0][0], x, 38, ch[0][1], ch[0][2]); b.p(ch[1][0], x, 45, ch[1][1], ch[1][2]); b.f([x, 41], [x, 42]); }
+      else b.p(ch[0][0], x, 45, ch[0][1], ch[0][2]);
+      b.f([x, 48], [x, 50]);
+    });
+    b.f([X[0], 50], [X[n - 1], 50]);
+    b.p("alim", X[0] + 3, 52, "", { pot: "N" });
+  }
+  // barrière levante (comme la DECMA-PARK du labo) : B1 (boucle amont) et S2 (badge) lèvent la lisse (KM1) jusqu'à S3 ;
+  // H1 (vert) : passez ; la voiture passe sur B2 (boucle aval) ; quand elle l'a quittée, la lisse se baisse (KM2) jusqu'à S4.
+  // Sécurité : une voiture sur B2 pendant la descente → la lisse remonte. H2 (rouge) sinon.
+  const NOMS_BARRIERE = { "%I0.0": "S2", "%I0.1": "S3", "%I0.2": "S4", "%I0.3": "B1", "%I0.4": "B2", "%Q0.0": "KM1", "%Q0.1": "KM2", "%Q0.2": "H1", "%Q0.3": "H2" };
+  function progBarriere() {
+    return { lang: "grafcet", noms: Object.assign({}, NOMS_BARRIERE), grafcet: {
+      etapes: [{ n: 0, init: true, com: "baissée, feu rouge", actions: [{ t: "n", v: "%Q0.3" }] },
+        { n: 1, com: "lever la lisse", actions: [{ t: "n", v: "%Q0.0" }, { t: "n", v: "%Q0.3" }] },
+        { n: 2, com: "levée : passez (feu vert)", actions: [{ t: "n", v: "%Q0.2" }] },
+        { n: 3, com: "la voiture passe", actions: [{ t: "n", v: "%Q0.3" }] },
+        { n: 4, com: "baisser la lisse", actions: [{ t: "n", v: "%Q0.1" }, { t: "n", v: "%Q0.3" }] }],
+      transitions: [{ de: [0], vers: [1], r: "B1 · S2" }, { de: [1], vers: [2], r: "S3" }, { de: [2], vers: [3], r: "B2" }, { de: [3], vers: [4], r: "/B2" },
+        { de: [4], vers: [0], r: "S4 · /B2" }, { de: [4], vers: [1], r: "B2" }] } };
+  }
+  function exempleBarriere(sansProg) {
+    const b = plan(sansProg ? "Défi · La barrière du parking" : "Barrière levante de parking (GRAFCET)");
+    puissanceInversion(b);
+    const ap = automate24(b, 40, progBarriere());
+    if (sansProg) ap.prog = SA.validerProg({ lang: "grafcet", noms: progBarriere().noms });
+    entreesP(b, 40, [["bp_no", "S2", { num: "13-14" }], ["fdc_no", "S3", { num: "13-14" }], ["fdc_no", "S4", { num: "13-14" }], ["capteur", "B1", { num: "13-14" }], ["capteur", "B2", { num: "13-14" }]]);
+    sortiesP(b, 40, [[0, [["contact_nf", "KM2", { num: "21-22" }], ["bobine", "KM1", { tension: "230~" }]]], [1, [["contact_nf", "KM1", { num: "21-22" }], ["bobine", "KM2", { tension: "230~" }]]],
+      [2, [["voyant", "H1", { couleur: "vert", tension: "230~" }]]], [3, [["voyant", "H2", { couleur: "rouge", tension: "230~" }]]]], { th: "F1" });
+    b.p("barriere", 46, 64, "PO1", { moteur: "M1", sens: "1", haut: "S3", bas: "S4", amont: "B1", aval: "B2", duree: 3 });
+    return b.s;
+  }
+  // monte-charge (comme celui du labo : automate et ATV31) : S2 monte, S3 descend, porte fermée (S4) et S1 (arrêt) obligatoires ;
+  // grande vitesse (LI4 : SP3 = 40 Hz) jusqu'au capteur de ralentissement, petite vitesse (LI3 : SP2 = 10 Hz) jusqu'à l'étage
+  const NOMS_MC = { "%I0.0": "S1", "%I0.1": "S2", "%I0.2": "S3", "%I0.3": "S4", "%I0.4": "B1", "%I0.5": "B2", "%I0.6": "B3", "%I0.7": "B4",
+    "%Q0.0": "MONTEE", "%Q0.1": "DESCENTE", "%Q0.2": "PV", "%Q0.3": "GV" };
+  function progMonteCharge() {
+    const n = (v) => ({ t: "n", v });
+    return { lang: "grafcet", noms: Object.assign({}, NOMS_MC), grafcet: {
+      etapes: [{ n: 0, init: true, com: "cabine arrêtée", actions: [] },
+        { n: 10, com: "monter vite", actions: [n("%Q0.0"), n("%Q0.3")] }, { n: 11, com: "monter lentement", actions: [n("%Q0.0"), n("%Q0.2")] },
+        { n: 20, com: "descendre vite", actions: [n("%Q0.1"), n("%Q0.3")] }, { n: 21, com: "descendre lentement", actions: [n("%Q0.1"), n("%Q0.2")] }],
+      transitions: [{ de: [0], vers: [10], r: "S2 · /S3 · S4 · S1 · /B2" }, { de: [0], vers: [20], r: "S3 · /S2 · S4 · S1 · /B1" },
+        { de: [10], vers: [11], r: "B4 · S4 · S1" }, { de: [10], vers: [0], r: "/S4 + /S1" }, { de: [11], vers: [0], r: "B2 + /S4 + /S1" },
+        { de: [20], vers: [21], r: "B3 · S4 · S1" }, { de: [20], vers: [0], r: "/S4 + /S1" }, { de: [21], vers: [0], r: "B1 + /S4 + /S1" }] } };
+  }
+  function exempleMonteCharge(sansProg) {
+    const b = plan(sansProg ? "Défi · Le monte-charge ralentit" : "Monte-charge : automate et variateur (GRAFCET)");
+    puissanceVariateur(b, { sp2: 10, sp3: 40 });
+    const ap = automate24(b, 36, progMonteCharge());
+    if (sansProg) ap.prog = SA.validerProg({ lang: "grafcet", noms: progMonteCharge().noms });
+    entreesP(b, 36, [["bp_nf", "S1", { num: "11-12" }], ["bp_no", "S2", { num: "13-14" }], ["bp_no", "S3", { num: "13-14" }], ["fdc_no", "S4", { num: "13-14" }],
+      ["capteur", "B1", { num: "13-14" }], ["capteur", "B2", { num: "13-14" }], ["capteur", "B3", { num: "13-14" }], ["capteur", "B4", { num: "13-14" }]]);
+    b.p("alim", 16, 48, "", { pot: "0V" });
+    b.f([25, 30], [25, 32], [12, 32]);     // C0 ← +24V du variateur
+    b.f([27, 30], [27, 34], [12, 34]);     // %Q0.0 → LI1 (montée)
+    b.f([29, 30], [29, 36], [12, 36]);     // %Q0.1 → LI2 (descente)
+    b.f([31, 30], [31, 38], [12, 38]);     // %Q0.2 → LI3 (petite vitesse, SP2)
+    b.f([33, 30], [33, 40], [12, 40]);     // %Q0.3 → LI4 (grande vitesse, SP3)
+    b.f([12, 46], [16, 46]);               // COM du variateur au 0 V commun
+    b.p("montecharge", 58, 46, "PO1", { moteur: "M1", sens: "1", bas: "B1", haut: "B2", ralbas: "B3", ralhaut: "B4", porte: "S4", duree: 8, depart: "bas" });
+    return b.s;
+  }
+  // station de pompage (comme la Deltalab du labo) : trois départs moteur (KM1 et F1 pour P1, KM2-F2 pour P2, KM3-F3 pour P3) ;
+  // l'automate démarre la pompe principale (P1, ou P3 si S3 est tourné) sous l'électrode bas B2, la pompe P2 en renfort sous
+  // l'électrode très bas B1, et les arrête toutes deux à l'électrode haut B3. H1 : alarme (très haut B4, ou très bas en service)
+  const NOMS_STATION = { "%I0.0": "S1", "%I0.1": "S2", "%I0.2": "S3", "%I0.3": "B1", "%I0.4": "B2", "%I0.5": "B3", "%I0.6": "B4",
+    "%Q0.0": "KM1", "%Q0.1": "KM2", "%Q0.2": "KM3", "%Q0.3": "H1", "%M0": "AUTO", "%M1": "PRINC", "%M2": "RENFORT" };
+  function progStation() {
+    return { lang: "ladder", noms: Object.assign({}, NOMS_STATION), ladder: [
+      { com: "S2 : mise en service", l: [{ c: [ct("no", "%I0.1"), N, N, N, N], s: { t: "s", v: "%M0" } }], v: [] },
+      { com: "S1 (bouton à ouverture) : mise hors service", l: [{ c: [ct("nf", "%I0.0"), N, N, N, N], s: { t: "r", v: "%M0" } }], v: [] },
+      { com: "Sous l'électrode bas B2 : la pompe principale démarre", l: [{ c: [ct("no", "%M0"), ct("nf", "%I0.4"), N, N, N], s: { t: "s", v: "%M1" } }], v: [] },
+      { com: "Sous l'électrode très bas B1 : la pompe P2 vient en renfort", l: [{ c: [ct("no", "%M0"), ct("nf", "%I0.3"), N, N, N], s: { t: "s", v: "%M2" } }], v: [] },
+      { com: "Électrode haut B3, ou hors service : elles s'arrêtent", l: [{ c: [ct("no", "%I0.5"), N, N, N, N], s: { t: "r", v: "%M1" } }, { c: [ct("nf", "%M0"), N, N, N, N], s: null }], v: [[1]] },
+      { com: "", l: [{ c: [ct("no", "%I0.5"), N, N, N, N], s: { t: "r", v: "%M2" } }, { c: [ct("nf", "%M0"), N, N, N, N], s: null }], v: [[1]] },
+      { com: "KM1 : P1 est la pompe principale (S3 au repos)", l: [{ c: [ct("no", "%M1"), ct("nf", "%I0.2"), N, N, N], s: { t: "bob", v: "%Q0.0" } }], v: [] },
+      { com: "KM3 : P3 la remplace (S3 tourné)", l: [{ c: [ct("no", "%M1"), ct("no", "%I0.2"), N, N, N], s: { t: "bob", v: "%Q0.2" } }], v: [] },
+      { com: "KM2 : P2 en renfort", l: [{ c: [ct("no", "%M2"), N, N, N, N], s: { t: "bob", v: "%Q0.1" } }], v: [] },
+      { com: "H1 : alarme (très haut, ou très bas en service)", l: [{ c: [ct("no", "%I0.6"), N, N, N, N], s: { t: "bob", v: "%Q0.3" } }, { c: [ct("no", "%M0"), ct("nf", "%I0.3"), N, N, N], s: null }], v: [[2]] }] };
+  }
+  function exempleStation(sansProg) {
+    const b = plan(sansProg ? "Défi · Les pompes en renfort" : "Station de pompage : trois pompes, quatre électrodes (Ladder)");
+    // puissance : Q1, puis trois départs moteur (x = 4, 14, 24)
+    b.p("reseau", 2, 0); b.p("sectionneur", 4, 7, "Q1", { cal: 10 });
+    for (const x of [2, 4, 6]) b.f([x, 2], [x, 4]);
+    b.f([2, 10], [2, 15]).f([4, 10], [4, 15]).f([6, 10], [6, 15]);
+    b.f([2, 12], [22, 12]).f([4, 13], [24, 13]).f([6, 14], [26, 14]);
+    [[4, "KM1", "F1", "M1"], [14, "KM2", "F2", "M2"], [24, "KM3", "F3", "M3"]].forEach(([x, km, f, m], k) => {
+      b.p("poles", x, 18, km); b.p("thermique", x, 26, f, { cal: k ? 1.2 : 2.2 }); b.p("moteur", x, 35, m);
+      if (k) b.f([x - 2, 12], [x - 2, 15]).f([x, 13], [x, 15]).f([x + 2, 14], [x + 2, 15]);
+      for (const dx of [-2, 0, 2]) b.f([x + dx, 21], [x + dx, 23]).f([x + dx, 29], [x + dx, 31]);
+      b.f([x + 4, 30], [x + 4, 31]);
+    });
+    b.f([10, 2], [10, 9], [30, 9], [30, 30], [8, 30]);   // PE des trois moteurs
+    const ax = 52;
+    const ap = automate24(b, ax, progStation());
+    if (sansProg) ap.prog = SA.validerProg({ lang: "ladder", noms: progStation().noms });
+    entreesP(b, ax, [["bp_nf", "S1", { num: "11-12" }], ["bp_no", "S2", { num: "13-14" }], ["selecteur", "S3", { num: "13-14", contact: "no" }],
+      ["capteur", "B1", { num: "13-14" }], ["capteur", "B2", { num: "13-14" }], ["capteur", "B3", { num: "13-14" }], ["capteur", "B4", { num: "13-14" }]]);
+    sortiesP(b, ax, [[0, [["contact_th_nf", "F1", { num: "95-96" }], ["bobine", "KM1", { tension: "230~" }]]], [1, [["contact_th_nf", "F2", { num: "95-96" }], ["bobine", "KM2", { tension: "230~" }]]],
+      [2, [["contact_th_nf", "F3", { num: "95-96" }], ["bobine", "KM3", { tension: "230~" }]]], [3, [["voyant", "H1", { couleur: "rouge", tension: "230~" }]]]], { fusible: "F4" });
+    b.p("station", 88, 41, "PO1", { pompe1: "M1", pompe2: "M2", pompe3: "M3", tbas: "B1", bas: "B2", haut: "B3", thaut: "B4", duree: 20, conso: 40, niveau: 50 });
+    return b.s;
+  }
+
   const EXEMPLES = [
     { id: "lampe", titre: "Une lampe et un bouton poussoir", niveau: "Pour commencer",
       resume: "H1 s'allume tant qu'on appuie sur S1. H2 reste allumé : S2 est un interrupteur.",
@@ -466,6 +597,15 @@
     { id: "tri-surveille", titre: "Tapis de tri surveillé : défaut du vérin", niveau: "Partie opérative",
       resume: "Le même tri, avec un deuxième GRAFCET qui surveille le vérin (étapes 50 et 51) : s'il n'est pas sorti 1 s après l'ordre, le tapis s'arrête et H2 clignote (horloge %S6). Pour l'essayer : « Bloquer la tige » dans le panneau de simulation, puis « Débloquer » et S3 pour acquitter.",
       construire() { return exempleTriSurveille(); } },
+    { id: "barriere", titre: "Barrière levante de parking (GRAFCET)", niveau: "Systèmes du labo",
+      resume: "Une voiture arrive sur la boucle B1 ; S2 (le badge) lève la lisse (KM1) jusqu'à S3, H1 vert : passez. Quand la voiture a quitté la boucle aval B2, la lisse se baisse (KM2) jusqu'à S4. Une voiture sur B2 pendant la descente : la lisse remonte. Bouton « Une voiture arrive » dans le panneau de simulation.",
+      construire() { return exempleBarriere(); } },
+    { id: "monte-charge", titre: "Monte-charge : automate et variateur (GRAFCET)", niveau: "Systèmes du labo",
+      resume: "S2 monte, S3 descend, seulement porte fermée (S4). Grande vitesse (LI4 : 40 Hz) jusqu'au capteur de ralentissement B4 (ou B3), puis petite vitesse (LI3 : 10 Hz) jusqu'à l'étage B2 (ou B1). Porte ouverte ou S1 : la cabine s'arrête. Porte : bouton dans le panneau de simulation.",
+      construire() { return exempleMonteCharge(); } },
+    { id: "station", titre: "Station de pompage : trois pompes, quatre électrodes (Ladder)", niveau: "Systèmes du labo",
+      resume: "S2 met en service. Sous l'électrode bas B2, la pompe principale démarre (P1, ou P3 si S3 est tourné) ; sous l'électrode très bas B1, P2 vient en renfort ; à l'électrode haut B3, elles s'arrêtent. H1 : alarme. Règle l'eau consommée dans le panneau de simulation.",
+      construire() { return exempleStation(); } },
     { id: "api-variateur", titre: "Automate et variateur : deux sens, deux vitesses", niveau: "Variateur",
       resume: "API1 commande U1 : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz, 10 V : 50 Hz avec S4). Rampes de 2 s.",
       construire() { return exempleVariateurApi(); } },
@@ -824,6 +964,7 @@
         { faire: [["surcharge", "F1"]], verifier: { KM1: false, KM3: false } }] }
   ];
 
-  const API = { DEPANNAGES, EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, progCuve, progTapisGrafcet, progTapisLadder, progTri, progTriSurveille, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot, exempleCuve, exempleVaEtVient, exempleTapis, exempleTri, exempleTriSurveille };
+  const API = { DEPANNAGES, EXEMPLES, DEFIS, inversion, plan, progMA, progChariot, progVariateur, progCuve, progTapisGrafcet, progTapisLadder, progTri, progTriSurveille, exempleApiLadder, exempleApiGrafcet, exempleVariateurApi, exempleVariateurPot, exempleCuve, exempleVaEtVient, exempleTapis, exempleTri, exempleTriSurveille,
+    progBarriere, progMonteCharge, progStation, exempleBarriere, exempleMonteCharge, exempleStation };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasExemples = API;
 })(typeof window !== "undefined" ? window : globalThis);

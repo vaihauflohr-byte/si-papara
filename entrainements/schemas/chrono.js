@@ -5,7 +5,8 @@
    - protections : relais thermique, disjoncteurs, sectionneur, fusibles (la ligne apparaît quand elle change) ;
    - sorties : voyants, électrovannes (1 = alimenté) ; moteurs : vitesse avec son sens, couplage étoile ou triangle ;
    - automate : entrées et sorties qui ont servi, étapes actives du GRAFCET ;
-   - grandeurs : fréquence du variateur, potentiomètre, position du chariot, niveau de la cuve, caisses du tapis.
+   - grandeurs : fréquence du variateur, potentiomètre, position du chariot, niveau de la cuve, caisses du tapis, lisse de la
+     barrière, cabine et porte du monte-charge, niveau de la station de pompage.
    L'éditeur appelle demarrer(schema, E) au lancement de la simulation, echantillon(E) quand l'état change,
    tic(t) sinon (pour faire défiler), arreter() à la fin. On ne garde que les changements ([t, v]).
    Un clic sur le tracé pose un repère : le bandeau donne alors l'écart de temps avec le curseur. */
@@ -68,6 +69,11 @@
       else if (t === "chariot") ajouter({ k: "o:" + r, lib: r, sous: "position du chariot (droite en haut)", g: "ana", ty: "ana", min: 0, max: 1, fmt: (v) => (v < 0.01 ? "à gauche" : v > 0.99 ? "à droite" : nf(v * 100) + " % de la course"), lire: (E) => { const a = A(E, r); return a && a.pos != null ? a.pos : null; } });
       else if (t === "cuve") ajouter({ k: "o:" + r, lib: r, sous: "niveau de la cuve", g: "ana", ty: "ana", min: 0, max: 1, fmt: (v) => nf(v * 100) + " %", lire: (E) => { const a = A(E, r); return a && a.niv != null ? a.niv : null; } });
       else if (t === "tapis" || t === "tri") ajouter({ k: "o:" + r, lib: r, sous: "caisses vues par le capteur", g: "ana", ty: "bus", lire: (E) => { const a = A(E, r); return a && a.vues != null ? String(a.vues) : null; } });
+      else if (t === "barriere") ajouter({ k: "o:" + r, lib: r, sous: "lisse (levée en haut)", g: "ana", ty: "ana", min: 0, max: 1, fmt: (v) => (v < 0.01 ? "baissée" : v > 0.99 ? "levée" : nf(v * 100) + " %"), lire: (E) => { const a = A(E, r); return a && a.pos != null ? a.pos : null; } });
+      else if (t === "montecharge") {
+        ajouter({ k: "o:" + r, lib: r, sous: "cabine (en haut en haut)", g: "ana", ty: "ana", min: 0, max: 1, fmt: (v) => (v < 0.01 ? "en bas" : v > 0.99 ? "en haut" : nf(v * 100) + " %"), lire: (E) => { const a = A(E, r); return a && a.pos != null ? a.pos : null; } });
+        ajouter({ k: "p:" + r, lib: r, sous: "porte (1 = fermée)", g: "ana", ty: "bin", lire: (E) => { const a = A(E, r); return a && a.porte != null ? !!a.porte : null; } });
+      } else if (t === "station") ajouter({ k: "o:" + r, lib: r, sous: "niveau de la bâche", g: "ana", ty: "ana", min: 0, max: 1, fmt: (v) => nf(v * 100) + " %", lire: (E) => { const a = A(E, r); return a && a.niv != null ? a.niv : null; } });
     }
     const rang = (g) => GROUPES.findIndex((x) => x[0] === g);
     const nat = (a, b) => String(a).localeCompare(String(b), "fr", { numeric: true });
