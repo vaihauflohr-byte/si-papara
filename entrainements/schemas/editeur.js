@@ -6,6 +6,7 @@
    ===================================================================== */
 (function () {
   "use strict";
+  const CH = window.SchemasChrono || { demarrer() {}, echantillon() {}, tic() {}, arreter() {}, basculer() {}, ouvert: () => false };
   const M = window.SchemasModele, SY = window.SchemasSymboles, MO = window.SchemasMoteur, X = window.SchemasExemples, SA = window.SchemasAutomate, PR = window.SchemasProgramme;
   const G = M.G;
   const $ = (id) => document.getElementById(id);
@@ -1118,6 +1119,7 @@
     brouillon = null; if (outil === "placer" || outil === "fil") choisirOutil("fleche");
     sel.clear(); geste = null; survolPiece = null;
     sim = MO.simulation(M.cloner(schema), avecPanne() ? { panne: depEtat.panne } : {}); simE = masquer(sim.etat()); simSig = ""; angles = {}; tPrec = 0;
+    CH.demarrer(schema, simE);
     document.body.classList.add("simu"); document.body.classList.toggle("depannage", doc.type === "depannage");
     const b = $("sc-simuler"); b.querySelector("span").textContent = doc.type === "depannage" ? "Quitter" : "Arrêter"; b.querySelector("svg").innerHTML = '<rect x="6" y="6" width="12" height="12" rx="1.5"/>';
     fermerPalette();
@@ -1131,7 +1133,7 @@
     else bulle("Clique sur les boutons du schéma (ou dans la liste « Commandes »). Double-clic : le bouton reste appuyé.", 4500);
   }
   function arreterSim() {
-    sim = null; simE = null; cancelAnimationFrame(rafId); appuis.clear(); survolPiece = null; PR.live.fermer();
+    sim = null; simE = null; cancelAnimationFrame(rafId); appuis.clear(); survolPiece = null; PR.live.fermer(); CH.arreter();
     sondes = { a: null, b: null, prochaine: "a" }; survolBorne = null;
     if (outil === "volt" || outil === "designer") { outil = "fleche"; document.querySelectorAll("#sc-barre [data-o]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.o === "fleche"))); }
     document.body.classList.remove("simu", "depannage"); majVoltmetre();
@@ -1148,15 +1150,16 @@
     if (!sim) return;
     const dt = tPrec ? Math.min(250, ts - tPrec) : 16; tPrec = ts;
     const bouge = sim.enMarche() || sim.prochainEvenement() < Infinity || Object.values(simE.pieces).some((o) => o.w);
-    if (!bouge && simSig) { $("sc-horloge").textContent = "t = " + nf(sim.temps() / 1000) + " s"; sim.avancer(dt); return; }
+    if (!bouge && simSig) { $("sc-horloge").textContent = "t = " + nf(sim.temps() / 1000) + " s"; sim.avancer(dt); CH.tic(sim.temps()); return; }
     sim.avancer(dt);
     simE = masquer(sim.etat());
+    CH.echantillon(simE);
     for (const pc of schema.pieces) if (pc.type === "moteur" || pc.type === "moteur6") { const o = simE.pieces[pc.id]; if (o) angles[pc.id] = (angles[pc.id] || 0) + (o.w || 0) * dt * 0.32; }
     majSim(false);
   }
   function majSim(force) {
     if (!sim) return;
-    if (force) simE = masquer(sim.etat());
+    if (force) { simE = masquer(sim.etat()); CH.echantillon(simE); }
     $("sc-horloge").textContent = "t = " + nf(sim.temps() / 1000) + " s";
     majVoltmetre();
     const sig = signature(simE);
@@ -1871,6 +1874,7 @@
       <p class="discret"><b>Le chariot</b>, <b>la cuve</b> et <b>le tapis</b> (catégorie « Partie opérative ») montrent la machine elle-même. On choisit le moteur qui l'entraîne et les repères de ses capteurs : en simulation, le chariot roule et actionne tout seul ses fins de course ; l'eau monte, descend et fait basculer les interrupteurs de niveau (LSL : niveau bas, LSH : niveau haut) ; les caisses du tapis passent devant la cellule, qui les voit une par une : pour les compter, il faut un compteur dans l'automate. <b>Le tapis de tri</b> a en plus un aiguillage : un volet manœuvré par un vérin (dessiné selon l'ISO 1219, avec son distributeur 4/2). Quand la bobine de l'électrovanne (YV) est alimentée, la tige sort et le volet envoie la caisse dans le bac 2 ; sinon, elle tombe dans le bac 1. Pendant la simulation, « Bloquer la tige » (carte du tapis) simule une panne du vérin. Si rien n'arrête le moteur, le chariot force contre la butée (le moteur chauffe) ou la cuve déborde.</p>
       <p class="discret"><b>Le capteur 3 fils</b> se branche comme dans les machines : BN (marron) au +24 V, BU (bleu) au 0 V, et BK (noir), sa sortie, sur une entrée de l'automate. Un capteur PNP donne du +24 V sur BK quand il détecte ; un NPN donne du 0 V (la charge va alors du +24 V à BK).</p>
       <h3 style="margin-top:14px">Le voltmètre et le dépannage</h3>
+      <p class="discret"><b>Chronogramme</b> (pendant la simulation) : une ligne par élément, au fil du temps — boutons et capteurs (1 = actionné), bobines (1 = alimentée), contacts temporisés (1 = fermé), voyants, vitesse et couplage des moteurs, étapes du GRAFCET, fréquence du variateur, position du chariot, niveau de la cuve. ${DOIGT ? "Touche" : "Clique sur"} le tracé pour poser un repère : l'écart de temps avec le curseur s'affiche (pratique pour une temporisation). « Lignes » choisit ce qui est tracé, « Image » l'enregistre pour un compte rendu.</p>
       <p class="discret">Pendant la simulation, le bouton <b>Voltmètre</b> remplace « Fil » dans la barre d'outils. ${DOIGT ? "Touche" : "Clique sur"} une borne pour la pointe <b style="color:#e03131">rouge</b>, puis une autre pour la pointe <b>noire</b> (COM) : l'écran donne la tension entre les deux, et la suit quand le schéma change (appuie sur S2 en gardant les pointes). En continu, le signe dit dans quel sens tu mesures (−24 V : pointes inversées). Comme un vrai voltmètre, il « voit à travers » une bobine ou un voyant : derrière un contact ouvert, on retrouve le neutre.</p>
       <p class="discret"><b>Dépannage</b> (fenêtre « Défis ») : un schéma juste, avec une panne cachée au hasard (un fil coupé, un contact qui ne conduit plus, une bobine, un voyant ou un fusible coupé). Les fils ne sont plus en couleur : on essaie, on mesure pour trouver où la tension s'arrête, puis « Désigner la panne ». La méthode : pointe noire sur le neutre (ou le 0 V), pointe rouge de borne en borne en partant de la phase ; ou bien les deux pointes aux bornes d'un même élément (un contact fermé qui conduit donne 0 V).</p>
       <p class="discret"><b>Dépannage du professeur</b> : ton professeur peut te donner un lien (ou un fichier, à ouvrir avec Fichier → Ouvrir un fichier). Toute la classe a la même panne, et ta note sur 20 lui est envoyée : connecte-toi au site <b>avant</b> de commencer. Chaque mesure au-delà de celles qui sont gratuites et chaque mauvaise désignation enlèvent des points ; reposer une pointe là où elle est déjà ne compte pas.</p>
@@ -1935,7 +1939,8 @@
   function fermerPalette() { document.body.classList.remove("pal-ouverte"); }
   $("sc-voile").addEventListener("click", fermerPalette);
   const ACTIONS = { palette: () => document.body.classList.toggle("pal-ouverte"), fichier: ouvrirFichier, exemples: ouvrirExemples, defis: ouvrirDefis, aide: ouvrirAide,
-    tourner, supprimer, annuler, refaire, moins: () => zoomCentre(1 / 1.25), plus: () => zoomCentre(1.25), ajuster: () => ajusterVue(), simuler: basculerSim };
+    tourner, supprimer, annuler, refaire, moins: () => zoomCentre(1 / 1.25), plus: () => zoomCentre(1.25), ajuster: () => ajusterVue(), simuler: basculerSim,
+    chrono: () => { if (sim) CH.basculer(); } };
   for (const b of document.querySelectorAll("#sc-barre [data-a]")) b.addEventListener("click", () => ACTIONS[b.dataset.a]());
   for (const b of document.querySelectorAll("#sc-barre [data-o]")) b.addEventListener("click", () => choisirOutil(b.dataset.o));
   function majBoutons() {

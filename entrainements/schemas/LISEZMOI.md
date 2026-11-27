@@ -131,6 +131,15 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
 12. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
    fichier `.json` (à rendre au professeur, à rouvrir sur un autre appareil), image PNG ou SVG avec un cartouche
    (logo du lycée, titre, nom de l'élève connecté, date), impression A4 paysage.
+13. **Chronogramme** (pendant la simulation, bouton de la barre d'outils, `chrono.js`) : une ligne par élément, au fil
+   du temps de la simulation. Commandes (boutons, arrêt d'urgence, sélecteurs, fins de course, capteurs : 1 = actionné),
+   bobines (1 = alimentée) et contact temporisé (1 = fermé), protections (la ligne apparaît quand elle change),
+   voyants, électrovannes, moteurs (vitesse avec son sens, couplage étoile ou triangle), automate (entrées et sorties
+   qui ont servi, étapes actives du GRAFCET), variateur (fréquence), potentiomètre, position du chariot, niveau de la
+   cuve, caisses du tapis. Un clic sur le tracé pose un repère : le bandeau donne l'écart de temps avec le curseur.
+   Fenêtre de 10 s à 2 min, « Figer », « Effacer », « Lignes » (choisir ce qui est tracé), « Image » (PNG pour un
+   compte rendu). En bas de la feuille sur PC (poignée pour l'agrandir), en haut au téléphone. Rouvert tout seul à la
+   simulation suivante s'il l'était.
 
 Raccourcis : `V` choisir, `F` fil, `H` feuille, `R` tourner, `Suppr` supprimer, `Ctrl+Z` / `Ctrl+Y` annuler /
 rétablir, `Ctrl+D` dupliquer, `Ctrl+C` / `Ctrl+V`, flèches pour déplacer d'un carreau, molette ou `+` `−` `0` pour
@@ -268,6 +277,7 @@ rouleaux, magasin, cellule, bacs, volet), pas des symboles.
 | `symboles.js` | les **dessins** SVG de chaque symbole, au repos ou dans l'état de la simulation (couleur de chaque borne, contact ouvert ou fermé…) ; icônes de la palette |
 | `moteur.js` | le **moteur de simulation**, séparé de l'interface (marche dans Node) ; `scenario()` rejoue les essais des défis |
 | `exemples.js` | les exemples et les défis, construits sur la grille (puissance à gauche, commande à droite) |
+| `chrono.js` | le **chronogramme** : les lignes d'après le schéma (`construire`), l'enregistrement des changements (`echantillon`, 10 min gardées), le tracé SVG, l'image PNG |
 | `editeur.js` | l'**éditeur** : dessin de la feuille, souris et doigt, clavier, historique, sauvegarde, panneau, simulation à l'écran, défis, fichiers, aide |
 
 Coordonnées : en carreaux de grille (un carreau = 10 px à zoom 100 %). Un schéma est un objet
@@ -465,6 +475,9 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   transformateur, pôle coupé : 345 V, deux phases) ;
 - `e2e_dep.py` (Playwright, PC et téléphone) : une panne connue (KM1 13-14), fils sans couleur, mesures qui suivent le
   schéma, carte des mesures, erreur de désignation, bonne désignation, réparation, nouvelle panne, quitter, fenêtre ;
+- `e2e_chrono.py` (Playwright) : marche-arrêt (impulsion de S2, KM1 qui reste collé, vitesse du moteur), repère et
+  écart de temps, figer, fenêtre, lignes, image, effacer, rouvert après relance ; étoile-triangle (contact temporisé,
+  couplage étoile puis triangle) ; automate en GRAFCET (étapes, entrées et sorties) ; téléphone ;
 - `e2e_prof.py` (Playwright) : préparation (outil « panne », pôle du relais thermique, bobine, barème), lien et
   fichier ; élève connecté (mesure, erreur, note 16, résultat envoyé avec ses détails, rechargement sans renvoi),
   élève pas connecté, abandon, fichier ouvert, téléphone ;

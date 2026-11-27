@@ -206,6 +206,7 @@ Limite : la clé publique permet en théorie d'appeler la fonction d'enregistrem
 - **Espace prof rangé par classe (27 novembre)** : trois espaces, Lycée SI, BTS 1 et BTS 2, avec ADM et STI à part dans chaque BTS ; chaque espace n'a que ses pages (le bac SI n'est plus à côté des devoirs E4). Voir « L'espace prof : trois espaces » plus haut.
 - **Codes des élèves visibles (27 novembre)** : page « Élèves et codes », colonne Code (caché jusqu'au clic) ; « Retrouver » pour les comptes déjà créés, sans changer leur code ; coupons de toute la classe. Une fois : coller `supabase/codes.sql` dans Supabase (voir « Créer les comptes élèves »).
 - **Tableau de bord des BTS en tuiles (27 novembre)** : rangé par année (BTS 2, puis BTS 1), chaque possibilité du site en tuile avec son icône, côte à côte ; un BTS 2 peut refaire les questions de cours de BTS 1 de son option. Voir « Le tableau de bord des BTS » plus haut.
+- **Atelier schémas : chronogramme (27 novembre)** : pendant la simulation, bouton « Chronogramme » : une ligne par élément au fil du temps (boutons, bobines, contacts temporisés, voyants, vitesse et couplage des moteurs, étapes du GRAFCET, variateur, chariot, cuve), repère pour mesurer un temps, image pour un compte rendu.
 
 ## Projet planeur — Seconde SI (9 novembre)
 
