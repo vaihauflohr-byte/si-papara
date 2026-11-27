@@ -194,13 +194,21 @@
             <div class="rapides-in">${grille}${blocsModules(modules, hist, true)}</div></details>
         </div></details>
       <p class="pied">${boutonDeco()}</p>`;
+    } else if (/^BTS/.test(s.niveau)) {
+      $app.innerHTML = `<h1>${salut(s)}</h1>
+      ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
+      <div id="appli-bandeau"></div>
+      ${SIP.flash ? SIP.flash.tuile(s.niveau, hist) : ""}
+      ${tableauBTS(s, hist, modules)}
+      <h2>Mes révisions <span class="discret">les fiches gardées à la fin de tes entraînements</span></h2>
+      <div class="outils">${outilsRevisions(fs, aLire, actives, ancrees, sr)}</div>
+      ${derniers}
+      <p class="pied">${boutonDeco()}</p>`;
     } else {
       $app.innerHTML = `<h1>${salut(s)}</h1>
       ${ETAT.horsLigne ? `<p class="erreur">Hors ligne : affichage partiel.</p>` : ""}
       <div id="appli-bandeau"></div>
       ${SIP.flash ? SIP.flash.tuile(s.niveau, hist) : ""}
-      ${/^BTS2/.test(s.niveau) ? tuileDevoirs(hist) + tuileProjet() + tuileE4(hist) : ""}
-      ${/^BTS/.test(s.niveau) ? tuileSchemas(s) : ""}
       ${s.niveau === "2SI" ? tuilePlaneur(hist) : ""}
       ${grille}
       ${blocsModules(modules, hist)}
@@ -226,26 +234,76 @@
       </a>`;
   }
 
-  // BTS (et Terminale SI, dans « Aller plus loin ») : l'atelier schémas (entrainements/schemas.html), dessiner puis simuler un schéma électrique.
-  // Les défis réussis restent dans le navigateur de l'élève (clé schemas:progres:<nom>, écrite par entrainements/schemas/editeur.js).
-  function defisSchemas(s) { try { return Object.keys(JSON.parse(localStorage.getItem("schemas:progres:" + ((s && s.nom) || "local"))) || {}).length; } catch (e) { return 0; } }
-  function tuileSchemas(s) {
-    const n = defisSchemas(s), tot = +localStorage.getItem("schemas:nbdefis") || 15;
-    return `<a class="carte bac-hero ${n >= tot ? "fait" : ""}" href="entrainements/schemas.html">
-        <div><div class="eyebrow">Électrotechnique · schémas de commande et de puissance</div><div class="bac-titre">Atelier schémas <span>dessiner, puis simuler</span></div>
-        <p class="discret" style="margin:0">Les symboles normalisés, les fils, puis « Simuler » : boutons, contacteurs, relais thermique, temporisations, moteur, automate programmé en Ladder ou en GRAFCET, variateur de vitesse. Des exemples tout faits et des défis corrigés.</p></div>
-        <div class="bac-d">${n ? `<div><div class="grand">${n}<small> / ${tot}</small></div><div class="discret">défis réussis</div></div>` : ""}<span class="btn">Ouvrir →</span></div>
-      </a>`;
+  // ---------- BTS : le tableau de bord rangé par année (27 nov. 2026) ----------
+  // BTS 2, puis BTS 1 : dans chaque année, les possibilités du site en tuiles côte à côte, chacune avec son icône, puis
+  // les questions de cours de l'année. Un étudiant de BTS 2 garde sa 1re année pour réviser : les questions de cours
+  // de BTS 1 de son option (BTS2-STI → BTS1-STI) lui sont ouvertes (moduleOuvert). Icônes dessinées ici (SVG, trait).
+  const IC = {
+    devoir: '<rect x="5" y="4.5" width="14" height="16.5" rx="2"/><path d="M9 4.5v-1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M8.5 13l2.3 2.3 4.7-4.8"/>',
+    projet: '<path d="M3 7.5a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 11h18"/>',
+    e4: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M10 2.5h4M12 2.5V6M18.3 6.7l1.6-1.6"/>',
+    docs: '<path d="M13.5 3h-7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4.5"/><path d="M13.5 3l5 5h-5z"/><path d="M8 10h3.5M8 13.5h2.5"/><circle cx="15.8" cy="15.8" r="3.2"/><path d="M18.2 18.2L21 21"/>',
+    schema: '<path d="M12 2.2v5M12 12.4L7.2 7.6M12 12.4v1.3"/><rect x="6.5" y="13.7" width="11" height="5" rx=".7"/><path d="M12 18.7v3.1"/>',   // contact à fermeture, puis bobine
+    qc: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/><path d="M9.9 7.9a2.1 2.1 0 1 1 2.9 1.9c-.5.2-.8.7-.8 1.2v.3M12 13.3h.01"/>',
+    fiches: '<rect x="3.5" y="6.5" width="13" height="14" rx="2"/><path d="M7.5 6.5v-1a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-2"/><path d="M7 11.5h6M7 15h4"/>',
+    hebdo: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4M9 14.8l2 2 4-4"/>',
+    mesfiches: '<path d="M5 19.5v-15A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5zm0 0A1.5 1.5 0 0 0 6.5 21H19"/><path d="M9 7.5h6M9 11h4"/>'
+  };
+  // une tuile : o.titre, o.sous et o.info sont déjà en HTML sûr (échappés par l'appelant)
+  const tuileOutil = (o) => `<a class="outil${o.etat ? " " + o.etat : ""}" href="${o.href}"${o.id ? ` id="${o.id}"` : ""}>
+      <span class="outil-ic${o.t ? " " + o.t : ""}" aria-hidden="true"><svg viewBox="0 0 24 24">${IC[o.ic]}</svg></span>
+      ${o.sur ? `<span class="outil-sur">${o.sur}</span>` : ""}<b>${o.titre}</b><span class="discret"${o.idTxt ? ` id="${o.idTxt}"` : ""}>${o.sous}</span>
+      ${o.info ? `<span class="outil-etat">${o.info}</span>` : ""}</a>`;
+  const optionDe = (n) => (/-(STI|ADM)$/.exec(n || "") || [])[1] || "";
+  const modulesRevision = (n) => (/^BTS2-/.test(n || "") ? SIP.modulesDu("BTS1-" + optionDe(n)).filter((m) => !m.niveaux.includes(n)) : []);
+  const moduleOuvert = (m, n) => !!m && (m.niveaux.includes(n) || modulesRevision(n).some((x) => x.id === m.id));
+  function tableauBTS(s, hist, modules) {
+    const bts2 = /^BTS2/.test(s.niveau), opt = optionDe(s.niveau);
+    const qc = (ms) => ms.length ? `<h3 class="outils-titre">Questions de cours <span class="discret">10 questions, tu pars de 20 points, −${SIP.PENALITE} par erreur</span></h3>
+      <div class="outils outils-qc">${tuilesCours(ms, hist)}</div>` : "";
+    const outils = (bts2 ? [outilDevoirs(hist), outilProjet(), outilE4(hist), outilDocsU4()] : []).concat([outilSchemas(s)]).join("");
+    let h = `<h2>${bts2 ? "BTS 2" : "BTS 1"} <span class="discret">${bts2 ? `ta 2e année · option ${opt} · épreuves E4 et E6` : `ta 1re année · option ${opt}`}</span></h2>
+      <div class="outils">${outils}</div>${qc(modules)}`;
+    const rev = modulesRevision(s.niveau);
+    if (bts2 && rev.length) h += `<h2>BTS 1 <span class="discret">pour revoir ta 1re année</span></h2><div class="outils outils-qc">${tuilesCours(rev, hist)}</div>`;
+    return h;
   }
-
+  function tuilesCours(ms, hist) {
+    return ms.map((m) => {
+      const essais = hist.filter((x) => x.module === m.id), best = essais.reduce((b, x) => Math.max(b, sur20(x.score, x.score_max)), -1);
+      const sur = /^option/i.test(m.sequence || "") ? String(m.sequence).split("·")[0].trim() : "Tronc commun";
+      const d = String(m.description || ""), court = d.length > 80 ? d.slice(0, 78).replace(/\s+\S*$/, "") + "…" : d;
+      return tuileOutil({ href: "#/module/" + m.id, ic: "qc", t: "t-qc", sur: esc(sur), titre: esc(m.titre), sous: esc(court),
+        info: essais.length ? `meilleure note ${SIP.nb(best, 3)} / 20` : "pas encore fait", etat: essais.length ? "fait" : "" });
+    }).join("");
+  }
+  // les défis réussis de l'atelier schémas restent dans le navigateur de l'élève (clé schemas:progres:<nom>, écrite par entrainements/schemas/editeur.js)
+  function defisSchemas(s) { try { return Object.keys(JSON.parse(localStorage.getItem("schemas:progres:" + ((s && s.nom) || "local"))) || {}).length; } catch (e) { return 0; } }
+  function outilSchemas(s) {
+    const n = defisSchemas(s), tot = +localStorage.getItem("schemas:nbdefis") || 15;
+    return tuileOutil({ href: "entrainements/schemas.html", ic: "schema", t: "t-elec", sur: "commande · puissance · automate", titre: "Atelier schémas", sous: "dessiner un schéma, puis le simuler",
+      info: n ? `${n} / ${tot} défis réussis` : "exemples, défis, dépannages", etat: n >= tot ? "fait" : "" });
+  }
+  // BTS 2 : devoirs notés de l'entraînement E4, en études de quatre niveaux (listes SIP.DEVOIRS_E4 et SIP.SERIES_E4, contenu/bts2.js) ;
+  // la tuile : l'étude et le niveau à faire (commencée, sinon la première pas commencée), les niveaux rendus, la dernière note
+  function outilDevoirs(hist) {
+    const L = SIP.DEVOIRS_E4 || [];
+    if (!L.length) return "";
+    const SE = (SIP.SERIES_E4 || []).filter((x) => L.some((d) => d.serie === x.id));
+    const premier = (d) => { const T = hist.filter((h) => h.type === "externe" && h.module === "e4-devoir-" + d.id); return T.length ? T[T.length - 1] : null; };   // l'historique va du plus récent au plus ancien
+    const E = SE.map((x) => { const N = L.filter((d) => d.serie === x.id).sort((a, b) => a.niveau - b.niveau).map((d) => ({ d, r: premier(d) })), k = N.findIndex((y) => !y.r);
+      return { s: x, N, nR: N.filter((y) => y.r).length, suiv: k < 0 ? null : N[k].d }; });
+    const nT = E.reduce((a, x) => a + x.N.length, 0), nR = E.reduce((a, x) => a + x.nR, 0), e = E.find((x) => x.nR && x.suiv) || E.find((x) => x.suiv) || null;
+    const der = hist.find((h) => h.type === "externe" && /^e4-devoir-/.test(h.module || ""));
+    return tuileOutil({ href: `entrainements/bts-e4.html#/devoirs${e ? "/" + e.s.id : ""}`, ic: "devoir", t: "t-note", sur: "travail noté", titre: "Devoirs notés",
+      sous: e ? `${esc(e.s.titre)} · niveau ${e.suiv.niveau}${e.suiv.nomNiveau ? " « " + esc(e.suiv.nomNiveau) + " »" : ""}` : "tous les niveaux sont rendus",
+      info: `${nR} / ${nT} niveaux rendus${der ? ` · dernière note ${SIP.nb(sur20(der.score, der.score_max), 3)}` : ""}`, etat: e ? "a-faire" : "fait" });
+  }
   // BTS 2 : le projet U61/U62 (entrainements/bts-projets.html) — le titre du projet s'affiche quand il est attribué ou choisi
-  function tuileProjet() {
+  function outilProjet() {
     setTimeout(majTuileProjet, 0);
-    return `<a class="carte bac-hero" id="tuile-projet" href="entrainements/bts-projets.html">
-        <div><div class="eyebrow">BTS Électrotechnique · épreuve E6 (U61, U62)</div><div class="bac-titre">Mon projet <span>dossiers 1 · 2 · 3</span></div>
-        <p class="discret" style="margin:0" id="tuile-projet-txt">Le cahier des charges de ton client, puis tes dossiers : conception, réalisation par anticipation (planning, mise en service, risques), réalisation. Ton espace de dépôt de fichiers est dans la page du projet.</p></div>
-        <div class="bac-d"><span class="btn">Ouvrir →</span></div>
-      </a>`;
+    return tuileOutil({ href: "entrainements/bts-projets.html", id: "tuile-projet", ic: "projet", sur: "épreuve E6 · U61, U62", titre: "Mon projet",
+      sous: "cahier des charges, dossiers 1 · 2 · 3, dépôt de tes fichiers", idTxt: "tuile-projet-txt" });
   }
   async function majTuileProjet() {
     if (!SIP.api.projetEtat) return;
@@ -255,42 +313,27 @@
     if (!window.SIP_PROJETS) { await charge("contenu/projets-bts2.js"); await charge("contenu/projets-entrainement.js"); }
     const p = window.SIP_PROJETS && window.SIP_PROJETS.projets.find((x) => x.id === pid);
     const el = document.getElementById("tuile-projet-txt"); if (!el || !p) return;
-    const conf = r.projet ? "" : ` <span class="discret">(à confirmer par le professeur)</span>`;
-    el.innerHTML = p.type === "entrainement"
-      ? `<b>${esc(pid)} · ${esc(p.partie)}</b> — entraînement, cas ${esc(p.cas)} : ${esc(p.court)}${conf}<br>Étapes du parcours, dossiers et espace de dépôt de tes fichiers.`
-      : `<b>${esc(pid)} · ${esc(p.court)}</b> — ${esc(p.client)} · ${esc(p.lieu)}${conf}<br>Dossiers 1, 2, 3 et espace de dépôt de tes fichiers.`;
+    const conf = r.projet ? "" : " (à confirmer par le professeur)";
+    el.innerHTML = p.type === "entrainement" ? `<b>${esc(pid)} · ${esc(p.partie)}</b> — entraînement, cas ${esc(p.cas)}${conf}` : `<b>${esc(pid)}</b> · ${esc(p.court)}${conf}`;
   }
-
-  // BTS 2 : l'entraînement à l'épreuve E4 (sujets d'annales, auto-évaluation N0–N3) en tête du tableau de bord
-  // BTS 2 : devoirs notés de l'entraînement E4, en études de quatre niveaux (listes SIP.DEVOIRS_E4 et SIP.SERIES_E4, contenu/bts2.js) ;
-  // une seule tuile : niveaux rendus, étude à continuer (commencée, sinon la première pas commencée), dernières notes
-  function tuileDevoirs(hist) {
-    const L = SIP.DEVOIRS_E4 || [];
-    if (!L.length) return "";
-    const SE = (SIP.SERIES_E4 || []).filter((s) => L.some((d) => d.serie === s.id));
-    const premier = (d) => { const T = hist.filter((h) => h.type === "externe" && h.module === "e4-devoir-" + d.id); return T.length ? T[T.length - 1] : null; };   // l'historique va du plus récent au plus ancien
-    const E = SE.map((s) => { const N = L.filter((d) => d.serie === s.id).sort((a, b) => a.niveau - b.niveau).map((d) => ({ d, r: premier(d) })), k = N.findIndex((x) => !x.r);
-      return { s, N, nR: N.filter((x) => x.r).length, suiv: k < 0 ? null : N[k].d }; });
-    const nT = E.reduce((a, e) => a + e.N.length, 0), nR = E.reduce((a, e) => a + e.nR, 0), e = E.find((x) => x.nR && x.suiv) || E.find((x) => x.suiv) || null;
-    const titreDe = (id) => { const d = L.find((x) => x.id === id), s = d && SE.find((x) => x.id === d.serie); return d ? `${s ? s.titre : d.titre} N${d.niveau}` : id; };
-    const der = hist.filter((h) => h.type === "externe" && /^e4-devoir-/.test(h.module || "")).slice(0, 3)   // devoirs notés et devoirs refaits (la dernière note compte)
-      .map((h) => `${esc(titreDe(h.module.slice(10).replace(/-entr$/, "")))}${/-entr$/.test(h.module) ? " (refait)" : ""} : <b>${SIP.nb(sur20(h.score, h.score_max), 3)}</b>`);
-    return `<a class="carte bac-hero ${e ? "a-faire" : "fait"}" href="entrainements/bts-e4.html#/devoirs${e ? "/" + e.s.id : ""}">
-      <div><div class="eyebrow">BTS Électrotechnique · travail noté · ${SE.length} étude${SE.length > 1 ? "s" : ""} en 4 niveaux · ${nR} / ${nT} niveaux rendus</div><div class="bac-titre">${e ? esc(e.s.titre) : "Devoirs notés"} <span>${e ? `niveau ${e.suiv.niveau}${e.suiv.nomNiveau ? " « " + esc(e.suiv.nomNiveau) + " »" : ""}` : "tous les niveaux sont rendus"}</span></div>
-      <p class="discret" style="margin:0">Chaque étude va du plus guidé à l'épreuve, puis au-delà : un niveau s'ouvre quand le précédent est rendu. Tes valeurs sont les tiennes : chaque élève a les siennes.</p>
-      ${der.length ? `<p class="discret" style="margin:4px 0 0">Dernières notes sur 20 · ${der.join(" · ")}</p>` : ""}</div>
-      <div class="bac-d"><span class="btn">${!e ? "Voir →" : e.nR ? "Niveau suivant →" : nR ? "Étude suivante →" : "Faire le devoir →"}</span></div>
-    </a>`;
-  }
-  function tuileE4(hist) {
-    const e4 = hist.filter((h) => h.type === "externe" && /^e4-/.test(h.module || ""));
+  function outilE4(hist) {
+    const e4 = hist.filter((h) => h.type === "externe" && /^e4-/.test(h.module || "") && !/^e4-devoir-/.test(h.module || ""));
     const meilleur = e4.length ? Math.max(...e4.map((h) => sur20(h.score, h.score_max))) : null;
-    return `<a class="carte bac-hero ${e4.length ? "fait" : "a-faire"}" href="entrainements/bts-e4.html">
-        <div><div class="eyebrow">BTS Électrotechnique · épreuve E4</div><div class="bac-titre">Entraînement E4 <span>sujets d'annales</span></div>
-        <p class="discret" style="margin:0">Les documents du sujet à côté des questions, vérification des calculs, auto-évaluation avec la grille officielle N0–N3, sujet blanc chronométré.</p></div>
-        <div class="bac-d">${e4.length ? `<div><div class="grand">${SIP.nb(meilleur, 3)}<small> / 20</small></div><div class="discret">meilleur résultat · ${e4.length} entraînement${e4.length > 1 ? "s" : ""}</div></div>` : ""}<span class="btn">S'entraîner →</span></div>
-      </a>
-      <p class="fl-dernier"><span aria-hidden="true">📄</span> <a href="entrainements/bts-u4-atelier.html"><b>Atelier documents U4</b></a> : sur les vraies pages des annales, trouver la donnée dans le dossier ressources et la reporter dans le document réponse.</p>`;
+    return tuileOutil({ href: "entrainements/bts-e4.html", ic: "e4", sur: "épreuve E4 · U4", titre: "Entraînement E4", sous: "sujets d'annales, grille N0–N3, sujet blanc chronométré",
+      info: e4.length ? `meilleur résultat ${SIP.nb(meilleur, 3)} / 20` : "pas encore fait", etat: e4.length ? "fait" : "" });
+  }
+  function outilDocsU4() {
+    return tuileOutil({ href: "entrainements/bts-u4-atelier.html", ic: "docs", sur: "épreuve E4 · U4", titre: "Atelier documents", sous: "trouver la donnée dans les vraies pages des annales, la reporter dans le document réponse" });
+  }
+  // les révisions (fiches du jour, révision de la semaine, mes fiches), en tuiles comme le reste
+  function outilsRevisions(fs, aLire, actives, ancrees, sr) {
+    return [
+      tuileOutil({ href: "#/fiches", ic: "fiches", t: "t-rev", titre: "Fiches du jour", sous: actives ? `série : ${pluriel(sr, "jour")} d'affilée` : "termine un entraînement pour recevoir tes premières fiches",
+        info: actives ? (aLire ? `${aLire} à lire` : "✓ lues aujourd'hui") : "", etat: aLire ? "a-faire" : actives ? "fait" : "" }),
+      tuileOutil({ href: "#/hebdo", ic: "hebdo", t: "t-rev", titre: "Révision de la semaine", sous: "une fois par semaine, sur toutes tes fiches",
+        info: ETAT.hebdo_fait ? "✓ faite · prochaine lundi" : "à faire", etat: ETAT.hebdo_fait ? "fait" : fs.length ? "a-faire" : "" }),
+      tuileOutil({ href: "#/mes-fiches", ic: "mesfiches", t: "t-rev", titre: "Mes fiches", sous: `${actives} en cours · ${ancrees} ancrée${ancrees > 1 ? "s" : ""}`, info: pluriel(actives + ancrees, "fiche") })
+    ].join("");
   }
 
   // Questions signalées comme fausses par l'élève (assets/signaler.js) : la liste, et la réponse du professeur une fois traitées
@@ -858,7 +901,7 @@
   // ---------- Entraînement ----------
   function vueModule(id) {
     const m = SIP.module(id); const s = SIP.session.get();
-    if (!m || !m.niveaux.includes(s.niveau)) return (location.hash = "#/tableau");
+    if (!m || !moduleOuvert(m, s.niveau)) return (location.hash = "#/tableau");
     serieEnCours = true;
     SIP.lancerSerie($app, {
       titre: m.titre,

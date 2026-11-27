@@ -146,6 +146,31 @@ b, strong { font-weight: 600; }
 .bac-lot li.ok::before { background: var(--good); border-color: var(--good); }
 .bac-hero .bac-regle { font-size: .82rem; color: var(--ink-3); margin: 10px 0 0; }
 .bac-d { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; text-align: right; }
+/* tableau de bord BTS : chaque possibilité du site en tuile, côte à côte, avec son icône (assets/app.js, tableauBTS) */
+.outils { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); margin: 0 0 10px; }
+.outil { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 14px 14px 12px; background: var(--paper); border: 1px solid var(--rule);
+  border-top: 3px solid var(--rule); border-radius: var(--r); text-decoration: none; color: inherit; min-height: 168px; transition: border-color .15s, transform .15s; }
+.outil:hover { border-color: var(--accent); transform: translateY(-1px); }
+.outil.a-faire { border-top-color: var(--warn); } .outil.fait { border-top-color: var(--good); }
+.outil.a-faire:hover { border-top-color: var(--warn); } .outil.fait:hover { border-top-color: var(--good); }
+.outil-ic { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); margin-bottom: 6px; flex: none; }
+.outil-ic svg { width: 27px; height: 27px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.outil-ic.t-note { background: var(--warn-soft); color: var(--warn); }
+.outil-ic.t-elec { background: var(--force-soft); color: var(--force); }
+.outil-ic.t-qc { background: var(--paper-2); color: var(--ink-2); }
+.outil-ic.t-rev { background: var(--good-soft); color: var(--good); }
+.outil-sur { font-family: var(--f-disp); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; color: var(--ink-3); }
+.outil b { font-family: var(--f-disp); font-weight: 700; text-transform: uppercase; font-size: 1.18rem; line-height: 1.05; color: var(--ink); }
+.outil .discret { font-size: .84rem; line-height: 1.35; }
+.outil-etat { margin-top: auto; padding-top: 4px; font-size: .8rem; font-weight: 600; color: var(--ink-2); }
+.outil.a-faire .outil-etat { color: var(--warn); } .outil.fait .outil-etat { color: var(--good); }
+.outils-qc .outil { min-height: 0; }
+.outils-qc .outil-ic { width: 36px; height: 36px; border-radius: 10px; margin-bottom: 2px; } .outils-qc .outil-ic svg { width: 21px; height: 21px; }
+.outils-qc .outil b { font-size: 1.05rem; }
+.outils-titre { font-family: var(--f-disp); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 1rem; margin: 16px 0 8px; color: var(--ink-2); }
+.outils-titre .discret { font-family: var(--f-body); font-weight: 400; text-transform: none; letter-spacing: 0; font-size: .85rem; margin-left: 6px; }
+@media (max-width: 560px) { .outils { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .outil { min-height: 0; padding: 12px 11px 10px; }
+  .outil b { font-size: 1.05rem; } .outil .discret { font-size: .8rem; } }
 .bac-d .grand { font-family: var(--f-mono); font-weight: 600; font-size: 2.6rem; line-height: 1; }
 .bac-d .grand small { font-size: 1.2rem; color: var(--ink-3); }
 @media (max-width: 640px) { .bac-hero { grid-template-columns: minmax(0, 1fr); } .bac-d { flex-direction: row; align-items: center; justify-content: space-between; text-align: left; } }

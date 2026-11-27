@@ -20,6 +20,20 @@ Aucun serveur à maintenir, rien ne dépend de Claude.
 
 Au bout de 60 jours de cycle, une fiche passe « ancrée » : elle quitte la lecture quotidienne mais reste dans la révision hebdo.
 
+## Le tableau de bord des BTS : rangé par année, en tuiles (27 novembre)
+
+Pour un étudiant de BTS (`assets/app.js`, `tableauBTS`), le tableau de bord est rangé par année. Chaque possibilité du
+site est une tuile avec son icône (dessinée en SVG dans `IC`), côte à côte : 5 par ligne sur PC, 2 au téléphone.
+
+| Rubrique | Tuiles |
+|---|---|
+| **BTS 2** (étudiant de BTS 2) | Devoirs notés (étude et niveau à faire, niveaux rendus, dernière note), Mon projet (E6 ; le numéro du projet quand il est attribué), Entraînement E4 (meilleur résultat), Atelier documents U4, Atelier schémas (défis réussis) ; puis ses **questions de cours** (tronc commun et option) |
+| **BTS 1** | pour un étudiant de BTS 1 : l'atelier schémas et ses questions de cours ; pour un étudiant de BTS 2 : « pour revoir ta 1re année », les questions de cours de BTS 1 **de son option** (BTS2-STI → BTS1-STI), qui lui sont ouvertes (`moduleOuvert`) |
+| **Mes révisions** | Fiches du jour, Révision de la semaine, Mes fiches |
+
+Puis « Mes derniers entraînements ». Bordure du haut orange : à faire ; verte : fait. La Terminale SI et la Seconde SI
+ne changent pas.
+
 ## L'espace prof : trois espaces, une classe à la fois (27 novembre)
 
 En haut de `prof.html`, trois gros boutons : **Lycée SI**, **BTS 1**, **BTS 2**. Dessous, la classe : Terminale SI, Première SI,
@@ -86,7 +100,7 @@ Pour voir le site exactement comme un élève de **n'importe quelle filière** (
 - `prof.html` → l'espace voulu → page **Aperçu élève** → « Ouvrir l'aperçu » sur la filière voulue (ou lien « Aperçu élève » en haut de l'espace prof, pour toutes les filières) ;
 - ou, une fois connecté à l'espace prof dans ce navigateur, la page d'accueil du site affiche un bloc **Mode professeur** avec les 7 filières ; l'adresse `index.html#/apercu/BTS2-STI` (`2SI`, `1SI`, `TSI`, `BTS1-STI`, `BTS1-ADM`, `BTS2-STI`, `BTS2-ADM`) y mène directement.
 
-Dans l'aperçu, tout fonctionne comme pour un élève : tableau de bord de la filière (prochain DS en Terminale, tuile E4 en BTS 2), séries, fiches du jour, révision de la semaine, fiches de révision, pages `bac-si.html` et `bts-e4.html`. **Rien n'est transmis** : les essais sont gardés dans une base locale au navigateur (`sip_apercu_db`) et n'apparaissent ni dans le suivi ni dans les grilles. Un bandeau bleu en haut permet de **changer de filière**, d'**effacer ses essais** ou de **quitter l'aperçu**.
+Dans l'aperçu, tout fonctionne comme pour un élève : tableau de bord de la filière (prochain DS en Terminale, tuiles BTS 2 puis BTS 1 en BTS), séries, fiches du jour, révision de la semaine, fiches de révision, pages `bac-si.html` et `bts-e4.html`. **Rien n'est transmis** : les essais sont gardés dans une base locale au navigateur (`sip_apercu_db`) et n'apparaissent ni dans le suivi ni dans les grilles. Un bandeau bleu en haut permet de **changer de filière**, d'**effacer ses essais** ou de **quitter l'aperçu**.
 
 Sécurité : l'aperçu ne s'ouvre que si le navigateur a une session professeur valide (compte Supabase inscrit dans `profs`) ; un élève qui tape l'adresse voit « Aperçu réservé au professeur ». Se déconnecter de l'espace prof ferme l'aperçu. Si un élève était connecté sur l'appareil, sa session revient quand on quitte l'aperçu, et ses résultats en attente (hors ligne) ne sont jamais mélangés à ceux de l'aperçu. En mode démo (site non configuré), l'aperçu est ouvert à tous.
 
@@ -161,7 +175,7 @@ Limite : la clé publique permet en théorie d'appeler la fonction d'enregistrem
 
 ## Projets BTS 2 — U61 / U62 (14 octobre)
 
-`entrainements/bts-projets.html` = la page « Projets BTS 2 » (tuile **« Mon projet »** en tête du tableau de bord BTS 2, avant l'entraînement E4). **13 projets individuels** (`contenu/projets-bts2.js`), chacun avec un client polynésien (cas pédagogique) et une réalisation sur un système du labo : station de pompage ×3, monte-charge ×2, barrière ×2, Ciné 3S ×2, Harmotris ×2, atelier câblage ×2. Chaque projet suit le format du dossier projet du lycée : fiche, définition de la demande (U61 / U62), cahier des charges (exigences avec critères et niveaux, données chiffrées, contraintes, normes, partie en anglais), support de réalisation et matériel à prévoir, contrats de tâches individuelles **U61 (60 h, C7/C9/C11)** et **U62 (60 h, C4/C14/C15/C16)**, ressources des dossiers 1-2-3, outils, jalons.
+`entrainements/bts-projets.html` = la page « Projets BTS 2 » (tuile **« Mon projet »** dans la rangée BTS 2 du tableau de bord, après les devoirs notés). **13 projets individuels** (`contenu/projets-bts2.js`), chacun avec un client polynésien (cas pédagogique) et une réalisation sur un système du labo : station de pompage ×3, monte-charge ×2, barrière ×2, Ciné 3S ×2, Harmotris ×2, atelier câblage ×2. Chaque projet suit le format du dossier projet du lycée : fiche, définition de la demande (U61 / U62), cahier des charges (exigences avec critères et niveaux, données chiffrées, contraintes, normes, partie en anglais), support de réalisation et matériel à prévoir, contrats de tâches individuelles **U61 (60 h, C7/C9/C11)** et **U62 (60 h, C4/C14/C15/C16)**, ressources des dossiers 1-2-3, outils, jalons.
 
 **Calés sur les grilles CCF** : chaque projet permet d'observer tous les critères de C7, C9, C11 et de C4, C14, C15, C16 — il y a toujours de la configuration ou de la programmation (C15), une réunion d'avancement avec compte rendu, une offre au client et une partie en anglais (C4). Chaque critère est relié aux documents qui le prouvent (onglet « Contrats et grilles »).
 
@@ -191,6 +205,7 @@ Limite : la clé publique permet en théorie d'appeler la fonction d'enregistrem
 - **Dépannage du professeur (27 novembre)** : dans l'atelier schémas, Fichier → « Préparer un dépannage (professeur) » : sur n'importe quel schéma, tu choisis toi-même l'élément en panne, la consigne et le barème (mesures sans pénalité, points en moins par mesure de plus et par mauvaise désignation), puis tu copies le **lien** (ou un fichier) pour la classe : tout le monde a la même panne. La note sur 20 de chaque élève connecté arrive dans l'espace professeur, nouvelle page **Dépannages** dans l'espace de chaque classe (une ligne par élève : note, mesures, erreurs, durée ; qui n'a pas rendu). Une mesure répétée à l'identique ne compte plus.
 - **Espace prof rangé par classe (27 novembre)** : trois espaces, Lycée SI, BTS 1 et BTS 2, avec ADM et STI à part dans chaque BTS ; chaque espace n'a que ses pages (le bac SI n'est plus à côté des devoirs E4). Voir « L'espace prof : trois espaces » plus haut.
 - **Codes des élèves visibles (27 novembre)** : page « Élèves et codes », colonne Code (caché jusqu'au clic) ; « Retrouver » pour les comptes déjà créés, sans changer leur code ; coupons de toute la classe. Une fois : coller `supabase/codes.sql` dans Supabase (voir « Créer les comptes élèves »).
+- **Tableau de bord des BTS en tuiles (27 novembre)** : rangé par année (BTS 2, puis BTS 1), chaque possibilité du site en tuile avec son icône, côte à côte ; un BTS 2 peut refaire les questions de cours de BTS 1 de son option. Voir « Le tableau de bord des BTS » plus haut.
 
 ## Projet planeur — Seconde SI (9 novembre)
 
