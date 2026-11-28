@@ -194,6 +194,24 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    trouvé ; s'il est connecté au site, le résultat part tout seul dans son suivi (sinon la carte le prévient dès le
    début, et le résultat part quand il revient connecté). Les notes arrivent dans l'espace professeur, page
    « Dépannages » de la classe (dans l'espace Lycée SI, BTS 1 ou BTS 2) (une ligne par élève, le premier essai compte, ceux de la classe qui n'ont pas rendu).
+   **Schéma à compléter du professeur** (Fichier → « Préparer un schéma à compléter (professeur) ») : le professeur
+   ouvre (ou dessine) le schéma juste et le garde comme **corrigé** ; l'atelier en tire un essai (chaque commande
+   actionnée deux fois de suite : bouton appuyé puis relâché, interrupteur ou sélecteur basculé, relais thermique en
+   surcharge puis réarmé ; après chaque geste, 300 ms puis, s'il y a des relais temporisés, le plus long des retards ;
+   on regarde les bobines, les moteurs : arrêt, sens 1, sens 2, étoile, triangle, les voyants, les électrovannes, les
+   relais thermiques, les différentiels, les contrôleurs d'isolement). Puis il enlève ce que l'élève doit faire (des
+   fils, des symboles) et garde ce **départ** : l'atelier vérifie que le corrigé passe son essai et que le départ ne le
+   passe pas (sinon, il le dit). Titre, consigne, indice facultatif, puis le lien (`#complet=z…`, environ 1 200
+   caractères pour le démarrage direct) ou le fichier (`{ type: "complet-prof", v: 1, titre, code }`). Le lien porte le
+   départ et l'essai, **pas le corrigé**. « Revoir le corrigé », « Revoir le départ » les remettent sur la feuille ;
+   la préparation est gardée dans le navigateur (`schemas:prepc:<prof>`). Chez l'élève : une carte « Schéma à compléter
+   · du professeur », « Vérifier » rejoue l'essai sur son schéma (mêmes repères exigés) et montre la première étape qui
+   ne fait pas comme le corrigé ; note sur 20 : −2 par vérification ratée (5 au plus), −3 s'il ouvre l'indice, jamais
+   moins de 10 ; connecté, elle part au professeur (module `schemas-cplt-<empreinte>`, titre « Schéma à compléter ·
+   … », `details[0]` : `rates`, `indice`), à part des défis (le compteur « n / 24 » ne la compte pas :
+   `schemas:cplt:<élève>`). La page « Dépannages et schémas » de l'espace professeur les montre comme les dépannages :
+   note, vérifications ratées, indice, durée ; « Juste du premier coup ». L'atelier rouvre le dernier (le code est
+   gardé, `schemas:cpltcode:<id>`).
 13. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
    fichier `.json` (à rendre au professeur, à rouvrir sur un autre appareil), image PNG ou SVG avec un cartouche
    (logo du lycée, titre, nom de l'élève connecté, date), impression A4 paysage.
@@ -694,6 +712,13 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   remise à zéro, arrêt ; le professeur cache une bobine en court-circuit (choix de la sorte, barème) ; l'élève : F2
   fond, F2 désigné = « une conséquence », faute de sécurité comptée, consignation, 0,0 Ω, trouvé, note 13 / 20 et
   détails envoyés ; au téléphone, consigner au doigt et mesurer ;
+- `t_cplt.js` (Node, dans `/tmp/cplt`) : l'essai du démarrage direct (commandes, observés, 13 étapes, exige), départ
+  sans auto-maintien (échoue à « S2 relâché »), inversion sans verrouillage, étoile-triangle (étapes « 3 s plus
+  tard » : étoile puis triangle), automate et partie opérative, repère changé ;
+- `e2e_cplt.py` (Playwright, PC et téléphone) : la préparation (corrigé, contact enlevé à la main, départ, revoir,
+  titre, consigne, indice, lien), l'élève connecté (carte, départ, vérification ratée, indice, réussite 15/20, la base,
+  rechargé, quitter), la page « Dépannages et schémas » du professeur (colonnes, Teva, Hina, le détail) ; au
+  téléphone, pas connecté ;
 - `t_iso.js` (Node, dans `/tmp/iso`) : TT (Q2 déclenche, 7,7 A ; réarmé avec KM1 collé : il redéclenche ; réparé : ça
   repart), TT sans différentiel assez sensible (DANGER 153 V, la pince voit la fuite), TN-S (Q1 fond), carcasse pas
   reliée (230 V), IT premier défaut (CPI, H1, 400 V / 0 V / 230 V par rapport à la terre, à l'arrêt plus rien), IT

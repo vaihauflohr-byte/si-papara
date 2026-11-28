@@ -20,7 +20,7 @@
   const session = lire("sip_session");
   const QUI = session && session.nom ? String(session.nom) : "local";
   const FO = window.SchemasFolio || null;   // repérage du folio et nomenclature (folio.js)
-  const CLE = { folio: "schemas:folio", lec: (id) => "schemas:lecture:" + QUI + ":" + id, lecProgres: "schemas:lectures:" + QUI, libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, dep: (id) => "schemas:dep:" + QUI + ":" + id, depProgres: "schemas:depannage:" + QUI, prep: "schemas:prep:" + QUI, defiStats: "schemas:defistats:" + QUI, envois: "schemas:envois:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
+  const CLE = { folio: "schemas:folio", lec: (id) => "schemas:lecture:" + QUI + ":" + id, lecProgres: "schemas:lectures:" + QUI, libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, dep: (id) => "schemas:dep:" + QUI + ":" + id, depProgres: "schemas:depannage:" + QUI, prep: "schemas:prep:" + QUI, prepC: "schemas:prepc:" + QUI, cplt: "schemas:cplt:" + QUI, cpltCode: (id) => "schemas:cpltcode:" + id, defiStats: "schemas:defistats:" + QUI, envois: "schemas:envois:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
 
   const DOIGT = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);   // écran tactile sans souris
   const svg = $("sc-svg"), monde = $("sc-monde"), fond = $("sc-fond"), grilleR = $("sc-grille"), pn = $("sc-panneau"), vueEl = $("sc-vue");
@@ -34,6 +34,8 @@
   let sondesO = { a: null, b: null, prochaine: "a" }, consig = { cadenas: false, vat: false, fautes: 0 };
   // dépannage préparé par le professeur : prep (pendant qu'il le prépare), depProf (chez l'élève qui l'a reçu)
   let prep = null, depProf = null;
+  // schéma à compléter préparé par le professeur : prepC (pendant qu'il le prépare), cpltProf (chez l'élève qui l'a reçu)
+  let prepC = null, cpltProf = null, essaiC = null;
   const BAREME = { libres: 10, parMesure: 0.5, parErreur: 3, parFaute: 4 };
   let sel = new Set(), outil = "fleche", aPlacer = null;
   const vue = { x: 40, y: 40, z: 1.3 };
@@ -250,7 +252,7 @@
   function sauverBientot() { clearTimeout(tSauve); tSauve = setTimeout(sauver, 250); }
   function sauver() { clearTimeout(tSauve); if (doc.type !== "depannage" && doc.type !== "lecture") garder(doc.type === "defi" ? CLE.defi(doc.defi) : CLE.libre, schema); garder(CLE.dernier, doc); }
   function quitterDoc() {   // avant d'ouvrir un autre schéma
-    if (doc.type === "defi") { sauver(); doc = { type: "libre" }; }
+    if (doc.type === "defi") { sauver(); doc = { type: "libre" }; cpltProf = null; }
     else if (doc.type === "depannage") { depEtat = null; marques = []; depProf = null; doc = { type: "libre" }; }
     else if (doc.type === "lecture") { lecEtat = null; marques = []; doc = { type: "libre" }; }
     else copieAuto();
@@ -1350,10 +1352,95 @@
     const q = $("lc-quitter"); if (q) q.onclick = quitterLecture;
   }
   function majCarteLecture() { const z = $("lc-carte"); if (z) { z.innerHTML = carteLecture(); brancherLecture(); } }
+  /* ---------- préparer un schéma à compléter (professeur) ----------
+     1. le corrigé (le schéma juste) : l'essai est fait dessus (MO.essaiAuto) ; 2. le départ (le corrigé, moins ce que
+     l'élève doit faire) : il ne doit pas passer l'essai ; 3. titre, consigne, indice ; puis le lien ou le fichier. */
+  const valideOuNul = (o) => { try { return o ? M.valider(o) : null; } catch (e) { return null; } };
+  function garderPrepC() { if (prepC) garder(CLE.prepC, prepC); }
+  function essaiPrepC() {
+    if (!prepC || !prepC.corrige) return null;
+    const k = JSON.stringify(prepC.corrige);
+    if (!essaiC || essaiC.k !== k) {
+      const E = MO.essaiAuto(M.cloner(prepC.corrige));
+      essaiC = Object.assign({ k, okC: MO.scenario(M.cloner(prepC.corrige), E.etapes, { exige: E.exige }).ok }, E);
+    }
+    if (prepC.depart) { const kd = JSON.stringify(prepC.depart); if (essaiC.kd !== kd) { essaiC.kd = kd; essaiC.okD = MO.scenario(M.cloner(prepC.depart), essaiC.etapes, { exige: essaiC.exige }).ok; } }
+    return essaiC;
+  }
+  function ouvrirPrepC() {
+    if (doc.type !== "libre") { toast("Quitte d'abord le défi, la lecture ou le dépannage, puis ouvre le schéma juste."); return; }
+    if (sim) arreterSim();
+    prep = null;
+    const sv = lire(CLE.prepC);
+    prepC = sv && typeof sv === "object" ? { corrige: valideOuNul(sv.corrige), depart: valideOuNul(sv.depart), titre: String(sv.titre || ""), consigne: String(sv.consigne || ""), indice: String(sv.indice || "") }
+      : { corrige: null, depart: null, titre: "", consigne: "", indice: "" };
+    fermerDialogues(); sel.clear(); choisirOutil("fleche"); majPanneau(); ouvrirPanneau(true);
+  }
+  function cartePrepC() {
+    const P = prepC, c = P.corrige, d = P.depart, E = essaiPrepC();
+    const nb = (x) => `${x.pieces.length} symbole${x.pieces.length > 1 ? "s" : ""}, ${x.fils.length} fil${x.fils.length > 1 ? "s" : ""}`;
+    const pret = !!(c && d && E && E.okC && !E.okD && E.commandes.length);
+    return `<div class="pn-carte pn-defi pn-prep pn-prepc"><div class="eyebrow">Préparer un schéma à compléter · professeur</div><h2>Un schéma à compléter</h2>
+      <p>Les élèves reçoivent un schéma incomplet. « Vérifier » rejoue un essai fait sur ton corrigé (chaque bouton appuyé puis relâché, chaque interrupteur basculé, deux fois de suite) et compare : les bobines, les moteurs, les voyants de l'élève doivent faire comme les tiens. Leur note sur 20 t'arrive dans l'espace professeur, page « Dépannages et schémas ».</p>
+      <ol class="pc-etapes">
+        <li><b>Le corrigé</b> : le schéma juste, ouvert sur la feuille. ${c ? `<span class="ok">✓ ${nb(c)}.</span> L'essai : ${E.etapes.length} étapes (commandes : ${esc(E.commandes.join(", ") || "aucune")}) ; on regarde ${esc(E.observes.join(", ") || "rien")}.${!E.commandes.length ? ` <span class="ko">Il n'y a rien à actionner : ajoute des boutons ou des interrupteurs.</span>` : ""}${!E.okC ? ` <span class="ko">Le corrigé ne passe pas son propre essai (un court-circuit ?) : corrige-le.</span>` : ""}` : ""}
+          <div class="rang"><button class="btn${c ? " sec" : ""}" type="button" id="pc-corrige">${c ? "Remplacer par le schéma ouvert" : "Le schéma ouvert est le corrigé"}</button>${c ? `<button class="btn sec" type="button" id="pc-voir-c">Revoir le corrigé</button>` : ""}</div></li>
+        <li><b>Le départ</b> : enlève ce que l'élève doit faire (des fils, des symboles…), puis : ${d ? (E && E.okD ? `<span class="ko">Le départ passe déjà l'essai : enlève davantage.</span>` : `<span class="ok">✓ ${nb(d)} (l'essai ne passe pas : il y a bien quelque chose à faire).</span>`) : ""}
+          <div class="rang"><button class="btn${c && !d ? "" : " sec"}" type="button" id="pc-depart"${c ? "" : " disabled"}>${d ? "Remplacer par le schéma ouvert" : "Le schéma ouvert est le départ"}</button>${d ? `<button class="btn sec" type="button" id="pc-voir-d">Revoir le départ</button>` : ""}</div></li>
+      </ol>
+      <label class="ch" for="pc-titre">Titre</label><input type="text" id="pc-titre" maxlength="80" value="${esc(P.titre)}" placeholder="${esc((c && c.titre) || "Schéma à compléter")}">
+      <label class="ch" for="pc-consigne">La consigne (l'élève la lit)</label><textarea id="pc-consigne" rows="4" maxlength="1500" placeholder="Par exemple : câble l'auto-maintien de KM1, puis vérifie.">${esc(P.consigne)}</textarea>
+      <label class="ch" for="pc-indice">Un indice (facultatif ; −3 points s'il l'ouvre)</label><textarea id="pc-indice" rows="2" maxlength="600">${esc(P.indice)}</textarea>
+      <div class="rang"><button class="btn" type="button" id="pc-lien"${pret ? "" : " disabled"}>Copier le lien</button><button class="btn sec" type="button" id="pc-fichier"${pret ? "" : " disabled"}>Fichier pour les élèves</button></div>
+      <div class="rang"><button class="btn sec" type="button" id="pc-essayer"${pret ? "" : " disabled"}>Essayer comme un élève</button><button class="btn sec" type="button" id="pc-vider">Tout recommencer</button><button class="btn sec" type="button" id="pc-fermer">Fermer</button></div>
+      <div id="pc-sortie"></div>
+      <p class="discret">Le lien contient le départ et l'essai, pas ton corrigé. Si tu changes l'un ou l'autre, redonne un nouveau lien.</p></div>`;
+  }
+  const chargePrepC = () => { const E = essaiPrepC(); return { v: 1, t: (prepC.titre || (prepC.corrige && prepC.corrige.titre) || "Schéma à compléter").slice(0, 80), c: prepC.consigne, i: prepC.indice, s: M.cloner(prepC.depart), e: E.etapes, x: E.exige, k: E.commandes }; };
+  async function lienPrepC() { return location.origin + location.pathname + "#complet=" + (await encoderCode(chargePrepC(), true)); }
+  function brancherPrepC() {
+    $("pc-corrige").onclick = () => {
+      if (!schema.pieces.length) { toast("Le schéma ouvert est vide."); return; }
+      prepC.corrige = M.cloner(schema); prepC.depart = null;
+      if (!prepC.titre) prepC.titre = schema.titre || "";
+      if (!prepC.consigne) { const ex = X.EXEMPLES.find((e) => e.titre === schema.titre || e.construire().titre === schema.titre); if (ex) prepC.consigne = ex.resume; }
+      garderPrepC(); majPanneau(); bulle("Corrigé gardé. Enlève maintenant ce que l'élève doit faire, puis « Le schéma ouvert est le départ ».", 6000);
+    };
+    $("pc-depart").onclick = () => { prepC.depart = M.cloner(schema); garderPrepC(); majPanneau(); };
+    const vc = $("pc-voir-c"); if (vc) vc.onclick = () => { chargerSchema(M.cloner(prepC.corrige)); sauver(); majPanneau(); bulle("Le corrigé est sur la feuille.", 2500); };
+    const vd = $("pc-voir-d"); if (vd) vd.onclick = () => { chargerSchema(M.cloner(prepC.depart)); sauver(); majPanneau(); bulle("Le départ est sur la feuille.", 2500); };
+    $("pc-titre").oninput = (e) => { prepC.titre = e.target.value.slice(0, 80); garderPrepC(); };
+    $("pc-consigne").oninput = (e) => { prepC.consigne = e.target.value.slice(0, 1500); garderPrepC(); };
+    $("pc-indice").oninput = (e) => { prepC.indice = e.target.value.slice(0, 600); garderPrepC(); };
+    $("pc-lien").onclick = async () => {
+      const l = await lienPrepC();
+      let copie = false; try { await navigator.clipboard.writeText(l); copie = true; } catch (e) { copie = false; }
+      $("pc-sortie").innerHTML = `<label class="ch" for="pc-l">${copie ? "Lien copié ✓ : colle-le dans Pronote, l'ENT ou un message" : "Copie ce lien"}</label><input type="text" id="pc-l" readonly value="${esc(l)}"><p class="discret">${l.length} caractères.</p>`;
+      const i = $("pc-l"); i.onclick = () => i.select(); if (!copie) i.select();
+      toast(copie ? "Lien copié." : "Copie le lien affiché.");
+    };
+    $("pc-fichier").onclick = async () => {
+      const code = await encoderCode(chargePrepC(), false), t = chargePrepC().t;
+      telecharger(new Blob([JSON.stringify({ type: "complet-prof", v: 1, titre: t, code })], { type: "application/json" }), "a-completer-" + t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase().slice(0, 40) + ".json");
+      toast("Fichier prêt : les élèves l'ouvrent avec Fichier → Ouvrir un fichier.");
+    };
+    $("pc-essayer").onclick = () => {
+      const w = window.open("about:blank", "_blank");
+      lienPrepC().then((l) => { if (w && !w.closed) w.location.href = l; else $("pc-sortie").innerHTML = `<p class="discret">L'onglet a été bloqué : <a href="${esc(l)}" target="_blank">ouvre-le ici</a>.</p>`; });
+    };
+    const vi = $("pc-vider");
+    vi.onclick = () => {
+      if (!vi.dataset.sur) { vi.dataset.sur = "1"; vi.textContent = "Sûr ? Tout effacer"; vi.classList.add("ko"); setTimeout(() => { if (vi.isConnected) { delete vi.dataset.sur; vi.textContent = "Tout recommencer"; vi.classList.remove("ko"); } }, 3500); return; }
+      prepC = { corrige: null, depart: null, titre: "", consigne: "", indice: "" }; essaiC = null; garderPrepC(); majPanneau();
+    };
+    $("pc-fermer").onclick = () => { prepC = null; majPanneau(); };
+  }
+
   /* ---------- préparer un dépannage (professeur) ---------- */
   const sansBalises = (h) => String(h || "").replace(/<br\s*\/?>/g, "\n").replace(/<\/p>\s*<p[^>]*>/g, "\n\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
   function garderPrep() { if (prep) garder(CLE.prep, Object.assign({ h: hacher(JSON.stringify(schema.pieces) + JSON.stringify(schema.fils)), ts: schema.titre || "" }, prep)); }
   function ouvrirPreparation() {
+    prepC = null;
     if (doc.type === "depannage") { toast("Quitte d'abord le dépannage, puis ouvre le schéma où cacher la panne."); return; }
     if (sim) arreterSim();
     if (!schema.pieces.length) { toast("Dessine d'abord un schéma, ou ouvre un exemple."); return; }
@@ -1895,6 +1982,7 @@
     let h = poignee();
     if (doc.type === "defi") h += carteDefi();
     if (prep) { h += cartePrep(); pn.innerHTML = h; brancherPoignee(); brancherPrep(); return; }
+    if (prepC && doc.type === "libre") { h += cartePrepC(); pn.innerHTML = h; brancherPoignee(); brancherPrepC(); return; }
     const pc = pieceChoisieSeule(), f = filChoisiSeul();
     if (pc) h += panneauPiece(pc);
     else if (f) h += `<h2>Un fil</h2><p>Glisse le fil pour le décaler. Glisse un de ses bouts (carré) pour le rebrancher ailleurs.</p><p class="discret">Deux fils qui se croisent sans point ne sont pas reliés. Un point noir = une jonction.</p><div class="rang"><button class="btn sec" type="button" data-pa="supprimer">Supprimer le fil</button></div>`;
@@ -2053,10 +2141,57 @@
   /* =====================================================================
      DÉFIS
      ===================================================================== */
-  const defiParId = (id) => X.DEFIS.find((d) => d.id === id) || null;
+  const defiParId = (id) => (cpltProf && cpltProf.id === id ? cpltProf.D : X.DEFIS.find((d) => d.id === id) || null);
+  // schéma à compléter du professeur : essais ratés, indice, réussite, envoi (à part des défis : le compteur « n / 24 » ne les compte pas)
+  const cpltEtats = () => lire(CLE.cplt) || {};
+  const cpltEtat = (id) => Object.assign({ rates: 0, indice: false, debut: Date.now(), ok: false, envoi: "" }, cpltEtats()[id] || {});
+  function garderCplt(id, o) { const S = cpltEtats(); S[id] = o; garder(CLE.cplt, S); }
+  function carteCplt(D) {
+    const E = cpltEtat(D.id), r = resultatDefi, nom = session && session.nom ? esc(session.nom) : "";
+    let res = "";
+    if (r) res = `<ul class="res">${r.etapes.map((e) => `<li class="${e.ok ? "" : "ko"}"><span>${esc(e.texte)}</span>${e.ok ? "" : `${e.constat ? `<span class="constat">Ce que je vois : ${esc(e.constat.replace(/[.!\s]+$/, ""))}.</span>` : ""}<span class="pourquoi">${esc(e.detail)}</span>`}</li>`).join("")}</ul>`;
+    if (E.ok) {
+      res += `<div class="bravo">Ton schéma fait comme celui du professeur. Note : ${nf(noteDefi(E))} / 20${E.rates ? ` (${E.rates} vérification${E.rates > 1 ? "s" : ""} ratée${E.rates > 1 ? "s" : ""})` : ""}.</div>`;
+      const V = E.envoi;
+      res += V === "envoye" ? `<p class="dp-envoi ok">Résultat envoyé au professeur ✓${nom ? ` (${nom})` : ""}</p>` : V === "file" ? `<p class="dp-envoi ok">Résultat gardé : il partira dès que le site sera joignable ✓</p>`
+        : V === "en cours" ? `<p class="dp-envoi">Envoi au professeur…</p>` : `<p class="dp-envoi ko">${V === "deconnecte" || !V ? "Tu n'es pas connecté(e) au site : ton résultat n'est pas parti. Connecte-toi sur la page d'accueil, puis reviens ici." : V === "expire" ? "Ta connexion au site a expiré : reconnecte-toi sur la page d'accueil, puis reviens ici." : "Le résultat n'a pas pu partir."}</p><div class="rang"><button class="btn" type="button" id="cp-renvoyer">Envoyer mon résultat</button></div>`;
+    }
+    return `<div class="pn-carte pn-defi pn-cplt"><div class="eyebrow">Schéma à compléter · du professeur${E.ok ? " · réussi ✓" : ""}</div>
+      <h2>${esc(D.titre)}</h2>
+      ${session && session.nom ? `<p class="dp-qui ok">Connecté(e) : <b>${esc(session.nom)}</b>. Ta note partira au professeur dès que ton schéma sera juste.</p>` : `<p class="dp-qui ko">Tu n'es pas connecté(e) au site : ta note ne partira pas au professeur. <a href="../index.html">Connecte-toi d'abord</a>, puis rouvre ce lien.</p>`}
+      ${D.consigne}
+      <p class="discret">« Vérifier » rejoue l'essai du professeur (${D.etapes.length} étapes${D.commandes.length ? " : " + esc(D.commandes.join(", ")) : ""}) et compare ton schéma au sien. Note sur 20 : −2 par vérification ratée${D.indice ? ", −3 si tu ouvres l'indice" : ""}, jamais moins de 10.</p>
+      <div class="rang"><button class="btn" type="button" id="df-verif">Vérifier</button>${D.indice ? `<button class="btn sec" type="button" id="df-indice">Un indice</button>` : ""}</div>
+      ${D.indice ? `<div id="df-indice-z"${indiceVu ? "" : " hidden"}><p>${esc(D.indice)}</p></div>` : ""}
+      ${res}
+      <div class="rang"><button class="btn sec" type="button" id="df-raz">Recommencer</button><button class="btn sec" type="button" id="df-quitter">Quitter</button></div></div>`;
+  }
+  async function envoyerCplt() {
+    const D = cpltProf && cpltProf.D; if (!D) return;
+    const E = cpltEtat(D.id); if (!E.ok || /^(envoye|file|en cours)$/.test(E.envoi || "")) return;
+    E.envoi = "en cours"; garderCplt(D.id, E); majCarteCplt();
+    const n = noteDefi(E), rates = E.rates || 0;
+    const r = await envoyerAuSite({ module: "schemas-" + D.id, titre: "Schéma à compléter · " + D.titre, type: "externe", score: n, score_max: 20, duree_s: Math.max(0, Math.round(((E.t || Date.now()) - (E.debut || Date.now())) / 1000)),
+      details: [{ q: "Schéma à compléter", rep: `juste après ${rates} vérification${rates > 1 ? "s" : ""} ratée${rates > 1 ? "s" : ""}${E.indice ? ", indice ouvert" : ""}`, attendu: `l'essai du professeur (${D.etapes.length} étapes)`, bareme: 20, pts: n, erreurs: rates, rates, indice: !!E.indice }] });
+    const E2 = cpltEtat(D.id); E2.envoi = r; garderCplt(D.id, E2); majCarteCplt();
+  }
+  function majCarteCplt() { if (doc.type === "defi" && cpltProf && doc.defi === cpltProf.id) { if (sim) construirePanneauSim(); else majPanneau(); } }
+  async function ouvrirCodeCplt(code, silencieux) {
+    let o, s;
+    try { o = await decoderCode(code); s = M.valider(o.s); }
+    catch (e) { toast(String(code)[0] === "z" && !window.DecompressionStream ? "Ce navigateur ne sait pas lire ce lien : demande le fichier au professeur." : "Ce schéma à compléter n'a pas pu être lu (lien abîmé ?)."); return false; }
+    const E = Array.isArray(o.e) ? o.e.slice(0, 600).filter((e) => e && typeof e === "object") : [];
+    if (!E.length) { toast("Ce schéma à compléter n'a pas d'essai."); return false; }
+    const id = "cplt-" + hacher(JSON.stringify(o)), titre = String(o.t || s.titre || "Schéma à compléter").slice(0, 80);
+    cpltProf = { id, code, D: { id, prof: true, titre, niveau: 0, resume: "", consigne: o.c ? enHtml(String(o.c).slice(0, 1500)) : "<p class=\"discret\">Complète le schéma, puis « Vérifier ».</p>",
+      indice: o.i ? String(o.i).slice(0, 600) : "", depart: () => M.cloner(s), exige: o.x && typeof o.x === "object" ? o.x : {}, etapes: E, commandes: Array.isArray(o.k) ? o.k.slice(0, 40).map(String) : [] } };
+    ouvrirDefi(id, silencieux);
+    return true;
+  }
   const progres = () => lire(CLE.progres) || {};
   function carteDefi() {
     const D = defiParId(doc.defi); if (!D) return "";
+    if (D.prof) return carteCplt(D);
     const k = X.DEFIS.indexOf(D), fait = !!progres()[D.id];
     let res = "";
     if (resultatDefi) {
@@ -2073,10 +2208,14 @@
   function brancherDefi() {
     const v = $("df-verif"); if (!v) return;
     v.onclick = verifierDefi;
-    $("df-indice").onclick = () => {
+    const bi = $("df-indice");
+    if (bi) bi.onclick = () => {
       indiceVu = !indiceVu; $("df-indice-z").hidden = !indiceVu;
-      const D = defiParId(doc.defi); if (indiceVu && D && !progres()[D.id]) { const st = statsDefi(D.id); if (!st.indice) { st.indice = true; garderStatsDefi(D.id, st); } }
+      const D = defiParId(doc.defi);
+      if (indiceVu && D && D.prof) { const E = cpltEtat(D.id); if (!E.ok && !E.indice) { E.indice = true; garderCplt(D.id, E); } }
+      else if (indiceVu && D && !progres()[D.id]) { const st = statsDefi(D.id); if (!st.indice) { st.indice = true; garderStatsDefi(D.id, st); } }
     };
+    const rv = $("cp-renvoyer"); if (rv) rv.onclick = () => { const D = defiParId(doc.defi); if (!D) return; const E = cpltEtat(D.id); E.envoi = ""; garderCplt(D.id, E); envoyerCplt(); };
     const raz = $("df-raz");
     raz.onclick = () => {   // en deux temps : un clic de travers n'efface pas le travail
       const D = defiParId(doc.defi); if (!D) return;
@@ -2090,6 +2229,15 @@
     const D = defiParId(doc.defi); if (!D) return null;
     const r = MO.scenario(M.cloner(schema), D.etapes, { exige: D.exige });
     resultatDefi = r;
+    if (D.prof) {
+      const E = cpltEtat(D.id);
+      if (!E.ok) { if (r.ok) { E.ok = true; E.t = Date.now(); } else E.rates = (E.rates || 0) + 1; garderCplt(D.id, E); }
+      if (E.ok) envoyerCplt();
+      if (sim) construirePanneauSim(); else majPanneau();
+      ouvrirPanneau(true);
+      const z = pn.querySelector(".res"); if (z) z.scrollIntoView({ block: "nearest" });
+      return r;
+    }
     const P = progres(), deja = P[D.id], st = statsDefi(D.id);
     if (!r.ok && !deja) { st.rates = (st.rates || 0) + 1; garderStatsDefi(D.id, st); }
     if (r.ok) {
@@ -2106,19 +2254,20 @@
     const D = defiParId(id); if (!D) return;
     if (sim) arreterSim();
     sauver();
-    doc = { type: "defi", defi: id };
+    doc = { type: "defi", defi: id }; prepC = null;
     let s = null; const sv = lire(CLE.defi(id));
     if (sv) { try { s = M.valider(sv); } catch (e) { s = null; } }
-    if (!statsDefis()[id] && !progres()[id]) garderStatsDefi(id, { rates: 0, indice: false, debut: Date.now() });
+    if (D.prof) { if (!cpltEtats()[id]) garderCplt(id, cpltEtat(id)); garder(CLE.cpltCode(id), cpltProf.code); }
+    else if (!statsDefis()[id] && !progres()[id]) garderStatsDefi(id, { rates: 0, indice: false, debut: Date.now() });
     chargerSchema(s || D.depart());
     sauver(); fermerDialogues();
-    if (history.replaceState) history.replaceState(null, "", "#defi=" + id);
+    if (history.replaceState) history.replaceState(null, "", D.prof ? "#complet=" + cpltProf.code : "#defi=" + id);
     if (!silencieux) ouvrirPanneau(true);
     majPanneau();
   }
   function quitterDefi() {
     if (sim) arreterSim();
-    sauver(); doc = { type: "libre" };
+    sauver(); doc = { type: "libre" }; cpltProf = null;
     let s = null; const sv = lire(CLE.libre); if (sv) { try { s = M.valider(sv); } catch (e) { s = null; } }
     chargerSchema(s || M.nouveau());
     if (history.replaceState) history.replaceState(null, "", location.pathname + location.search);
@@ -2183,6 +2332,7 @@
         <button type="button" data-f="svg"><span><b>Image SVG</b><small>Dessin vectoriel (net à toutes les tailles)</small></span></button>
         <button type="button" data-f="imprimer"><span><b>Imprimer</b><small>Feuille A4 paysage</small></span></button>
         <button type="button" data-f="nomenclature"><span><b>Nomenclature et bornier</b><small>La liste des appareils (repère, désignation, caractéristiques, colonnes) et le bornier X1 des appareils du terrain</small></span></button>
+        <button type="button" data-f="completer"><span><b>Préparer un schéma à compléter (professeur)</b><small>Le schéma juste, puis ce que l'élève doit faire : la vérification rejoue un essai sur ton corrigé, et leur note t'arrive</small></span></button>
         <button type="button" data-f="preparer"><span><b>Préparer un dépannage (professeur)</b><small>Cache une panne dans ce schéma, puis donne le lien aux élèves : tous la même panne, et leur note t'arrive</small></span></button>
       </div>
       <h3 style="margin-top:16px">Mes schémas <span class="discret">(dans ce navigateur)</span></h3>
@@ -2219,7 +2369,8 @@
   }
   const nomFichier = () => (schema.titre || "schema").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase().slice(0, 50) || "schema";
   async function actionFichier(f) {
-    if (f === "preparer") { ouvrirPreparation(); return; }
+    if (f === "preparer") { prepC = null; ouvrirPreparation(); return; }
+    if (f === "completer") { ouvrirPrepC(); return; }
     if (f === "nomenclature") { ouvrirNomenclature(); return; }
     if (f === "nouveau") { if (sim) arreterSim(); quitterDoc(); chargerSchema(M.nouveau()); fermerDialogues(); if (history.replaceState) history.replaceState(null, "", location.pathname); return; }
     if (f === "json") { telecharger(new Blob([JSON.stringify(schema, null, 1)], { type: "application/json" }), nomFichier() + ".json"); toast("Fichier exporté."); return; }
@@ -2235,6 +2386,7 @@
       try {
         const o = JSON.parse(String(r.result));
         if (o && o.type === "depannage-prof" && o.code) { fermerDialogues(); ouvrirCodeProf(String(o.code)); e.target.value = ""; return; }
+        if (o && o.type === "complet-prof" && o.code) { fermerDialogues(); ouvrirCodeCplt(String(o.code)); e.target.value = ""; return; }
         const s = M.valider(o);
         if (sim) arreterSim();
         quitterDoc();
@@ -2449,8 +2601,9 @@
   if (session && session.nom) $("sc-qui").textContent = session.nom;
   new ResizeObserver(() => appliquerVue()).observe(vueEl);
   function depart() {
-    const h = location.hash.replace(/^#/, ""), m = /^(defi|exemple|depannage|lecture)=([\w-]+)$/.exec(h), mp = /^panne=([\w-]+)$/.exec(h);
+    const h = location.hash.replace(/^#/, ""), m = /^(defi|exemple|depannage|lecture)=([\w-]+)$/.exec(h), mp = /^panne=([\w-]+)$/.exec(h), mc = /^complet=([\w-]+)$/.exec(h);
     if (mp) { ouvrirCodeProf(mp[1], true).then((ok) => { if (!ok) departSans(); }); return; }
+    if (mc) { ouvrirCodeCplt(mc[1], true).then((ok) => { if (!ok) departSans(); }); return; }
     if (m && m[1] === "defi" && defiParId(m[2])) { ouvrirDefi(m[2], true); return; }
     if (m && m[1] === "depannage" && depParId(m[2])) { ouvrirDepannage(m[2], true); return; }
     if (m && m[1] === "lecture" && lectureParId(m[2])) { ouvrirLecture(m[2], true); return; }
@@ -2459,6 +2612,7 @@
     if (d && d.type === "defi" && defiParId(d.defi)) { ouvrirDefi(d.defi, true); return; }
     if (d && d.type === "depannage" && depParId(d.dep)) { ouvrirDepannage(d.dep, true); return; }
     if (d && d.type === "lecture" && lectureParId(d.lecture)) { ouvrirLecture(d.lecture, true); return; }
+    if (d && d.type === "defi" && /^cplt-/.test(d.defi)) { const c = lire(CLE.cpltCode(d.defi)); if (c) { ouvrirCodeCplt(c, true).then((ok) => { if (!ok) departSans(); }); return; } }
     if (d && d.type === "depannage" && /^prof-/.test(d.dep)) { const r = lire(CLE.dep(d.dep)) || lire("schemas:dep:local:" + d.dep); if (r && r.code) { ouvrirCodeProf(r.code, true).then((ok) => { if (!ok) departSans(); }); return; } }
     departSans();
   }
@@ -2466,7 +2620,7 @@
     let s = null; const sv = lire(CLE.libre); if (sv) { try { s = M.valider(sv); } catch (e) { s = null; } }
     doc = { type: "libre" }; chargerSchema(s || M.nouveau());
   }
-  window.addEventListener("hashchange", () => { const mp = /^#panne=([\w-]+)$/.exec(location.hash); if (mp) { if (!depProf || depProf.code !== mp[1]) ouvrirCodeProf(mp[1]); return; } const m = /^#(defi|exemple|depannage|lecture)=([\w-]+)$/.exec(location.hash); if (m) { if (m[1] === "defi") ouvrirDefi(m[2]); else if (m[1] === "depannage") ouvrirDepannage(m[2]); else if (m[1] === "lecture") { if (doc.type !== "lecture" || doc.lecture !== m[2]) ouvrirLecture(m[2]); } else ouvrirExemple(m[2]); } });
+  window.addEventListener("hashchange", () => { const mp = /^#panne=([\w-]+)$/.exec(location.hash); if (mp) { if (!depProf || depProf.code !== mp[1]) ouvrirCodeProf(mp[1]); return; } const mc = /^#complet=([\w-]+)$/.exec(location.hash); if (mc) { if (!cpltProf || cpltProf.code !== mc[1]) ouvrirCodeCplt(mc[1]); return; } const m = /^#(defi|exemple|depannage|lecture)=([\w-]+)$/.exec(location.hash); if (m) { if (m[1] === "defi") ouvrirDefi(m[2]); else if (m[1] === "depannage") ouvrirDepannage(m[2]); else if (m[1] === "lecture") { if (doc.type !== "lecture" || doc.lecture !== m[2]) ouvrirLecture(m[2]); } else ouvrirExemple(m[2]); } });
   window.addEventListener("beforeunload", () => { if (!sim) sauver(); });
   if (session) setTimeout(envoyerDefis, 2500);   // défis réussis avant de se connecter, ou hors ligne : ils partent maintenant
   depart();
@@ -2477,7 +2631,9 @@
     schema: () => schema, simulation: () => sim, etat: () => simE, vue: () => Object.assign({}, vue), choix: () => [...sel], outil: () => outil, doc: () => Object.assign({}, doc),
     versEcran: (gx, gy) => { const r = svg.getBoundingClientRect(); return [r.left + vue.x + gx * G * vue.z, r.top + vue.y + gy * G * vue.z]; },
     charger: (s) => chargerSchema(M.valider(s)), ouvrirExemple, ouvrirDefi, verifierDefi, simuler: basculerSim, dessiner, svgExport,
-    ouvrirDepannage, ouvrirCodeProf, ouvrirLecture, lecture: () => (lecEtat ? JSON.parse(JSON.stringify(lecEtat)) : null), preparation: () => (prep ? JSON.parse(JSON.stringify(prep)) : null), lienPreparation: () => (prep && prep.panne ? lienPrep() : null), depannage: () => (depEtat ? JSON.parse(JSON.stringify(depEtat)) : null), sondes: () => JSON.parse(JSON.stringify(sondes)), outilV: choisirOutil,
+    ouvrirDepannage, ouvrirCodeProf, ouvrirLecture, lecture: () => (lecEtat ? JSON.parse(JSON.stringify(lecEtat)) : null), preparation: () => (prep ? JSON.parse(JSON.stringify(prep)) : null), lienPreparation: () => (prep && prep.panne ? lienPrep() : null),
+    preparationC: () => (prepC ? { corrige: !!prepC.corrige, depart: !!prepC.depart, titre: prepC.titre, essai: essaiPrepC() && { etapes: essaiC.etapes.length, commandes: essaiC.commandes, observes: essaiC.observes, okC: essaiC.okC, okD: essaiC.okD } } : null),
+    lienCompleter: () => (prepC && prepC.corrige && prepC.depart ? lienPrepC() : null), ouvrirCodeCplt, complet: () => (cpltProf ? cpltEtat(cpltProf.id) : null), depannage: () => (depEtat ? JSON.parse(JSON.stringify(depEtat)) : null), sondes: () => JSON.parse(JSON.stringify(sondes)), outilV: choisirOutil,
     programmer: (ref) => ouvrirProgramme(schema.pieces.find((q) => q.type === "automate" && (!ref || q.ref === ref)))
   };
 })();

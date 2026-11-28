@@ -14,7 +14,7 @@
     { id: "bts1", nom: "BTS 1", classes: ["BTS1-ADM", "BTS1-STI"], pages: ["suivi", "depannages", "atelier", "flashs", "signalements", "eleves", "apercu"] },
     { id: "bts2", nom: "BTS 2", classes: ["BTS2-ADM", "BTS2-STI"], pages: ["devoirs", "projets", "suivi", "depannages", "atelier", "flashs", "signalements", "eleves", "apercu"] }
   ];
-  const PAGES = { bac: "Bac SI", suivi: "Suivi", competences: "Compétences", flashs: "Flashs", depannages: "Dépannages", atelier: "Atelier schémas", devoirs: "Devoirs E4", projets: "Projets",
+  const PAGES = { bac: "Bac SI", suivi: "Suivi", competences: "Compétences", flashs: "Flashs", depannages: "Dépannages et schémas", atelier: "Atelier schémas", devoirs: "Devoirs E4", projets: "Projets",
     signalements: "Signalements", eleves: "Élèves et codes", apercu: "Aperçu élève" };
   const espaceDe = (n) => ESPACES.find((x) => x.classes.includes(n)) || ESPACES[0];
   const NAV = (() => { try { return JSON.parse(localStorage.getItem("sip_prof_nav")) || {}; } catch (e) { return {}; } })();
@@ -194,12 +194,13 @@
   function depannagesProf() {
     const S = {};
     D.entrainements.forEach((t) => {
-      if (t.type !== "externe" || !/^schemas-prof-[\w-]+$/.test(t.module || "")) return;
+      if (t.type !== "externe" || !/^schemas-(prof|cplt)-[\w-]+$/.test(t.module || "")) return;
       const x = D.parEleve[t.eleve_id]; if (!x || (niveau && x.e.niveau !== niveau)) return;
       const s = (S[t.module] = S[t.module] || { module: t.module, titre: t.module, premier: t.fait_le, dernier: "", essais: [] });
       s.essais.push(t);
       if (t.fait_le < s.premier) s.premier = t.fait_le;
-      if (t.fait_le > s.dernier) { s.dernier = t.fait_le; s.titre = String(t.titre || "").replace(/^Dépannage · /, "") || t.module; }
+      if (t.fait_le > s.dernier) { s.dernier = t.fait_le; s.titre = String(t.titre || "").replace(/^(Dépannage|Schéma à compléter) · /, "") || t.module; }
+      s.cplt = /^schemas-cplt-/.test(t.module);
     });
     return Object.values(S).sort((a, b) => b.dernier.localeCompare(a.dernier));
   }
@@ -208,12 +209,13 @@
     const abandon = d.abandon != null ? !!d.abandon : d.rep === "abandon";
     return { note: note20(t.score, t.score_max), abandon, panne: d.attendu || "",
       mesures: d.mesures != null ? Number(d.mesures) : Number((/\((\d+)\)/.exec(m.q || "") || [])[1] || 0),
-      mauvaises: d.mauvaises != null ? Number(d.mauvaises) : Math.max(0, (Number(d.erreurs) || 0) - (abandon ? 1 : 0)), fautes: Number(d.fautes) || 0 };
+      mauvaises: d.mauvaises != null ? Number(d.mauvaises) : Math.max(0, (Number(d.erreurs) || 0) - (abandon ? 1 : 0)), fautes: Number(d.fautes) || 0,
+      rates: Number(d.rates) || 0, indice: !!d.indice };
   }
   function vueDepannages() {
     const S = depannagesProf();
-    const aide = `<p class="discret">Pour en préparer un : <a href="entrainements/schemas.html">Atelier schémas</a>, ouvre un exemple ou dessine ton schéma, puis <b>Fichier → Préparer un dépannage (professeur)</b>. Choisis l'élément en panne et donne le lien aux élèves : ils ont tous la même panne, et la note de chaque élève connecté arrive ici.</p>`;
-    if (!S.length) return cadre(`<div class="carte"><p>Aucun dépannage rendu${niveau ? " dans cette classe" : ""} pour l'instant.</p>${aide}</div>`);
+    const aide = `<p class="discret">Pour en préparer un : <a href="entrainements/schemas.html">Atelier schémas</a>, ouvre un exemple ou dessine ton schéma, puis <b>Fichier → Préparer un dépannage (professeur)</b> (une panne cachée, la même pour tous) ou <b>Fichier → Préparer un schéma à compléter (professeur)</b> (ton corrigé, puis ce que l'élève doit faire). Donne le lien aux élèves : la note de chaque élève connecté arrive ici.</p>`;
+    if (!S.length) return cadre(`<div class="carte"><p>Aucun dépannage ni schéma à compléter rendu${niveau ? " dans cette classe" : ""} pour l'instant.</p>${aide}</div>`);
     if (!S.some((x) => x.module === depVu)) depVu = S[0].module;
     const s = S.find((x) => x.module === depVu);
     const parE = {};
@@ -224,19 +226,21 @@
     const med = (v) => { const w = v.slice().sort((a, b) => a - b), k = w.length >> 1; return !w.length ? 0 : w.length % 2 ? w[k] : (w[k - 1] + w[k]) / 2; };
     const duree = (t) => (t.duree_s ? (t.duree_s < 60 ? t.duree_s + " s" : Math.round(t.duree_s / 60) + " min") : "—");
     const nbE = (x) => new Set(x.essais.map((t) => t.eleve_id)).size;
-    cadre(`<div class="carte"><div class="rang"><select id="dp-vu" style="width:auto" aria-label="Dépannage">${S.map((x) => `<option value="${esc(x.module)}"${x.module === s.module ? " selected" : ""}>${esc(x.titre)} · ${SIP.fmtDate(x.premier)} · ${nbE(x)} élève${nbE(x) > 1 ? "s" : ""}</option>`).join("")}</select></div>
-        ${L[0] && L[0].i.panne ? `<p>Panne cachée : <b>${esc(L[0].i.panne)}</b>.</p>` : ""}${aide}</div>
+    cadre(`<div class="carte"><div class="rang"><select id="dp-vu" style="width:auto" aria-label="Dépannage ou schéma à compléter">${S.map((x) => `<option value="${esc(x.module)}"${x.module === s.module ? " selected" : ""}>${x.cplt ? "À compléter · " : "Dépannage · "}${esc(x.titre)} · ${SIP.fmtDate(x.premier)} · ${nbE(x)} élève${nbE(x) > 1 ? "s" : ""}</option>`).join("")}</select></div>
+        ${s.cplt ? `<p>Schéma à compléter : la vérification rejoue <b>${esc((L[0] && L[0].i.panne) || "l'essai du professeur")}</b>.</p>` : L[0] && L[0].i.panne ? `<p>Panne cachée : <b>${esc(L[0].i.panne)}</b>.</p>` : ""}${aide}</div>
       <div class="stats">
         <div class="carte"><span class="discret">Ont rendu</span><b>${L.length}${niveau ? ` / ${L.length + absents.length}` : ""}</b></div>
         <div class="carte"><span class="discret">Moyenne</span><b>${SIP.nb(moy, 3)} / 20</b></div>
-        <div class="carte"><span class="discret">Mesures (médiane)</span><b>${SIP.nb(med(L.map((l) => l.i.mesures)), 3)}</b></div>
-        <div class="carte"><span class="discret">Trouvée du premier coup</span><b>${L.filter((l) => !l.i.abandon && !l.i.mauvaises).length}</b></div>
+        ${s.cplt ? `<div class="carte"><span class="discret">Vérifications ratées (médiane)</span><b>${SIP.nb(med(L.map((l) => l.i.rates)), 3)}</b></div>
+        <div class="carte"><span class="discret">Juste du premier coup</span><b>${L.filter((l) => !l.i.rates).length}</b></div>`
+        : `<div class="carte"><span class="discret">Mesures (médiane)</span><b>${SIP.nb(med(L.map((l) => l.i.mesures)), 3)}</b></div>
+        <div class="carte"><span class="discret">Trouvée du premier coup</span><b>${L.filter((l) => !l.i.abandon && !l.i.mauvaises).length}</b></div>`}
       </div>
-      <div class="table-defil"><table><thead><tr><th>Élève</th>${niveau ? "" : "<th>Classe</th>"}<th class="num">Note</th><th class="num">Mesures</th><th class="num">Mauvaises désignations</th><th class="num" title="Ohmmètre sous tension, ou sans consigner (couper, cadenas, VAT)">Fautes de sécurité</th><th class="num">Durée</th><th>Rendu le</th></tr></thead><tbody>${L.map((l) =>
+      <div class="table-defil"><table><thead><tr><th>Élève</th>${niveau ? "" : "<th>Classe</th>"}<th class="num">Note</th>${s.cplt ? `<th class="num">Vérifications ratées</th><th>Indice</th>` : `<th class="num">Mesures</th><th class="num">Mauvaises désignations</th><th class="num" title="Ohmmètre sous tension, ou sans consigner (couper, cadenas, VAT)">Fautes de sécurité</th>`}<th class="num">Durée</th><th>Rendu le</th></tr></thead><tbody>${L.map((l) =>
         `<tr class="cliquable" data-id="${esc(l.e.id)}"><td><b>${esc(l.e.nom)}</b>${l.essais.length > 1 ? ` <span class="discret" title="Le premier essai compte. Les autres : ${l.essais.slice(1).map((t) => SIP.nb(note20(t.score, t.score_max), 3) + "/20").join(", ")}">+${l.essais.length - 1} essai${l.essais.length > 2 ? "s" : ""}</span>` : ""}</td>${niveau ? "" : `<td>${esc(SIP.niveau(l.e.niveau).court)}</td>`}
-        <td class="num">${l.i.abandon ? `<span class="etiquette ko">abandon</span> ` : ""}${tagNote(l.i.note)}</td><td class="num">${l.i.mesures}</td><td class="num">${l.i.mauvaises}</td><td class="num">${l.i.fautes ? `<span class="etiquette ko">${l.i.fautes}</span>` : "0"}</td><td class="num">${duree(l.essais[0])}</td><td>${SIP.fmtDate(l.essais[0].fait_le, true)}</td></tr>`).join("")}${absents.map((e) =>
-        `<tr><td>${esc(e.nom)}</td><td class="discret" colspan="6">pas encore rendu</td></tr>`).join("")}</tbody></table></div>
-      <p class="discret">Clique sur un élève pour voir ses mesures et ses désignations. La panne est la même pour toute la classe : une très bonne note avec très peu de mesures, en très peu de temps, mérite une question.</p>`);
+        <td class="num">${l.i.abandon ? `<span class="etiquette ko">abandon</span> ` : ""}${tagNote(l.i.note)}</td>${s.cplt ? `<td class="num">${l.i.rates}</td><td>${l.i.indice ? "ouvert" : "—"}</td>` : `<td class="num">${l.i.mesures}</td><td class="num">${l.i.mauvaises}</td><td class="num">${l.i.fautes ? `<span class="etiquette ko">${l.i.fautes}</span>` : "0"}</td>`}<td class="num">${duree(l.essais[0])}</td><td>${SIP.fmtDate(l.essais[0].fait_le, true)}</td></tr>`).join("")}${absents.map((e) =>
+        `<tr><td>${esc(e.nom)}</td><td class="discret" colspan="${s.cplt ? 5 : 6}">pas encore rendu</td></tr>`).join("")}</tbody></table></div>
+      <p class="discret">${s.cplt ? "Clique sur un élève pour voir le détail. Le schéma de départ est le même pour toute la classe." : "Clique sur un élève pour voir ses mesures et ses désignations. La panne est la même pour toute la classe : une très bonne note avec très peu de mesures, en très peu de temps, mérite une question."}</p>`);
     document.getElementById("dp-vu").onchange = (e) => { depVu = e.target.value; vueDepannages(); };
     document.querySelectorAll("tr[data-id]").forEach((tr) => (tr.onclick = () => vueDetail(tr.dataset.id)));
   }
@@ -724,7 +728,7 @@
     }).join("");
     const seances = x.E.map((t) => {
       const det = Array.isArray(t.details) ? t.details : [];
-      return `<details class="seance"><summary><b>${SIP.fmtDate(t.fait_le, true)}</b> ${esc(t.titre || t.module)} <span class="etiquette">${/^fiche-/.test(t.module) ? "Vérification de fiche" : /^flash-/.test(t.module) ? "Flash" : /^schemas-prof-/.test(t.module) ? "Dépannage (atelier schémas)" : /^schemas-defi-/.test(t.module) ? "Défi (atelier schémas)" : /^schemas-dep-/.test(t.module) ? "Dépannage d'entraînement" : /^schemas-lecture-/.test(t.module) ? "Lecture de schéma" : /^dsb-/.test(t.module) ? "DS blanc" : /^prep-/.test(t.module) ? "Préparation du DS" : /^bac-/.test(t.module) ? "Bac SI" : LIB[t.type] || t.type}</span>
+      return `<details class="seance"><summary><b>${SIP.fmtDate(t.fait_le, true)}</b> ${esc(t.titre || t.module)} <span class="etiquette">${/^fiche-/.test(t.module) ? "Vérification de fiche" : /^flash-/.test(t.module) ? "Flash" : /^schemas-prof-/.test(t.module) ? "Dépannage (atelier schémas)" : /^schemas-cplt-/.test(t.module) ? "Schéma à compléter (atelier schémas)" : /^schemas-defi-/.test(t.module) ? "Défi (atelier schémas)" : /^schemas-dep-/.test(t.module) ? "Dépannage d'entraînement" : /^schemas-lecture-/.test(t.module) ? "Lecture de schéma" : /^dsb-/.test(t.module) ? "DS blanc" : /^prep-/.test(t.module) ? "Préparation du DS" : /^bac-/.test(t.module) ? "Bac SI" : LIB[t.type] || t.type}</span>
         ${tagNote(note20(t.score, t.score_max))} ${det.length ? `<span class="discret">${det.reduce((a, d) => a + nbErreurs(d), 0)} erreur(s)</span>` : ""} ${t.duree_s ? `<span class="discret">${Math.round(t.duree_s / 60)} min</span>` : ""}</summary>
         ${det.length ? `<div class="table-defil"><table><thead><tr><th>#</th><th>Question</th><th>Réponse élève</th><th>Attendu</th><th class="num">Points</th></tr></thead><tbody>${det.map((d, k) =>
           `<tr><td>${k + 1}</td><td>${esc(d.q)}</td><td>${esc(d.rep)}${d.essais > 1 ? ` <span class="discret">(${d.essais} essais)</span>` : ""}</td><td>${esc(d.attendu)}</td><td class="num">${d.bareme != null ? `${nbErreurs(d) ? "" : "✓ "}${SIP.nb(d.pts, 3)} / ${SIP.nb(d.bareme, 3)}` : nbErreurs(d) ? `✗ −${SIP.PENALITE * nbErreurs(d)}` : "✓"}</td></tr>`).join("")}</tbody></table></div>` : `<p class="discret">Pas de détail.</p>`}

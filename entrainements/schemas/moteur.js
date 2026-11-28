@@ -1658,6 +1658,45 @@
     return { ok, etapes: out, journal: sim.journal() };
   }
 
+  /* ---------- schéma à compléter (professeur) : l'essai fait sur le corrigé ----------
+     On rejoue, deux fois de suite, chaque commande du corrigé (bouton appuyé puis relâché ; sélecteur, interrupteur,
+     fin de course, capteur, arrêt d'urgence basculés ; relais thermique en surcharge puis réarmé), en regardant après
+     chaque geste (300 ms, et encore après le plus long des retards s'il y a des relais temporisés) ce que font les
+     bobines, les moteurs (arrêt, sens 1, sens 2, étoile, triangle), les voyants, les électrovannes, les relais
+     thermiques et les différentiels (déclenchés), les contrôleurs d'isolement. Le schéma de l'élève doit faire pareil
+     à chaque étape (scenario(), avec exige : les mêmes appareils). */
+  function essaiAuto(schema) {
+    const sim = simulation(schema), A = sim.etat().appareils;
+    const refs = Object.keys(A).filter((r) => r && r[0] !== "?").sort((a, b) => a.localeCompare(b, "fr", { numeric: true }));
+    const OBS = new Set(["contacteur", "relais", "travail", "repos", "voyant", "electrovanne", "moteur", "thermique", "differentiel", "cpi"]);
+    const CMD = new Set(["bouton", "au", "selecteur", "interrupteur", "fdc", "capteur", "thermique"]);
+    const observes = refs.filter((r) => OBS.has(A[r].sorte)), commandes = refs.filter((r) => CMD.has(A[r].sorte) && !A[r].piloteRef);
+    let tmax = 0;
+    for (const pc of schema.pieces || []) if (pc.type === "tempo_travail" || pc.type === "tempo_repos") tmax = Math.max(tmax, Math.round((Number(M.parametres(pc).delai) || 3) * 1000));
+    const lire = () => {
+      const X = sim.etat().appareils, v = {};
+      for (const r of observes) {
+        const a = X[r]; if (!a) continue;
+        if (a.sorte === "moteur") v[r] = a.etatM === "marche" || a.etatM === "surtension" ? a.couplage || (a.sens === -1 ? "sens2" : "sens1") : "arret";
+        else if (a.sorte === "thermique" || a.sorte === "differentiel") v[r] = !!a.declenche;
+        else if (a.sorte === "cpi") v[r] = !!a.alarme;
+        else v[r] = !!a.alim;
+      }
+      return v;
+    };
+    const etapes = [{ texte: "Au repos", verifier: lire() }];
+    const pas = (texte, faire, attendre) => { for (const [q, r, x] of faire) sim.action(r, q, x); sim.avancer(attendre); etapes.push({ texte, faire, attendre, verifier: lire() }); };
+    const tard = (texte) => { if (tmax) pas(texte + ", " + String(Math.round(tmax / 100) / 10).replace(".", ",") + " s plus tard", [], tmax + 300); };
+    for (let passe = 0; passe < 2; passe++) for (const r of commandes) {
+      const so = A[r].sorte;
+      if (so === "bouton") { pas(`${r} appuyé`, [["appuyer", r]], 300); tard(`${r} appuyé`); pas(`${r} relâché`, [["relacher", r]], 300); tard(`${r} relâché`); }
+      else if (so === "thermique") { pas(`${r} : surcharge`, [["surcharge", r]], 300); pas(`${r} réarmé`, [["rearmer", r]], 300); }
+      else { pas(`${r} actionné`, [["basculer", r]], 300); tard(`${r} actionné`); }
+    }
+    const exige = {}; for (const r of observes.concat(commandes)) exige[r] = A[r].sorte;
+    return { etapes, exige, commandes, observes };
+  }
+
   /* ---------- dépannage : les pannes qu'on peut cacher dans un schéma ---------- */
   function pannesPossibles(schema) {   // d'abord les pannes « simples » (coupé, ne conduit plus), puis les pannes réalistes
     const L = [];
@@ -1682,6 +1721,6 @@
     return !scenario(schema, E, { panne, jamaisCourt: false }).ok;
   }
 
-  const API = { simulation, scenario, lireTension, POT_ALIM, PRINCIPAL, pannesPossibles, panneVisible };
+  const API = { simulation, scenario, lireTension, POT_ALIM, PRINCIPAL, pannesPossibles, panneVisible, essaiAuto };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasMoteur = API;
 })(typeof window !== "undefined" ? window : globalThis);
