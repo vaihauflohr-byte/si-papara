@@ -173,6 +173,8 @@
       const K = SEUILS[c];
       h += `<h3>Agrégation ${c} · moyenne d’admissibilité ${f}</h3>${jauge(c, x)}<p class="muted">${x != null ? `Prévision ${n20(x)} : ${x >= K.dernier ? `au-dessus du dernier admissible ${K.s} (${nf(K.dernier)}) et de ${K.avant.s} (${nf(K.avant.dernier)})` : `sous le dernier admissible ${K.s} (${nf(K.dernier)})`} ; rang estimé ≈ ${rang(x, c)}ᵉ sur ${K.pres} présents (${K.adm} admissibles). ` : `Compose au moins une fois chaque épreuve de l’${c} pour obtenir la prévision. `}Repères : ${K.src}. Le rang suppose une répartition normale des notes : c’est un ordre de grandeur.</p>`;
     });
+    // la partie pédagogique de l'épreuve 1 de l'interne
+    if (window.ECRITS_PEDA) h += `<h2 class="sec">La partie pédagogique de l’épreuve 1 (interne)</h2>${ECRITS_PEDA.carte()}`;
     // les épreuves
     h += `<h2 class="sec">Les sujets par épreuve</h2><div class="ec-grid">`;
     ['i1', 'i2', 'e1', 'e2', 'e3'].forEach((k) => {
@@ -221,11 +223,16 @@
   function blocQ(q, opts) {
     opts = opts || {};
     const r = opts.res, cl = r && r.pts != null ? (r.pts >= q.pts * 0.75 ? 'ok' : r.pts > 0 ? 'mi' : 'ko') : '';
-    return `<div class="ec-q ${cl}" id="q${q.n}"><h4><span>Question ${q.n}${q.nt && notionOk(q.nt) ? ` <a class="ec-tag" href="#n-${q.nt}">notion</a>` : q.nt === 'ped' ? ' <span class="ec-tag">pédagogie</span>' : ''}</span><small>${r && r.pts != null ? `${nf(r.pts)} / ${nf(q.pts)} pt` : `${nf(q.pts)} pt`}</small></h4><div>${E(q.q)}</div>
+    return `<div class="ec-q ${cl}" id="q${q.n}"><h4><span>Question ${q.n}${q.nt && notionOk(q.nt) ? ` <a class="ec-tag" href="#n-${q.nt}">notion</a>` : q.nt === 'ped' ? ` <a class="ec-tag" href="#ecrits-peda${typePeda(q.q)}">pédagogie : s’entraîner</a>` : ''}</span><small>${r && r.pts != null ? `${nf(r.pts)} / ${nf(q.pts)} pt` : `${nf(q.pts)} pt`}</small></h4><div>${E(q.q)}</div>
       ${r && r.com ? `<div class="corr" style="margin-top:8px"><b>${r.ia ? 'Correction de l’IA' : 'Ton auto-évaluation'}</b><p>${E(r.com)}</p></div>` : ''}
       ${opts.auto ? `<div class="ec-auto" data-q="${q.n}">${[[1, 'Juste'], [0.5, 'À moitié'], [0.25, 'Amorcé'], [0, 'Faux ou rien']].map(([k, t]) => `<button type="button" data-k="${k}" class="${r && !r.ia && r.pts != null && Math.abs(r.pts - quart(k * q.pts)) < 0.01 ? 'on' : ''}">${t}</button>`).join('')}</div>` : ''}
       <details${opts.ouvert ? ' open' : ''}><summary>La copie modèle</summary><div class="modele">${br(q.r)}</div></details>
       <details${opts.ouvert ? ' open' : ''}><summary>Ce que le jury a écrit${q.tx ? ` · ${E(q.tx)}` : ''}</summary><div class="jury"><p>${br(q.j)}</p></div></details></div>`;
+  }
+  // le type d'exercice pédagogique le plus proche d'une question du sujet
+  function typePeda(t) {
+    const T = [['prompt', /prompt/i], ['fiche', /fiche « connaissances »|fiche connaissances/i], ['multi', /multiphysique/i], ['indic', /indicateur/i], ['protocole', /protocole/i], ['evalsom', /évaluation sommative|fiche descriptive/i], ['sequence', /séquence/i]].find(([, rx]) => rx.test(t || ''));
+    return T ? `-${T[0]}-${Math.floor(Math.random() * 1000)}` : '';
   }
   function corrige(id) {
     styles();
@@ -498,6 +505,7 @@ Réponds en JSON : {"questions": [{"n": ${p.qs[0].n}, "points": 0.5, "commentair
     clearInterval(window.__an); window.__an = 0;
     const a = app(); a.onclick = null; a.oninput = null; a.onchange = null; a.onsubmit = null;
     let m;
+    if (h === 'ecrits-peda' || h.startsWith('ecrits-peda-')) { styles(); return window.ECRITS_PEDA ? ECRITS_PEDA.route(h) : accueil(); }
     if ((m = h.match(/^ecrits-sujet-(.+)$/))) return pageSujet(m[1]);
     if ((m = h.match(/^ecrits-lecture-(.+)$/))) return lecture(m[1]);
     if ((m = h.match(/^ecrits-compo-(.+)$/))) return compo(m[1]);
