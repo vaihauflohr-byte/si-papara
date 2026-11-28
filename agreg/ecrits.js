@@ -417,7 +417,7 @@ Réponds en JSON : {"note_sur_10": 7, "bien": ["…"], "a_revoir": ["…"], "con
       <div class="card"><b>1. Les pages de ta copie</b><p class="muted">Photos de la partie ${E(p.id)} seulement, dans l’ordre. Chaque photo est transcrite par l’IA ; corrige la transcription si elle a mal lu, c’est elle qui sera notée.</p>
       <div class="btns"><label class="b filebtn">Ajouter des photos<input type="file" accept="image/*" multiple hidden id="ec-f"></label><button class="b sec" id="ec-tr" ${photos.length ? '' : 'disabled'}>Transcrire ${photos.length ? photos.length + ' photo' + (photos.length > 1 ? 's' : '') : 'les photos'}</button><button class="b sec" id="ec-add">Ajouter une page tapée</button></div>
       <div id="ec-pages">${pages.map((t, i) => `<div class="ec-page"><div><b>Page ${i + 1}</b><br><button class="b sec" data-del="${i}" style="padding:4px 10px;margin-top:6px">Retirer</button></div><textarea data-pg="${i}" aria-label="transcription de la page ${i + 1}">${E(t)}</textarea></div>`).join('')}${photos.map((f, i) => `<div class="ec-page"><img alt="photo ${i + 1} à transcrire" data-ph="${i}"><div class="muted">${E(f.name || 'photo')} · en attente de transcription</div></div>`).join('')}</div>
-      <div class="btns" style="margin-top:10px"><button class="b" id="ec-corr" ${pages.some((t) => t.trim()) ? '' : 'disabled'}>Faire corriger la partie ${E(p.id)} par l’IA</button><button class="b sec" id="ec-moi">Me noter moi-même</button></div><div id="ec-msg">${msg || ''}</div></div>
+      <div class="btns" style="margin-top:10px"><button class="b" id="ec-corr" ${pages.some((t) => t.trim()) ? '' : 'disabled'}>Faire corriger la partie ${E(p.id)} par l’IA</button><button class="b sec" id="ec-moi">Me noter moi-même</button>${window.ECRITS_FORME && pages.some((t) => t.trim()) ? `<a class="b sec" href="#ecrits-forme-${c.t}-${E(p.id)}">Relire la forme</a>` : ''}</div><div id="ec-msg">${msg || ''}</div></div>
       <div id="ec-bilan">${r && r.bilan ? bilanHTML(r.bilan) : ''}</div>
       ${p.qs.map((q) => blocQ(q, { res: res(q), auto: !!(r && !r.ia) })).join('')}`;
       photos.forEach((f, i) => { const im = box.querySelector(`[data-ph="${i}"]`); if (im) { const u = URL.createObjectURL(f); im.src = u; im.onload = () => URL.revokeObjectURL(u); } });
@@ -514,7 +514,9 @@ Réponds en JSON : {"questions": [{"n": ${p.qs[0].n}, "points": 0.5, "commentair
     if (lm || lt) c += `<div class="ec-ep" style="--c:#5b6b2e"><div class="eyebrow">Épreuve 1 · interne et externe</div><h3>L’épreuve commune : mécanique, fluides, thermique</h3><p class="muted">Portance et traînée, du local au global, changement de point, flexion composée, inertie et théorème de l’énergie cinétique, Archimède ; parois cylindriques, bilan d’un digesteur, pertes de charge et Bernoulli, turbine.</p><div class="btns">${lm ? '<a class="b" href="#n-meca-commune">Mécanique</a>' : ''}${lt ? '<a class="b sec" href="#n-thermo-commune">Thermique et fluides</a>' : ''}</div></div>`;
     if (window.ECRITS_PYTHON) c += ECRITS_PYTHON.carte();
     if (window.ECRITS_ETUDES) c += ECRITS_ETUDES.carte();
-    return c ? `<h2 class="sec">S’entraîner par morceaux</h2><div class="ec-grid">${c}</div>` : '';
+    let f = '';
+    ['ECRITS_FORME', 'ECRITS_SPRINT', 'ECRITS_DR', 'ECRITS_DOC'].forEach((k) => { if (window[k]) f += window[k].carte(); });
+    return (c ? `<h2 class="sec">S’entraîner par morceaux</h2><div class="ec-grid">${c}</div>` : '') + (f ? `<h2 class="sec">La forme et la vitesse</h2><div class="ec-grid">${f}</div>` : '');
   }
 
   /* ---------- routes ---------- */
@@ -525,6 +527,7 @@ Réponds en JSON : {"questions": [{"n": ${p.qs[0].n}, "points": 0.5, "commentair
     if (h === 'ecrits-peda' || h.startsWith('ecrits-peda-')) { styles(); return window.ECRITS_PEDA ? ECRITS_PEDA.route(h) : accueil(); }
     if (h === 'ecrits-python' || h.startsWith('ecrits-python-')) { styles(); return window.ECRITS_PYTHON ? ECRITS_PYTHON.route(h) : accueil(); }
     if (h === 'ecrits-etudes' || h.startsWith('ecrits-etudes-')) { styles(); return window.ECRITS_ETUDES ? ECRITS_ETUDES.route(h) : accueil(); }
+    for (const [p, k] of [['forme', 'ECRITS_FORME'], ['sprint', 'ECRITS_SPRINT'], ['dr', 'ECRITS_DR'], ['doc', 'ECRITS_DOC']]) if (h === 'ecrits-' + p || h.startsWith('ecrits-' + p + '-')) { styles(); return window[k] ? window[k].route(h) : accueil(); }
     if ((m = h.match(/^ecrits-sujet-(.+)$/))) return pageSujet(m[1]);
     if ((m = h.match(/^ecrits-lecture-(.+)$/))) return lecture(m[1]);
     if ((m = h.match(/^ecrits-compo-(.+)$/))) return compo(m[1]);
