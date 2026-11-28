@@ -175,6 +175,8 @@
     });
     // la partie pédagogique de l'épreuve 1 de l'interne
     if (window.ECRITS_PEDA) h += `<h2 class="sec">La partie pédagogique de l’épreuve 1 (interne)</h2>${ECRITS_PEDA.carte()}`;
+    // s'entraîner par morceaux : questions à 5 %, épreuve commune, Python, études de systèmes
+    h += morceaux();
     // les épreuves
     h += `<h2 class="sec">Les sujets par épreuve</h2><div class="ec-grid">`;
     ['i1', 'i2', 'e1', 'e2', 'e3'].forEach((k) => {
@@ -500,12 +502,29 @@ Réponds en JSON : {"questions": [{"n": ${p.qs[0].n}, "points": 0.5, "commentair
     return corps(tout.length > place ? tout.slice(0, Math.max(0, place - 60)) + '\n[… fin de la copie coupée : trop longue]' : tout);
   }
 
+  // les entraînements ciblés, hors sujets complets
+  function morceaux() {
+    const N = (id) => (typeof NOTIONS !== 'undefined' ? NOTIONS.find((n) => n.id === id) : null);
+    const lv = (n, id) => n && n.levels.find((L) => L.id === id);
+    const fait = (n, L) => (n && L ? L.qs.filter((_, j) => { const p = st.p && st.p[`${n.id}.${L.id}.${j}`]; return p && p.s >= 1; }).length : 0);
+    const c5 = N('cinq'), me = N('meca'), th = N('thermo'), lm = lv(me, 'commune'), lt = lv(th, 'commune');
+    let c = '';
+    if (c5) { const n = c5.levels.reduce((a, L) => a + L.qs.length, 0), d = c5.levels.reduce((a, L) => a + fait(c5, L), 0);
+      c += `<div class="ec-ep" style="--c:#a8362b"><div class="eyebrow">Toutes les épreuves · d’après les rapports</div><h3>Les questions à 5 %</h3><p class="muted">Les questions que presque personne ne réussit : ALI comparateur (3 %), premier ordre (3 %), circuit RL (4 %), Sallen-Key (5 %), signe de l’arc tangente (aucun candidat), bruit d’une résistance, Bode, PD3, théorème de l’énergie cinétique. Valeurs tirées au hasard.${d ? ` ${d} / ${n} réussies au premier essai.` : ''}</p><div class="btns"><a class="b" href="#n-cinq-agreg">S’entraîner</a></div></div>`; }
+    if (lm || lt) c += `<div class="ec-ep" style="--c:#5b6b2e"><div class="eyebrow">Épreuve 1 · interne et externe</div><h3>L’épreuve commune : mécanique, fluides, thermique</h3><p class="muted">Portance et traînée, du local au global, changement de point, flexion composée, inertie et théorème de l’énergie cinétique, Archimède ; parois cylindriques, bilan d’un digesteur, pertes de charge et Bernoulli, turbine.</p><div class="btns">${lm ? '<a class="b" href="#n-meca-commune">Mécanique</a>' : ''}${lt ? '<a class="b sec" href="#n-thermo-commune">Thermique et fluides</a>' : ''}</div></div>`;
+    if (window.ECRITS_PYTHON) c += ECRITS_PYTHON.carte();
+    if (window.ECRITS_ETUDES) c += ECRITS_ETUDES.carte();
+    return c ? `<h2 class="sec">S’entraîner par morceaux</h2><div class="ec-grid">${c}</div>` : '';
+  }
+
   /* ---------- routes ---------- */
   function route(h) {
     clearInterval(window.__an); window.__an = 0;
     const a = app(); a.onclick = null; a.oninput = null; a.onchange = null; a.onsubmit = null;
     let m;
     if (h === 'ecrits-peda' || h.startsWith('ecrits-peda-')) { styles(); return window.ECRITS_PEDA ? ECRITS_PEDA.route(h) : accueil(); }
+    if (h === 'ecrits-python' || h.startsWith('ecrits-python-')) { styles(); return window.ECRITS_PYTHON ? ECRITS_PYTHON.route(h) : accueil(); }
+    if (h === 'ecrits-etudes' || h.startsWith('ecrits-etudes-')) { styles(); return window.ECRITS_ETUDES ? ECRITS_ETUDES.route(h) : accueil(); }
     if ((m = h.match(/^ecrits-sujet-(.+)$/))) return pageSujet(m[1]);
     if ((m = h.match(/^ecrits-lecture-(.+)$/))) return lecture(m[1]);
     if ((m = h.match(/^ecrits-compo-(.+)$/))) return compo(m[1]);

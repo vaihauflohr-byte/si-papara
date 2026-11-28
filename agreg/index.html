@@ -154,7 +154,7 @@ function tri(p,q,s_){return `<svg viewBox="0 0 420 200" width="420" role="img" a
 
 /* ---------- moteur ---------- */
 const NOTIONS=[],LABS=[];
-const PLAN=[['asserv','Asservissement'],['puiss','Puissances, complexes et triphasé'],['fourier','Fourier, harmoniques, valeurs moyenne et efficace'],['elec','Électronique de base'],['bus','Bus et trames'],['machines','Machines asynchrone et synchrone'],['conv','Convertisseurs'],['python','Python et algorithmes'],['signal','Conversion et signal'],['meca','Mécanique de l’épreuve 1'],['thermo','Thermique et fluides de l’épreuve 1'],['magn','Électromagnétisme']];
+const PLAN=[['cinq','Les questions à 5 %'],['asserv','Asservissement'],['puiss','Puissances, complexes et triphasé'],['fourier','Fourier, harmoniques, valeurs moyenne et efficace'],['elec','Électronique de base'],['bus','Bus et trames'],['machines','Machines asynchrone et synchrone'],['conv','Convertisseurs'],['python','Python et algorithmes'],['signal','Conversion et signal'],['meca','Mécanique de l’épreuve 1'],['thermo','Thermique et fluides de l’épreuve 1'],['magn','Électromagnétisme']];
 const KEY='agreg-ie-v2',DAY=864e5,INT=[1,3,7,14,30];
 let st={q:{},exams:[],c:{},r:{}};try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j&&j.q)st=j;}catch(e){}if(!st.c)st.c={};if(!st.r)st.r={};if(!st.p)st.p={};if(!st.ch)st.ch={};
 const HOOK=window.AGREG_HOOK||null;
@@ -217,7 +217,7 @@ function gradeHTML(r){const cr=Array.isArray(r.criteres)?r.criteres:[],L=a=>Arra
  ${r.conseil?`<p><b>À travailler en priorité :</b> ${esc(r.conseil)}</p>`:''}</div>`;}
 
 /* ---------- notes : dernier résultat au premier essai de chaque question (st.p), entre 0 et 1 ---------- */
-const WL={bts:1,agreg:2,annale:2};
+const WL={bts:1,agreg:2,commune:2,annale:2},LR={pro:0,si:1,bts:2,agreg:3,commune:3,annale:4},lr=x=>LR[x.L.id]??x.li;
 function noteOf(list){let w=0,wt=0,sc=0,n=0,tot=0;for(const x of list){const ww=WL[x.L.id];if(!ww)continue;tot++;w+=ww;const p=st.p[x.k];if(p){n++;wt+=ww;sc+=ww*p.s;}}return {n,tot,traite:wt?20*sc/wt:null,glob:w?20*sc/w:null};}
 function lvNote(N,L){let n=0,sc=0;L.qs.forEach((_,j)=>{const p=st.p[`${N.id}.${L.id}.${j}`];if(p){n++;sc+=p.s;}});return {n,tot:L.qs.length,note:n?20*sc/n:null,glob:20*sc/L.qs.length};}
 const n20=x=>x==null?'—':fmt(x,3)+' / 20';
@@ -262,8 +262,8 @@ function home(){clearInterval(window.__chr);const Q=allQ(),G=noteOf(Q),ex=st.exa
 
 /* ---------- mode notion : cours et entraînement ---------- */
 const C2='#e0803a';
-function notion(N){const seen=N.levels.some(L=>L.qs.some((_,j)=>(st.q[`${N.id}.${L.id}.${j}`]||{}).seen));
- let mode=(N.cours&&!seen)?'cours':'train',lv=N.levels.findIndex(L=>L.qs.some((_,j)=>rec(`${N.id}.${L.id}.${j}`).ok<2)),qi=0,ci=0;if(lv<0)lv=0;
+function notion(N,lid){const seen=N.levels.some(L=>L.qs.some((_,j)=>(st.q[`${N.id}.${L.id}.${j}`]||{}).seen));
+ let mode=(N.cours&&!seen&&!lid)?'cours':'train',lv=N.levels.findIndex(L=>L.qs.some((_,j)=>rec(`${N.id}.${L.id}.${j}`).ok<2)),qi=0,ci=0;if(lv<0)lv=0;if(lid){const k=N.levels.findIndex(L=>L.id==lid);if(k>=0)lv=k;}
  app().innerHTML=`<a class="back" href="#accueil">← Toutes les notions</a><h1>${N.name}</h1><p class="muted">${N.desc}</p>${tsiBloc(N)}${atBloc(N)}${N.cours?`<div class="switch"><button data-m="cours">Cours</button><button data-m="train">Entraînement</button></div>`:''}<div id="zone"></div>`;
  app().onclick=e=>{const b=e.target.closest('[data-m]');if(b){mode=b.dataset.m;go();}};
  function go(){document.querySelectorAll('.switch button').forEach(b=>b.classList.toggle('on',b.dataset.m==mode));mode=='cours'?cours():train();}
@@ -296,7 +296,7 @@ function notion(N){const seen=N.levels.some(L=>L.qs.some((_,j)=>(st.q[`${N.id}.$
 
 /* ---------- séance du jour ---------- */
 function seance(){const Q=allQ(),now=Date.now(),due=Q.filter(x=>st.q[x.k]&&st.q[x.k].seen&&st.q[x.k].due<=now).sort((a,b)=>st.q[a.k].box-st.q[b.k].box).slice(0,8);
- const fresh=Q.filter(x=>!(st.q[x.k]&&st.q[x.k].seen)).sort((a,b)=>a.li-b.li||NOTIONS.indexOf(a.N)-NOTIONS.indexOf(b.N)||a.qi-b.qi);
+ const fresh=Q.filter(x=>!(st.q[x.k]&&st.q[x.k].seen)).sort((a,b)=>lr(a)-lr(b)||NOTIONS.indexOf(a.N)-NOTIONS.indexOf(b.N)||a.qi-b.qi);
  const list=due.concat(fresh.slice(0,10-due.length));let i=0,good=0;
  if(!list.length){app().innerHTML=`<a class="back" href="#accueil">← Accueil</a><h1>Séance du jour</h1><div class="card"><p>Rien à réviser aujourd’hui et toutes les questions ont été vues. Passe une épreuve blanche, ou reviens demain.</p></div>`;return;}
  app().innerHTML=`<a class="back" href="#accueil">← Accueil</a><h1>Séance du jour</h1><div class="prog"><i id="pg"></i></div><div class="card" id="card"></div>`;app().onclick=null;
@@ -306,7 +306,7 @@ function seance(){const Q=allQ(),now=Date.now(),due=Q.filter(x=>st.q[x.k]&&st.q[
  step();}
 
 /* ---------- épreuve blanche ---------- */
-function epreuve(mode){const AN=mode=='annales'&&window.AGREG_PLAN,TI=AN?'Épreuve d’annales':'Épreuve blanche',pool=AN?AGREG_PLAN.pool():allQ().filter(x=>x.li>=2&&!x.q.open&&x.L.id!='annale');for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+function epreuve(mode){const AN=mode=='annales'&&window.AGREG_PLAN,TI=AN?'Épreuve d’annales':'Épreuve blanche',pool=AN?AGREG_PLAN.pool():allQ().filter(x=>WL[x.L.id]&&!x.q.open&&x.L.id!='annale');for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
  const list=pool.slice(0,10).sort((a,b)=>NOTIONS.indexOf(a.N)-NOTIONS.indexOf(b.N)||a.li-b.li).map(x=>({x,inst:x.q.gen(),ans:[]}));let i=0,end=Date.now()+(AN?60:45)*60e3,tm=null,over=false;
  app().innerHTML=`<a class="back" href="#accueil">← Abandonner</a><h1>${TI}</h1><div class="exbar"><span id="clock"></span><div class="qnav" id="qnav"></div><button class="b" id="rendre" type="button">Rendre la copie</button></div><div class="card" id="card"></div>`;app().onclick=null;
  const keep=()=>{list[i].inst.fields.forEach((_,j)=>{const e=$('#in'+j);if(e)list[i].ans[j]=e.value;});};
@@ -400,7 +400,7 @@ function semaine(off){const w=wkState(off),fin=wk0(w.s,1)-DAYMS*2;
  h+=`<div class="btns" style="margin-top:18px"><a class="b sec" href="#semaine${w.off-1}">Semaine précédente</a>${w.off<1?`<a class="b sec" href="#semaine+${w.off+1}">Semaine suivante</a>`:''}${w.off?'<a class="b" href="#semaine+0">Semaine en cours</a>':''}</div>`;
  app().innerHTML=h;app().onclick=null;app().oninput=null;
  app().onchange=e=>{if(e.target.id!='fa'&&e.target.id!='fb')return;const a=$('#fa').value,b=$('#fb').value;if(a==b)return;st.w[w.id]=mkPlan(w.s,a,b);save();semaine(w.off);};}
-function route(){clearInterval(window.__an);window.__an=0;const h=(location.hash||'#accueil').slice(1);window.scrollTo(0,0);if((h=='prepa'||h.startsWith('prepa-'))&&window.PREPA)return PREPA.route(h);if((h=='admission'||h.startsWith('admission-'))&&window.ADMISSION)return ADMISSION.route(h);if((h=='ecrits'||h.startsWith('ecrits-'))&&window.ECRITS)return ECRITS.route(h);if(h=='seance')return seance();if(h=='epreuve')return epreuve();if(h=='epreuve-annales'&&window.AGREG_PLAN)return AGREG_PLAN.annales();if(h=='retro'&&window.AGREG_PLAN)return AGREG_PLAN.retro();if(h.startsWith('semaine'))return semaine(h.length>7?+h.slice(7):null);if(h=='labo')return labo();if(h.startsWith('labo-'))return lab(h.slice(5));if(h.startsWith('n-')){const N=NOTIONS.find(n=>n.id==h.slice(2));if(N)return notion(N);}home();}
+function route(){clearInterval(window.__an);window.__an=0;const h=(location.hash||'#accueil').slice(1);window.scrollTo(0,0);if((h=='prepa'||h.startsWith('prepa-'))&&window.PREPA)return PREPA.route(h);if((h=='admission'||h.startsWith('admission-'))&&window.ADMISSION)return ADMISSION.route(h);if((h=='ecrits'||h.startsWith('ecrits-'))&&window.ECRITS)return ECRITS.route(h);if(h=='seance')return seance();if(h=='epreuve')return epreuve();if(h=='epreuve-annales'&&window.AGREG_PLAN)return AGREG_PLAN.annales();if(h=='retro'&&window.AGREG_PLAN)return AGREG_PLAN.retro();if(h.startsWith('semaine'))return semaine(h.length>7?+h.slice(7):null);if(h=='labo')return labo();if(h.startsWith('labo-'))return lab(h.slice(5));if(h.startsWith('n-')){const p=h.slice(2).split('-'),N=NOTIONS.find(n=>n.id==p[0]);if(N)return notion(N,p[1]);}home();}
 let PRET=!HOOK;
 const norme=()=>{if(!st.c)st.c={};if(!st.r)st.r={};if(!st.p)st.p={};if(!st.ch)st.ch={};if(!st.exams)st.exams=[];};
 async function demarrer(){if(HOOK){app().innerHTML='<p class="muted">Chargement…</p>';const ok=await HOOK.ready.catch(()=>false),HL=window.AGREG_HL;
@@ -440,6 +440,8 @@ window.addEventListener('hashchange',()=>{if(PRET)route();});window.addEventList
 <script src="notions/annale-fourier.js"></script>
 <script src="notions/annale-signal.js"></script>
 <script src="notions/annale-magn.js"></script>
+<script src="notions/commune.js"></script>
+<script src="notions/cinq.js"></script>
 <script src="notions/labo.js"></script>
 <script src="prepa-cours.js"></script>
 <script src="prepa-bis.js"></script>
@@ -460,6 +462,8 @@ window.addEventListener('hashchange',()=>{if(PRET)route();});window.addEventList
 <script src="ecrits-e2026-2.js"></script>
 <script src="ecrits-e2026-3.js"></script>
 <script src="ecrits-peda.js"></script>
+<script src="ecrits-python.js"></script>
+<script src="ecrits-etudes.js"></script>
 <script src="ecrits.js"></script>
 <script src="prepa-etapes.js"></script>
 <script src="prepa-cibles.js"></script>
