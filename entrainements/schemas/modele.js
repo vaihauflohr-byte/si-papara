@@ -43,7 +43,8 @@
   const def = (id, o) => { TYPES[id] = Object.assign({ id, p: {}, pref: "", boite: [-1, -3, 1, 3] }, o); };
 
   // Alimentations
-  def("reseau", { nom: "Réseau triphasé", court: "Réseau 3~", cat: "alim", boite: [-1, -1.6, 9, 2],
+  // slt : schéma de liaison à la terre (TT, TN-S, IT) ; ra, rn : prises de terre des masses et du neutre, en TT (ohms)
+  def("reseau", { nom: "Réseau triphasé", court: "Réseau 3~", cat: "alim", p: { slt: "TT", ra: 20, rn: 10 }, boite: [-1, -1.6, 9, 2],
     bornes: () => ["L1", "L2", "L3", "N", "PE"].map((id, i) => ({ id, x: 2 * i, y: 2, d: "s", n: id })) });
   def("alim", { nom: "Repère de potentiel", court: "Potentiel", cat: "alim", p: { pot: "L" }, boite: (p) => (p.pot === "PE" ? [-1, -1, 3, 2] : p.pot === "+24" ? [-2, -1, 2, 2] : [-1.5, -1, 1.5, 2]),
     bornes: () => [{ id: "a", x: 0, y: 2, d: "s", n: "" }], rotDefaut: (p) => (/^(N|0V|PE)$/.test(p.pot) ? 2 : 0) });
@@ -58,6 +59,14 @@
     boite: (p) => [-(p.poles - 1) - 4.6, -3, (p.poles - 1) + 0.8, 3], bornes: (p) => poles(Math.max(1, Math.min(3, p.poles | 0))) });
   def("disj_moteur", { nom: "Disjoncteur-moteur", court: "Disj. moteur", cat: "prot", pref: "Q", p: { cal: 6 }, boite: [-6.6, -3, 2.8, 3], bornes: () => poles(3) });
   def("thermique", { nom: "Relais thermique", court: "Relais thermique", cat: "prot", pref: "F", p: { cal: 6 }, boite: [-3, -3, 3, 3], bornes: () => poles(3) });
+  // interrupteur différentiel : 2, 3 ou 4 pôles (en 2 et 4 pôles, le dernier est le neutre) ; idn : sensibilité IΔn en mA
+  const nDdr = (p) => Math.max(2, Math.min(4, p.poles | 0));
+  def("differentiel", { nom: "Interrupteur différentiel", court: "Différentiel", cat: "prot", pref: "Q", p: { poles: 4, idn: 30 },
+    boite: (p) => [-(nDdr(p) - 1) - 4.6, -3, (nDdr(p) - 1) + 1.2, 3],
+    bornes: (p) => { const n = nDdr(p); return poles(n).map((b) => (n !== 3 && +b.id > 2 * n - 2 ? Object.assign({}, b, { n: "N" }) : b)); } });
+  // contrôleur permanent d'isolement (schéma IT) : entre le réseau (L) et la terre (PE) ; son contact d'alarme : un contact lié, repère CPI1
+  def("cpi", { nom: "Contrôleur permanent d'isolement", court: "Contrôleur d'isolement", cat: "prot", pref: "CPI", boite: [-2.6, -3, 2.6, 3],
+    bornes: () => [{ id: "L", x: 0, y: -3, d: "n", n: "L" }, { id: "PE", x: 0, y: 3, d: "s", n: "PE" }] });
 
   // Commande (organes que l'on actionne à la main pendant la simulation)
   def("bp_no", { nom: "Bouton poussoir à fermeture", court: "BP marche", cat: "cmd", pref: "S", p: { num: "13-14" }, boite: [-3, -3, 1, 3], bornes: (p) => deuxNum(p, "13", "14") });

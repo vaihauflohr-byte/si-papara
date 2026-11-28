@@ -36,6 +36,30 @@
     for (const x of [2, 4, 6]) b.f([x, 2], [x, 4]).f([x, 10], [x, 12]).f([x, 18], [x, 20]).f([x, 26], [x, 28]);
     b.f([10, 2], [10, 27], [8, 27], [8, 28]);
   }
+  // schéma TT : Q1, l'interrupteur différentiel Q2 (300 mA), KM1, F1, M1 (x = 2, 4, 6) ; cablee === false : Q2 posé, pas câblé
+  function puissanceDifferentiel(b, cablee) {
+    b.p("reseau", 2, 0, "", { slt: "TT", ra: 20, rn: 10 });
+    b.p("sectionneur", 4, 7, "Q1", { cal: 10 });
+    b.p("differentiel", 4, 15, "Q2", { poles: 3, idn: 300 });
+    b.p("poles", 4, 23, "KM1");
+    b.p("thermique", 4, 31, "F1", { cal: 6 });
+    b.p("moteur", 4, 40, "M1");
+    for (const x of [2, 4, 6]) { b.f([x, 2], [x, 4]); if (cablee !== false) b.f([x, 10], [x, 12]).f([x, 18], [x, 20]); b.f([x, 26], [x, 28]).f([x, 34], [x, 36]); }
+    b.f([10, 2], [10, 35], [8, 35], [8, 36]);
+  }
+  // schéma IT : la puissance du démarrage direct, le contrôleur d'isolement CPI1 entre le neutre et la terre, son contact allume H1
+  function exempleIT() {
+    const b = plan("Schéma IT et contrôleur d'isolement");
+    puissanceDirecte(b);
+    b.s.pieces.find((pc) => pc.type === "reseau").p.slt = "IT";
+    b.p("cpi", 16, 8, "CPI1");
+    b.f([8, 2], [8, 3], [16, 3], [16, 5]).f([16, 11], [16, 13], [10, 13]);
+    commandeMA(b);
+    b.p("contact_no", 34, 14, "CPI1", { num: "11-14" });
+    b.p("voyant", 34, 35, "H1", { couleur: "rouge", tension: "230~" });
+    b.f([22, 10], [34, 10], [34, 11]).f([34, 17], [34, 32]).f([22, 39], [34, 39], [34, 38]);
+    return b.s;
+  }
   // commande marche-arrêt : L → F2 → F1 95-96 → S1 → S2 // KM1 13-14 → KM1 → N (x = 22)
   function commandeMA(b, o) {
     o = o || {};
@@ -685,7 +709,13 @@
       construire() { return exempleVariateurApi(); } },
     { id: "variateur-pot", titre: "Variateur, inverseur et potentiomètre", niveau: "Variateur",
       resume: "S2 : marche avant (LI1), S3 : marche arrière (LI2), alimentés par le +24V du variateur. Le potentiomètre R1 règle la vitesse sur AI1.",
-      construire() { return exempleVariateurPot(); } }
+      construire() { return exempleVariateurPot(); } },
+    { id: "defaut-tt", titre: "Défaut d'isolement en TT : le différentiel", niveau: "Sécurité électrique",
+      resume: "Schéma TT. Un défaut d'isolement sur M1 (carte « Défaut d'isolement », en simulation) fait passer environ 8 A par la terre : trop peu pour les fusibles de Q1, mais le différentiel Q2 (300 mA) coupe. Essaie sans Q2, ou en TN-S (réglage du réseau).",
+      construire() { const b = plan("Défaut d'isolement en TT"); puissanceDifferentiel(b); commandeMA(b); return b.s; } },
+    { id: "regime-it", titre: "Schéma IT : le contrôleur d'isolement", niveau: "Sécurité électrique",
+      resume: "Neutre isolé. Au premier défaut d'isolement, rien ne coupe et pas de danger : le contrôleur CPI1 allume H1. Un deuxième défaut, sur une autre phase : court-circuit par la terre, Q1 coupe.",
+      construire() { return exempleIT(); } }
   ];
   function inversion(verrou) {
     const b = plan(verrou ? "Inversion du sens de marche" : "Inversion du sens de marche (sans verrouillage)");
@@ -1107,6 +1137,17 @@
         { texte: "Elles remontent jusqu'au haut et s'arrêtent", attendre: 32000, verifier: { KM2: false, KM3: false, PO1: "sans-debord" }, si: "À B3, la principale et le renfort doivent s'arrêter." },
         { texte: "Consommation à 100 % : même à deux, l'eau passe sous B1 : alarme H1", faire: [["regler", "PO1", 1]], attendre: 12000, verifier: { KM3: true, KM2: true, H1: true }, si: "H1 doit s'allumer quand l'eau est sous l'électrode très bas, en service." },
         { texte: "S1 : hors service, tout s'arrête", faire: arret, attendre: 300, verifier: { KM1: false, KM2: false, KM3: false, H1: false }, si: "S1 doit mettre hors service : plus de pompe, plus d'alarme de niveau bas." }
+      ] },
+    { id: "d24-differentiel", titre: "Le différentiel protège les personnes", niveau: 1,
+      resume: "En schéma TT, câbler l'interrupteur différentiel pour qu'il coupe au défaut d'isolement.",
+      consigne: "<p>Le réseau est en schéma <b>TT</b>. Si une phase touche la carcasse du moteur, le courant de défaut (environ 8 A) passe par la terre : c'est trop peu pour faire fondre les fusibles de Q1, et la carcasse reste à 153 V. Câble l'interrupteur différentiel <b>Q2</b> (300 mA), déjà posé, entre Q1 et KM1, sur les trois phases.</p><p class=\"discret\">Pour essayer : Simuler, S2, puis la carte « Défaut d'isolement » : U de M1.</p>",
+      indice: "Q2 se câble comme les autres appareils de la colonne : ses bornes du haut (1, 3, 5) reçoivent les fils qui sortent de Q1 (2, 4, 6) ; ses bornes du bas (2, 4, 6) vont aux pôles de KM1 (1, 3, 5).",
+      depart() { const b = plan("Le différentiel"); puissanceDifferentiel(b, false); commandeMA(b); return b.s; },
+      exige: { Q1: "sectionneur", Q2: "differentiel", KM1: "contacteur", M1: "moteur" },
+      etapes: [
+        { texte: "S2 : le moteur démarre", faire: marche, attendre: 4000, verifier: { M1: "marche", Q2: false }, terre: ["M1"], si: "Le moteur doit démarrer : Q2 doit relier Q1 à KM1 sur les trois phases (1-2, 3-4, 5-6)." },
+        { texte: "Défaut d'isolement sur M1 (U touche la carcasse) : Q2 coupe", faire: [["isolement", "M1", "U"]], attendre: 300, verifier: { Q2: true, M1: "arret" }, si: "Q2 doit être en amont du moteur : le courant de défaut passe par ses pôles et revient par la terre, il voit la différence." },
+        { texte: "Défaut réparé, Q2 réarmé : S2 redémarre le moteur", faire: [["isolement", "M1", ""], ["rearmer", "Q2"]].concat(marche), attendre: 4000, verifier: { M1: "marche", Q2: false } }
       ] }
   ];
 

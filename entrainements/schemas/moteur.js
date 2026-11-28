@@ -30,11 +30,12 @@
     bp_no: "bouton", bp_nf: "bouton", arret_urgence: "au", selecteur: "selecteur", interrupteur: "interrupteur",
     fdc_no: "fdc", fdc_nf: "fdc", capteur: "capteur", transfo: "transfo", voyant: "voyant", moteur: "moteur", moteur6: "moteur",
     automate: "automate", variateur: "variateur", potentiometre: "potentiometre", capteur3: "capteur", chariot: "chariot", cuve: "cuve", tapis: "tapis", tri: "tri", electrovanne: "electrovanne",
-    barriere: "barriere", montecharge: "montecharge", station: "station" };
+    barriere: "barriere", montecharge: "montecharge", station: "station", differentiel: "differentiel", cpi: "cpi" };
   const MULTI = new Set(["bouton", "au", "selecteur", "interrupteur", "fdc", "capteur"]);   // plusieurs contacts pour un même appareil
   const A_BOBINE = new Set(["contacteur", "relais", "travail", "repos"]);
   const NOM_SORTE = { contacteur: "le contacteur", relais: "le relais", travail: "le relais temporisé", repos: "le relais temporisé",
     thermique: "le relais thermique", sectionneur: "le sectionneur", disjoncteur: "le disjoncteur", disj_moteur: "le disjoncteur-moteur",
+    differentiel: "un interrupteur différentiel", cpi: "un contrôleur d'isolement",
     fusible: "le fusible", bouton: "le bouton", au: "l'arrêt d'urgence", selecteur: "le sélecteur", interrupteur: "l'interrupteur",
     fdc: "le fin de course", capteur: "le capteur", transfo: "le transformateur", voyant: "le voyant", moteur: "le moteur",
     automate: "l'automate", variateur: "le variateur", potentiometre: "le potentiomètre", chariot: "le chariot", cuve: "la cuve", tapis: "le tapis", tri: "le tapis de tri", electrovanne: "l'électrovanne",
@@ -113,7 +114,8 @@
         case "voyant": case "electrovanne": Object.assign(d, { alim: false, grille: false }); break;
         case "thermique": d.declenche = false; break;
         case "sectionneur": Object.assign(d, { ferme: true, fondus: [false, false, false] }); break;
-        case "disjoncteur": case "disj_moteur": Object.assign(d, { ferme: true, declenche: false }); break;
+        case "disjoncteur": case "disj_moteur": case "differentiel": Object.assign(d, { ferme: true, declenche: false }); break;
+        case "cpi": Object.assign(d, { alarme: false, actionne: false }); break;
         case "fusible": d.fondu = false; break;
         case "bouton": Object.assign(d, { appuye: false, maintenu: false }); break;
         case "moteur": Object.assign(d, { w: 0, sens: 0, etatM: "arret", couplage: null, chauffe: 0, tente: false, grille: false, var: null, bloque: false, regleBas: false }); break;
@@ -190,7 +192,7 @@
         case "contacteur": case "relais": return d.alim || !!d.main;   // main : poussé à la main (hors tension, pour mesurer)
         case "travail": case "repos": return d.alim;
         case "thermique": return d.declenche;
-        case "sectionneur": case "disjoncteur": case "disj_moteur": return d.ferme;
+        case "sectionneur": case "disjoncteur": case "disj_moteur": case "differentiel": return d.ferme;
         case "bouton": return d.appuye || d.maintenu;
         case "absent": return false;
         default: return !!d.actionne;
@@ -222,6 +224,9 @@
       } else if (T === "disjoncteur" && d) {
         const n = Math.max(1, Math.min(3, P.poles | 0));
         for (let k = 0; k < n; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), b1: String(2 * k + 1), b2: String(2 * k + 2), ferme: () => d.ferme, prot: { d, cal: Number(P.cal) || 10, sorte: "disj" } });
+      } else if (T === "differentiel" && d) {   // pas de protection contre les surintensités : il ne coupe que sur une fuite
+        const n = Math.max(2, Math.min(4, P.poles | 0));
+        for (let k = 0; k < n; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), b1: String(2 * k + 1), b2: String(2 * k + 2), ferme: () => d.ferme, ddr: d });
       } else if (T === "disj_moteur" && d) {
         for (let k = 0; k < 3; k++) cond.push({ pc, i: k, n1: nd(pc, String(2 * k + 1)), n2: nd(pc, String(2 * k + 2)), b1: String(2 * k + 1), b2: String(2 * k + 2), ferme: () => d.ferme, prot: { d, cal: Number(P.cal) || 6, sorte: "disj" }, therm: d });
       } else if (T === "thermique" && d) {
@@ -298,6 +303,51 @@
     const thBas = panne && panne.sorte === "reglage" ? devDe.get(panne.piece) || null : null;   // relais thermique réglé trop bas
     const moteurs = pieces.filter((pc) => (pc.type === "moteur" || pc.type === "moteur6") && devDe.get(pc.id)).map((pc) => ({ pc, d: devDe.get(pc.id) }));
 
+    /* ----- schéma de liaison à la terre (SLT) et défauts d'isolement (une phase touche la carcasse d'un moteur) -----
+       TT : le neutre et les masses ont chacun leur prise de terre (Rn, Ra) : un défaut fait passer Id = 230 / (Ra + Rn),
+       7,7 A : trop peu pour un fusible ou un disjoncteur ; c'est le différentiel en amont qui coupe (si Id ≥ IΔn). Sans lui,
+       la carcasse reste à Uc = Ra · Id (153 V) : danger. TN-S : les masses sont reliées au neutre par le PE : un défaut est
+       un court-circuit phase-PE, la protection (fusible, disjoncteur) coupe. IT : neutre isolé : un premier défaut ne fait
+       presque pas de courant, pas de danger, pas de coupure, le contrôleur d'isolement (CPI) le signale ; un deuxième défaut
+       sur une autre phase est un court-circuit entre phases par le PE : la protection coupe. */
+    const pcRes = pieces.find((q) => q.type === "reseau"), PRes = pcRes ? M.parametres(pcRes) : {};
+    const SLT = /^(TT|TN-S|IT)$/.test(PRes.slt) ? PRes.slt : "TT", RA = Math.max(0.1, Number(PRes.ra) || 20), RN = Math.max(0.1, Number(PRes.rn) || 10);
+    const ID_TT = 230 / (RA + RN), UC_TT = RA * ID_TT;
+    const isoDef = new Map();   // appareil moteur → les bornes en défaut
+    let isoVivants = [], itDouble = false, itPhase = null;
+    const differentiels = appareils.filter((d) => d.sorte === "differentiel" && d.principal), cpis = appareils.filter((d) => d.sorte === "cpi" && d.principal);
+    const bornesIso = (pc) => (pc.type === "moteur6" ? ["U1", "V1", "W1"] : ["U", "V", "W"]);
+    for (const { pc, d } of moteurs) bornesIso(pc).forEach((b, k) => {   // TN-S, ou IT au deuxième défaut : la borne en défaut et le PE se touchent
+      const n1 = nd(pc, b), n2 = nd(pc, "PE");
+      if (n1 >= 0 && n2 >= 0) condValides.push({ pc, i: 20 + k, n1, n2, b1: b, b2: "PE", iso: true, ferme: () => { const S = isoDef.get(d); return !!S && S.has(b) && (SLT === "TN-S" || itDouble); } });
+    });
+    const idnDe = (dd) => Math.max(1, Number(M.parametres(dd.principal).idn) || 30);
+    function amontDe(dd, v) {   // le différentiel dd alimente-t-il la borne en défaut ? (sans lui, elle perd sa phase)
+      const u2 = new UF(NB); for (const c of condValides) if (c.ddr !== dd && c.ferme()) u2.union(c.n1, c.n2);
+      return potDe(u2, potentiels(u2), nd(v.pc, v.b)) !== v.p;
+    }
+    function majIsolement(uf, m) {
+      const V = [];
+      for (const [d, S] of isoDef) {
+        const pc = d.principal; if (!pc) continue;
+        for (const b of S) { const p = potDe(uf, m, nd(pc, b)), i = info(p); if (i && i.chaud && i.net === "R") V.push({ d, pc, b, p, terre: potDe(uf, m, nd(pc, "PE")) === "PE" }); }
+      }
+      isoVivants = V;
+      const ph = new Set(V.filter((v) => v.terre).map((v) => v.p));
+      itDouble = SLT === "IT" && ph.size >= 2;
+      itPhase = SLT === "IT" && ph.size === 1 ? [...ph][0] : null;
+      if (SLT === "TT") for (const v of V) if (v.terre) for (const dd of differentiels) if (dd.ferme && ID_TT * 1000 >= idnDe(dd) && amontDe(dd, v)) {
+        dd.ferme = false; dd.declenche = true;
+        log("erreur", `Défaut d'isolement sur ${v.d.ref} : ${dd.ref} a déclenché (courant de fuite Id ≈ ${nf1(ID_TT)} A, plus que ses ${idnDe(dd)} mA).`, { refs: [dd.ref, v.d.ref], isolement: true });
+      }
+      for (const c of cpis) {
+        const pc = c.principal, iL = info(potDe(uf, m, nd(pc, "L"))), surveille = !!(iL && iL.net === "R") && potDe(uf, m, nd(pc, "PE")) === "PE";
+        const al = surveille && (SLT !== "IT" || V.some((v) => v.terre));
+        if (al !== c.alarme) { c.alarme = c.actionne = al; if (al && SLT === "IT") log("alerte", `${c.ref} signale un défaut d'isolement.`, { refs: [c.ref] }); }
+      }
+    }
+    const sigIso = () => differentiels.map((d) => (d.ferme ? "1" : "0")).join("") + cpis.map((d) => (d.alarme ? "1" : "0")).join("") + (itDouble ? "D" : "") + (itPhase || "");
+
     /* ----- calcul des nœuds ----- */
     function unir(sauf) { const uf = new UF(NB); for (const c of condValides) if (c !== sauf && c.ferme()) uf.union(c.n1, c.n2); return uf; }
     function potentiels(uf) {
@@ -309,13 +359,21 @@
       }
       return m;
     }
-    function conflits(m) { const L = []; for (const [r, e] of m) if (e.size > 1 && [...e].some(chaud)) L.push({ r, pots: [...e] }); return L; }
+    function conflits(m) {   // en IT, le neutre n'est pas à la terre : une phase qui touche le PE n'est pas un court-circuit
+      const L = [];
+      for (const [r, e] of m) { const P = SLT === "IT" ? [...e].filter((p) => p !== "PE") : [...e]; if (P.length > 1 && P.some(chaud)) L.push({ r, pots: P }); }
+      return L;
+    }
     function potDe(uf, m, n) { if (n < 0) return null; const e = m.get(uf.find(n)); return e && e.size === 1 ? e.values().next().value : null; }
     function tension(a, b) {
       if (!a || !b) return { v: 0 };
       if (a === b) return { v: 0, meme: true };
       const A = info(a), B = info(b);
       if (!A || !B) return { inconnu: true };
+      if (itPhase && ((A.net === "R" && B.net === "PE") || (B.net === "R" && A.net === "PE"))) {   // IT, premier défaut : la terre est à la phase en défaut
+        const p = A.net === "R" ? a : b, v = p === itPhase ? 0 : p === "N" ? 230 : 400;   // la phase en défaut : 0 V ; le neutre : 230 V ; les deux autres phases : 400 V
+        return v ? { v, ac: true, terre: true } : { v: 0, meme: true };
+      }
       if (!A.chaud && !B.chaud) return { v: 0, meme: true };
       if (A.net === "R" && B.net === "R") return { v: A.chaud && B.chaud ? 400 : 230, ac: true };
       if ((A.net === "R" && A.chaud && B.net === "PE") || (B.net === "R" && B.chaud && A.net === "PE")) return { v: 230, ac: true, terre: true };
@@ -370,7 +428,9 @@
         for (const c of cands.filter((x) => x.prot.cal === min)) { const d = declencher(c); if (noms.indexOf(d.ref) < 0) noms.push(d.ref); }
         if (coupe) { coupe.alim = false; coupe.depuis = t; }   // le transformateur n'est plus alimenté
         const fus = cands.some((c) => c.prot.cal === min && c.prot.sorte === "fusible");
-        log("erreur", `Court-circuit entre ${txt} ! ${noms.join(", ")} ${fus ? (noms.length > 1 ? "ont fondu" : "a fondu") : (noms.length > 1 ? "ont déclenché" : "a déclenché")}. Cherche les deux potentiels qui se touchent sans récepteur entre eux.`, { court: true, refs: noms });
+        const iso = [...isoDef.keys()].map((d) => d.ref);
+        if (iso.length && (SLT === "TN-S" || itDouble)) log("erreur", `${SLT === "TN-S" ? `Défaut d'isolement sur ${iso.join(", ")} (schéma TN-S) : c'est un court-circuit entre ${txt}` : `Deuxième défaut d'isolement (schéma IT) : court-circuit entre ${txt} par la terre`} : ${noms.join(", ")} ${fus ? (noms.length > 1 ? "ont fondu" : "a fondu") : (noms.length > 1 ? "ont déclenché" : "a déclenché")}.`, { court: true, isolement: true, refs: noms.concat(iso) });
+        else log("erreur", `Court-circuit entre ${txt} ! ${noms.join(", ")} ${fus ? (noms.length > 1 ? "ont fondu" : "a fondu") : (noms.length > 1 ? "ont déclenché" : "a déclenché")}. Cherche les deux potentiels qui se touchent sans récepteur entre eux.`, { court: true, refs: noms });
       } else {
         defaut = { pots: conf.pots, t };
         log("erreur", `Court-circuit entre ${txt} ! Rien ne protège ce circuit (ni fusible, ni disjoncteur) : toute l'alimentation est coupée.`, { court: true, global: true });
@@ -469,11 +529,13 @@
       return x;
     }
     function electronique(uf, m) {
-      if (!automates.length && !variateurs.length) return null;
-      const avant = sigElec();
+      const iso = isoDef.size || differentiels.length || cpis.length || itDouble || itPhase;
+      if (!automates.length && !variateurs.length && !iso) return null;
+      const avant = sigElec() + sigIso();
       for (const d of automates) majAutomate(d, uf, m);
       for (const d of variateurs) majVariateur(d, uf, m);
-      const apres = sigElec();
+      if (iso) majIsolement(uf, m);
+      const apres = sigElec() + sigIso();
       return apres === avant ? null : apres;
     }
     function majAutomate(d, uf, m) {
@@ -1011,6 +1073,21 @@
         const v = clamp(Number(valeur) || 0, 0, 1);
         if (S === "potentiometre") d.pos = v; else if (S === "variateur") d.molette = v; else if (S === "cuve" || S === "station") d.conso = v; else return false;
       } else if (quoi === "run" || quoi === "stop") { if (S !== "automate") return false; d.run = quoi === "run"; }
+      else if (quoi === "isolement") {   // défaut d'isolement : la phase de la borne « valeur » touche la carcasse (la même borne : réparé ; rien : tout réparé)
+        if (S !== "moteur" || !d.principal) return false;
+        const S2 = isoDef.get(d) || new Set();
+        if (valeur == null || valeur === "" || valeur === false) S2.clear();
+        else { if (bornesIso(d.principal).indexOf(valeur) < 0) return false; if (S2.has(valeur)) S2.delete(valeur); else S2.add(valeur); }
+        if (S2.size) isoDef.set(d, S2); else isoDef.delete(d);
+        log("info", S2.size ? `Défaut d'isolement sur ${d.ref} : ${[...S2].join(", ")} touche${S2.size > 1 ? "nt" : ""} la carcasse.` : `${d.ref} : défaut d'isolement réparé.`, { refs: [d.ref] });
+      }
+      else if (quoi === "tester") {   // le bouton test d'un différentiel : il fait passer une petite fuite ; sous tension, il déclenche
+        if (S !== "differentiel") return false;
+        if (!d.ferme) return true;
+        const sousT = !!dernier && condValides.some((c) => c.ddr === d && (potDe(dernier.uf, dernier.m, c.n1) || potDe(dernier.uf, dernier.m, c.n2)));
+        if (sousT) { d.ferme = false; d.declenche = true; }
+        log("info", sousT ? `Test : ${d.ref} a déclenché (le bouton test fait passer une fuite).` : `Test : ${d.ref} n'est pas sous tension, il ne peut pas déclencher.`, { refs: [d.ref] });
+      }
       else if (quoi === "pousser") {   // hors tension, on enfonce l'équipage mobile d'un contacteur (ou d'un relais) pour mesurer ses contacts
         if (S !== "contacteur" && S !== "relais") return false;
         const v = valeur == null ? !d.main : !!valeur; if (v === d.main) return true;
@@ -1020,7 +1097,7 @@
         if (S === "automate") d.run = !d.run;
         else if (S === "bouton") d.maintenu = !d.maintenu;
         else if (MULTI.has(S)) d.actionne = !d.actionne;
-        else if (S === "sectionneur" || S === "disjoncteur" || S === "disj_moteur") { if (d.ferme) d.ferme = false; else { d.ferme = true; d.declenche = false; } }
+        else if (S === "sectionneur" || S === "disjoncteur" || S === "disj_moteur" || S === "differentiel") { if (d.ferme) d.ferme = false; else { d.ferme = true; d.declenche = false; } }
         else if (S === "thermique") d.declenche = !d.declenche;
         else return false;
       } else if (quoi === "ouvrir") { if (d.ferme === undefined) return false; d.ferme = false; }
@@ -1032,7 +1109,7 @@
         log("info", `Surcharge : ${d.ref} a déclenché.`, { refs: [d.ref], surcharge: true });
       } else if (quoi === "rearmer") {
         if (S === "thermique") d.declenche = false;
-        else if (S === "disjoncteur" || S === "disj_moteur") { d.ferme = true; d.declenche = false; }
+        else if (S === "disjoncteur" || S === "disj_moteur" || S === "differentiel") { d.ferme = true; d.declenche = false; }
         else if (S === "fusible") d.fondu = false;
         else if (S === "sectionneur") { d.fondus = [false, false, false]; d.ferme = true; }
         else return false;
@@ -1049,7 +1126,7 @@
     function reinitialiser() {
       for (const d of appareils) etatInitial(d);
       appliquerCapteurs();
-      defaut = null; coupe = false; avant = null; t = 0; journal.length = 0; courts.length = 0; vibrentAvant = new Set(); oscilleAvant = false; evaluer(); return api;
+      defaut = null; coupe = false; avant = null; isoDef.clear(); isoVivants = []; itDouble = false; itPhase = null; t = 0; journal.length = 0; courts.length = 0; vibrentAvant = new Set(); oscilleAvant = false; evaluer(); return api;
     }
 
     /* ----- ce que la page (ou un essai) lit ----- */
@@ -1079,6 +1156,14 @@
         if (d.grille) L.push({ niveau: "erreur", texte: `${d.ref} a grillé. « Tout remettre à zéro » pour recommencer.`, refs: [d.ref] });
         if ((d.etatM === "marche" || d.etatM === "surtension") && !d.terre) L.push({ niveau: "info", texte: `${d.ref} : sa carcasse n'est pas reliée à la terre (borne PE). Danger en cas de défaut !`, refs: [d.ref] });
       }
+      for (const v of isoVivants) {
+        if (!v.terre) L.push({ niveau: "erreur", texte: `DANGER : défaut d'isolement sur ${v.d.ref} (${v.b}), et sa carcasse n'est pas reliée au PE : elle est à 230 V. Qui la touche peut être électrocuté, et rien ne coupe.`, refs: [v.d.ref] });
+        else if (SLT === "TT") L.push(UC_TT > 50 ? { niveau: "erreur", texte: `DANGER : défaut d'isolement sur ${v.d.ref} (${v.b}) : sa carcasse est à ${Math.round(UC_TT)} V par rapport à la terre (plus de 50 V), et rien ne coupe : ${differentiels.length ? "le différentiel n'est pas en amont du moteur, ou pas assez sensible." : "en TT, il faut un différentiel en amont."}`, refs: [v.d.ref] }
+          : { niveau: "alerte", texte: `Défaut d'isolement sur ${v.d.ref} (${v.b}) : sa carcasse est à ${Math.round(UC_TT)} V (moins de 50 V) : pas dangereux, mais à réparer.`, refs: [v.d.ref] });
+        else if (SLT === "IT" && !itDouble) L.push({ niveau: "alerte", texte: `Premier défaut d'isolement sur ${v.d.ref} (${v.b}, phase ${v.p}) : en schéma IT, pas de danger et pas de coupure. ${cpis.some((c) => c.alarme) ? "Le contrôleur d'isolement le signale" : "Sans contrôleur d'isolement, personne ne le voit"} : il faut le trouver et le réparer avant un deuxième défaut.`, refs: [v.d.ref] });
+      }
+      for (const [d, S] of isoDef) if (!isoVivants.some((v) => v.d === d)) L.push({ niveau: "info", texte: `${d.ref} a un défaut d'isolement (${[...S].join(", ")}), hors tension pour l'instant : à réparer avant de remettre en marche.`, refs: [d.ref] });
+      for (const c of cpis) if (SLT !== "IT" && c.alarme) L.push({ niveau: "info", texte: `${c.ref} : en schéma ${SLT}, le neutre est relié à la terre : le contrôleur d'isolement voit un défaut permanent. Il ne s'utilise qu'en schéma IT.`, refs: [c.ref] });
       for (const k of vibrentAvant) L.push({ niveau: "alerte", texte: `${dev[k].ref} vibre : sa bobine se coupe elle-même.`, refs: [dev[k].ref] });
       for (const d of automates) {
         const nE = d.api.erreurs.length;
@@ -1136,7 +1221,7 @@
         for (let i = 0; i < NB; i++) { const e = m.get(uf.find(i)); noeuds[i] = e ? (e.size === 1 ? e.values().next().value : "!") : null; }
       }
       for (const c of condValides) {
-        if (c.court) continue;
+        if (c.court || c.iso) continue;
         const o = pieceEtat[c.pc.id] || (pieceEtat[c.pc.id] = {});
         if (!o.fermes) o.fermes = [];
         o.fermes[c.i] = (c.meca || c.ferme)();
@@ -1150,9 +1235,10 @@
         else if (d.sorte === "voyant" || d.sorte === "transfo" || d.sorte === "electrovanne") { o.alim = d.alim; o.grille = d.grille; }
         else if (d.sorte === "thermique") o.declenche = d.declenche;
         else if (d.sorte === "sectionneur") { o.ouvert = !d.ferme; o.fondus = d.fondus.slice(); }
-        else if (d.sorte === "disjoncteur" || d.sorte === "disj_moteur") { o.ouvert = !d.ferme; o.declenche = d.declenche; }
+        else if (d.sorte === "disjoncteur" || d.sorte === "disj_moteur" || d.sorte === "differentiel") { o.ouvert = !d.ferme; o.declenche = d.declenche; }
+        else if (d.sorte === "cpi") o.alarme = d.alarme;
         else if (d.sorte === "fusible") o.fondu = d.fondu;
-        else if (d.sorte === "moteur") Object.assign(o, { etatM: d.etatM, w: d.w, sens: d.sens, couplage: d.couplage, chauffe: d.chauffe / SEUIL_TH, grille: d.grille, terre: d.terre });
+        else if (d.sorte === "moteur") Object.assign(o, { etatM: d.etatM, w: d.w, sens: d.sens, couplage: d.couplage, chauffe: d.chauffe / SEUIL_TH, grille: d.grille, terre: d.terre, defauts: [...(isoDef.get(d) || [])] });
         if (d.sorte === "bouton") { o.appuye = d.appuye; o.maintenu = d.maintenu; }
         if (d.sorte === "automate") Object.assign(o, { alim: d.alim, actif: d.actif, run: d.run, grille: d.grille, entrees: d.entrees.slice(), sorties: d.sorties.slice(), aq: d.aq, ko: [...d.ko], X: d.actif ? d.api.etat().X : [] });
         if (d.sorte === "variateur") Object.assign(o, { alim: d.alim, grille: d.grille, defaut: d.defaut, f: d.fs, cible: d.cible, LI: d.LI.slice(), ordre: d.ordre });
@@ -1179,17 +1265,18 @@
         for (const k of ["alim", "grille", "declenche", "ferme", "fondu", "fondus", "appuye", "maintenu", "actionne", "etatM", "sens", "couplage", "w", "terre", "delai",
           "run", "actif", "entrees", "sorties", "aq", "fs", "cible", "defaut", "LI", "ai1", "ordre", "fRef", "origine", "pos", "molette", "deux",
           "vit", "butee", "butees", "niv", "conso", "deborde", "debords", "vide", "envers", "piloteRef", "bloque", "vues", "bac", "entrees", "r", "bac1", "bac2", "cote", "coince",
-          "passees", "chocs", "surVoiture", "porte", "dangers", "danger", "brusques", "main"]) if (d[k] !== undefined) o[k] = Array.isArray(d[k]) ? d[k].slice() : d[k];
+          "passees", "chocs", "surVoiture", "porte", "dangers", "danger", "brusques", "main", "alarme"]) if (d[k] !== undefined) o[k] = Array.isArray(d[k]) ? d[k].slice() : d[k];
         if (d.sorte === "barriere") o.voitures = d.voitures.length;
         if (d.sorte === "station") o.pompes = d.mots.map((m) => pompeSt(m, false) > 0);
         if (A_BOBINE.has(d.sorte)) o.prog = progression(d);
         if (d.sorte === "automate") { o.api = d.api.etat(); o.erreurs = d.api.erreurs.length; o.ko = [...d.ko]; }
         if (d.sorte === "moteur" && d.var) o.variateur = d.var.ref;
+        if (d.sorte === "moteur") o.defauts = [...(isoDef.get(d) || [])];
         appareilsEtat[d.ref] = o;
       }
       const recents = new Set();
       for (const c of courts) if (t - c.t < 2500) for (const n of c.noeuds) recents.add(n);
-      return { t, defaut: !!defaut, coupe, noeuds, court: [...recents], pieces: pieceEtat, appareils: appareilsEtat, messages: messages(), journal: journal.slice() };
+      return { t, defaut: !!defaut, coupe, slt: SLT, itPhase, noeuds, court: [...recents], pieces: pieceEtat, appareils: appareilsEtat, messages: messages(), journal: journal.slice() };
     }
     /* ----- le voltmètre (haute impédance) : ce qu'il lit entre deux bornes ----- */
     const voit = [];   // il « voit à travers » les récepteurs, les enroulements des moteurs, les entrées des automates
@@ -1312,6 +1399,7 @@
         const E = [];
         const ajoute = (x, y, R) => { if (x < 0 || y < 0 || !(R < Infinity)) return; const p = uf.find(x), q = uf.find(y); if (p !== q) E.push([p, q, Math.max(R, 1e-6)]); };
         for (const ch of charges) if (!ch.coupee && !ch.d.grille) ajoute(ch.n1, ch.n2, rCharge(ch));
+        for (const [d, S] of isoDef) if (d.principal) for (const b of S) ajoute(nd(d.principal, b), nd(d.principal, "PE"), 0.5);   // défaut franc
         for (const pc of pieces) if (pc.type === "transfo" && devDe.get(pc.id)) { const sec = Number(M.parametres(pc).sec) || 24; ajoute(nd(pc, "s1"), nd(pc, "s2"), 0.04 * sec * sec / 100); }
         for (const { pc } of moteurs) {
           const Rw = 6.6 / (Number(M.parametres(pc).puissance) || 2.2);
@@ -1419,6 +1507,7 @@
         d.entrees.forEach((on, k) => { if (on) dipole(pc, "I" + k, "COM", 0.005, 0); });
       }
       for (const d of variateurs) { const pc = d.principal; if (pc && d.alim) d.LI.forEach((on, k) => { if (on) entre(pc, "LI" + (k + 1), { re: 0.005, im: 0 }); }); }   // le retour se fait dans le variateur
+      if (SLT === "TT") for (const v of isoVivants) if (v.terre) { const g = argDiff(pot(nd(v.pc, v.b)), "N"); if (g) { const I = pol(ID_TT, g.deg); entre(v.pc, v.b, I); entre(v.pc, "PE", neg(I)); } }
       // chaque courant remonte jusqu'à sa source (le plus court chemin de conducteurs fermés)
       for (const [k0, I, p] of inj) {
         if (!p) continue;
@@ -1473,6 +1562,8 @@
       return { ok, dit, attendu: `${ref} doit être ${ATTENDU_MOTEUR[attendu] || attendu}` };
     }
     if (a.sorte === "thermique") { const ok = !!a.declenche === !!attendu; return { ok, dit: `${ref} ${a.declenche ? "a déclenché" : "n'a pas déclenché"}` }; }
+    if (a.sorte === "differentiel") { const ok = !!a.declenche === !!attendu; return { ok, dit: `${ref} ${a.declenche ? "a déclenché" : "n'a pas déclenché"}`, attendu: `${ref} doit ${attendu ? "déclencher" : "rester fermé"}` }; }
+    if (a.sorte === "cpi") { const ok = !!a.alarme === !!attendu; return { ok, dit: `${ref} ${a.alarme ? "signale un défaut" : "ne signale rien"}`, attendu: `${ref} doit ${attendu ? "signaler le défaut" : "ne rien signaler"}` }; }
     if (a.sorte === "variateur") {
       const f = a.fs || 0, af = Math.abs(f), dit = a.grille ? `${ref} est détruit` : !a.alim ? `${ref} n'est pas alimenté` : af < 0.05 ? `${ref} est à l'arrêt (0 Hz)` : `${ref} tourne ${f > 0 ? "en avant" : "en arrière"} à ${String(Math.round(af * 10) / 10).replace(".", ",")} Hz`;
       if (attendu === "arret" || attendu === false) return { ok: af < 0.05, dit, attendu: `${ref} doit être à l'arrêt` };
@@ -1576,6 +1667,7 @@
       if (M.nature(pc) || t === "fusible" || M.BOBINES.indexOf(t) >= 0 || t === "voyant" || t === "electrovanne") L.push({ piece: pc.id });
       else if (t === "poles" || t === "sectionneur" || t === "thermique" || t === "disj_moteur") for (let i = 0; i < 3; i++) L.push({ piece: pc.id, i });
       else if (t === "disjoncteur") { const n = clamp(M.parametres(pc).poles | 0, 1, 3); for (let i = 0; i < n; i++) L.push({ piece: pc.id, i }); }
+      else if (t === "differentiel") { const n = clamp(M.parametres(pc).poles | 0, 2, 4); for (let i = 0; i < n; i++) L.push({ piece: pc.id, i }); }
       if (M.nature(pc)) L.push({ piece: pc.id, sorte: "soude" });
       else if (t === "poles") for (let i = 0; i < 3; i++) L.push({ piece: pc.id, i, sorte: "soude" });
       if (M.BOBINES.indexOf(t) >= 0 || t === "electrovanne") L.push({ piece: pc.id, sorte: "court" });

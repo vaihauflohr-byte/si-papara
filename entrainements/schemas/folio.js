@@ -106,6 +106,8 @@
         case "sectionneur": d = "Sectionneur porte-fusibles"; c = [`fusibles ${nb(P.cal)} A`]; break;
         case "disjoncteur": d = "Disjoncteur"; c = [`${P.poles} pôles`, `${nb(P.cal)} A`]; break;
         case "disj_moteur": d = "Disjoncteur-moteur"; c = [`Ir ${nb(P.cal)} A`]; break;
+        case "differentiel": d = "Interrupteur différentiel"; c = [`${P.poles} pôles`, `IΔn ${nb(P.idn)} mA`]; break;
+        case "cpi": d = "Contrôleur permanent d'isolement"; c = ["schéma IT"]; break;
         case "fusible": d = "Fusible"; c = [`${nb(P.cal)} A`]; break;
         case "transfo": d = "Transformateur de commande"; c = [`${P.prim} V / ${P.sec} V`]; break;
         case "voyant": d = "Voyant"; c = [P.couleur, tens(P.tension)]; break;

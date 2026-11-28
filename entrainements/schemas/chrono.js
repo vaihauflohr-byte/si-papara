@@ -42,7 +42,8 @@
         ajouter({ k: "c:" + r, lib: r, sous: `contact temporisé ${t === "contact_tno" ? "NO" : "NF"}${num ? " " + num : ""} (1 = fermé)`, g: "bob", ty: "bin", lire: (E) => { const o = E.pieces && E.pieces[id]; return o ? !!o.ferme : null; } });
       }
       else if (t === "thermique" || t === "disj_moteur") ajouter({ k: "p:" + r, lib: r, sous: "déclenché", g: "pro", ty: "bin", auto: true, lire: (E) => { const a = A(E, r); return a ? !!a.declenche : null; } });
-      else if (t === "disjoncteur" || t === "sectionneur") ajouter({ k: "p:" + r, lib: r, sous: "ouvert", g: "pro", ty: "bin", auto: true, lire: (E) => { const a = A(E, r); return a ? a.ferme === false : null; } });
+      else if (t === "cpi") ajouter({ k: "p:" + r, lib: r, sous: "défaut d'isolement signalé", g: "pro", ty: "bin", auto: true, lire: (E) => { const a = A(E, r); return a ? !!a.alarme : null; } });
+      else if (t === "disjoncteur" || t === "sectionneur" || t === "differentiel") ajouter({ k: "p:" + r, lib: r, sous: "ouvert", g: "pro", ty: "bin", auto: true, lire: (E) => { const a = A(E, r); return a ? a.ferme === false : null; } });
       else if (t === "fusible") ajouter({ k: "p:" + r, lib: r, sous: "fondu", g: "pro", ty: "bin", auto: true, lire: (E) => { const a = A(E, r); return a ? !!a.fondu : null; } });
       else if (t === "voyant") ajouter({ k: "a:" + r, lib: r, sous: "voyant (1 = allumé)", g: "sor", ty: "bin", lire: (E) => { const a = A(E, r); return a ? !!a.alim : null; } });
       else if (t === "electrovanne") ajouter({ k: "a:" + r, lib: r, sous: "électrovanne", g: "sor", ty: "bin", lire: (E) => { const a = A(E, r); return a ? !!a.alim : null; } });

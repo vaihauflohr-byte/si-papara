@@ -143,6 +143,19 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    avec l'ohmmètre branché, est une **faute de sécurité** : message, compteur de la carte, et dans le dépannage,
    des points en moins. Hors tension, « ✋ KM1 » enfonce un contacteur (ou un relais) à la main pour mesurer ses pôles et
    ses contacts ; on les relâche en remettant le courant. « Tout remettre à zéro » remet aussi sous tension.
+   **Défaut d'isolement et schémas de liaison à la terre** : le réseau a un réglage « Schéma de liaison à la terre »
+   (TT par défaut, TN-S, IT ; en TT, les prises de terre Ra et Rn, avec Id et Uc calculés), écrit sur le dessin
+   (« réseau 3~ 400 V 50 Hz · TT »). En simulation, la carte « Défaut d'isolement » fait toucher une phase à la
+   carcasse d'un moteur (⚡ U, V, W ; le moteur montre l'éclair et « défaut U »). En **TT**, le courant de défaut,
+   Id = 230 / (Ra + Rn) ≈ 7,7 A, ne fait pas couper les fusibles : l'**interrupteur différentiel** en amont déclenche
+   (Id ≥ IΔn), sinon « DANGER : la carcasse est à 153 V ». En **TN-S**, c'est un court-circuit phase-PE : le fusible
+   ou le disjoncteur coupe. En **IT**, le premier défaut ne coupe rien et n'est pas dangereux : le **contrôleur
+   d'isolement** (CPI1, entre le neutre et la terre) le signale par son contact (un contact lié, repère CPI1) ;
+   la terre est alors au potentiel de la phase en défaut (400 V entre une autre phase et la terre, au voltmètre) ;
+   le deuxième défaut, sur une autre phase, est un court-circuit entre phases par la terre. Une carcasse pas reliée
+   au PE : « DANGER : elle est à 230 V », rien ne coupe. Le différentiel a un bouton Test (sous tension, il
+   déclenche) ; la pince voit la fuite (les trois phases d'un moteur ensemble : Id ; le fil PE : Id) ; hors tension,
+   l'ohmmètre lit le défaut entre la borne et la carcasse (0,5 Ω, au lieu de OL).
 10. **Lecture de schéma** (fenêtre « Défis », en bas) : des questions sur un schéma du cours (« Clique sur le contact
    d'auto-maintien », « Clique sur le contacteur qui fait le couplage étoile »…) ; on répond en cliquant sur l'appareil
    (n'importe quel morceau : pôles, bobine ou contact d'un contacteur). Juste du premier coup : 1 point, au deuxième :
@@ -230,6 +243,8 @@ Au doigt : glisser dans le vide déplace la feuille, deux doigts zooment, un app
 | `station` | station de pompage (comme la Deltalab SPBE-C du labo) : trois départs moteur (KM1-F1-M1 pour P1, KM2-F2-M2, KM3-F3-M3), les contacts 95-96 en série avec chaque bobine ; S1 (arrêt), S2 (marche), S3 (sélecteur : P3 à la place de P1), électrodes B1 (très bas) à B4 (très haut) sur %I0.0 à %I0.6 ; Ladder : S2 / S1 → %M0 (en service) ; sous B2 → S %M1 (pompe principale) ; sous B1 → S %M2 (P2 en renfort) ; B3 ou hors service → R %M1 et %M2 ; KM1 = M1 · /S3, KM3 = M1 · S3, KM2 = M2 ; H1 (alarme) = B4 + M0 · /B1 |
 | `api-variateur` | automate et variateur : %Q0.0 → LI1 (avant), %Q0.1 → LI2 (arrière), AQ0 → AI1 (5 V : 25 Hz ; 10 V avec S4 : 50 Hz), C0 au +24V du variateur, rampes de 2 s |
 | `variateur-pot` | variateur seul : interrupteurs S2 (LI1) et S3 (LI2) sur son +24V, potentiomètre R1 sur +10V, AI1, COM |
+| `defaut-tt` | sécurité électrique, schéma TT : Q1, l'interrupteur différentiel Q2 (3 pôles, 300 mA), KM1, F1, M1 (PE relié) ; commande marche-arrêt. Défaut sur M1 : Q2 déclenche (7,7 A) |
+| `regime-it` | schéma IT : le démarrage direct, le contrôleur d'isolement CPI1 (entre N et PE), son contact CPI1 11-14 allume H1 (rouge). Premier défaut : H1 ; deuxième, sur une autre phase : Q1 fond |
 
 ## Les dépannages (`exemples.js`, `DEPANNAGES`)
 
@@ -300,6 +315,7 @@ les mesures et les erreurs sont gardées (`schemas:dep:<élève>:<id>`, la panne
 | `d20-feux` | Les feux du carrefour (câblage fait, GRAFCET vide) | repos : tout éteint ; S2 : H1 + H6 ; 5 s : H2 + H6 ; 2 s : H3 + H4 ; 5 s : H3 + H5 ; 2 s : H1 + H6 ; S1 : tout éteint |
 | `d21-barriere` | La barrière du parking (câblage du labo, GRAFCET vide) | repos : H2 ; badge sans voiture : rien ; voiture sur B1, badge : KM1 ; S3 : arrêt ; voiture partie de B2 : KM2 ; S4 : arrêt, 1 voiture passée sans choc ; deux voitures, un badge : 3 passées, jamais de choc |
 | `d22-monte-charge` | Le monte-charge ralentit (câblage du labo, GRAFCET vide) | S2 : 40 Hz ; arrivée en haut « douce » (jamais trop vite, jamais en butée) ; S3 : descente douce ; porte ouverte : S2 ne fait rien ; porte ouverte en route : arrêt |
+| `d24-differentiel` | Le différentiel protège les personnes (schéma TT, Q2 posé, pas câblé) | S2 : M1 tourne, Q2 fermé, carcasse à la terre ; défaut d'isolement sur U : Q2 déclenche, M1 s'arrête ; défaut réparé, Q2 réarmé : M1 tourne |
 | `d23-station` | Les pompes en renfort (câblage du labo, Ladder vide) | S2 ; sous B2 : P1 ; à B3 : arrêt ; S3 : P3 principale ; sous B1 : P2 en renfort ; arrêt à B3 ; consommation 100 % : H1 ; S1 : tout s'arrête |
 
 Le défi 8 (GRAFCET) garde des fins de course actionnés à la main (sans chariot) : ses essais cliquent sur S3 et S4.
@@ -341,6 +357,8 @@ la page (« Lire les symboles ») montre chaque symbole avec son numéro.
 | Symbole de l'atelier | Référence | Ce qui le caractérise |
 |---|---|---|
 | contact à fermeture, à ouverture | 07-02-01, 07-02-03 | lame inclinée ; à ouverture : crochet du contact fixe |
+| interrupteur différentiel | (interrupteur 07-13-02, tore 07-22) | pôles d'interrupteur, tore (ellipse) autour des conducteurs relié au déclencheur « IΔ », sensibilité en mA ; en 2 et 4 pôles, le dernier est N |
+| contrôleur permanent d'isolement | (appareil de mesure) | boîte « CPI · R < » entre L (le réseau) et PE ; son contact d'alarme est un contact lié repère CPI1 |
 | bouton poussoir | 07-07-02 (poussoir 02-13-05) | crochet ouvert **vers** le contact (ouvert vers l'extérieur, c'est une tirette, 02-13-03) |
 | arrêt d'urgence | 07-07-06 | contact à ouverture, tête « coup de poing » (02-13-08), crantage en V sur la liaison (02-12-08), manœuvre positive d'ouverture (cercle et flèche, 07-01-09) |
 | sélecteur | 02-13-04 | commande rotative (trait et deux retours opposés) |
@@ -559,6 +577,20 @@ fréquence), la charge mécanique (le chariot va à la même vitesse à vide ou 
   un point « en l'air » regarde à travers les récepteurs (bobines, voyants, électrovannes, primaires, capteurs 3 fils,
   enroulements des moteurs, entrées et alimentation des automates, entrées LI des variateurs) : un seul potentiel
   trouvé, c'est le sien ; plusieurs, la moyenne de leurs tensions complexes (récepteurs supposés égaux) ; aucun, 0 V.
+- **Schéma de liaison à la terre** (`reseau.p.slt` : `TT` par défaut, `TN-S`, `IT` ; `ra`, `rn` en ohms) et **défauts
+  d'isolement** : `sim.action("M1", "isolement", "U")` fait toucher (ou ne plus toucher) la phase de la borne U à la
+  carcasse ; `""` répare tout. Un défaut « vivant » : sa borne est à une phase du réseau. TT : chaque différentiel fermé
+  qui alimente la borne (l'ouvrir lui fait perdre sa phase) déclenche si Id = 230 / (Ra + Rn) ≥ IΔn ; sinon, message
+  « DANGER » (Uc = Ra · Id). TN-S : un conducteur de plus entre la borne et le PE du moteur : le court-circuit fait
+  couper la protection (journal : « Défaut d'isolement sur M1 (schéma TN-S) : c'est un court-circuit entre L1 et PE »).
+  IT : premier défaut : rien ne coupe, `etat().itPhase` (la phase en défaut) : la tension entre une phase et le PE
+  devient 0 (la même), 400 V (les autres), 230 V (N) ; un deuxième défaut vivant sur une autre phase ferme les deux
+  conducteurs borne-PE : court-circuit entre phases (en IT, le PE ne compte pas dans un court-circuit). Contrôleur
+  d'isolement (`cpi`) : en IT, alarme si sa borne L est sur le réseau, sa borne PE à la terre, et un défaut vivant ;
+  en TT ou TN-S, alarme permanente (le neutre est à la terre), avec un message. Son contact (contact lié CPI1) suit
+  l'alarme. `sim.action("Q2", "tester")` : sous tension, le différentiel déclenche. La pince voit, en TT, la fuite
+  (de la phase vers le PE) ; l'ohmmètre, un défaut franc de 0,5 Ω. `etat().slt`, `etat().appareils.M1.defauts`.
+  Essais : `faire: [["isolement", "M1", "U"]]`, `verifier: { Q2: true }` (différentiel déclenché), `{ CPI1: true }`.
 - **Consignation** : `sim.couper(true)` coupe les sources « réseau » et « repère » (tout ce qui en dépend s'éteint :
   transformateurs, variateurs, automates) et garde les potentiels d'avant ; `sim.mesurerAvant(a, b)` donne ce que le
   voltmètre lisait juste avant la coupure (la VAT : 0 V maintenant, une tension avant) ; `sim.couper(false)` remet le
@@ -662,6 +694,14 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   remise à zéro, arrêt ; le professeur cache une bobine en court-circuit (choix de la sorte, barème) ; l'élève : F2
   fond, F2 désigné = « une conséquence », faute de sécurité comptée, consignation, 0,0 Ω, trouvé, note 13 / 20 et
   détails envoyés ; au téléphone, consigner au doigt et mesurer ;
+- `t_iso.js` (Node, dans `/tmp/iso`) : TT (Q2 déclenche, 7,7 A ; réarmé avec KM1 collé : il redéclenche ; réparé : ça
+  repart), TT sans différentiel assez sensible (DANGER 153 V, la pince voit la fuite), TN-S (Q1 fond), carcasse pas
+  reliée (230 V), IT premier défaut (CPI, H1, 400 V / 0 V / 230 V par rapport à la terre, à l'arrêt plus rien), IT
+  deuxième défaut (Q1 fond), CPI en TT, ohmmètre (0,5 Ω), bouton test, défi 24 (départ, solution, Q2 contourné),
+  remise à zéro ;
+- `e2e_iso.py` (Playwright, PC et téléphone) : le dessin (« · TT », IΔ, 300 mA), la palette, ⚡ U (Q2 déclenche, « défaut
+  U », journal), réparer et réarmer, Test, réglages du réseau (SLT, Ra, Rn, Id, Uc), TN-S (Q1 fond), nomenclature,
+  IT (CPI1 « défaut », H1, 400 V au voltmètre, deuxième défaut), le défi 24 ; au téléphone, ⚡ U au doigt ;
 - `t_pince.js` (Node, dans `/tmp/pince`) : démarrage direct (pointe puis 0,8 In, les trois phases ensemble 0, le fil
   du moteur), bobine 35 mA et tout à zéro à l'arrêt, étoile (le tiers) et triangle (√3), les pompes de la station dans
   le rapport de leurs puissances, variateur (pas de pointe, le réseau fournit moins), automate (0,15 A, 5 mA, continu) ;

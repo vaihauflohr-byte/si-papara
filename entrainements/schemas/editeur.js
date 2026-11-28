@@ -448,7 +448,7 @@
     }
     return best;
   }
-  const ACTIONNABLES = new Set(["bp_no", "bp_nf", "arret_urgence", "selecteur", "interrupteur", "fdc_no", "fdc_nf", "capteur", "thermique", "contact_th_nf", "contact_th_no", "sectionneur", "disjoncteur", "disj_moteur", "fusible", "automate", "variateur", "potentiometre", "capteur3", "chariot", "cuve", "tapis", "tri"]);
+  const ACTIONNABLES = new Set(["differentiel", "bp_no", "bp_nf", "arret_urgence", "selecteur", "interrupteur", "fdc_no", "fdc_nf", "capteur", "thermique", "contact_th_nf", "contact_th_no", "sectionneur", "disjoncteur", "disj_moteur", "fusible", "automate", "variateur", "potentiometre", "capteur3", "chariot", "cuve", "tapis", "tri"]);
   const ELEC = /^(automate|variateur|potentiometre)$/, PO = /^(chariot|cuve|tapis|tri|barriere|montecharge|station)$/;
   const actionnable = (pc) => !!pc && ACTIONNABLES.has(pc.type) && !!pc.ref;
 
@@ -887,6 +887,20 @@
     }
     majSim(true); majConsig(); rendre();
   }
+  /* ---------- défaut d'isolement : une phase touche la carcasse d'un moteur (selon le schéma de liaison à la terre du réseau) ---------- */
+  const TXT_SLT = { TT: "TT : le différentiel en amont doit couper ; sinon la carcasse reste à une tension dangereuse.", "TN-S": "TN-S : le défaut est un court-circuit phase-PE : le fusible ou le disjoncteur coupe.", IT: "IT : le premier défaut ne coupe rien (le contrôleur d'isolement le signale) ; le deuxième, sur une autre phase, est un court-circuit." };
+  function carteIso() {
+    const L = schema.pieces.filter((q) => (q.type === "moteur" || q.type === "moteur6") && q.ref); if (!L.length) return "";
+    return `<h3>Défaut d'isolement</h3><div class="iso" id="sm-iso"></div>`;
+  }
+  function majIso() {
+    const z = $("sm-iso"); if (!z || !sim || !simE) return;
+    const L = schema.pieces.filter((q) => (q.type === "moteur" || q.type === "moteur6") && q.ref);
+    const h = `<p class="discret">Une phase touche la carcasse (choisis la borne). Schéma ${esc(TXT_SLT[simE.slt] || TXT_SLT.TT)}</p>`
+      + L.map((q) => { const D = ((simE.appareils[q.ref] || {}).defauts) || [], B = q.type === "moteur6" ? ["U1", "V1", "W1"] : ["U", "V", "W"];
+        return `<div class="iso-l"><b>${esc(q.ref)}</b>${B.map((b) => `<button class="btn sec" type="button" data-iso="${esc(q.ref)}" data-b="${b}" aria-pressed="${D.indexOf(b) >= 0}">⚡ ${b}</button>`).join("")}</div>`; }).join("");
+    if (z.dataset.h !== h) { z.dataset.h = h; z.innerHTML = h; }
+  }
   function cadenasSvg(x, y) { return `<g class="cadenas" transform="translate(${x} ${y})"><path d="M3.5 8V5.6a3.5 3.5 0 017 0V8"/><rect x="1" y="8" width="12" height="9" rx="2"/></g>`; }
   /* ---------- pince ampèremétrique : un fil (son courant), ou un appareil (le courant de chaque borne, et tous ensemble) ---------- */
   const PINCE_APP = /^(moteur|moteur6|bobine|relais|tempo_travail|tempo_repos|voyant|electrovanne|transfo|automate|variateur|capteur3)$/;
@@ -1023,6 +1037,8 @@
     if (t === "sectionneur") return `le sectionneur ${r}`;
     if (t === "thermique") return `le relais thermique ${r}`;
     if (t === "fusible") return `le fusible ${r}`;
+    if (t === "differentiel") return `le différentiel ${r}`;
+    if (t === "cpi") return `le contrôleur d'isolement ${r}`;
     if (M.BOBINES.indexOf(t) >= 0) return `la bobine de ${r}`;
     if (t === "voyant") return `le voyant ${r}`;
     if (t === "electrovanne") return `la bobine de l'électrovanne ${r}`;
@@ -1047,7 +1063,7 @@
     if (p.sorte === "court") return `${t === "electrovanne" ? `la bobine de l'électrovanne ${r}` : `la bobine de ${r}`} ${etait} en court-circuit`;
     if (p.sorte === "reglage") return `le relais thermique ${r} ${etait} réglé trop bas (il déclenche alors que le moteur tire son courant normal)`;
     if (p.sorte === "phases") return `deux phases ${present ? "sont" : "étaient"} inversées au bornier du moteur ${r}`;
-    if (t === "poles" || t === "disjoncteur" || t === "disj_moteur") return `le pôle ${pole} de ${r} ${cond}`;
+    if (t === "poles" || t === "disjoncteur" || t === "disj_moteur" || t === "differentiel") return `le pôle ${pole} de ${r} ${cond}`;
     if (t === "sectionneur") return `le fusible ${pole} du sectionneur ${r} ${etait} fondu (sans que ça se voie)`;
     if (t === "thermique") return `l'élément ${pole} du relais thermique ${r} ${etait} coupé`;
     if (t === "fusible") return `le fusible ${r} ${etait} fondu (sans que ça se voie)`;
@@ -1537,14 +1553,14 @@
     if (/^(arret_urgence|selecteur|interrupteur|fdc_no|fdc_nf|capteur|capteur3)$/.test(t)) sim.basculer(ref);
     else if (t === "thermique" || t === "contact_th_nf" || t === "contact_th_no") sim.action(ref, A.declenche ? "rearmer" : "surcharge");
     else if (t === "sectionneur") sim.action(ref, A.fondus && A.fondus.some(Boolean) ? "rearmer" : "basculer");
-    else if (t === "disjoncteur" || t === "disj_moteur") sim.action(ref, A.declenche ? "rearmer" : "basculer");
+    else if (t === "disjoncteur" || t === "disj_moteur" || t === "differentiel") sim.action(ref, A.declenche ? "rearmer" : "basculer");
     else if (t === "fusible") { if (A.fondu) sim.rearmer(ref); else bulle("Un fusible ne s'ouvre pas à la main : il fond quand il y a un court-circuit.", 3000); }
     geste = { type: "rien" };
     majSim(true);
   }
 
   /* ---------- panneau de simulation : les commandes ---------- */
-  const DESCR_CMD = { bp_no: "bouton à fermeture", bp_nf: "bouton à ouverture", arret_urgence: "arrêt d'urgence", selecteur: "sélecteur", interrupteur: "interrupteur", capteur3: "capteur 3 fils", fdc_no: "fin de course", fdc_nf: "fin de course", capteur: "capteur", thermique: "relais thermique", sectionneur: "sectionneur", disjoncteur: "disjoncteur", disj_moteur: "disjoncteur-moteur", fusible: "fusible" };
+  const DESCR_CMD = { differentiel: "interrupteur différentiel", bp_no: "bouton à fermeture", bp_nf: "bouton à ouverture", arret_urgence: "arrêt d'urgence", selecteur: "sélecteur", interrupteur: "interrupteur", capteur3: "capteur 3 fils", fdc_no: "fin de course", fdc_nf: "fin de course", capteur: "capteur", thermique: "relais thermique", sectionneur: "sectionneur", disjoncteur: "disjoncteur", disj_moteur: "disjoncteur-moteur", fusible: "fusible" };
   function commandesSim() {
     const L = [], vus = new Set();
     for (const pc of schema.pieces) {
@@ -1565,12 +1581,14 @@
       <h3>Commandes</h3><div class="cmd-l" id="sm-cmd">${commandesSim().map((c) => `<div class="cmd" data-ref="${esc(c.ref)}"><div><b>${esc(c.ref)}</b><small>${esc(DESCR_CMD[c.pc.type] || "")}</small><span class="etat"></span></div><div class="bt">${boutonsCmd(c)}</div></div>`).join("") || `<p class="discret">Aucun bouton, interrupteur ni protection à actionner.</p>`}</div>
       ${cartesSim()}
       <h3>Consignation</h3><div class="consig" id="sm-consig"></div>
+      ${carteIso()}
       <h3>Ce qui se passe</h3><ul class="msgs" id="sm-msgs"></ul>
       <h3>Journal</h3><ul class="msgs" id="sm-journal"></ul>`;
     pn.innerHTML = h;
     brancherPoignee(); brancherDefi(); brancherDep(); brancherCartes();
     $("sm-raz").onclick = () => { sim.reinitialiser(); angles = {}; pinceC = null; consig.cadenas = false; consig.vat = false; sondesO = ohmVide(); majSim(true); majConsig(); rendre(); };
     $("sm-consig").onclick = (e) => { const b = e.target.closest("button[data-k]"); if (b && !b.disabled) actionConsig(b.dataset.k, b.dataset.ref); };
+    { const z = $("sm-iso"); if (z) z.onclick = (e) => { const b = e.target.closest("button[data-iso]"); if (!b || !sim) return; sim.action(b.dataset.iso, "isolement", b.dataset.b); majSim(true); }; }
     $("sm-courant").onclick = () => { sim.rearmerAlimentation(); majSim(true); };
     for (const b of pn.querySelectorAll("#sm-cmd button[data-c]")) {
       const ref = b.closest(".cmd").dataset.ref, c = b.dataset.c;
@@ -1587,6 +1605,7 @@
         else if (c === "surcharge") sim.surcharge(ref);
         else if (c === "rearmer") sim.rearmer(ref);
         else if (c === "ouvrir") sim.action(ref, A && A.ferme ? "ouvrir" : "fermer");
+        else if (c === "tester") sim.action(ref, "tester");
         majSim(true);
       });
     }
@@ -1601,6 +1620,7 @@
       case "disj_moteur": return `<button type="button" data-c="ouvrir">Ouvrir</button><button type="button" data-c="surcharge" class="rouge">Surcharge</button><button type="button" data-c="rearmer">Réarmer</button>`;
       case "sectionneur": return `<button type="button" data-c="ouvrir">Ouvrir</button><button type="button" data-c="rearmer" title="Remplacer les fusibles fondus">Fusibles neufs</button>`;
       case "disjoncteur": return `<button type="button" data-c="ouvrir">Ouvrir</button><button type="button" data-c="rearmer">Réarmer</button>`;
+      case "differentiel": return `<button type="button" data-c="ouvrir">Ouvrir</button><button type="button" data-c="tester" title="Le bouton test fait passer une petite fuite : sous tension, il doit déclencher">Test</button><button type="button" data-c="rearmer">Réarmer</button>`;
       case "fusible": return `<button type="button" data-c="rearmer">Remplacer</button>`;
     }
     return "";
@@ -1620,10 +1640,11 @@
         case "sectionneur": { const b = row.querySelector('[data-c="ouvrir"]'); if (b) b.textContent = A.ferme ? "Ouvrir" : "Fermer"; const r = row.querySelector('[data-c="rearmer"]'); if (r) r.disabled = !(A.fondus || []).some(Boolean); const nf2 = (A.fondus || []).filter(Boolean).length; txt = (A.ferme ? "fermé" : "ouvert") + (nf2 ? ` · ${nf2} fusible${nf2 > 1 ? "s" : ""} fondu${nf2 > 1 ? "s" : ""}` : ""); ok = A.ferme && !nf2; break; }
         case "disjoncteur": case "disj_moteur": { const b = row.querySelector('[data-c="ouvrir"]'); if (b) { b.textContent = A.ferme ? "Ouvrir" : "Fermer"; b.disabled = !!A.declenche; } const r = row.querySelector('[data-c="rearmer"]'); if (r) r.disabled = !A.declenche; const s = row.querySelector('[data-c="surcharge"]'); if (s) s.disabled = !A.ferme; txt = A.declenche ? "déclenché" : A.ferme ? "fermé" : "ouvert"; ok = A.ferme; break; }
         case "fusible": { const r = row.querySelector('[data-c="rearmer"]'); if (r) r.disabled = !A.fondu; txt = A.fondu ? "fondu" : "bon"; ok = !A.fondu; break; }
+        case "differentiel": { const b = row.querySelector('[data-c="ouvrir"]'); if (b) { b.textContent = A.ferme ? "Ouvrir" : "Fermer"; b.disabled = !!A.declenche; } const r = row.querySelector('[data-c="rearmer"]'); if (r) r.disabled = !A.declenche; const t2 = row.querySelector('[data-c="tester"]'); if (t2) t2.disabled = !A.ferme; txt = A.declenche ? "déclenché" : A.ferme ? "fermé" : "ouvert"; ok = !A.declenche; break; }
       }
       et.textContent = txt; et.className = "etat " + (ok ? "ok" : "ko");
     }
-    majCartes(); majConsig();
+    majCartes(); majConsig(); majIso();
     const ms = simE.messages;
     $("sm-msgs").innerHTML = ms.length ? ms.map((m) => `<li class="${m.niveau}">${esc(m.texte)}</li>`).join("") : `<li class="info">Tout va bien. ${moteursTxt()}</li>`;
     const J = simE.journal.slice(-8).reverse();
@@ -1815,7 +1836,9 @@
      PANNEAU DE DROITE (dessin)
      ===================================================================== */
   const DESCR = {
-    reseau: "Le réseau triphasé 400 V : trois phases L1, L2, L3, le neutre N et la terre PE.",
+    reseau: "Le réseau triphasé 400 V : trois phases L1, L2, L3, le neutre N et la terre PE. Son schéma de liaison à la terre (TT, TN-S, IT) décide de ce qui se passe quand une phase touche une carcasse (défaut d'isolement).",
+    differentiel: "Il compare le courant qui part par les phases et celui qui revient : s'il en manque (une fuite à la terre, un défaut d'isolement), il coupe. 30 mA : protège les personnes ; 300 mA : les installations. Il ne protège pas contre les courts-circuits. En simulation : Ouvrir, Test, Réarmer.",
+    cpi: "Le contrôleur permanent d'isolement surveille un réseau en schéma IT (neutre isolé) : au premier défaut d'isolement, il le signale sans rien couper. Relie L au réseau (le neutre), PE à la terre ; son contact d'alarme est un contact lié, repère CPI1.",
     alim: "Un repère de potentiel : tous les repères qui portent le même nom sont reliés entre eux, sans fil.",
     transfo: "Abaisse la tension pour la commande (par exemple 400 V → 24 V). Son secondaire n'a de tension que si le primaire est alimenté.",
     fusible: "Il fond en cas de court-circuit et ouvre le circuit. On le remplace quand le défaut est réparé.",
@@ -1915,6 +1938,10 @@
     if (P.tension !== undefined) h += `<label class="ch" for="pc-tension">Tension ${pc.type === "voyant" ? "du voyant" : "de la bobine"}</label><select id="pc-tension" data-ch="tension">${M.TENSIONS.map((t) => option(t.id, t.nom, P.tension)).join("")}</select>`;
     if (P.delai !== undefined) h += `<label class="ch" for="pc-delai">Retard (en secondes)</label><input type="number" id="pc-delai" data-ch="delai" value="${esc(P.delai)}" min="0.1" max="600" step="0.5" inputmode="decimal">`;
     if (P.couleur !== undefined) h += `<label class="ch" for="pc-couleur">Couleur</label><select id="pc-couleur" data-ch="couleur">${M.COULEURS.map((c) => option(c.id, `${c.nom} (${c.code})`, P.couleur)).join("")}</select>`;
+    if (pc.type === "reseau") h += `<label class="ch" for="pc-slt">Schéma de liaison à la terre</label><select id="pc-slt" data-ch="slt">${option("TT", "TT : neutre à la terre, masses à leur propre terre (différentiel obligatoire)", P.slt)}${option("TN-S", "TN-S : masses reliées au neutre par le PE (un défaut = un court-circuit)", P.slt)}${option("IT", "IT : neutre isolé (premier défaut sans coupure, contrôleur d'isolement)", P.slt)}</select>`
+      + (P.slt === "TT" ? `<div class="deux"><div><label class="ch" for="pc-ra">Terre des masses Ra (Ω)</label><input type="number" id="pc-ra" data-ch="ra" value="${esc(P.ra)}" min="0.1" max="1000" step="1" inputmode="decimal"></div><div><label class="ch" for="pc-rn">Terre du neutre Rn (Ω)</label><input type="number" id="pc-rn" data-ch="rn" value="${esc(P.rn)}" min="0.1" max="1000" step="1" inputmode="decimal"></div></div><p class="discret">Défaut d'isolement : Id = 230 / (Ra + Rn) = ${nf(230 / ((+P.ra || 20) + (+P.rn || 10)), 1)} A ; la carcasse monte à Ra × Id = ${nf((230 * (+P.ra || 20)) / ((+P.ra || 20) + (+P.rn || 10)), 0)} V.</p>` : "");
+    if (pc.type === "differentiel") h += `<label class="ch" for="pc-poles">Nombre de pôles</label><select id="pc-poles" data-ch="poles">${option(2, "2 pôles (phase et neutre)", P.poles)}${option(3, "3 pôles (trois phases)", P.poles)}${option(4, "4 pôles (trois phases et neutre)", P.poles)}</select>
+      <label class="ch" for="pc-idn">Sensibilité IΔn</label><select id="pc-idn" data-ch="idn">${[30, 100, 300, 500, 1000].map((v) => option(v, v + " mA" + (v === 30 ? " (protège les personnes)" : v === 300 ? " (protège l'installation)" : ""), P.idn)).join("")}</select>`;
     if (pc.type === "disjoncteur") h += `<label class="ch" for="pc-poles">Nombre de pôles</label><select id="pc-poles" data-ch="poles">${[1, 2, 3].map((n) => option(n, n + (n > 1 ? " pôles" : " pôle"), P.poles)).join("")}</select>`;
     if (P.cal !== undefined) h += `<label class="ch" for="pc-cal">${pc.type === "thermique" || pc.type === "disj_moteur" ? "Réglage du thermique Ir (A)" : "Calibre (A)"}</label><input type="number" id="pc-cal" data-ch="cal" value="${esc(P.cal)}" min="0.1" max="1000" step="0.5" inputmode="decimal">`;
     if (pc.type === "alim") h += `<label class="ch" for="pc-pot">Potentiel</label><select id="pc-pot" data-ch="pot">${M.POTENTIELS.map((p) => option(p.id, `${p.nom} · ${p.aide}`, P.pot)).join("")}</select>`;
@@ -1999,7 +2026,8 @@
       const x = Number(String(v).replace(",", "."));
       if (!Number.isFinite(x) || x <= 0) { majPanneau(); return; }
       pc.p[k] = k === "delai" ? clamp(Math.round(x * 10) / 10, 0.1, 600) : clamp(x, 0.1, 1000);
-    } else if (k === "poles" || k === "prim" || k === "sec") pc.p[k] = Number(v);
+    } else if (k === "poles" || k === "prim" || k === "sec" || k === "idn") pc.p[k] = Number(v);
+    else if (k === "ra" || k === "rn") { const x = Number(String(v).replace(",", ".")); if (!Number.isFinite(x) || x <= 0) { majPanneau(); return; } pc.p[k] = clamp(Math.round(x * 10) / 10, 0.1, 1000); }
     else if (k === "puissance") { const x = Number(String(v).replace(",", ".")); if (!Number.isFinite(x) || x <= 0) { majPanneau(); return; } pc.p.puissance = clamp(Math.round(x * 100) / 100, 0.06, 400); }
     else if (T.cat === "po" && /^(moteur|gauche|droite|bas|haut|capteur|verin|rentre|sorti|amont|aval|ralbas|ralhaut|porte|pompe1|pompe2|pompe3|tbas|thaut)$/.test(k)) pc.p[k] = String(v).trim().toUpperCase().replace(/[^A-Z0-9_.\-]/g, "").slice(0, 12);
     else if (T.cat === "po" && /^(duree|conso|niveau|ecart|caisses|course)$/.test(k)) {
@@ -2314,6 +2342,7 @@
       <h3 style="margin-top:14px">Le voltmètre et le dépannage</h3>
       <p class="discret"><b>Chronogramme</b> (pendant la simulation) : une ligne par élément, au fil du temps — boutons et capteurs (1 = actionné), bobines (1 = alimentée), contacts temporisés (1 = fermé), voyants, vitesse et couplage des moteurs, étapes du GRAFCET, fréquence du variateur, position du chariot, niveau de la cuve. ${DOIGT ? "Touche" : "Clique sur"} le tracé pour poser un repère : l'écart de temps avec le curseur s'affiche (pratique pour une temporisation). « Lignes » choisit ce qui est tracé, « Image » l'enregistre pour un compte rendu.</p>
       <p class="discret">Pendant la simulation, le bouton <b>Voltmètre</b> remplace « Fil » dans la barre d'outils. ${DOIGT ? "Touche" : "Clique sur"} une borne pour la pointe <b style="color:#e03131">rouge</b>, puis une autre pour la pointe <b>noire</b> (COM) : l'écran donne la tension entre les deux, et la suit quand le schéma change (appuie sur S2 en gardant les pointes). En continu, le signe dit dans quel sens tu mesures (−24 V : pointes inversées). Comme un vrai voltmètre, il « voit à travers » une bobine ou un voyant : derrière un contact ouvert, on retrouve le neutre.</p>
+      <p class="discret"><b>Défaut d'isolement et schémas de liaison à la terre</b> : en simulation, la carte « Défaut d'isolement » fait toucher une phase à la carcasse d'un moteur (⚡ U, V ou W). Ce qui se passe dépend du réseau (réglage « Schéma de liaison à la terre ») : en <b>TT</b>, le courant de défaut (environ 8 A) ne fait pas couper les fusibles : il faut un <b>différentiel</b> en amont, sinon la carcasse reste à 153 V ; en <b>TN-S</b>, c'est un court-circuit, la protection coupe ; en <b>IT</b>, le premier défaut ne coupe rien et n'est pas dangereux, le <b>contrôleur d'isolement</b> le signale, le deuxième (sur une autre phase) est un court-circuit. Une carcasse qui n'est pas reliée au PE est toujours dangereuse.</p>
       <p class="discret"><b>Ohmmètre et consignation</b> : l'ohmmètre mesure une résistance (une bobine : quelques centaines d'ohms ; un contact fermé : 0 Ω ; un contact ouvert ou un fil coupé : OL, l'infini), <b>seulement hors tension</b>. Avant, on consigne (carte « Consignation » du panneau) : <b>séparer</b> (couper l'alimentation), <b>condamner</b> (le cadenas), <b>vérifier l'absence de tension</b> au voltmètre (0 V là où il y avait une tension). Une mesure à l'ohmmètre sans consigner est une <b>faute de sécurité</b>. Hors tension, on peut enfoncer un contacteur à la main (✋) pour mesurer ses pôles. Mesurée en place, une bobine se lit en parallèle avec ce qui la touche.</p>
       <p class="discret"><b>Pince</b> (pendant la simulation, à côté du Voltmètre) : ${DOIGT ? "touche" : "clique sur"} un fil pour lire le courant qui le traverse, ou un appareil (moteur, bobine…) pour le courant de chacune de ses bornes. Les trois phases d'un moteur prises ensemble donnent 0 A : il faut pincer <b>un seul</b> fil. Au démarrage direct, le moteur tire près de 6 fois son courant nominal (In) ; en marche, un peu moins que In. La ligne « Pince » du chronogramme trace la mesure.</p>
       <p class="discret"><b>Lecture de schéma</b> (fenêtre « Défis », en bas) : une question sur le schéma (« Clique sur le contact d'auto-maintien »…), tu réponds en cliquant sur l'appareil. Deux essais par question ; après deux erreurs, la bonne réponse est entourée en vert. Ta note sur 20 part dans ton suivi si tu es connecté(e).</p>
@@ -2336,7 +2365,7 @@
      ===================================================================== */
   const PALETTE = [
     { cat: "alim", items: [{ type: "reseau", nom: "Réseau 3~" }, { type: "alim", p: { pot: "L" }, nom: "Phase L" }, { type: "alim", p: { pot: "N" }, nom: "Neutre N" }, { type: "alim", p: { pot: "+24" }, nom: "+24 V" }, { type: "alim", p: { pot: "0V" }, nom: "0 V" }, { type: "alim", p: { pot: "PE" }, nom: "Terre PE" }, { type: "transfo", nom: "Transfo" }] },
-    { cat: "prot", items: [{ type: "fusible", nom: "Fusible" }, { type: "sectionneur", nom: "Sectionneur" }, { type: "disjoncteur", p: { poles: 2 }, nom: "Disjoncteur 2P" }, { type: "disjoncteur", p: { poles: 3 }, nom: "Disjoncteur 3P" }, { type: "disj_moteur", nom: "Disj. moteur" }, { type: "thermique", nom: "Relais thermique" }] },
+    { cat: "prot", items: [{ type: "fusible", nom: "Fusible" }, { type: "sectionneur", nom: "Sectionneur" }, { type: "disjoncteur", p: { poles: 2 }, nom: "Disjoncteur 2P" }, { type: "disjoncteur", p: { poles: 3 }, nom: "Disjoncteur 3P" }, { type: "disj_moteur", nom: "Disj. moteur" }, { type: "thermique", nom: "Relais thermique" }, { type: "differentiel", p: { poles: 4 }, nom: "Différentiel" }, { type: "cpi", nom: "Contrôleur d'isolement" }] },
     { cat: "cmd", items: [{ type: "bp_no", nom: "BP marche" }, { type: "bp_nf", nom: "BP arrêt" }, { type: "arret_urgence", nom: "Arrêt d'urgence" }, { type: "selecteur", nom: "Sélecteur" }, { type: "interrupteur", nom: "Interrupteur" }, { type: "fdc_no", nom: "Fin de course NO" }, { type: "fdc_nf", nom: "Fin de course NF" }, { type: "capteur", nom: "Capteur" }, { type: "capteur3", p: { type: "PNP" }, nom: "Capteur 3 fils PNP" }, { type: "capteur3", p: { type: "NPN" }, nom: "Capteur 3 fils NPN" }] },
     { cat: "rel", items: [{ type: "bobine", nom: "Bobine KM" }, { type: "poles", nom: "Pôles KM" }, { type: "contact_no", nom: "Contact NO" }, { type: "contact_nf", nom: "Contact NF" }, { type: "relais", nom: "Relais KA" }, { type: "tempo_travail", nom: "Tempo. travail" }, { type: "tempo_repos", nom: "Tempo. repos" }, { type: "contact_tno", nom: "Contact tempo. NO" }, { type: "contact_tnf", nom: "Contact tempo. NF" }, { type: "contact_th_nf", nom: "Thermique 95-96" }, { type: "contact_th_no", nom: "Thermique 97-98" }] },
     { cat: "rec", items: [{ type: "voyant", p: { couleur: "vert" }, nom: "Voyant" }, { type: "electrovanne", nom: "Électrovanne" }, { type: "moteur", nom: "Moteur 3~" }, { type: "moteur6", nom: "Moteur 6 bornes" }] },

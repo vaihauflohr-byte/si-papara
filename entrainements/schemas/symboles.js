@@ -177,6 +177,26 @@
         nums(["1", "2", "3", "4", "5", "6"].slice(0, 2 * n));
         break;
       }
+      case "differentiel": {   // interrupteur différentiel : les pôles, le tore autour des conducteurs, le déclencheur IΔ
+        const n = Math.max(2, Math.min(4, p.poles | 0)), ouvert = sim ? !!E.ouvert : true;
+        const xs = []; for (let k = 0; k < n; k++) xs.push(20 * k - 10 * (n - 1));
+        xs.forEach((x, k) => { const cA = c[String(2 * k + 1)], cB = c[String(2 * k + 2)]; h += P(`M${x} -30V-12`, cA) + P(`M${x} 30V12`, cB) + lamePole(x, !ouvert, cB); });
+        const x0 = xs[0], x1 = xs[n - 1], my = -0.5, xl = x0 - 17, dx = ouvert ? -5.5 : -1.2;
+        h += `<ellipse cx="${(x0 + x1) / 2}" cy="21" rx="${(x1 - x0) / 2 + 7}" ry="3.4" class="tore"/>`;
+        h += P(`M${x0 + dx} ${my}H${x1 + dx}`, null, "lien") + P(`M${x0 + dx} ${my}H${xl}`, null, "lien");
+        h += R(xl - 11, my - 6, 11, 12, "act boite") + P(`M${xl - 5.5} ${my + 6}V21H${x0 - 7}`, null, "fin");
+        tx.push(T(xl - 5.5, my + 0.5, "IΔ", "middle", "petit"), T(xl - 15, 1, ref, "end", "ref"), T(xl - 15, 13, p.idn + " mA", "end", "info"));
+        if (sim && E.declenche) tx.push(T(x1 + 9, -6, "déclenché", "start", "alerte"));
+        nums(["1", "2", "3", "4", "5", "6", "7", "8"].slice(0, 2 * n));
+        break;
+      }
+      case "cpi": {   // contrôleur permanent d'isolement : en défaut, la boîte rougit
+        const al = sim && !!E.alarme;
+        h += P("M0 -30V-14", c.L) + P("M0 30V14", c.PE) + R(-20, -14, 40, 28, "corps-cpi" + (al ? " alarme" : ""), ` rx="3"`);
+        tx.push(T(0, -4, "CPI", "middle", "moyen"), T(0, 7, "R <", "middle", "petit"), T(-24, 1, ref, "end", "ref"), T(4, -21, "L", "start"), T(4, 25, "PE", "start"));
+        if (al) tx.push(T(24, 10, "défaut", "start", "alerte"));
+        break;
+      }
       case "thermique": {
         h += R(-28, -12, 56, 24, "corps-t" + (sim && E.declenche ? " declenche" : ""));
         [-20, 0, 20].forEach((x, k) => { h += P(`M${x} -30V-6H${x + 5}V6H${x}V30`, c[String(2 * k + 1)]); });
@@ -212,6 +232,7 @@
                       : P("M-25.3 -10.1A30 30 0 0 0 -25.3 22.1", null, "sens") + P("M-25.3 22.1l-1.2 -6.4M-25.3 22.1l5.7 -3.1", null, "sens");
         }
         if (sim && E.grille) h += P("M-15 -9L15 21M-15 21L15 -9", null, "barre");
+        if (sim && E.defauts && E.defauts.length) { h += P("M23 -7L31 -11L30 -5L38 -9", null, "eclair"); tx.push(T(44, -20, "défaut " + E.defauts.join(", "), "start", "alerte")); }   // défaut d'isolement
         tx.push(T(0, 7, "M", "middle", "gros"), T(0, 21, "3~", "middle", "moyen"), T(six ? -36 : -30, 6, ref, "end", "ref"));
         const sensTxt = sim && Math.abs(E.w || 0) > 0.05 ? (E.w > 0 ? "sens 1" : "sens 2") : "";
         if (six) {
@@ -239,7 +260,7 @@
       }
       case "reseau": {
         ["L1", "L2", "L3", "N", "PE"].forEach((id, i) => { h += P(`M${20 * i} 8V20`, c[id]); tx.push(T(20 * i, 1, id, "middle", "pot", COUL_POT[id])); });
-        tx.push(T(40, -11, "réseau 3~ 400 V 50 Hz", "middle", "info"));
+        tx.push(T(40, -11, "réseau 3~ 400 V 50 Hz · " + (p.slt || "TT"), "middle", "info"));
         break;
       }
       case "automate": {
