@@ -11,10 +11,10 @@
   // passage : Lycée SI, Terminale SI, Bac SI (la page qu'on regarde chaque semaine).
   const ESPACES = [
     { id: "lycee", nom: "Lycée SI", classes: ["TSI", "1SI", "2SI"], pages: ["bac", "suivi", "competences", "flashs", "depannages", "atelier", "signalements", "eleves", "apercu"] },
-    { id: "bts1", nom: "BTS 1", classes: ["BTS1-ADM", "BTS1-STI"], pages: ["suivi", "depannages", "atelier", "flashs", "signalements", "eleves", "apercu"] },
-    { id: "bts2", nom: "BTS 2", classes: ["BTS2-ADM", "BTS2-STI"], pages: ["devoirs", "projets", "suivi", "depannages", "atelier", "flashs", "signalements", "eleves", "apercu"] }
+    { id: "bts1", nom: "BTS 1", classes: ["BTS1-ADM", "BTS1-STI"], pages: ["suivi", "depannages", "atelier", "direct", "flashs", "signalements", "eleves", "apercu"] },
+    { id: "bts2", nom: "BTS 2", classes: ["BTS2-ADM", "BTS2-STI"], pages: ["devoirs", "projets", "suivi", "depannages", "atelier", "direct", "flashs", "signalements", "eleves", "apercu"] }
   ];
-  const PAGES = { bac: "Bac SI", suivi: "Suivi", competences: "Compétences", flashs: "Flashs", depannages: "Dépannages et schémas", atelier: "Atelier schémas", devoirs: "Devoirs E4", projets: "Projets",
+  const PAGES = { bac: "Bac SI", suivi: "Suivi", competences: "Compétences", flashs: "Flashs", depannages: "Dépannages et schémas", atelier: "Atelier schémas", direct: "En direct", devoirs: "Devoirs E4", projets: "Projets",
     signalements: "Signalements", eleves: "Élèves et codes", apercu: "Aperçu élève" };
   const espaceDe = (n) => ESPACES.find((x) => x.classes.includes(n)) || ESPACES[0];
   const NAV = (() => { try { return JSON.parse(localStorage.getItem("sip_prof_nav")) || {}; } catch (e) { return {}; } })();
@@ -117,7 +117,7 @@
   // les classes d'un espace qui ont des élèves (toutes, s'il n'y en a aucun) ; les pages qui ont un sens pour une classe
   const classesVisibles = (x) => { const L = x.classes.filter((c) => D && D.eleves.some((e) => e.niveau === c)); return L.length ? L : x.classes; };
   const aDesFlashs = (n) => !!D && D.entrainements.some((t) => /^flash-/.test(t.module || "") && D.parEleve[t.eleve_id] && D.parEleve[t.eleve_id].e.niveau === n);
-  const pagesDe = (x, n) => x.pages.filter((o) => (o === "bac" ? n === "TSI" : o === "flashs" ? n === "TSI" || aDesFlashs(n) : true));
+  const pagesDe = (x, n) => x.pages.filter((o) => (o === "bac" ? n === "TSI" : o === "flashs" ? n === "TSI" || aDesFlashs(n) : o === "direct" ? !!atelierDirect(n) : true));
   function regler() {
     const C = classesVisibles(espace), m = NAV.p[espace.id] || {};
     if (!C.includes(niveau)) niveau = C.includes(m.n) ? m.n : C[0];
@@ -151,7 +151,7 @@
 
   function afficher() {
     regler();
-    ({ bac: vueBac, suivi: vueSuivi, competences: vueCompetences, flashs: vueFlashs, depannages: vueDepannages, atelier: vueAtelier, devoirs: vueDevoirs, projets: vueProjets,
+    ({ bac: vueBac, suivi: vueSuivi, competences: vueCompetences, flashs: vueFlashs, depannages: vueDepannages, atelier: vueAtelier, direct: vueDirect, devoirs: vueDevoirs, projets: vueProjets,
       signalements: vueSignalements, eleves: vueEleves, apercu: vueApercu }[onglet] || vueSuivi)();
   }
 
@@ -353,6 +353,132 @@
       } catch (e) { if (w && !w.closed) w.close(); alert("Ce schéma n'a pas pu être ouvert."); }
     }));
   }
+
+  // ---------------- En direct : ce que font les élèves connectés, maintenant (comme une classe Tinkercad) ----------------
+  // L'atelier schémas pousse le schéma de chaque élève connecté quand il change (au plus toutes les 10 s), avec ce qu'il fait,
+  // et un signe de vie toutes les 30 s (supabase/direct.sql, table « direct »). Cette page relit la table toutes les 10 s
+  // tant qu'elle est à l'écran (toutes les 4 s quand on regarde un élève). Les dessins sont faits ici, avec les symboles de
+  // l'atelier, à partir du schéma relu par SchemasModele.valider, et montrés comme des images : rien de ce qu'envoie un élève
+  // n'est exécuté dans cette page.
+  const atelierDirect = (n) => (/^BTS/.test(n || "") ? "schemas" : null);
+  const DIR = { atelier: null, rows: {}, etats: {}, img: {}, minut: 0, eleve: null, erreur: "", zoom: 0, outils: null, maj: 0 };
+  const EN_LIGNE = 75000;   // signe de vie toutes les 30 s : au-delà de 75 s sans nouvelles, l'élève n'est plus là
+  function outilsDirect() {
+    if (window.SchemasModele && window.SchemasSymboles && window.SchemasSymboles.schemaSvg) return Promise.resolve(true);
+    if (!DIR.outils) {
+      const un = (f) => new Promise((ok, ko) => { const sc = document.createElement("script"); sc.src = "entrainements/schemas/" + f; sc.onload = ok; sc.onerror = () => ko(new Error(f)); document.head.appendChild(sc); });
+      DIR.outils = ["modele.js", "automate.js", "symboles.js"].reduce((p, f) => p.then(() => ((f === "modele.js" && window.SchemasModele) || (f === "automate.js" && window.SchemasAutomate) || (f === "symboles.js" && window.SchemasSymboles) ? null : un(f))), Promise.resolve())
+        .then(() => true, () => false);
+    }
+    return DIR.outils;
+  }
+  // le schéma d'un élève → une image (adresse data:) ; "" : feuille vide ; null : rien de lisible
+  function imageDirect(etat) {
+    const M = window.SchemasModele, SY = window.SchemasSymboles;
+    if (!M || !SY || !SY.schemaSvg || !etat || !Array.isArray(etat.pieces) || !Array.isArray(etat.fils)) return null;
+    try { const sc = M.valider(etat); return sc.pieces.length || sc.fils.length ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(SY.schemaSvg(sc)) : ""; } catch (e) { return null; }
+  }
+  const enLigne = (r) => !!r && !!r.vu_le && Date.now() - Date.parse(r.vu_le) < EN_LIGNE;
+  function ilYa(t) {
+    const s = Math.max(0, Math.round((Date.now() - Date.parse(t)) / 1000));
+    return s < 15 ? "à l'instant" : s < 60 ? `il y a ${s} s` : s < 3600 ? `il y a ${Math.round(s / 60)} min` : s < 86400 ? `il y a ${Math.round(s / 3600)} h` : "le " + SIP.fmtDate(t);
+  }
+  function etatDirect(e) {   // une ligne : en ligne ou pas, ce qu'il fait
+    const r = DIR.rows[e.id];
+    if (!r) return `<span class="discret">Pas encore venu dans l'atelier (connecté)</span>`;
+    const i = r.info || {}, on = enLigne(r);
+    return `<span class="dir-pres${on ? " on" : ""}">${on ? "En ligne" : "Vu " + esc(ilYa(r.vu_le))}</span>${i.quoi ? ` · ${esc(String(i.quoi).slice(0, 160))}` : ""}${i.sim ? ` <span class="etiquette ok">▶ simule</span>` : ""}`;
+  }
+  function vignetteDirect(e) {
+    const r = DIR.rows[e.id], im = DIR.img[e.id];
+    return im ? `<img src="${im}" alt="Schéma de ${esc(e.nom)}">` : `<span class="discret">${!r ? "—" : im === "" ? "Feuille vide" : DIR.etats[e.id] ? "Schéma illisible" : "…"}</span>`;
+  }
+  function vueDirect() {
+    const at = atelierDirect(niveau);
+    if (DIR.atelier !== at) Object.assign(DIR, { atelier: at, rows: {}, etats: {}, img: {}, eleve: null, erreur: "", maj: 0 });
+    if (!DIR.pret) {
+      cadre(`<div class="carte"><p class="discret">Chargement des dessins de l'atelier…</p></div>`);
+      outilsDirect().then((ok) => { DIR.pret = true; DIR.sansDessins = !ok; if (onglet === "direct") vueDirect(); });
+      return;
+    }
+    const E = elevesFiltres().filter((e) => e.actif !== false), x = DIR.eleve && E.find((e) => e.id === DIR.eleve);
+    if (!x) DIR.eleve = null;
+    cadre(`<div id="dir-page">${x ? pageEleveDirect(x) : pageClasseDirect(E)}</div>`);
+    brancherDirect();
+    tickDirect();
+  }
+  function pageClasseDirect(E) {
+    return `<div class="carte"><p class="discret">Quand un élève connecté travaille dans l'<a href="entrainements/schemas.html">atelier schémas</a>, son schéma arrive ici tout seul (au plus 10 secondes après chaque changement), avec ce qu'il fait : schéma libre, défi, dépannage, lecture, simulation. Clique sur un élève pour voir son schéma en grand. Un élève parti garde son dernier schéma.</p>
+      <p class="dir-resume" id="dir-resume" aria-live="polite"></p></div>
+      <div class="dir-grille" id="dir-grille">${E.map((e) => `<button type="button" class="dir-c" data-dir="${esc(e.id)}"><span class="dir-ap" id="dir-ap-${esc(e.id)}">${vignetteDirect(e)}</span><b>${esc(e.nom)}</b><small id="dir-et-${esc(e.id)}">${etatDirect(e)}</small></button>`).join("") || `<p class="discret">Aucun élève dans cette classe.</p>`}</div>`;
+  }
+  function pageEleveDirect(e) {
+    return `<p class="no-print"><button class="btn-lien" type="button" id="dir-retour">← Toute la classe</button></p>
+      <div class="carte dir-grand"><h2>${esc(e.nom)}</h2><p id="dir-et-${esc(e.id)}">${etatDirect(e)}</p>
+      <div class="rang"><button class="btn sec" type="button" id="dir-moins" aria-label="Plus petit">−</button><button class="btn sec" type="button" id="dir-plus" aria-label="Plus grand">+</button><button class="btn sec" type="button" id="dir-ajuster">Ajuster</button><button class="btn" type="button" id="dir-ouvrir">Ouvrir une copie dans l'atelier</button></div>
+      <div class="dir-zone"><span class="dir-ap" id="dir-ap-${esc(e.id)}">${vignetteDirect(e)}</span></div>
+      <p class="discret" id="dir-resume" aria-live="polite"></p>
+      <p class="discret">Mis à jour tout seul toutes les 4 secondes. « Ouvrir une copie dans l'atelier » : pour simuler son schéma ou le corriger, sans toucher au sien.</p></div>`;
+  }
+  // zoom 0 : tout le schéma dans la fenêtre ; sinon, la largeur du dessin par rapport à la zone (1 = toute la largeur)
+  function zoomDirect() { const im = document.querySelector(".dir-zone img"); if (im) { im.style.width = DIR.zoom ? Math.round(DIR.zoom * 100) + "%" : ""; im.style.maxHeight = DIR.zoom ? "none" : ""; } }
+  const largeurDirect = () => { const im = document.querySelector(".dir-zone img"), z = document.querySelector(".dir-zone"); return im && z && z.clientWidth ? im.getBoundingClientRect().width / z.clientWidth : 1; };
+  function brancherDirect() {
+    document.querySelectorAll("[data-dir]").forEach((b) => (b.onclick = () => { DIR.eleve = b.dataset.dir; DIR.zoom = 0; vueDirect(); window.scrollTo(0, 0); }));
+    const q = (id, f) => { const b = document.getElementById(id); if (b) b.onclick = f; };
+    q("dir-retour", () => { DIR.eleve = null; vueDirect(); });
+    q("dir-plus", () => { DIR.zoom = Math.min(4, (DIR.zoom || largeurDirect()) * 1.4); zoomDirect(); });
+    q("dir-moins", () => { DIR.zoom = Math.max(0.3, (DIR.zoom || largeurDirect()) / 1.4); zoomDirect(); });
+    q("dir-ajuster", () => { DIR.zoom = 0; zoomDirect(); });
+    q("dir-ouvrir", () => {
+      const x = DIR.etats[DIR.eleve], e = D.parEleve[DIR.eleve] && D.parEleve[DIR.eleve].e;
+      if (!x || !x.etat || !Array.isArray(x.etat.pieces)) { alert("Pas encore de schéma pour cet élève."); return; }
+      localStorage.setItem("schemas:a-ouvrir", JSON.stringify({ t: Date.now(), schema: x.etat, de: e ? e.nom : "", nom: x.etat.titre || "" }));
+      window.open("entrainements/schemas.html#ouvrir", "_blank");
+    });
+    zoomDirect();
+  }
+  function majDirect() {   // les nouvelles (sans tout redessiner : le zoom et la place dans la page restent)
+    if (!document.getElementById("dir-page")) return;
+    const E = elevesFiltres().filter((e) => e.actif !== false);
+    for (const e of E) {
+      const et = document.getElementById("dir-et-" + e.id); if (et) et.innerHTML = etatDirect(e);
+      const ap = document.getElementById("dir-ap-" + e.id), im = DIR.img[e.id];
+      if (ap) { const vu = ap.querySelector("img"); if (im && vu) { if (vu.getAttribute("src") !== im) vu.setAttribute("src", im); } else ap.innerHTML = vignetteDirect(e); }
+      const c = document.querySelector(`[data-dir="${e.id}"]`); if (c) c.classList.toggle("on", enLigne(DIR.rows[e.id]));
+    }
+    zoomDirect();
+    const z = document.getElementById("dir-resume");
+    if (z) {
+      const n = E.filter((e) => enLigne(DIR.rows[e.id])).length;
+      z.innerHTML = DIR.erreur ? `<span class="erreur">${esc(DIR.erreur)}</span>` : DIR.sansDessins ? `<span class="erreur">Les dessins de l'atelier n'ont pas pu être chargés : actualise la page.</span>`
+        : DIR.maj ? `${DIR.eleve ? "" : `<b>${n}</b> élève${n > 1 ? "s" : ""} en ligne sur ${E.length} · `}mis à jour à ${new Date(DIR.maj).toLocaleTimeString("fr-FR")}` : "Lecture…";
+    }
+  }
+  async function tickDirect() {
+    clearTimeout(DIR.minut); DIR.minut = 0;
+    if (onglet !== "direct" || !document.getElementById("dir-page") || !DIR.atelier) return;
+    if (document.visibilityState !== "hidden" && !DIR.enVol) {
+      DIR.enVol = true;
+      try {
+        const classe = new Set(elevesFiltres().map((e) => e.id)), aLire = [];
+        for (const r of await SIP.api.profDirect(DIR.atelier)) {
+          if (!classe.has(r.eleve_id)) continue;
+          DIR.rows[r.eleve_id] = r;
+          const x = DIR.etats[r.eleve_id]; if (!x || x.maj_le !== r.maj_le) aLire.push(r.eleve_id);
+        }
+        if (aLire.length) for (const x of await SIP.api.profDirectEtats(DIR.atelier, aLire)) { DIR.etats[x.eleve_id] = x; DIR.img[x.eleve_id] = imageDirect(x.etat); }
+        DIR.erreur = ""; DIR.maj = Date.now();
+      } catch (e) {
+        DIR.erreur = /direct|does not exist|schema cache|PGRST|relation/i.test(String((e && e.message) || e)) ? "La base n'a pas encore la table « direct » : colle supabase/direct.sql dans Supabase (SQL Editor)." : "Le site ne répond pas : nouvel essai dans quelques secondes.";
+      } finally { DIR.enVol = false; }
+      if (onglet !== "direct" || !document.getElementById("dir-page")) return;
+      majDirect();
+    }
+    DIR.minut = setTimeout(tickDirect, DIR.eleve ? 4000 : 10000);
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && onglet === "direct") tickDirect(); });
+  window.SIP_PROF_DIRECT = { tick: () => tickDirect(), etat: () => ({ eleve: DIR.eleve, maj: DIR.maj, erreur: DIR.erreur, n: Object.keys(DIR.rows).length }) };   // pour les essais
 
   function vueFlashs() {
     const S = seancesFlash();

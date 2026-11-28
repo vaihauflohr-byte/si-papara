@@ -252,7 +252,7 @@
   function refaire() { if (sim || hpos >= histo.length - 1) return; const dm = schema.dim; hpos++; schema = JSON.parse(histo[hpos]); if (dm) schema.dim = dm; else delete schema.dim; sel.clear(); netEdit = null; sauverBientot(); rendre(); majPanneau(); majBoutons(); }
   let tSauve = 0;
   function sauverBientot() { clearTimeout(tSauve); tSauve = setTimeout(sauver, 250); }
-  function sauver() { clearTimeout(tSauve); if (doc.type !== "depannage" && doc.type !== "lecture") garder(doc.type === "defi" ? CLE.defi(doc.defi) : CLE.libre, schema); garder(CLE.dernier, doc); }
+  function sauver() { clearTimeout(tSauve); if (doc.type !== "depannage" && doc.type !== "lecture") garder(doc.type === "defi" ? CLE.defi(doc.defi) : CLE.libre, schema); garder(CLE.dernier, doc); directMarquer(); }
   function quitterDoc() {   // avant d'ouvrir un autre schéma
     if (doc.type === "defi") { sauver(); doc = { type: "libre" }; cpltProf = null; }
     else if (doc.type === "depannage") { depEtat = null; marques = []; depProf = null; doc = { type: "libre" }; }
@@ -1205,6 +1205,44 @@
   }
   // envoyer un résultat au suivi de l'élève (le site est chargé à ce moment-là) : "envoye", "file" (hors ligne : il partira
   // plus tard), "deconnecte", "expire" ou "erreur"
+  /* ---------- en direct : l'élève connecté montre son travail au professeur (supabase/direct.sql) ----------
+     le schéma part quand il change (au plus toutes les 10 s), avec ce que fait l'élève (schéma libre, défi, dépannage,
+     lecture, simulation) ; un signe de vie toutes les 30 s tant que la page est visible. Le professeur le voit dans la
+     page « En direct » de son espace. Rien ne part sans connexion au site ; en aperçu, rien ne quitte ce navigateur. */
+  const DIRECT = { dernier: "", enVol: false, encore: false, t: 0, minut: 0, arret: !(session && session.jeton) };
+  function quoiDirect() {
+    let q;
+    if (doc.type === "defi") {
+      if (cpltProf && cpltProf.id === doc.defi) q = "Schéma à compléter : " + ((cpltProf.D && cpltProf.D.titre) || "");
+      else { const k = X.DEFIS.findIndex((d) => d.id === doc.defi); q = k >= 0 ? `Défi ${k + 1} : ${X.DEFIS[k].titre}` : "Défi"; }
+    } else if (doc.type === "depannage") { const D = depParId(doc.dep); q = (depProf && depProf.id === doc.dep ? "Dépannage du professeur : " : "Dépannage : ") + (D ? D.titre : ""); }
+    else if (doc.type === "lecture") { const L = lectureParId(doc.lecture); q = "Lecture de schéma : " + (L ? L.titre : ""); }
+    else q = "Schéma libre : " + (schema.titre || "Mon schéma");
+    if (dimEtat && $("d-dim") && $("d-dim").open) q += " · Calcul des câbles" + (dimEtat.exo ? " : " + dimEtat.exo.titre : "");
+    return q.slice(0, 160);
+  }
+  const infoDirect = () => ({ quoi: quoiDirect(), sim: !!sim, n: schema.pieces.length, f: schema.fils.length, doc: doc.type });
+  function directMarquer() { if (!DIRECT.arret) planifierDirect(); }
+  function planifierDirect(vite) { if (DIRECT.arret || DIRECT.minut) return; DIRECT.minut = setTimeout(pousserDirect, vite ? 300 : Math.max(1500, 10000 - (Date.now() - DIRECT.t))); }
+  async function pousserDirect() {
+    clearTimeout(DIRECT.minut); DIRECT.minut = 0;
+    if (DIRECT.arret) return;
+    if (DIRECT.enVol) { DIRECT.encore = true; return; }
+    DIRECT.enVol = true; DIRECT.t = Date.now();
+    const j = JSON.stringify(schema), avec = j !== DIRECT.dernier;
+    try {
+      const S = await chargerSite();
+      if (!S || !S.api || !S.api.directPousser || !(S.session && S.session.get())) { DIRECT.arret = true; return; }
+      await S.api.directPousser("schemas", avec ? JSON.parse(j) : null, infoDirect());
+      if (avec) DIRECT.dernier = j;
+    } catch (e) {   // pas connecté, ou base pas encore à jour : on s'arrête ; le réseau : on réessaie au prochain signe de vie
+      if (/SESSION_EXPIREE|direct_pousser|does not exist|schema cache|DIRECT_/i.test(String((e && e.message) || e || ""))) DIRECT.arret = true;
+    } finally { DIRECT.enVol = false; if (DIRECT.encore) { DIRECT.encore = false; planifierDirect(); } }
+  }
+  if (!DIRECT.arret) {
+    setInterval(() => { if (document.visibilityState === "visible") pousserDirect(); }, 30000);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") planifierDirect(true); });
+  }
   async function envoyerAuSite(resultat) {
     let S = null; try { S = await chargerSite(); } catch (e) { S = null; }
     const se = S && S.session && S.session.get();
@@ -1573,6 +1611,7 @@
     else if (!schema.pieces.some((pc) => actionnable(pc))) bulle("Rien à actionner dans ce schéma : ajoute des boutons ou des interrupteurs.", 4000);
     else if (api) bulle(`Clique sur les boutons du schéma. Clique sur <b>${esc(api.ref)}</b> pour voir son programme en direct.`, 5000);
     else bulle("Clique sur les boutons du schéma (ou dans la liste « Commandes »). Double-clic : le bouton reste appuyé.", 4500);
+    directMarquer();
   }
   function arreterSim() {
     sim = null; simE = null; cancelAnimationFrame(rafId); appuis.clear(); survolPiece = null; PR.live.fermer(); CH.arreter();
@@ -1580,7 +1619,7 @@
     if (outil === "volt" || outil === "designer" || outil === "pince" || outil === "ohm") { outil = "fleche"; document.querySelectorAll("#sc-barre [data-o]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.o === "fleche"))); }
     document.body.classList.remove("simu", "depannage"); majVoltmetre();
     const b = $("sc-simuler"); b.querySelector("span").textContent = "Simuler"; b.querySelector("svg").innerHTML = '<path d="M7 4.5v15l12-7.5z"/>';
-    bulle(""); majBoutons(); dessiner(); majPanneau();
+    bulle(""); majBoutons(); dessiner(); majPanneau(); directMarquer();
   }
   function signature(E) {
     const P = {};
@@ -2378,6 +2417,7 @@
       <div id="cp-envoi" hidden><label class="ch" for="cp-msg">Un mot pour le professeur (facultatif)</label><textarea id="cp-msg" rows="2" maxlength="500" placeholder="Par exemple : je n'arrive pas à faire marcher S3."></textarea>
         <div class="rang"><button class="btn" type="button" id="cp-envoyer">Envoyer « ${esc(schema.titre || "Mon schéma")} »</button></div></div>
       <p class="discret" id="cp-etat" aria-live="polite"></p>
+      <p class="discret">Tant que tu es connecté, ton professeur voit ton schéma en direct (page « En direct » de son espace).</p>
       <ul class="copies" id="cp-liste"><li class="discret">Chargement…</li></ul>`;
   }
   async function majCompte() {
@@ -2471,7 +2511,7 @@
     if (exo) verifierDim(true);
     $("d-dim-t").textContent = exo ? "Câbles : " + exo.titre : "Calcul des câbles";
     rendreDim(); ouvrirDialogue("d-dim");
-    $("d-dim-c").scrollTop = 0;
+    $("d-dim-c").scrollTop = 0; directMarquer();
   }
   async function ouvrirDimLien(code) {
     if (!DI) return;
@@ -2726,20 +2766,7 @@
   });
 
   /* ---------- export : SVG autonome (couleurs claires) avec cartouche ---------- */
-  const CSS_EXPORT = `:root{--p-l1:#e03131;--p-l2:#e8590c;--p-l3:#9c36b5;--p-n:#1c7ed6;--p-pe:#2f9e44;--p-plus:#e03131}
-.sy{stroke:#15202b;color:#15202b;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.sy .lien{stroke-dasharray:3.2 2.6;stroke-width:1.05}.sy .fin{stroke-width:.8;stroke:#77838f}
-.sy .act.plein,.sy .plein{fill:#15202b}.sy .act.boite{stroke-width:1.2}
-.sy .corps-b,.sy .corps-v,.sy .corps-f,.sy .corps-m,.sy .corps-tr,.sy .corps-t,.sy .pot-boite{fill:#fff}.sy .corps-b.plein{fill:#15202b}
-.sy-t{font-family:Consolas,"DejaVu Sans Mono",monospace;font-size:8.5px;fill:#44525f;stroke:#fff;stroke-width:3px;paint-order:stroke;stroke-linejoin:round}
-.sy-t.ref{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:11.5px;fill:#15202b}.sy-t.info{fill:#77838f}
-.sy-t.pot{font-weight:700;font-size:10.5px;fill:#15202b}.sy-t.gros{font-family:Arial,sans-serif;font-weight:700;font-size:17px;fill:#15202b}
-.sy-t.moyen{font-family:Arial,sans-serif;font-size:10.5px;fill:#15202b}.sy-t.petit{font-family:Arial,sans-serif;font-size:7.5px;font-weight:700;fill:#15202b;stroke:none}
-.fil{stroke:#15202b;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}.jonction{fill:#15202b}
-.sy .corps-a{fill:#fff}.sy .led{fill:#fff;stroke:#77838f;stroke-width:.8}.sy .ecran{fill:#17261c}.ecran-t{fill:#69db7c;font-family:Consolas,monospace;font-size:11px;font-weight:700}.sy .fin2{stroke-width:1.1}
-.sy .rail{stroke-width:2.6}.sy .butee{fill:#f1f3f5}.sy .po-fdc,.sy .galet,.sy .roue,.sy .vanne,.sy .flotteur{fill:#fff}.sy .came{fill:#77838f}.sy .corps-po{fill:#e7f0ff}
-.sy .fin3{stroke-width:1.1}.sy .instr{fill:#fff}.sy .bande{fill:#f1f3f5}.sy .bande-m{stroke:#77838f;stroke-width:1.2;stroke-dasharray:3 9}.sy .caisse{fill:#e2bf86;stroke:#7a5a2a}.sy .faisceau{stroke:#77838f;stroke-width:1;stroke-dasharray:2 3}.sy .paroi{stroke-width:2.6}.sy .volet{stroke-width:3}.sy .verin,.sy .dist{fill:#fff;stroke-width:1.2}.sy .dist.on{fill:#ffd43b}.sy .tige{stroke-width:2.4}.sy .marque{stroke:#77838f;stroke-width:1.4}.sy .marque.on{stroke:#2b8a3e;stroke-width:2.4}.sy .eau{fill:#a5d8ff;stroke:none}.sy .repere{stroke:#77838f;stroke-width:.9;stroke-dasharray:4 3}.sy .tuyau{stroke:#77838f;stroke-width:3.4;stroke-linecap:butt}.sy .jet{stroke:none}
-.ca{font-family:Arial,Helvetica,sans-serif;fill:#15202b}.ca-l{stroke:#15202b;stroke-width:1;fill:none}`;
+  const CSS_EXPORT = SY.CSS_FEUILLE;   // les styles de la feuille (symboles.js), aussi pour la page « En direct » du professeur
   let logoURI = null;
   async function logo() {
     if (logoURI !== null) return logoURI;
@@ -2956,6 +2983,7 @@
   window.addEventListener("beforeunload", () => { if (!sim) sauver(); });
   if (session) setTimeout(envoyerDefis, 2500);   // défis réussis avant de se connecter, ou hors ligne : ils partent maintenant
   depart();
+  if (!DIRECT.arret) { setTimeout(() => planifierDirect(true), 1500); const dd = $("d-dim"); if (dd) dd.addEventListener("close", directMarquer); }
   requestAnimationFrame(() => { appliquerVue(); if (!schema.pieces.length) ajusterVue(); else ajusterVue(); });
 
   /* pour les essais automatiques et, plus tard, un automate branché sur la simulation */
@@ -2967,6 +2995,7 @@
     preparationC: () => (prepC ? { corrige: !!prepC.corrige, depart: !!prepC.depart, titre: prepC.titre, essai: essaiPrepC() && { etapes: essaiC.etapes.length, commandes: essaiC.commandes, observes: essaiC.observes, okC: essaiC.okC, okD: essaiC.okD } } : null),
     lienCompleter: () => (prepC && prepC.corrige && prepC.depart ? lienPrepC() : null), ouvrirCodeCplt, complet: () => (cpltProf ? cpltEtat(cpltProf.id) : null), depannage: () => (depEtat ? JSON.parse(JSON.stringify(depEtat)) : null), sondes: () => JSON.parse(JSON.stringify(sondes)), outilV: choisirOutil,
     ouvrirCables: (id) => ouvrirDim(id ? exoDim(id) : null), ouvrirCablesLien: ouvrirDimLien,
+    directMaintenant: () => pousserDirect(), direct: () => ({ arret: DIRECT.arret, envoye: !!DIRECT.dernier, t: DIRECT.t, info: infoDirect() }),
     cables: () => (dimEtat ? JSON.parse(JSON.stringify({ exo: dimEtat.exo && dimEtat.exo.id, dim: dimEtat.dim, rep: dimEtat.rep, premier: dimEtat.premier, vu: dimEtat.vu, fin: dimEtat.fin, note: dimEtat.note, pts: dimEtat.pts, tot: dimEtat.tot, envoi: dimEtat.envoi })) : null),
     programmer: (ref) => ouvrirProgramme(schema.pieces.find((q) => q.type === "automate" && (!ref || q.ref === ref)))
   };

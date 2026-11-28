@@ -70,6 +70,7 @@ window.SIP = window.SIP || {};
   }
   // ---------- Atelier schémas : schémas gardés sur le compte (mêmes limites que supabase/schemas.sql) ----------
   const LIMITES_SCHEMAS = { nombre: 40, taille: 200000 };
+  const LIMITE_DIRECT = 300000;   // en direct (supabase/direct.sql) : le travail en cours d'un élève, 300 ko au plus
   SIP.LIMITES_SCHEMAS = LIMITES_SCHEMAS;
   const schemaPublic = (r) => ({ id: r.id, nom: r.nom, envoye_le: r.envoye_le || null, message: r.message || null, vu_le: r.vu_le || null, cree_le: r.cree_le, maj_le: r.maj_le,
     symboles: r.schema && Array.isArray(r.schema.pieces) ? r.schema.pieces.length : 0 });
@@ -267,6 +268,20 @@ window.SIP = window.SIP || {};
       async profSchemas() { const db = load(); return (db.schemas || []).filter((x) => x.envoye_le).sort((a, b) => b.envoye_le.localeCompare(a.envoye_le)).map((x) => Object.assign(schemaPublic(x), { eleve_id: x.eleve_id })); },
       async profSchemaLire(id) { const db = load(); const r = (db.schemas || []).find((x) => x.id === id); if (!r) throw new Error("SCHEMA_INCONNU"); return Object.assign(schemaPublic(r), { eleve_id: r.eleve_id, schema: JSON.parse(JSON.stringify(r.schema)) }); },
       async profSchemaVu(id) { const db = load(); const r = (db.schemas || []).find((x) => x.id === id); const t = new Date().toISOString(); if (r && !r.vu_le) { r.vu_le = t; save(db); } return r ? r.vu_le : null; },
+      // ----- en direct : le travail en cours de l'élève connecté (supabase/direct.sql) -----
+      async directPousser(atelier, etat, info) {
+        const db = load(); const v = moi(), t = new Date().toISOString();
+        if (!/^(schemas|planeur)$/.test(atelier)) throw new Error("DIRECT_ATELIER");
+        if (etat != null && (typeof etat !== "object" || JSON.stringify(etat).length > LIMITE_DIRECT)) throw new Error(typeof etat !== "object" ? "DIRECT_INVALIDE" : "DIRECT_TROP_GROS");
+        db.direct = db.direct || [];
+        let r = db.direct.find((x) => x.eleve_id === v && x.atelier === atelier);
+        if (!r) { r = { eleve_id: v, atelier, etat: {}, maj_le: t }; db.direct.push(r); }
+        if (etat != null) { r.etat = JSON.parse(JSON.stringify(etat)); r.maj_le = t; }
+        r.info = info && typeof info === "object" && JSON.stringify(info).length <= 4000 ? JSON.parse(JSON.stringify(info)) : {}; r.vu_le = t;
+        save(db); return t;
+      },
+      async profDirect(atelier) { const db = load(); return (db.direct || []).filter((x) => x.atelier === atelier).map((x) => ({ eleve_id: x.eleve_id, atelier: x.atelier, info: x.info || {}, maj_le: x.maj_le, vu_le: x.vu_le })); },
+      async profDirectEtats(atelier, ids) { const db = load(); return (db.direct || []).filter((x) => x.atelier === atelier && ids.includes(x.eleve_id)).map((x) => ({ eleve_id: x.eleve_id, etat: JSON.parse(JSON.stringify(x.etat || {})), maj_le: x.maj_le })); },
       async profDepots() { const db = load(); return (db.depots || []).filter((x) => x.depose_le).map((x) => Object.assign({}, x)); },
       async profDepotUrl(r) { return URL.createObjectURL(blobDemo(r)); },
       async profDepotBlob(r) { return blobDemo(r); },
@@ -404,6 +419,16 @@ window.SIP = window.SIP || {};
       },
       async profSchemaLire(id) { const { data, error } = await sb.from("schemas_eleves").select("*").eq("id", id).single(); if (error) throw new Error(error.message); return data; },
       async profSchemaVu(id) { const t = new Date().toISOString(); const { error } = await sb.from("schemas_eleves").update({ vu_le: t }).eq("id", id).is("vu_le", null); if (error) throw new Error(error.message); return t; },
+      directPousser: (atelier, etat, info) => rpc("direct_pousser", { p_jeton: jeton(), p_atelier: atelier, p_etat: etat == null ? null : etat, p_info: info || {} }),
+      async profDirect(atelier) {
+        const { data, error } = await sb.from("direct").select("eleve_id, atelier, info, maj_le, vu_le").eq("atelier", atelier).limit(1000);
+        if (error) throw new Error(error.message); return data;
+      },
+      async profDirectEtats(atelier, ids) {
+        if (!ids.length) return [];
+        const { data, error } = await sb.from("direct").select("eleve_id, etat, maj_le").eq("atelier", atelier).in("eleve_id", ids);
+        if (error) throw new Error(error.message); return data;
+      },
       async depotEnvoyer(fichier, nom, dossier, doc) {
         const j = jeton();
         const t = await rpc("depot_preparer", { p_jeton: j, p_dossier: dossier, p_doc: doc || null, p_nom: nom, p_type: fichier.type || null, p_taille: fichier.size });
@@ -637,6 +662,7 @@ window.SIP = window.SIP || {};
     signaler: vers("signaler"), mesSignalements: vers("mesSignalements"), projetEtat: vers("projetEtat"), projetEnregistrer: vers("projetEnregistrer"),
     depotListe: vers("depotListe"), depotEnvoyer: vers("depotEnvoyer"), depotOuvrir: vers("depotOuvrir"), depotRetirer: vers("depotRetirer"),
     schemasListe: vers("schemasListe"), schemaLire: vers("schemaLire"), schemaGarder: vers("schemaGarder"), schemaSupprimer: vers("schemaSupprimer"),
+    directPousser: vers("directPousser"),
     flashEtat: vers("flashEtat"),
     // le prof lance le flash dans la base (Supabase) et, pour l'aperçu dans ce navigateur, dans le signal local
     flashLancer: async (n, f, d) => { const r = await principal.flashLancer(n, f, d); if (principal !== locale) await locale.flashLancer(n, f, d).catch(() => null); return r; },

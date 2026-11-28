@@ -597,6 +597,47 @@
     return `<svg viewBox="${x0} ${y0} ${w} ${h}" class="sy" aria-hidden="true" focusable="false">${d.corps}${lab}</svg>`;
   }
 
-  const API = { dessiner, icone, geoChariot, geoCuve, geoTapis, geoTri, geoBarriere, geoVoiture, geoCabine, COUL_POT, COUL_VOYANT, NOM_POT };
+  /* ---------- un schéma entier, au repos (sans simulation) : un SVG autonome, avec ses styles ----------
+     pour les images faites hors de l'atelier (la page « En direct » de l'espace professeur, qui les montre comme des
+     images) ; les exports de l'atelier utilisent les mêmes styles (CSS_FEUILLE). */
+  const CSS_FEUILLE = `:root{--p-l1:#e03131;--p-l2:#e8590c;--p-l3:#9c36b5;--p-n:#1c7ed6;--p-pe:#2f9e44;--p-plus:#e03131}
+.sy{stroke:#15202b;color:#15202b;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.sy .lien{stroke-dasharray:3.2 2.6;stroke-width:1.05}.sy .fin{stroke-width:.8;stroke:#77838f}
+.sy .act.plein,.sy .plein{fill:#15202b}.sy .act.boite{stroke-width:1.2}
+.sy .corps-b,.sy .corps-v,.sy .corps-f,.sy .corps-m,.sy .corps-tr,.sy .corps-t,.sy .pot-boite{fill:#fff}.sy .corps-b.plein{fill:#15202b}
+.sy-t{font-family:Consolas,"DejaVu Sans Mono",monospace;font-size:8.5px;fill:#44525f;stroke:#fff;stroke-width:3px;paint-order:stroke;stroke-linejoin:round}
+.sy-t.ref{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:11.5px;fill:#15202b}.sy-t.info{fill:#77838f}
+.sy-t.pot{font-weight:700;font-size:10.5px;fill:#15202b}.sy-t.gros{font-family:Arial,sans-serif;font-weight:700;font-size:17px;fill:#15202b}
+.sy-t.moyen{font-family:Arial,sans-serif;font-size:10.5px;fill:#15202b}.sy-t.petit{font-family:Arial,sans-serif;font-size:7.5px;font-weight:700;fill:#15202b;stroke:none}
+.fil{stroke:#15202b;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}.jonction{fill:#15202b}
+.sy .corps-a{fill:#fff}.sy .led{fill:#fff;stroke:#77838f;stroke-width:.8}.sy .ecran{fill:#17261c}.ecran-t{fill:#69db7c;font-family:Consolas,monospace;font-size:11px;font-weight:700}.sy .fin2{stroke-width:1.1}
+.sy .rail{stroke-width:2.6}.sy .butee{fill:#f1f3f5}.sy .po-fdc,.sy .galet,.sy .roue,.sy .vanne,.sy .flotteur{fill:#fff}.sy .came{fill:#77838f}.sy .corps-po{fill:#e7f0ff}
+.sy .fin3{stroke-width:1.1}.sy .instr{fill:#fff}.sy .bande{fill:#f1f3f5}.sy .bande-m{stroke:#77838f;stroke-width:1.2;stroke-dasharray:3 9}.sy .caisse{fill:#e2bf86;stroke:#7a5a2a}.sy .faisceau{stroke:#77838f;stroke-width:1;stroke-dasharray:2 3}.sy .paroi{stroke-width:2.6}.sy .volet{stroke-width:3}.sy .verin,.sy .dist{fill:#fff;stroke-width:1.2}.sy .dist.on{fill:#ffd43b}.sy .tige{stroke-width:2.4}.sy .marque{stroke:#77838f;stroke-width:1.4}.sy .marque.on{stroke:#2b8a3e;stroke-width:2.4}.sy .eau{fill:#a5d8ff;stroke:none}.sy .repere{stroke:#77838f;stroke-width:.9;stroke-dasharray:4 3}.sy .tuyau{stroke:#77838f;stroke-width:3.4;stroke-linecap:butt}.sy .jet{stroke:none}
+.ca{font-family:Arial,Helvetica,sans-serif;fill:#15202b}.ca-l{stroke:#15202b;stroke-width:1;fill:none}`;
+  const echap = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  function texteSvg(t, r) {
+    if (t.t == null || t.t === "") return "";
+    const [x, y] = M.rotP(t.x, t.y, r);
+    let a = t.a, base = "central", dy = 0;
+    if (r % 2 === 1 && a !== "middle") { a = "middle"; base = y < 0 ? "auto" : "hanging"; dy = y < 0 ? -2 : 2; }
+    else if (r === 2 && a !== "middle") a = a === "end" ? "start" : "end";
+    return `<text x="${Math.round(x * 10) / 10}" y="${Math.round((y + dy) * 10) / 10}" class="sy-t ${echap(t.cls)}" text-anchor="${echap(a)}" dominant-baseline="${base}">${echap(t.t)}</text>`;
+  }
+  function schemaSvg(s) {
+    const G = M.G, net = M.netlist(s), b = M.bornesDe(s), P = [];
+    const tempo = (ref) => (s.pieces.some((q) => q.ref === ref && q.type === "tempo_repos") ? "repos" : "travail");
+    for (const f of s.fils) P.push(`<path class="fil" d="M${f.pts.map((q) => q[0] * G + " " + q[1] * G).join("L")}"/>`);
+    for (const pc of s.pieces) {
+      const d = dessiner(pc, null, { sorteTempo: tempo(pc.ref) }), r = pc.rot | 0;
+      let h = `<g transform="translate(${pc.x * G} ${pc.y * G})"><g class="sy" transform="rotate(${r * 90})">${d.corps}</g>`;
+      for (const t of d.textes) h += texteSvg(t, r);
+      P.push(h + "</g>");
+    }
+    for (const q of net.points) P.push(`<circle class="jonction" cx="${q[0] * G}" cy="${q[1] * G}" r="2.8"/>`);
+    const x0 = b[0] * G - 46, y0 = b[1] * G - 26, w = (b[2] - b[0]) * G + 92, h = (b[3] - b[1]) * G + 52;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${w} ${h}" width="${Math.round(w)}" height="${Math.round(h)}"><style>${CSS_FEUILLE}</style><rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="#fff"/>${P.join("")}</svg>`;
+  }
+
+  const API = { dessiner, icone, geoChariot, geoCuve, geoTapis, geoTri, geoBarriere, geoVoiture, geoCabine, COUL_POT, COUL_VOYANT, NOM_POT, CSS_FEUILLE, schemaSvg };
   if (typeof module === "object" && module.exports) module.exports = API; else g.SchemasSymboles = API;
 })(typeof window !== "undefined" ? window : globalThis);

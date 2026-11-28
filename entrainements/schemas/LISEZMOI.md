@@ -263,6 +263,12 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    les données seulement ; module `schemas-dim-p<empreinte>`). `#cables` ouvre le calcul, `#cables=pompage` un exercice.
    Pas dans l'outil : pouvoir de coupure et longueur maximale protégée, câbles enterrés (lettre D), aluminium, neutre
    chargé (Kn).
+18. **En direct** : quand l'élève est connecté au site, l'atelier envoie son schéma quand il change (au plus toutes les
+   10 s, `pousserDirect`) avec ce qu'il fait (`infoDirect` : `quoi` « Défi 3 : … », `sim`, `n`, `f`, `doc`), et un signe de
+   vie toutes les 30 s tant que la page est visible (`SIP.api.directPousser`, `supabase/direct.sql`). Il s'arrête tout seul
+   sans connexion, ou si la base n'a pas encore la table. Le professeur le voit dans l'onglet « En direct » de sa supervision
+   (`prof.js`, `vueDirect`) : les vignettes sont dessinées par `SchemasSymboles.schemaSvg` (le schéma relu par `valider`,
+   avec `CSS_FEUILLE`, les mêmes styles que les exports) et montrées comme des images.
 
 Raccourcis : `V` choisir, `F` fil, `H` feuille, `R` tourner, `Suppr` supprimer, `Ctrl+Z` / `Ctrl+Y` annuler /
 rétablir, `Ctrl+D` dupliquer, `Ctrl+C` / `Ctrl+V`, flèches pour déplacer d'un carreau, molette ou `+` `−` `0` pour
