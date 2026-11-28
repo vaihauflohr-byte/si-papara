@@ -212,7 +212,16 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    `schemas:cplt:<élève>`). La page « Dépannages et schémas » de l'espace professeur les montre comme les dépannages :
    note, vérifications ratées, indice, durée ; « Juste du premier coup ». L'atelier rouvre le dernier (le code est
    gardé, `schemas:cpltcode:<id>`).
-13. **Fichier** : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
+13. **Fichier** : **Sur mon compte** (élève connecté au site, `chargerSite()` puis `SIP.api`) : « Garder ce schéma sur mon
+   compte » (40 au plus, 200 ko chacun ; un schéma rouvert depuis le compte est remis au même endroit), la liste (date,
+   symboles, « envoyé au professeur le… · vu ✓ »), Ouvrir, Supprimer (en deux temps), « Envoyer au professeur… » avec
+   un mot facultatif (renvoyé : de nouveau « pas vu »). Le professeur les voit en tête de sa page « Atelier schémas »
+   (`prof.js`, `carteSchemasRecus`) ; « Ouvrir » passe le schéma par le navigateur (clé `schemas:a-ouvrir`, 10 min) et
+   ouvre l'atelier dans un onglet (`#ouvrir`) : son propre schéma en cours est d'abord rangé dans « Mes schémas »
+   (« … (gardé) »). Base : `supabase/schemas.sql` (table `schemas_eleves`, fonctions `schemas_liste`, `schema_lire`,
+   `schema_garder`, `schema_supprimer` avec le jeton de l'élève ; le professeur lit la table et note `vu_le`) ;
+   mode démo : `sip_demo_db.schemas`. Pas connecté : l'atelier dit de se connecter ; base pas à jour : il le dit.
+   Et aussi : nouveau schéma, copies gardées dans le navigateur (« Mes schémas »), export et import d'un
    fichier `.json` (à rendre au professeur, à rouvrir sur un autre appareil), image PNG ou SVG avec un cartouche
    (logo du lycée, titre, nom de l'élève connecté, date), impression A4 paysage.
 14. **Chronogramme** (pendant la simulation, bouton de la barre d'outils, `chrono.js`) : une ligne par élément, au fil
@@ -712,6 +721,14 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
   remise à zéro, arrêt ; le professeur cache une bobine en court-circuit (choix de la sorte, barème) ; l'élève : F2
   fond, F2 désigné = « une conséquence », faute de sécurité comptée, consignation, 0,0 Ω, trouvé, note 13 / 20 et
   détails envoyés ; au téléphone, consigner au doigt et mesurer ;
+- `t_schemas.sql` (PostgreSQL 16 local, dans `/tmp/compte`, base de test avec `schema.sql` et `schemas.sql`) : garder,
+  lister, renvoyer (le mot), lire ; un autre élève ne lit, ne supprime ni ne remplace rien ; refus (nom vide, pas de
+  pièces, trop gros, jeton inconnu, table fermée à la clé publique) ; 40 au plus, mise à jour possible à 40 ; le
+  professeur voit les envoyés, note « vu » ; renvoyé : plus « vu » ; un utilisateur connecté qui n'est pas professeur
+  ne lit rien ;
+- `e2e_compte.py` (Playwright, PC et téléphone, mode démo) : la section, garder, garder encore (même ligne), envoyer
+  (le mot), un deuxième, rouvrir, supprimer, base pas à jour, pas connecté ; le professeur : la carte « Schémas envoyés »
+  (1 nouveau, le mot), Ouvrir (onglet, schéma, bulle, brouillon gardé, adresse sans `#ouvrir`), « Rouvrir » ;
 - `t_cplt.js` (Node, dans `/tmp/cplt`) : l'essai du démarrage direct (commandes, observés, 13 étapes, exige), départ
   sans auto-maintien (échoue à « S2 relâché »), inversion sans verrouillage, étoile-triangle (étapes « 3 s plus
   tard » : étoile puis triangle), automate et partie opérative, repère changé ;

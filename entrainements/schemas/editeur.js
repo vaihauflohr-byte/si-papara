@@ -36,6 +36,7 @@
   let prep = null, depProf = null;
   // schéma à compléter préparé par le professeur : prepC (pendant qu'il le prépare), cpltProf (chez l'élève qui l'a reçu)
   let prepC = null, cpltProf = null, essaiC = null;
+  let compteId = null;   // le schéma ouvert vient du compte de l'élève : « Garder » le remet au même endroit
   const BAREME = { libres: 10, parMesure: 0.5, parErreur: 3, parFaute: 4 };
   let sel = new Set(), outil = "fleche", aPlacer = null;
   const vue = { x: 40, y: 40, z: 1.3 };
@@ -239,7 +240,7 @@
     sauverBientot(); rendre(); majPanneau(); majBoutons();
   }
   function chargerSchema(s, garderVue) {
-    prep = null; if (outil === "panne") outil = "fleche";
+    prep = null; compteId = null; if (outil === "panne") outil = "fleche";
     schema = s; sel.clear(); brouillon = null; geste = null; netEdit = null; resultatDefi = null; indiceVu = false;
     if (doc.type !== "depannage" && doc.type !== "lecture") marques = [];
     histo = [JSON.stringify(schema)]; hpos = 0;
@@ -2335,6 +2336,7 @@
         <button type="button" data-f="completer"><span><b>Préparer un schéma à compléter (professeur)</b><small>Le schéma juste, puis ce que l'élève doit faire : la vérification rejoue un essai sur ton corrigé, et leur note t'arrive</small></span></button>
         <button type="button" data-f="preparer"><span><b>Préparer un dépannage (professeur)</b><small>Cache une panne dans ce schéma, puis donne le lien aux élèves : tous la même panne, et leur note t'arrive</small></span></button>
       </div>
+      ${sectionCompte()}
       <h3 style="margin-top:16px">Mes schémas <span class="discret">(dans ce navigateur)</span></h3>
       <div class="rang" style="display:flex;gap:6px"><input type="text" id="f-nom" placeholder="Nom de la copie" value="${esc(schema.titre)}" maxlength="80" style="flex:1;font:inherit;padding:8px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);color:var(--ink)"><button class="btn" type="button" data-f="copie">Enregistrer une copie</button></div>
       <ul class="copies">${L.map((c, i) => `<li><span><b>${esc(c.nom)}</b><small>${new Date(c.t).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })} · ${c.schema.pieces.length} symboles</small></span><button class="btn sec" type="button" data-o="${i}">Ouvrir</button><button class="btn sec" type="button" data-x="${i}" aria-label="Supprimer la copie">×</button></li>`).join("") || `<li class="discret">Aucune copie pour l'instant.</li>`}</ul>`;
@@ -2342,7 +2344,78 @@
     for (const b of C.querySelectorAll("[data-f]")) b.onclick = () => actionFichier(b.dataset.f);
     for (const b of C.querySelectorAll("[data-o]")) b.onclick = () => { const c = (lire(CLE.copies) || [])[+b.dataset.o]; if (!c) return; if (sim) arreterSim(); quitterDoc(); try { chargerSchema(M.valider(c.schema)); } catch (e) { toast(e.message); } fermerDialogues(); };
     for (const b of C.querySelectorAll("[data-x]")) b.onclick = () => { const L2 = lire(CLE.copies) || []; L2.splice(+b.dataset.x, 1); garder(CLE.copies, L2); ouvrirFichier(); };
+    if (session && $("cp-garder")) {
+      $("cp-garder").onclick = () => garderSurCompte(false);
+      $("cp-envoi-o").onclick = () => { const z = $("cp-envoi"); z.hidden = !z.hidden; if (!z.hidden) $("cp-msg").focus(); };
+      $("cp-envoyer").onclick = () => garderSurCompte(true);
+      majCompte();
+    }
     ouvrirDialogue("d-fichier");
+  }
+  /* ---------- sur le compte de l'élève connecté : ses schémas (sur tous ses appareils), et l'envoi au professeur ----------
+     40 schémas au plus, 200 ko chacun (supabase/schemas.sql) ; le professeur les voit dans sa page « Atelier schémas ». */
+  const ERR_COMPTE = { SCHEMA_NOMBRE: "Ton compte garde 40 schémas au plus : supprimes-en un.", SCHEMA_TROP_GROS: "Ce schéma est trop gros pour être gardé sur le compte.",
+    SCHEMA_NOM: "Donne un titre au schéma.", SESSION_EXPIREE: "Ta connexion au site a expiré : reconnecte-toi sur la page d'accueil.", SCHEMA_INCONNU: "Ce schéma n'est plus sur ton compte." };
+  function msgCompte(e) {
+    const m = String((e && e.message) || e || "");
+    for (const k of Object.keys(ERR_COMPTE)) if (m.indexOf(k) >= 0) return ERR_COMPTE[k];
+    return /schema|function|does not exist|PGRST/i.test(m) ? "Pas encore possible : le professeur doit mettre à jour la base du site." : "Le site ne répond pas : réessaie plus tard.";
+  }
+  async function apiCompte() { const S = await chargerSite().catch(() => null); if (!S || !S.api || !S.api.schemaGarder || !S.session.get()) throw new Error("SESSION_EXPIREE"); return S.api; }
+  const dateCourte = (t) => (t ? new Date(t).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "");
+  function sectionCompte() {
+    if (!session) return `<h3 style="margin-top:16px">Sur mon compte</h3><p class="discret">Connecte-toi au site (<a href="../index.html">Mon espace</a>) pour garder tes schémas sur ton compte, sur tous tes appareils, et les envoyer au professeur.</p>`;
+    return `<h3 style="margin-top:16px">Sur mon compte <span class="discret">(${esc(session.nom || "")} · tous tes appareils)</span></h3>
+      <div class="rang"><button class="btn" type="button" id="cp-garder">Garder ce schéma sur mon compte</button><button class="btn sec" type="button" id="cp-envoi-o">Envoyer au professeur…</button></div>
+      <div id="cp-envoi" hidden><label class="ch" for="cp-msg">Un mot pour le professeur (facultatif)</label><textarea id="cp-msg" rows="2" maxlength="500" placeholder="Par exemple : je n'arrive pas à faire marcher S3."></textarea>
+        <div class="rang"><button class="btn" type="button" id="cp-envoyer">Envoyer « ${esc(schema.titre || "Mon schéma")} »</button></div></div>
+      <p class="discret" id="cp-etat" aria-live="polite"></p>
+      <ul class="copies" id="cp-liste"><li class="discret">Chargement…</li></ul>`;
+  }
+  async function majCompte() {
+    if (!$("cp-liste")) return;
+    try {
+      const L = await (await apiCompte()).schemasListe(), z = $("cp-liste"); if (!z) return;
+      z.innerHTML = L.length ? L.map((c) => `<li><span><b>${esc(c.nom)}</b><small>${esc(dateCourte(c.maj_le))} · ${c.symboles} symbole${c.symboles > 1 ? "s" : ""}${c.envoye_le ? ` · envoyé au professeur le ${esc(dateCourte(c.envoye_le))}${c.vu_le ? " · vu ✓" : ""}` : ""}</small></span><button class="btn sec" type="button" data-co="${esc(c.id)}">Ouvrir</button><button class="btn sec" type="button" data-cx="${esc(c.id)}">Supprimer</button></li>`).join("")
+        : `<li class="discret">Aucun schéma sur ton compte pour l'instant.</li>`;
+      for (const b of z.querySelectorAll("[data-co]")) b.onclick = () => ouvrirDuCompte(b.dataset.co);
+      for (const b of z.querySelectorAll("[data-cx]")) b.onclick = () => supprimerDuCompte(b);
+    } catch (e) { const z = $("cp-liste"); if (z) z.innerHTML = `<li class="discret">${esc(msgCompte(e))}</li>`; }
+  }
+  async function garderSurCompte(envoyer) {
+    const etat = $("cp-etat"); if (etat) etat.textContent = envoyer ? "Envoi…" : "Enregistrement…";
+    try {
+      const r = await (await apiCompte()).schemaGarder({ id: compteId, nom: schema.titre || "Mon schéma", schema: M.cloner(schema), envoyer, message: envoyer && $("cp-msg") ? $("cp-msg").value : "" });
+      compteId = r.id;
+      if ($("cp-etat")) $("cp-etat").textContent = envoyer ? `Envoyé au professeur ✓ (${dateCourte(r.envoye_le)})` : "Gardé sur ton compte ✓";
+      toast(envoyer ? "Schéma envoyé au professeur." : "Schéma gardé sur ton compte.");
+      if (envoyer && $("cp-envoi")) $("cp-envoi").hidden = true;
+      majCompte();
+    } catch (e) { if ($("cp-etat")) $("cp-etat").textContent = msgCompte(e); }
+  }
+  async function ouvrirDuCompte(id) {
+    try {
+      const r = await (await apiCompte()).schemaLire(id);
+      if (sim) arreterSim();
+      quitterDoc(); chargerSchema(M.valider(r.schema)); compteId = r.id; sauver(); fermerDialogues(); toast(`« ${r.nom} » ouvert.`);
+    } catch (e) { toast(msgCompte(e)); }
+  }
+  async function supprimerDuCompte(b) {   // en deux temps
+    if (!b.dataset.sur) { b.dataset.sur = "1"; b.textContent = "Sûr ?"; b.classList.add("ko"); setTimeout(() => { if (b.isConnected) { delete b.dataset.sur; b.textContent = "Supprimer"; b.classList.remove("ko"); } }, 3500); return; }
+    try { await (await apiCompte()).schemaSupprimer(b.dataset.cx); if (compteId === b.dataset.cx) compteId = null; majCompte(); } catch (e) { toast(msgCompte(e)); }
+  }
+  // le professeur ouvre le schéma qu'un élève lui a envoyé (page « Atelier schémas » de son espace) : il arrive par le navigateur
+  function ouvrirRecu() {
+    const o = lire("schemas:a-ouvrir"); try { localStorage.removeItem("schemas:a-ouvrir"); } catch (e) { /* rien */ }
+    if (!o || !o.schema || !(Date.now() - (o.t || 0) < 600000)) return false;
+    let s = null; try { s = M.valider(o.schema); } catch (e) { s = null; }
+    if (!s) return false;
+    const sv = lire(CLE.libre);   // le schéma en cours du professeur reste dans « Mes schémas »
+    if (sv && Array.isArray(sv.pieces) && sv.pieces.length) { const L = lire(CLE.copies) || []; if (!L.some((c) => JSON.stringify(c.schema) === JSON.stringify(sv))) { L.unshift({ id: Date.now(), nom: (sv.titre || "Mon schéma") + " (gardé)", t: Date.now(), schema: sv }); garder(CLE.copies, L.slice(0, 30)); } }
+    doc = { type: "libre" }; chargerSchema(s);
+    if (history.replaceState) history.replaceState(null, "", location.pathname + location.search);
+    setTimeout(() => bulle(`Schéma envoyé par <b>${esc(o.de || "un élève")}</b> : « ${esc(o.nom || s.titre || "")} ». Ton schéma d'avant est dans Fichier → Mes schémas.`, 7000), 300);
+    return true;
   }
   function ouvrirNomenclature() {
     if (!FO) return;
@@ -2604,6 +2677,7 @@
     const h = location.hash.replace(/^#/, ""), m = /^(defi|exemple|depannage|lecture)=([\w-]+)$/.exec(h), mp = /^panne=([\w-]+)$/.exec(h), mc = /^complet=([\w-]+)$/.exec(h);
     if (mp) { ouvrirCodeProf(mp[1], true).then((ok) => { if (!ok) departSans(); }); return; }
     if (mc) { ouvrirCodeCplt(mc[1], true).then((ok) => { if (!ok) departSans(); }); return; }
+    if (h === "ouvrir" && ouvrirRecu()) return;
     if (m && m[1] === "defi" && defiParId(m[2])) { ouvrirDefi(m[2], true); return; }
     if (m && m[1] === "depannage" && depParId(m[2])) { ouvrirDepannage(m[2], true); return; }
     if (m && m[1] === "lecture" && lectureParId(m[2])) { ouvrirLecture(m[2], true); return; }

@@ -68,6 +68,16 @@ window.SIP = window.SIP || {};
     if (deja.length >= LIMITES_DEPOT.nombre) throw new Error("DEPOT_NOMBRE");
     if (deja.reduce((t, x) => t + x.taille, 0) + fichier.size > LIMITES_DEPOT.eleve) throw new Error("DEPOT_QUOTA");
   }
+  // ---------- Atelier schémas : schémas gardés sur le compte (mêmes limites que supabase/schemas.sql) ----------
+  const LIMITES_SCHEMAS = { nombre: 40, taille: 200000 };
+  SIP.LIMITES_SCHEMAS = LIMITES_SCHEMAS;
+  const schemaPublic = (r) => ({ id: r.id, nom: r.nom, envoye_le: r.envoye_le || null, message: r.message || null, vu_le: r.vu_le || null, cree_le: r.cree_le, maj_le: r.maj_le,
+    symboles: r.schema && Array.isArray(r.schema.pieces) ? r.schema.pieces.length : 0 });
+  function controleSchema(nom, schema) {
+    if (!String(nom || "").trim()) throw new Error("SCHEMA_NOM");
+    if (!schema || typeof schema !== "object" || !Array.isArray(schema.pieces)) throw new Error("SCHEMA_INVALIDE");
+    if (JSON.stringify(schema).length > LIMITES_SCHEMAS.taille) throw new Error("SCHEMA_TROP_GROS");
+  }
   const lireDataUrl = (f) => new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => ko(r.error); r.readAsDataURL(f); });
 
   // ---------- File d'attente hors-ligne ----------
@@ -233,6 +243,30 @@ window.SIP = window.SIP || {};
         if (!r) throw new Error("DEPOT_INCONNU");
         r.retire_le = new Date().toISOString(); save(db);
       },
+      // ----- atelier schémas : les schémas du compte -----
+      async schemasListe() { const db = load(); const v = moi(); return (db.schemas || []).filter((x) => x.eleve_id === v).sort((a, b) => b.maj_le.localeCompare(a.maj_le)).map(schemaPublic); },
+      async schemaLire(id) {
+        const db = load(); const v = moi(); const r = (db.schemas || []).find((x) => x.id === id && x.eleve_id === v);
+        if (!r) throw new Error("SCHEMA_INCONNU");
+        return Object.assign(schemaPublic(r), { schema: JSON.parse(JSON.stringify(r.schema)) });
+      },
+      async schemaGarder(o) {
+        const db = load(); const v = moi(), t = new Date().toISOString(), nom = String(o.nom || "").trim().slice(0, 80), env = !!o.envoyer;
+        controleSchema(nom, o.schema);
+        db.schemas = db.schemas || [];
+        let r = o.id ? db.schemas.find((x) => x.id === o.id && x.eleve_id === v) : null;
+        if (!r) {
+          if (db.schemas.filter((x) => x.eleve_id === v).length >= LIMITES_SCHEMAS.nombre) throw new Error("SCHEMA_NOMBRE");
+          r = { id: uuid(), eleve_id: v, cree_le: t, envoye_le: null, message: null, vu_le: null }; db.schemas.push(r);
+        }
+        Object.assign(r, { nom, schema: JSON.parse(JSON.stringify(o.schema)), maj_le: t });
+        if (env) Object.assign(r, { envoye_le: t, message: String(o.message || "").trim().slice(0, 500) || null, vu_le: null });
+        save(db); return schemaPublic(r);
+      },
+      async schemaSupprimer(id) { const db = load(); const v = moi(); db.schemas = (db.schemas || []).filter((x) => !(x.id === id && x.eleve_id === v)); save(db); },
+      async profSchemas() { const db = load(); return (db.schemas || []).filter((x) => x.envoye_le).sort((a, b) => b.envoye_le.localeCompare(a.envoye_le)).map((x) => Object.assign(schemaPublic(x), { eleve_id: x.eleve_id })); },
+      async profSchemaLire(id) { const db = load(); const r = (db.schemas || []).find((x) => x.id === id); if (!r) throw new Error("SCHEMA_INCONNU"); return Object.assign(schemaPublic(r), { eleve_id: r.eleve_id, schema: JSON.parse(JSON.stringify(r.schema)) }); },
+      async profSchemaVu(id) { const db = load(); const r = (db.schemas || []).find((x) => x.id === id); const t = new Date().toISOString(); if (r && !r.vu_le) { r.vu_le = t; save(db); } return r ? r.vu_le : null; },
       async profDepots() { const db = load(); return (db.depots || []).filter((x) => x.depose_le).map((x) => Object.assign({}, x)); },
       async profDepotUrl(r) { return URL.createObjectURL(blobDemo(r)); },
       async profDepotBlob(r) { return blobDemo(r); },
@@ -360,6 +394,16 @@ window.SIP = window.SIP || {};
       projetEnregistrer: (etat) => rpc("projet_enregistrer", { p_jeton: jeton(), p_etat: etat }),
       // ----- espace de dépôt : ticket (depot_preparer), envoi direct au stockage, confirmation -----
       depotListe: () => rpc("depot_liste", { p_jeton: jeton() }),
+      schemasListe: () => rpc("schemas_liste", { p_jeton: jeton() }),
+      schemaLire: (id) => rpc("schema_lire", { p_jeton: jeton(), p_id: id }),
+      schemaGarder: (o) => { controleSchema(o.nom, o.schema); return rpc("schema_garder", { p_jeton: jeton(), p_id: o.id || null, p_nom: String(o.nom).trim().slice(0, 80), p_schema: o.schema, p_envoyer: !!o.envoyer, p_message: o.message || null }); },
+      schemaSupprimer: (id) => rpc("schema_supprimer", { p_jeton: jeton(), p_id: id }),
+      async profSchemas() {
+        const { data, error } = await sb.from("schemas_eleves").select("id, eleve_id, nom, envoye_le, message, vu_le, cree_le, maj_le").not("envoye_le", "is", null).order("envoye_le", { ascending: false }).limit(500);
+        if (error) throw new Error(error.message); return data;
+      },
+      async profSchemaLire(id) { const { data, error } = await sb.from("schemas_eleves").select("*").eq("id", id).single(); if (error) throw new Error(error.message); return data; },
+      async profSchemaVu(id) { const t = new Date().toISOString(); const { error } = await sb.from("schemas_eleves").update({ vu_le: t }).eq("id", id).is("vu_le", null); if (error) throw new Error(error.message); return t; },
       async depotEnvoyer(fichier, nom, dossier, doc) {
         const j = jeton();
         const t = await rpc("depot_preparer", { p_jeton: j, p_dossier: dossier, p_doc: doc || null, p_nom: nom, p_type: fichier.type || null, p_taille: fichier.size });
@@ -592,6 +636,7 @@ window.SIP = window.SIP || {};
   SIP.api = Object.assign({}, principal, { etat: vers("etat"), enregistrer: vers("enregistrer"), adopter: vers("adopter"), lire: vers("lire"),
     signaler: vers("signaler"), mesSignalements: vers("mesSignalements"), projetEtat: vers("projetEtat"), projetEnregistrer: vers("projetEnregistrer"),
     depotListe: vers("depotListe"), depotEnvoyer: vers("depotEnvoyer"), depotOuvrir: vers("depotOuvrir"), depotRetirer: vers("depotRetirer"),
+    schemasListe: vers("schemasListe"), schemaLire: vers("schemaLire"), schemaGarder: vers("schemaGarder"), schemaSupprimer: vers("schemaSupprimer"),
     flashEtat: vers("flashEtat"),
     // le prof lance le flash dans la base (Supabase) et, pour l'aperçu dans ce navigateur, dans le signal local
     flashLancer: async (n, f, d) => { const r = await principal.flashLancer(n, f, d); if (principal !== locale) await locale.flashLancer(n, f, d).catch(() => null); return r; },

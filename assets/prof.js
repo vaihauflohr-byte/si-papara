@@ -143,7 +143,7 @@
       espace = x; niveau = ""; onglet = ""; if (SIP.profProjets) SIP.profProjets.fermer(); afficher(); window.scrollTo(0, 0);
     }));
     document.querySelectorAll("[data-niv]").forEach((b) => (b.onclick = () => { if (b.dataset.niv === niveau) return; niveau = b.dataset.niv; if (SIP.profProjets) SIP.profProjets.fermer(); afficher(); }));
-    document.getElementById("maj").onclick = async () => { await charger(); if (SIP.profProjets) await SIP.profProjets.recharger(); afficher(); };
+    document.getElementById("maj").onclick = async () => { schemasRecus = null; await charger(); if (SIP.profProjets) await SIP.profProjets.recharger(); afficher(); };
     document.getElementById("csv").onclick = exporterCSV;
     document.querySelectorAll("[data-o]").forEach((b) => (b.onclick = () => { onglet = b.dataset.o; if (onglet === "projets" && SIP.profProjets) SIP.profProjets.fermer(); afficher(); }));
   }
@@ -285,7 +285,7 @@
     });
     const E = elevesFiltres().filter((e) => e.actif !== false || parE[e.id]);
     const aide = `<p class="discret">Les <b>défis</b> de l'<a href="entrainements/schemas.html">atelier schémas</a> réussis par tes élèves connectés, les pannes qu'ils ont trouvées en <b>dépannage d'entraînement</b> et leurs <b>lectures de schéma</b> (questions auxquelles on répond en cliquant sur l'appareil). Un défi compte à sa première réussite : <span class="at-c ok">✓</span> du premier coup, sans indice ; <span class="at-c moyen">✓</span> après des essais ratés ou avec l'indice. Ces notes ne comptent pas dans la moyenne.</p>`;
-    if (!R.length) return cadre(`<div class="carte"><p>Aucun défi, dépannage d'entraînement ni lecture de schéma${niveau ? " dans cette classe" : ""} pour l'instant.</p>${aide}</div>`);
+    if (!R.length) { cadre(`${carteSchemasRecus()}<div class="carte"><p>Aucun défi, dépannage d'entraînement ni lecture de schéma${niveau ? " dans cette classe" : ""} pour l'instant.</p>${aide}</div>`); brancherSchemasRecus(); return; }
     const nbDefis = Object.values(parE).reduce((a, x) => a + Object.keys(x.defis).length, 0);
     const premierCoup = Object.values(parE).reduce((a, x) => a + Object.values(x.defis).filter((t) => { const i = infoDefi(t); return i.essais === 1 && !i.indice; }).length, 0);
     const nbDeps = Object.values(parE).reduce((a, x) => a + x.deps.length, 0), actifs = E.filter((e) => parE[e.id]).length;
@@ -305,7 +305,7 @@
       return `<td class="num" title="${esc(x.lec.map((t) => `${String(t.titre || "").replace(/^Atelier schémas · Lecture : /, "")} : ${SIP.nb(note20(t.score, t.score_max), 3)}/20 (${SIP.fmtDate(t.fait_le)})`).join("\n"))}">${x.lec.length} ${tagNote(moy)}</td>`;
     };
     const par = C.defis.map((d) => E.filter((e) => parE[e.id] && parE[e.id].defis[d.id]).length);
-    cadre(`<div class="carte">${aide}</div>
+    cadre(`${carteSchemasRecus()}<div class="carte">${aide}</div>
       <div class="stats">
         <div class="carte"><span class="discret">Ont essayé</span><b>${actifs}${niveau ? ` / ${E.length}` : ""}</b></div>
         <div class="carte"><span class="discret">Défis réussis</span><b>${nbDefis}</b></div>
@@ -318,6 +318,35 @@
       }).join("")}</tbody><tfoot><tr><td>Réussi par</td>${niveau ? "" : "<td></td>"}${par.map((n) => `<td class="at-c">${n}</td>`).join("")}<td></td><td></td><td></td></tr></tfoot></table></div>
       <p class="discret">Passe la souris sur une case pour la date, les essais et l'indice ; clique sur un élève pour tout le détail.</p>`);
     document.querySelectorAll("tr[data-id]").forEach((tr) => (tr.onclick = () => vueDetail(tr.dataset.id)));
+    brancherSchemasRecus();
+  }
+  // ---------- schémas envoyés par les élèves (atelier : Fichier → Sur mon compte → « Envoyer au professeur ») ----------
+  // « Ouvrir » : le schéma passe par le navigateur (clé schemas:a-ouvrir) et s'ouvre dans l'atelier (#ouvrir), dans un onglet.
+  let schemasRecus = null, schemasErr = "";
+  async function chargerSchemasRecus() {
+    try { schemasRecus = SIP.api.profSchemas ? await SIP.api.profSchemas() : []; schemasErr = ""; }
+    catch (e) { schemasRecus = []; schemasErr = /schemas_eleves|does not exist|PGRST|relation/i.test(String((e && e.message) || e)) ? "La base n'a pas encore la table des schémas : colle supabase/schemas.sql dans Supabase (SQL Editor)." : "Les schémas envoyés n'ont pas pu être lus."; }
+    return schemasRecus;
+  }
+  function carteSchemasRecus() {
+    if (schemasRecus === null) { schemasRecus = []; chargerSchemasRecus().then(() => { if (onglet === "atelier") vueAtelier(); }); return `<div class="carte"><p class="discret">Schémas envoyés par les élèves : chargement…</p></div>`; }
+    const L = schemasRecus.filter((r) => D.parEleve[r.eleve_id] && (!niveau || D.parEleve[r.eleve_id].e.niveau === niveau)), nv = L.filter((r) => !r.vu_le).length;
+    return `<div class="carte sch-recus"><h3>Schémas envoyés par les élèves${nv ? ` <span class="etiquette ko">${nv} nouveau${nv > 1 ? "x" : ""}</span>` : ""}</h3>${schemasErr ? `<p class="discret">${esc(schemasErr)}</p>` : ""}
+      ${L.length ? `<div class="table-defil"><table><thead><tr><th>Élève</th><th>Schéma</th><th>Son mot</th><th>Envoyé le</th><th></th></tr></thead><tbody>${L.map((r) => { const e = D.parEleve[r.eleve_id].e;
+        return `<tr><td><b>${esc(e.nom)}</b>${niveau ? "" : ` <span class="discret">${esc(SIP.niveau(e.niveau).court)}</span>`}</td><td>${esc(r.nom)} <span class="discret">(${r.symboles || 0} symboles)</span></td><td>${esc(r.message || "")}</td><td>${SIP.fmtDate(r.envoye_le, true)}</td><td><button class="btn sec" type="button" data-sch="${esc(r.id)}">${r.vu_le ? "Rouvrir" : "Ouvrir"}</button>${r.vu_le ? "" : ` <span class="etiquette ko">nouveau</span>`}</td></tr>`; }).join("")}</tbody></table></div>`
+        : `<p class="discret">Aucun schéma envoyé${niveau ? " dans cette classe" : ""} pour l'instant. Dans l'atelier, l'élève connecté fait Fichier → « Envoyer au professeur ».</p>`}</div>`;
+  }
+  function brancherSchemasRecus() {
+    document.querySelectorAll("[data-sch]").forEach((b) => (b.onclick = async () => {
+      const w = window.open("about:blank", "_blank");   // tout de suite (sinon le navigateur bloque l'onglet), l'adresse suit
+      try {
+        const r = await SIP.api.profSchemaLire(b.dataset.sch), x = D.parEleve[r.eleve_id];
+        localStorage.setItem("schemas:a-ouvrir", JSON.stringify({ t: Date.now(), schema: r.schema, de: x ? x.e.nom : "", nom: r.nom }));
+        const url = "entrainements/schemas.html#ouvrir";
+        if (w && !w.closed) w.location.href = url; else window.open(url, "_blank");
+        if (!r.vu_le) { const t = await SIP.api.profSchemaVu(r.id).catch(() => null); const q = schemasRecus.find((y) => y.id === r.id); if (q) q.vu_le = t || new Date().toISOString(); if (onglet === "atelier") vueAtelier(); }
+      } catch (e) { if (w && !w.closed) w.close(); alert("Ce schéma n'a pas pu être ouvert."); }
+    }));
   }
 
   function vueFlashs() {
