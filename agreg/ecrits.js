@@ -52,19 +52,34 @@
   const errIA = (e) => { const c = e && e.code; const m = (typeof HOOK !== 'undefined' && HOOK && HOOK.err && HOOK.err(c)) ?? (typeof AIERR === 'function' ? AIERR(c) : ''); return m || (e && e.text) || 'L’IA n’a pas répondu. Réessaie dans un moment.'; };
   const notionOk = (id) => typeof NOTIONS !== 'undefined' && NOTIONS.some((n) => n.id === id);
 
+  // entiers de somme imposée, au plus près des valeurs (méthode des plus grands restes)
+  function restes(brut, total) {
+    const base = brut.map(Math.floor); let r = total - base.reduce((a, v) => a + v, 0);
+    brut.map((v, i) => [v - base[i], i]).sort((u, v) => v[0] - u[0]).forEach(([, i]) => { if (r > 0) { base[i]++; r--; } });
+    return base;
+  }
   // fiche normalisée : points de chaque question ramenés à 20
   const CACHE = {};
   function fiche(id) {
     if (CACHE[id]) return CACHE[id];
     const f = FI[id]; if (!f) return null;
-    const W = f.q.reduce((a, q) => a + (q.w || 1), 0);
-    // barème au quart de point, total exactement 20 : quarts entiers, puis les quarts restants aux plus grands restes
-    const brut = f.q.map((x) => 80 * (x.w || 1) / W), base = brut.map(Math.floor);
-    let reste = 80 - base.reduce((a, v) => a + v, 0);
-    brut.map((v, i) => [v - base[i], i]).sort((u, v) => v[0] - u[0]).forEach(([, i]) => { if (reste > 0) { base[i]++; reste--; } });
-    const q = f.q.map((x, i) => ({ ...x, pts: base[i] / 4 }));
+    // barème au quart de point, en deux temps : les parties d'abord (poids publié par le jury, pct, sinon somme des poids
+    // de leurs questions), puis les questions de chaque partie (un quart de point au moins, le reste selon leur poids)
+    const W = f.q.reduce((a, x) => a + (x.w || 1), 0), Wp = (id) => f.q.filter((y) => y.p === id).reduce((a, y) => a + (y.w || 1), 0);
+    const QP = restes(f.parties.map((p) => (p.pct ? 80 * p.pct / 100 : 80 * Wp(p.id) / W)), 80), PTS = {};
+    // une partie qui a plus de questions que de quarts de point : les quarts manquants sont pris aux parties les plus larges
+    const nq = (i) => f.q.filter((y) => y.p === f.parties[i].id).length;
+    let manque = 0;
+    QP.forEach((v, i) => { if (v < nq(i)) { manque += nq(i) - v; QP[i] = nq(i); } });
+    while (manque > 0) { let k = -1, d = 0; QP.forEach((v, i) => { if (v - nq(i) > d) { d = v - nq(i); k = i; } }); if (k < 0) break; QP[k]--; manque--; }
+    f.parties.forEach((p, i) => {
+      const qs = f.q.filter((y) => y.p === p.id), n = qs.length, tot = Math.max(QP[i], n), ws = qs.map((y) => y.w || 1), Ws = ws.reduce((a, v) => a + v, 0);
+      const plus = restes(ws.map((w) => (tot - n) * w / Ws), tot - n);
+      qs.forEach((y, j) => { PTS[y.n] = (1 + plus[j]) / 4; });
+    });
+    const q = f.q.map((x) => ({ ...x, pts: PTS[x.n] || 0.25 }));
     const parties = f.parties.map((p) => { const qs = q.filter((x) => x.p === p.id); return { ...p, qs, sur: qs.reduce((a, x) => a + x.pts, 0) }; });
-    return (CACHE[id] = { ...f, id, q, parties });
+    return (CACHE[id] = { ...f, id, q, parties, total: q.reduce((a, x) => a + x.pts, 0) });
   }
   const aFiche = (id) => !!FI[id];
 
@@ -76,7 +91,8 @@
     F.parties.forEach((p) => { const r = c.parts && c.parts[p.id]; if (r && r.q) { n++; p.qs.forEach((q) => { const v = r.q[q.n]; if (v && isFinite(v.pts)) pts += Math.min(q.pts, Math.max(0, +v.pts)); }); } });
     if (!n) return null;
     let surCorr = 0; F.parties.forEach((p) => { if (c.parts && c.parts[p.id] && c.parts[p.id].q) surCorr += p.sur; });
-    return { note: pts, parties: n, tot: F.parties.length, complet: n === F.parties.length, surCorr, ptsCorr: pts };
+    const k = 20 / (F.total || 20);
+    return { note: pts * k, parties: n, tot: F.parties.length, complet: n === F.parties.length, surCorr, ptsCorr: pts };
   }
   function parType() {
     const o = {};
@@ -209,7 +225,7 @@
       ${r && r.com ? `<div class="corr" style="margin-top:8px"><b>${r.ia ? 'Correction de l’IA' : 'Ton auto-évaluation'}</b><p>${E(r.com)}</p></div>` : ''}
       ${opts.auto ? `<div class="ec-auto" data-q="${q.n}">${[[1, 'Juste'], [0.5, 'À moitié'], [0.25, 'Amorcé'], [0, 'Faux ou rien']].map(([k, t]) => `<button type="button" data-k="${k}" class="${r && !r.ia && r.pts != null && Math.abs(r.pts - quart(k * q.pts)) < 0.01 ? 'on' : ''}">${t}</button>`).join('')}</div>` : ''}
       <details${opts.ouvert ? ' open' : ''}><summary>La copie modèle</summary><div class="modele">${br(q.r)}</div></details>
-      <details${opts.ouvert ? ' open' : ''}><summary>Ce que le jury a écrit${q.tx ? ` · taux de réussite ${E(q.tx)}` : ''}</summary><div class="jury"><p>${br(q.j)}</p></div></details></div>`;
+      <details${opts.ouvert ? ' open' : ''}><summary>Ce que le jury a écrit${q.tx ? ` · ${E(q.tx)}` : ''}</summary><div class="jury"><p>${br(q.j)}</p></div></details></div>`;
   }
   function corrige(id) {
     styles();
