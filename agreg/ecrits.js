@@ -472,7 +472,7 @@ Réponds en JSON : {"texte": "la transcription, une ligne par ligne de la copie"
 Ce que le rapport du jury attend sur cette épreuve :
 ${F.general.map((g) => '- ' + g).join('\n')}
 Le jury sur cette partie : ${p.jury}
-
+${window.AGREG_JURY ? '\n' + AGREG_JURY.bloc({ ep: x.t, notions: [...new Set(p.qs.map((q) => q.nt).filter(Boolean))], oral: false }) + '\n' : ''}
 Barème et éléments de correction de la partie, question par question (l'épreuve entière est sur 20) :
 ${bar}
 
