@@ -98,8 +98,8 @@ ${page.f ? 'Lis d’abord la page entière ; si elle est illisible, dis-le avec 
 Pour chaque critère, donne un verdict : "ok" (respecté partout), "partiel" (respecté par endroits), "non" (absent ou fautif), "na" (sans objet sur cette page), et un exemple précis tiré de la page (numéro de question et court extrait) :
 ${CRIT.map((c) => `- ${c.id} : ${c.nom} (${c.aide})`).join('\n')}
 Sois exigeant comme le jury et concret : pas de remarque générale sans exemple de la page.
-Réponds en français, uniquement en JSON : {"lisible": true, "questions": ["Q12"], "criteres": [{"id": "litteral", "verdict": "ok", "exemple": ""}], "points_forts": [""], "a_corriger": [{"ou": "", "quoi": "", "comment": ""}], "reecriture": ""}
-où "reecriture" réécrit un passage fautif de la page tel qu'il devrait apparaître sur la copie : expression littérale, application numérique, unité, résultat mis en évidence entre crochets.`;
+Réponds en français, uniquement en JSON valide, sans retour à la ligne dans les chaînes et sans guillemets doubles dans les textes (cite entre « ») : {"lisible": true, "questions": ["Q12"], "criteres": [{"id": "litteral", "verdict": "ok", "exemple": ""}], "points_forts": [""], "a_corriger": [{"ou": "", "quoi": "", "comment": ""}], "reecriture": ["", ""]}
+où "reecriture" réécrit, ligne par ligne, un passage fautif de la page tel qu'il devrait apparaître sur la copie : expression littérale, application numérique, unité, résultat mis en évidence entre crochets.`;
   }
   async function relire(pages) {
     const out = $('#fo-res'), b = $('#fo-go');
@@ -132,7 +132,7 @@ où "reecriture" réécrit un passage fautif de la page tel qu'il devrait appara
     if (cor.length) h += `<h3>À corriger d’abord</h3><ul>${cor.map((x) => `<li>${x.ou ? `<b>${E(x.ou)}</b> : ` : ''}${E(x.quoi || '')}${x.comment ? ` → ${E(x.comment)}` : ''}</li>`).join('')}</ul>`;
     const pf = R.flatMap((r) => (Array.isArray(r.points_forts) ? r.points_forts : [])).filter(Boolean).slice(0, 4);
     if (pf.length) h += `<h3>Points forts</h3><ul>${pf.map((x) => `<li>${E(x)}</li>`).join('')}</ul>`;
-    R.forEach((r, i) => { if (r.reecriture) h += `<h3>Réécriture d’un passage${R.length > 1 ? ` (page ${i + 1})` : ''}</h3><div class="fo-re">${E(r.reecriture)}</div>`; });
+    R.forEach((r, i) => { const re = Array.isArray(r.reecriture) ? r.reecriture.filter(Boolean).join('\n') : r.reecriture; if (re) h += `<h3>Réécriture d’un passage${R.length > 1 ? ` (page ${i + 1})` : ''}</h3><div class="fo-re">${E(re)}</div>`; });
     h += '<p class="muted"><small>Relecture produite par une IA à partir des règles des rapports : à confronter à la liste à cocher.</small></p>';
     $('#fo-res').innerHTML = h;
     if (note != null) {

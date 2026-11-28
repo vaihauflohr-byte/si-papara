@@ -647,11 +647,11 @@ Code du candidat :
 ${code.slice(0, 6000)}
 
 Note la réponse sur 4 points comme un correcteur (justesse, cas limites, lisibilité et commentaires, respect de la consigne). Sois exigeant et concret : cite les lignes en cause. Donne une version corrigée qui garde la structure du candidat.
-Réponds en français, uniquement en JSON : {"note": 0, "justesse": "", "remarques": ["", ""], "corrige": ""}`;
+Réponds en français, uniquement en JSON valide, sans retour à la ligne dans les chaînes et sans guillemets doubles dans les remarques (cite entre « ») ; le code corrigé est donné ligne par ligne, indentation comprise : {"note": 0, "justesse": "", "remarques": ["", ""], "corrige": ["def ...", "    ..."]}`;
     try {
       const s = await getSample();
       const r = await s.json(p, { cache: false, modelTier: 'complex' });
-      out.innerHTML = `<div class="ainote"><strong>${E(String(r.note ?? '—'))} / 4</strong> selon le jury IA</div><p>${E(r.justesse || '')}</p>${Array.isArray(r.remarques) && r.remarques.length ? `<ul>${r.remarques.map((x) => `<li>${E(x)}</li>`).join('')}</ul>` : ''}${r.corrige ? `<pre class="py-sol">${E(r.corrige)}</pre>` : ''}<p class="muted"><small>Relecture produite par une IA : à confronter au corrigé.</small></p>`;
+      out.innerHTML = `<div class="ainote"><strong>${E(String(r.note ?? '—'))} / 4</strong> selon le jury IA</div><p>${E(r.justesse || '')}</p>${Array.isArray(r.remarques) && r.remarques.length ? `<ul>${r.remarques.map((x) => `<li>${E(x)}</li>`).join('')}</ul>` : ''}${(Array.isArray(r.corrige) ? r.corrige.join('\n') : r.corrige) ? `<pre class="py-sol">${E(Array.isArray(r.corrige) ? r.corrige.join('\n') : r.corrige)}</pre>` : ''}<p class="muted"><small>Relecture produite par une IA : à confronter au corrigé.</small></p>`;
     } catch (e) { out.innerHTML = `<p class="ec-warn">${E(errIA(e))}</p>`; }
     b.disabled = false;
   }
