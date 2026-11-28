@@ -10,7 +10,7 @@
   // Pour chaque espace, on retient la dernière classe et la dernière page (localStorage « sip_prof_nav »). Au premier
   // passage : Lycée SI, Terminale SI, Bac SI (la page qu'on regarde chaque semaine).
   const ESPACES = [
-    { id: "lycee", nom: "Lycée SI", classes: ["TSI", "1SI", "2SI"], pages: ["bac", "suivi", "competences", "flashs", "depannages", "atelier", "signalements", "eleves", "apercu"] },
+    { id: "lycee", nom: "Lycée SI", classes: ["TSI", "1SI", "2SI"], pages: ["bac", "suivi", "competences", "flashs", "depannages", "atelier", "direct", "signalements", "eleves", "apercu"] },
     { id: "bts1", nom: "BTS 1", classes: ["BTS1-ADM", "BTS1-STI"], pages: ["suivi", "depannages", "atelier", "direct", "flashs", "signalements", "eleves", "apercu"] },
     { id: "bts2", nom: "BTS 2", classes: ["BTS2-ADM", "BTS2-STI"], pages: ["devoirs", "projets", "suivi", "depannages", "atelier", "direct", "flashs", "signalements", "eleves", "apercu"] }
   ];
@@ -360,23 +360,50 @@
   // tant qu'elle est à l'écran (toutes les 4 s quand on regarde un élève). Les dessins sont faits ici, avec les symboles de
   // l'atelier, à partir du schéma relu par SchemasModele.valider, et montrés comme des images : rien de ce qu'envoie un élève
   // n'est exécuté dans cette page.
-  const atelierDirect = (n) => (/^BTS/.test(n || "") ? "schemas" : null);
-  const DIR = { atelier: null, rows: {}, etats: {}, img: {}, minut: 0, eleve: null, erreur: "", zoom: 0, outils: null, maj: 0 };
+  // Le projet planeur des Secondes (entrainements/2si-planeur.html, sync.js) envoie de même l'atelier de l'élève (ses idées
+  // dessinées et l'atelier 3D) : on montre l'avion choisi vu de dessus et de côté (Planeur3D.vues, comme la page des notes).
+  const atelierDirect = (n) => (/^BTS/.test(n || "") ? "schemas" : n === "2SI" ? "planeur" : null);
+  const DIRECTS = {
+    schemas: { fichiers: [["entrainements/schemas/modele.js", "SchemasModele"], ["entrainements/schemas/automate.js", "SchemasAutomate"], ["entrainements/schemas/symboles.js", "SchemasSymboles"]],
+      quoi: "schéma", lien: `l'<a href="entrainements/schemas.html">atelier schémas</a>`, fait: "schéma libre, défi, dépannage, lecture, calcul des câbles, simulation", image: (x) => imageSchema(x) },
+    planeur: { fichiers: [["entrainements/2si-planeur/cao.js", "Planeur3D"]],
+      quoi: "planeur", lien: `le <a href="entrainements/2si-planeur.html">projet planeur</a> (atelier d'idées et atelier 3D)`, fait: "l'étape du projet, l'idée choisie, les cases cochées", image: (x) => imagePlaneur(x) }
+  };
+  const DIR = { atelier: null, rows: {}, etats: {}, img: {}, minut: 0, eleve: null, erreur: "", zoom: 0, outils: {}, maj: 0 };
   const EN_LIGNE = 75000;   // signe de vie toutes les 30 s : au-delà de 75 s sans nouvelles, l'élève n'est plus là
-  function outilsDirect() {
-    if (window.SchemasModele && window.SchemasSymboles && window.SchemasSymboles.schemaSvg) return Promise.resolve(true);
-    if (!DIR.outils) {
-      const un = (f) => new Promise((ok, ko) => { const sc = document.createElement("script"); sc.src = "entrainements/schemas/" + f; sc.onload = ok; sc.onerror = () => ko(new Error(f)); document.head.appendChild(sc); });
-      DIR.outils = ["modele.js", "automate.js", "symboles.js"].reduce((p, f) => p.then(() => ((f === "modele.js" && window.SchemasModele) || (f === "automate.js" && window.SchemasAutomate) || (f === "symboles.js" && window.SchemasSymboles) ? null : un(f))), Promise.resolve())
-        .then(() => true, () => false);
+  function outilsDirect(at) {
+    const F = DIRECTS[at].fichiers;
+    if (F.every((f) => window[f[1]])) return Promise.resolve(true);
+    if (!DIR.outils[at]) {
+      const un = (f) => new Promise((ok, ko) => { const sc = document.createElement("script"); sc.src = f; sc.onload = ok; sc.onerror = () => ko(new Error(f)); document.head.appendChild(sc); });
+      DIR.outils[at] = F.reduce((p, f) => p.then(() => (window[f[1]] ? null : un(f[0]))), Promise.resolve()).then(() => true, () => false);
     }
-    return DIR.outils;
+    return DIR.outils[at];
   }
+  const imageDirect = (etat) => DIRECTS[DIR.atelier].image(etat);
   // le schéma d'un élève → une image (adresse data:) ; "" : feuille vide ; null : rien de lisible
-  function imageDirect(etat) {
+  function imageSchema(etat) {
     const M = window.SchemasModele, SY = window.SchemasSymboles;
     if (!M || !SY || !SY.schemaSvg || !etat || !Array.isArray(etat.pieces) || !Array.isArray(etat.fils)) return null;
     try { const sc = M.valider(etat); return sc.pieces.length || sc.fils.length ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(SY.schemaSvg(sc)) : ""; } catch (e) { return null; }
+  }
+  // le planeur choisi (ou l'idée en cours) → vu de dessus (fuselage, aile, stabilisateur) et de côté (fuselage)
+  function imagePlaneur(etat) {
+    const P3 = window.Planeur3D, a = etat && etat.a;
+    if (!P3 || !P3.vues || !a || typeof a !== "object") return null;
+    if (!Array.isArray(a.idees) || !a.idees.length) return "";
+    const i = Math.max(0, Math.min(a.idees.length - 1, Math.round(+(a.choisi != null ? a.choisi : a.n) || 0))), d = a.idees[i];
+    if (!d || typeof d !== "object") return null;
+    try {
+      const V = P3.vues(d), n = (x) => (Number.isFinite(+x) ? (+x).toFixed(1) : "0");
+      const pts = (P, dx, dy, sy) => (Array.isArray(P) ? P : []).map((q) => n(+q[0] + dx) + "," + n(dy + sy * q[1])).join(" ");
+      const ca = /^#[0-9a-f]{6}$/i.test(d.ca) ? d.ca : "#f08c00", cf = /^#[0-9a-f]{6}$/i.test(d.cf) ? d.cf : "#3b5b92";
+      const poly = (L, dx, dy, sy, c) => (Array.isArray(L) ? L : []).map((P) => `<polygon points="${pts(P, dx, dy, sy)}" fill="${c}" stroke="#222" stroke-width="0.8"/>`).join("");
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -122 230 316" width="460" height="632" font-family="Arial,sans-serif"><rect x="-10" y="-122" width="230" height="316" fill="#fff"/>`
+        + `<text x="-4" y="-112" font-size="8" fill="#555">Vu de dessus</text><rect x="0" y="-2.5" width="210" height="5" fill="${cf}"/>${poly(V.aile, 88.3, 0, 1, ca)}${poly(V.stab, 182.3, 0, 1, ca)}`
+        + `<text x="-4" y="128" font-size="8" fill="#555">Vu de côté</text>${poly(V.fus, 0, 184, -1, cf)}<line x1="-4" y1="184.5" x2="214" y2="184.5" stroke="#bbb" stroke-width="0.5"/></svg>`;
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    } catch (e) { return null; }
   }
   const enLigne = (r) => !!r && !!r.vu_le && Date.now() - Date.parse(r.vu_le) < EN_LIGNE;
   function ilYa(t) {
@@ -385,20 +412,21 @@
   }
   function etatDirect(e) {   // une ligne : en ligne ou pas, ce qu'il fait
     const r = DIR.rows[e.id];
-    if (!r) return `<span class="discret">Pas encore venu dans l'atelier (connecté)</span>`;
+    if (!r) return `<span class="discret">Pas encore venu (connecté) ${DIR.atelier === "planeur" ? "sur la page du projet" : "dans l'atelier"}</span>`;
     const i = r.info || {}, on = enLigne(r);
-    return `<span class="dir-pres${on ? " on" : ""}">${on ? "En ligne" : "Vu " + esc(ilYa(r.vu_le))}</span>${i.quoi ? ` · ${esc(String(i.quoi).slice(0, 160))}` : ""}${i.sim ? ` <span class="etiquette ok">▶ simule</span>` : ""}`;
+    return `<span class="dir-pres${on ? " on" : ""}">${on ? "En ligne" : "Vu " + esc(ilYa(r.vu_le))}</span>${i.equipe ? ` · ${esc(String(i.equipe).slice(0, 60))}` : ""}${i.quoi ? ` · ${esc(String(i.quoi).slice(0, 160))}` : ""}${i.sim ? ` <span class="etiquette ok">▶ simule</span>` : ""}`;
   }
   function vignetteDirect(e) {
     const r = DIR.rows[e.id], im = DIR.img[e.id];
-    return im ? `<img src="${im}" alt="Schéma de ${esc(e.nom)}">` : `<span class="discret">${!r ? "—" : im === "" ? "Feuille vide" : DIR.etats[e.id] ? "Schéma illisible" : "…"}</span>`;
+    const Q = DIRECTS[DIR.atelier] || DIRECTS.schemas;
+    return im ? `<img src="${im}" alt="${esc(Q.quoi.charAt(0).toUpperCase() + Q.quoi.slice(1))} de ${esc(e.nom)}">` : `<span class="discret">${!r ? "—" : im === "" ? (DIR.atelier === "planeur" ? "Pas encore d'idée dessinée" : "Feuille vide") : DIR.etats[e.id] ? "Illisible" : "…"}</span>`;
   }
   function vueDirect() {
     const at = atelierDirect(niveau);
-    if (DIR.atelier !== at) Object.assign(DIR, { atelier: at, rows: {}, etats: {}, img: {}, eleve: null, erreur: "", maj: 0 });
+    if (DIR.atelier !== at) Object.assign(DIR, { atelier: at, rows: {}, etats: {}, img: {}, eleve: null, erreur: "", maj: 0, pret: false, sansDessins: false });
     if (!DIR.pret) {
-      cadre(`<div class="carte"><p class="discret">Chargement des dessins de l'atelier…</p></div>`);
-      outilsDirect().then((ok) => { DIR.pret = true; DIR.sansDessins = !ok; if (onglet === "direct") vueDirect(); });
+      cadre(`<div class="carte"><p class="discret">Chargement des dessins…</p></div>`);
+      outilsDirect(at).then((ok) => { DIR.pret = true; DIR.sansDessins = !ok; if (onglet === "direct") vueDirect(); });
       return;
     }
     const E = elevesFiltres().filter((e) => e.actif !== false), x = DIR.eleve && E.find((e) => e.id === DIR.eleve);
@@ -408,17 +436,18 @@
     tickDirect();
   }
   function pageClasseDirect(E) {
-    return `<div class="carte"><p class="discret">Quand un élève connecté travaille dans l'<a href="entrainements/schemas.html">atelier schémas</a>, son schéma arrive ici tout seul (au plus 10 secondes après chaque changement), avec ce qu'il fait : schéma libre, défi, dépannage, lecture, simulation. Clique sur un élève pour voir son schéma en grand. Un élève parti garde son dernier schéma.</p>
+    const Q = DIRECTS[DIR.atelier];
+    return `<div class="carte"><p class="discret">Quand un élève connecté travaille dans ${Q.lien}, son ${Q.quoi} arrive ici tout seul (au plus 10 secondes après chaque changement), avec ce qu'il fait : ${Q.fait}. Clique sur un élève pour voir son ${Q.quoi} en grand. Un élève parti garde son dernier ${Q.quoi}.</p>
       <p class="dir-resume" id="dir-resume" aria-live="polite"></p></div>
       <div class="dir-grille" id="dir-grille">${E.map((e) => `<button type="button" class="dir-c" data-dir="${esc(e.id)}"><span class="dir-ap" id="dir-ap-${esc(e.id)}">${vignetteDirect(e)}</span><b>${esc(e.nom)}</b><small id="dir-et-${esc(e.id)}">${etatDirect(e)}</small></button>`).join("") || `<p class="discret">Aucun élève dans cette classe.</p>`}</div>`;
   }
   function pageEleveDirect(e) {
     return `<p class="no-print"><button class="btn-lien" type="button" id="dir-retour">← Toute la classe</button></p>
       <div class="carte dir-grand"><h2>${esc(e.nom)}</h2><p id="dir-et-${esc(e.id)}">${etatDirect(e)}</p>
-      <div class="rang"><button class="btn sec" type="button" id="dir-moins" aria-label="Plus petit">−</button><button class="btn sec" type="button" id="dir-plus" aria-label="Plus grand">+</button><button class="btn sec" type="button" id="dir-ajuster">Ajuster</button><button class="btn" type="button" id="dir-ouvrir">Ouvrir une copie dans l'atelier</button></div>
+      <div class="rang"><button class="btn sec" type="button" id="dir-moins" aria-label="Plus petit">−</button><button class="btn sec" type="button" id="dir-plus" aria-label="Plus grand">+</button><button class="btn sec" type="button" id="dir-ajuster">Ajuster</button>${DIR.atelier === "planeur" ? `<a class="btn" href="entrainements/2si-planeur-notes.html">Ses notes et ses fichiers STL</a>` : `<button class="btn" type="button" id="dir-ouvrir">Ouvrir une copie dans l'atelier</button>`}</div>
       <div class="dir-zone"><span class="dir-ap" id="dir-ap-${esc(e.id)}">${vignetteDirect(e)}</span></div>
       <p class="discret" id="dir-resume" aria-live="polite"></p>
-      <p class="discret">Mis à jour tout seul toutes les 4 secondes. « Ouvrir une copie dans l'atelier » : pour simuler son schéma ou le corriger, sans toucher au sien.</p></div>`;
+      <p class="discret">Mis à jour tout seul toutes les 4 secondes.${DIR.atelier === "planeur" ? " L'avion de l'idée choisie (ou de l'idée en cours), vu de dessus et de côté." : " « Ouvrir une copie dans l'atelier » : pour simuler son schéma ou le corriger, sans toucher au sien."}</p></div>`;
   }
   // zoom 0 : tout le schéma dans la fenêtre ; sinon, la largeur du dessin par rapport à la zone (1 = toute la largeur)
   function zoomDirect() { const im = document.querySelector(".dir-zone img"); if (im) { im.style.width = DIR.zoom ? Math.round(DIR.zoom * 100) + "%" : ""; im.style.maxHeight = DIR.zoom ? "none" : ""; } }

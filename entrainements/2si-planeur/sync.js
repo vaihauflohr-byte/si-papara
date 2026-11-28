@@ -48,5 +48,33 @@
   const reprendre = () => { if (arret || navigator.onLine === false) return; if (!pret) demarrer(); else if (sale) pousser(); };          // le réseau revient, ou la page revient au premier plan
   window.addEventListener("online", reprendre);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) return reprendre(); if (minuterie || (pret && sale && !arret)) pousser(); });          // la page passe derrière (autre appli, écran éteint) : on envoie tout de suite
+  /* En direct (supabase/direct.sql) : pendant la séance, le professeur voit le planeur de l'élève (page « En direct » de sa
+     supervision) : l'atelier (ses idées dessinées, l'atelier 3D) quand il change, au plus toutes les 10 s, avec l'étape où il
+     en est ; un signe de vie toutes les 30 s tant que la page est visible. S'arrête sans connexion ou si la base n'a pas la table. */
+  const DIR = { dernier: "", t: 0, minut: 0, enVol: false, encore: false, arret: !SIP.api.directPousser };
+  function infoDirect() {
+    const r = window.PLANEUR_RESUME ? window.PLANEUR_RESUME() : {}, a = lire(K2) || {}, i = a.choisi != null ? a.choisi : a.n || 0, d = (Array.isArray(a.idees) && a.idees[i]) || {};
+    const q = (r.titre ? (r.titre === "Terminé" ? "Projet terminé" : `Étape ${r.etape} : ${r.titre}`) : "Projet planeur") + (d.nom ? ` · ${d.nom}` : "") + (r.total ? ` · ${r.faits || 0}/${r.total} cases` : "");
+    return { quoi: q.slice(0, 160), equipe: String(r.equipe || "").slice(0, 60), idee: "ABC"[i] || "" };
+  }
+  const planifierDirect = (vite) => { if (DIR.arret || DIR.minut) return; DIR.minut = setTimeout(pousserDirect, vite ? 300 : Math.max(1500, 10000 - (Date.now() - DIR.t))); };
+  async function pousserDirect() {
+    clearTimeout(DIR.minut); DIR.minut = 0;
+    if (DIR.arret) return;
+    if (DIR.enVol) { DIR.encore = true; return; }
+    DIR.enVol = true; DIR.t = Date.now();
+    const a = lire(K2), j = JSON.stringify(a || {}), avec = j !== DIR.dernier;
+    try { await SIP.api.directPousser("planeur", avec ? { a: a || {} } : null, infoDirect()); if (avec) DIR.dernier = j; }
+    catch (e) { const m = String((e && e.message) || e || ""); if (/DIRECT_TROP_GROS/.test(m)) DIR.dernier = j; else if (/SESSION_EXPIREE|direct_pousser|does not exist|schema cache|DIRECT_/i.test(m)) DIR.arret = true; }
+    finally { DIR.enVol = false; if (DIR.encore) { DIR.encore = false; planifierDirect(); } }
+  }
+  if (!DIR.arret) {
+    const avant = window.PLANEUR_SYNC;
+    window.PLANEUR_SYNC = () => { avant(); planifierDirect(); };
+    setInterval(() => { if (!document.hidden) pousserDirect(); }, 30000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) planifierDirect(true); });
+    setTimeout(() => planifierDirect(true), 1200);
+    window.PLANEUR_DIRECT = { maintenant: () => pousserDirect(), etat: () => ({ arret: DIR.arret, envoye: !!DIR.dernier }) };   // pour les essais
+  }
   demarrer();
 })();
