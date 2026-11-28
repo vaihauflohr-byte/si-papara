@@ -516,7 +516,9 @@ Réponds en JSON : {"questions": [{"n": ${p.qs[0].n}, "points": 0.5, "commentair
     if (window.ECRITS_ETUDES) c += ECRITS_ETUDES.carte();
     let f = '';
     ['ECRITS_FORME', 'ECRITS_SPRINT', 'ECRITS_DR', 'ECRITS_DOC'].forEach((k) => { if (window[k]) f += window[k].carte(); });
-    return (c ? `<h2 class="sec">S’entraîner par morceaux</h2><div class="ec-grid">${c}</div>` : '') + (f ? `<h2 class="sec">La forme et la vitesse</h2><div class="ec-grid">${f}</div>` : '');
+    let r = '';
+    ['ECRITS_REFLEXES', 'ECRITS_CARTE', 'ECRITS_REPETITION'].forEach((k) => { if (window[k]) r += window[k].carte(); });
+    return (c ? `<h2 class="sec">S’entraîner par morceaux</h2><div class="ec-grid">${c}</div>` : '') + (f ? `<h2 class="sec">La forme et la vitesse</h2><div class="ec-grid">${f}</div>` : '') + (r ? `<h2 class="sec">Retenir, cibler, répéter le jour J</h2><div class="ec-grid">${r}</div>` : '');
   }
 
   /* ---------- routes ---------- */
@@ -527,7 +529,7 @@ Réponds en JSON : {"questions": [{"n": ${p.qs[0].n}, "points": 0.5, "commentair
     if (h === 'ecrits-peda' || h.startsWith('ecrits-peda-')) { styles(); return window.ECRITS_PEDA ? ECRITS_PEDA.route(h) : accueil(); }
     if (h === 'ecrits-python' || h.startsWith('ecrits-python-')) { styles(); return window.ECRITS_PYTHON ? ECRITS_PYTHON.route(h) : accueil(); }
     if (h === 'ecrits-etudes' || h.startsWith('ecrits-etudes-')) { styles(); return window.ECRITS_ETUDES ? ECRITS_ETUDES.route(h) : accueil(); }
-    for (const [p, k] of [['forme', 'ECRITS_FORME'], ['sprint', 'ECRITS_SPRINT'], ['dr', 'ECRITS_DR'], ['doc', 'ECRITS_DOC']]) if (h === 'ecrits-' + p || h.startsWith('ecrits-' + p + '-')) { styles(); return window[k] ? window[k].route(h) : accueil(); }
+    for (const [p, k] of [['forme', 'ECRITS_FORME'], ['sprint', 'ECRITS_SPRINT'], ['dr', 'ECRITS_DR'], ['doc', 'ECRITS_DOC'], ['reflexes', 'ECRITS_REFLEXES'], ['carte', 'ECRITS_CARTE'], ['repetition', 'ECRITS_REPETITION']]) if (h === 'ecrits-' + p || h.startsWith('ecrits-' + p + '-')) { styles(); return window[k] ? window[k].route(h) : accueil(); }
     if ((m = h.match(/^ecrits-sujet-(.+)$/))) return pageSujet(m[1]);
     if ((m = h.match(/^ecrits-lecture-(.+)$/))) return lecture(m[1]);
     if ((m = h.match(/^ecrits-compo-(.+)$/))) return compo(m[1]);
