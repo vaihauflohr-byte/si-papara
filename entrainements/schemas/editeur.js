@@ -20,7 +20,8 @@
   const session = lire("sip_session");
   const QUI = session && session.nom ? String(session.nom) : "local";
   const FO = window.SchemasFolio || null;   // repérage du folio et nomenclature (folio.js)
-  const CLE = { folio: "schemas:folio", lec: (id) => "schemas:lecture:" + QUI + ":" + id, lecProgres: "schemas:lectures:" + QUI, libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, dep: (id) => "schemas:dep:" + QUI + ":" + id, depProgres: "schemas:depannage:" + QUI, prep: "schemas:prep:" + QUI, prepC: "schemas:prepc:" + QUI, cplt: "schemas:cplt:" + QUI, cpltCode: (id) => "schemas:cpltcode:" + id, defiStats: "schemas:defistats:" + QUI, envois: "schemas:envois:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue" };
+  const CLE = { folio: "schemas:folio", lec: (id) => "schemas:lecture:" + QUI + ":" + id, lecProgres: "schemas:lectures:" + QUI, libre: "schemas:libre", defi: (id) => "schemas:defi:" + QUI + ":" + id, progres: "schemas:progres:" + QUI, dep: (id) => "schemas:dep:" + QUI + ":" + id, depProgres: "schemas:depannage:" + QUI, prep: "schemas:prep:" + QUI, prepC: "schemas:prepc:" + QUI, cplt: "schemas:cplt:" + QUI, cpltCode: (id) => "schemas:cpltcode:" + id, defiStats: "schemas:defistats:" + QUI, envois: "schemas:envois:" + QUI, copies: "schemas:copies", dernier: "schemas:dernier", aide: "schemas:aide-vue",
+    dimEx: (id) => "schemas:dimex:" + QUI + ":" + id, dimProgres: "schemas:dims:" + QUI };
 
   const DOIGT = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);   // écran tactile sans souris
   const svg = $("sc-svg"), monde = $("sc-monde"), fond = $("sc-fond"), grilleR = $("sc-grille"), pn = $("sc-panneau"), vueEl = $("sc-vue");
@@ -247,8 +248,8 @@
     if (!garderVue) ajusterVue();
     sauverBientot(); rendre(); majPanneau(); majBoutons();
   }
-  function annuler() { if (sim || hpos <= 0) return; hpos--; schema = JSON.parse(histo[hpos]); sel.clear(); brouillon = null; netEdit = null; sauverBientot(); rendre(); majPanneau(); majBoutons(); }
-  function refaire() { if (sim || hpos >= histo.length - 1) return; hpos++; schema = JSON.parse(histo[hpos]); sel.clear(); netEdit = null; sauverBientot(); rendre(); majPanneau(); majBoutons(); }
+  function annuler() { if (sim || hpos <= 0) return; const dm = schema.dim; hpos--; schema = JSON.parse(histo[hpos]); if (dm) schema.dim = dm; else delete schema.dim; sel.clear(); brouillon = null; netEdit = null; sauverBientot(); rendre(); majPanneau(); majBoutons(); }
+  function refaire() { if (sim || hpos >= histo.length - 1) return; const dm = schema.dim; hpos++; schema = JSON.parse(histo[hpos]); if (dm) schema.dim = dm; else delete schema.dim; sel.clear(); netEdit = null; sauverBientot(); rendre(); majPanneau(); majBoutons(); }
   let tSauve = 0;
   function sauverBientot() { clearTimeout(tSauve); tSauve = setTimeout(sauver, 250); }
   function sauver() { clearTimeout(tSauve); if (doc.type !== "depannage" && doc.type !== "lecture") garder(doc.type === "defi" ? CLE.defi(doc.defi) : CLE.libre, schema); garder(CLE.dernier, doc); }
@@ -2318,6 +2319,12 @@
     const PL = lire(CLE.lecProgres) || {};
     $("d-defis-c").insertAdjacentHTML("beforeend", `<h3 style="margin-top:18px">Lecture de schéma : clique pour répondre</h3><p class="discret">Des questions sur un schéma du cours (« Clique sur le contact d'auto-maintien »…) : tu réponds en cliquant sur l'appareil. Deux essais par question.</p>
       <div class="cartes">${X.LECTURES.map((L, k) => `<button class="carte-x" type="button" data-lc="${L.id}"><div class="ap">${apercu(L.base())}</div><span class="etq${PL[L.id] ? " fait" : ""}">${PL[L.id] ? `Meilleure note : ${nf(PL[L.id].note)}/20` : "Lecture " + (k + 1)} · ${"●".repeat(L.niveau)}${"○".repeat(3 - L.niveau)}</span><b>${esc(L.titre)}</b><small>${L.questions.length} questions</small></button>`).join("")}</div>`);
+    if (DI) {
+      const PC = lire(CLE.dimProgres) || {};
+      $("d-defis-c").insertAdjacentHTML("beforeend", `<h3 style="margin-top:18px">Calcul des câbles : trouve les sections</h3><p class="discret">Un tableau électrique et ses départs : le courant d'emploi, la protection, le coefficient K, la section du câble et la chute de tension. Les tableaux de la norme sont dans l'exercice.</p>
+      <div class="cartes">${DI.EXERCICES.map((x, k) => { const d = DI.valider(x.dim); return `<button class="carte-x" type="button" data-cb="${x.id}"><div class="ap">${DI.unifilaire(d, DI.calculer(d), () => false)}</div><span class="etq${PC[x.id] ? " fait" : ""}">${PC[x.id] ? `Note : ${nf(PC[x.id].note)}/20` : "Exercice " + (k + 1)} · ${"●".repeat(x.niveau)}${"○".repeat(3 - x.niveau)}</span><b>${esc(x.titre)}</b><small>${esc(x.resume)}</small></button>`; }).join("")}</div>`);
+      for (const b of $("d-defis-c").querySelectorAll("[data-cb]")) b.onclick = () => ouvrirDim(exoDim(b.dataset.cb));
+    }
     for (const b of $("d-defis-c").querySelectorAll("[data-lc]")) b.onclick = () => ouvrirLecture(b.dataset.lc);
     for (const b of $("d-defis-c").querySelectorAll("[data-df]")) b.onclick = () => ouvrirDefi(b.dataset.df);
     for (const b of $("d-defis-c").querySelectorAll("[data-dp]")) b.onclick = () => ouvrirDepannage(b.dataset.dp);
@@ -2333,6 +2340,7 @@
         <button type="button" data-f="svg"><span><b>Image SVG</b><small>Dessin vectoriel (net à toutes les tailles)</small></span></button>
         <button type="button" data-f="imprimer"><span><b>Imprimer</b><small>Feuille A4 paysage</small></span></button>
         <button type="button" data-f="nomenclature"><span><b>Nomenclature et bornier</b><small>La liste des appareils (repère, désignation, caractéristiques, colonnes) et le bornier X1 des appareils du terrain</small></span></button>
+        <button type="button" data-f="cables"><span><b>Calcul des câbles</b><small>Pour chaque départ du tableau : la protection, la section du câble et la chute de tension, pas à pas, et le schéma unifilaire</small></span></button>
         <button type="button" data-f="completer"><span><b>Préparer un schéma à compléter (professeur)</b><small>Le schéma juste, puis ce que l'élève doit faire : la vérification rejoue un essai sur ton corrigé, et leur note t'arrive</small></span></button>
         <button type="button" data-f="preparer"><span><b>Préparer un dépannage (professeur)</b><small>Cache une panne dans ce schéma, puis donne le lien aux élèves : tous la même panne, et leur note t'arrive</small></span></button>
       </div>
@@ -2436,6 +2444,252 @@
     };
     ouvrirDialogue("d-nomen");
   }
+  /* ---------- calcul des câbles (dimensionnement.js) : Ib, In, K, I'z, section, chute de tension, schéma unifilaire ----------
+     page libre (Fichier → Calcul des câbles) : le calcul est gardé avec le schéma (schema.dim) ;
+     exercice (Défis, ou lien du professeur #cables=…) : les données sont fixées, l'élève calcule et « Vérifier » ; chaque
+     résultat compte à sa première réponse (« Voir le calcul » : ce qui n'est pas encore trouvé ne compte plus) ; à la fin,
+     la note part dans le suivi (module schemas-dim-<id>), une fois. */
+  const DI = window.SchemasDim || null;
+  let dimEtat = null;
+  const exoDim = (id) => { const x = DI && DI.EXERCICES.find((e) => e.id === id); return x ? { id: x.id, titre: x.titre, dim: x.dim } : null; };
+  const NOMS_REC = { moteur: "Moteur", chauffage: "Chauffage", eclairage: "Éclairage", autre: "Départ" };
+  function circuitsDim(E) {
+    const R = E.res, L = [];
+    if (E.dim.arrivee) L.push({ cle: "a", nom: "Câble d'arrivée", c: Object.assign({ recepteur: "autre", phases: 3 }, E.dim.arrivee), r: R.arrivee, arrivee: true, i: -1 });
+    E.dim.departs.forEach((d, i) => L.push({ cle: d.id, nom: d.nom, c: d, r: R.departs[i], arrivee: false, i }));
+    return L;
+  }
+  const justeDim = (k) => DI.CHAMPS.every((ch) => dimEtat.verif[k] && dimEtat.verif[k][ch.k] && dimEtat.verif[k][ch.k].ok);
+  const finiDim = (k) => !!dimEtat.vu[k] || justeDim(k);
+  function ouvrirDim(exo) {
+    if (!DI) { toast("Le calcul des câbles n'a pas pu être chargé."); return; }
+    if (exo) {
+      const P = lire(CLE.dimEx(exo.id)) || {};
+      dimEtat = { exo, dim: DI.valider(exo.dim), rep: P.rep || {}, premier: P.premier || {}, vu: P.vu || {}, verif: {}, debut: P.debut || Date.now(), fin: P.fin || 0, envoi: P.envoi || "", note: P.note, pts: P.pts, tot: P.tot };
+    } else dimEtat = { exo: null, dim: DI.valider(schema.dim) || DI.nouveau(), rep: {}, premier: {}, vu: {}, verif: {}, ouverts: {} };
+    dimEtat.res = DI.calculer(dimEtat.dim);
+    if (exo) verifierDim(true);
+    $("d-dim-t").textContent = exo ? "Câbles : " + exo.titre : "Calcul des câbles";
+    rendreDim(); ouvrirDialogue("d-dim");
+    $("d-dim-c").scrollTop = 0;
+  }
+  async function ouvrirDimLien(code) {
+    if (!DI) return;
+    if (!code) { ouvrirDim(); return; }
+    const x = exoDim(code); if (x) { ouvrirDim(x); return; }
+    try {
+      const o = await decoderCode(code), d = DI.valider(o && o.d);
+      if (!d || !d.departs.length) throw new Error("vide");
+      const titre = String((o && o.t) || "Calcul des câbles").slice(0, 80);
+      ouvrirDim({ id: "p" + hacher(JSON.stringify({ t: titre, d })), titre, dim: d, prof: true });
+    } catch (e) { toast(String(code)[0] === "z" && !window.DecompressionStream ? "Ce navigateur ne sait pas lire ce lien : demande le fichier au professeur." : "Cet exercice n'a pas pu être lu (lien abîmé ?)."); }
+  }
+  function garderDimEx() {
+    const E = dimEtat; if (!E || !E.exo) return;
+    garder(CLE.dimEx(E.exo.id), { rep: E.rep, premier: E.premier, vu: E.vu, debut: E.debut, fin: E.fin, envoi: E.envoi, note: E.note, pts: E.pts, tot: E.tot });
+  }
+  function garderDimLibre() { if (!dimEtat || dimEtat.exo) return; if (dimEtat.dim.departs.length || dimEtat.dim.arrivee) schema.dim = M.cloner(dimEtat.dim); else delete schema.dim; sauverBientot(); }
+  // l'élève : chaque champ rempli est vérifié ; la première réponse de chaque champ est gardée (elle fait la note)
+  function verifierDim(silencieux) {
+    const E = dimEtat; E.res = DI.calculer(E.dim);
+    for (const x of circuitsDim(E)) {
+      if (!x.r) continue;
+      const rep = E.rep[x.cle] || {}, V = (E.verif[x.cle] = {});
+      for (const ch of DI.CHAMPS) {
+        const v = (V[ch.k] = DI.verifierChamp(x.r, ch.k, rep[ch.k], x.arrivee));
+        if (!silencieux && v.ok !== null && !E.vu[x.cle] && !E.fin) {
+          const p = (E.premier[x.cle] = E.premier[x.cle] || {});
+          if (!p[ch.k]) p[ch.k] = { ok: v.ok, v: String(rep[ch.k]).slice(0, 20) };
+        }
+      }
+    }
+  }
+  function finirDim() {
+    const E = dimEtat; if (!E.exo || E.fin) return;
+    const L = circuitsDim(E); if (!L.every((x) => finiDim(x.cle))) return;
+    E.tot = L.length * DI.CHAMPS.length;
+    E.pts = L.reduce((a, x) => a + DI.CHAMPS.filter((ch) => E.premier[x.cle] && E.premier[x.cle][ch.k] && E.premier[x.cle][ch.k].ok).length, 0);
+    E.note = Math.round((40 * E.pts) / E.tot) / 2; E.fin = Date.now();
+    const P = lire(CLE.dimProgres) || {}; if (!P[E.exo.id]) { P[E.exo.id] = { note: E.note, t: E.fin }; garder(CLE.dimProgres, P); }
+    garderDimEx(); envoyerDim();
+  }
+  const valeursDim = (r) => (r && r.S != null ? `Ib ${nf(r.Ib, 1)} A · In ${nf(r.In)} A · K ${nf(r.K, 2)} · I'z ${nf(r.Izp, 1)} A · S ${nf(r.S)} mm² · ΔU ${nf(r.dUp, 2)} %` : "");
+  function detailsDim() {
+    const E = dimEtat;
+    return circuitsDim(E).map((x) => {
+      const p = E.premier[x.cle] || {}, n = DI.CHAMPS.filter((ch) => p[ch.k] && p[ch.k].ok).length;
+      return { q: x.nom, rep: DI.CHAMPS.map((ch) => `${ch.nom} ${p[ch.k] ? p[ch.k].v + (p[ch.k].ok ? " ✓" : " ✗") : "—"}`).join(" · ") + (E.vu[x.cle] ? " (calcul vu)" : ""),
+        attendu: valeursDim(x.r), bareme: DI.CHAMPS.length, pts: n, erreurs: DI.CHAMPS.length - n };
+    });
+  }
+  async function envoyerDim() {
+    const E = dimEtat; if (!E || !E.exo || !E.fin || E.envoi === "envoye" || E.envoi === "en cours") return;
+    E.envoi = "en cours"; majScoreDim();
+    const r = await envoyerAuSite({ module: "schemas-dim-" + E.exo.id, titre: "Atelier schémas · Câbles : " + E.exo.titre, type: "externe", score: E.note, score_max: 20,
+      duree_s: Math.max(0, Math.round((E.fin - (E.debut || E.fin)) / 1000)), details: detailsDim() });
+    E.envoi = r; if (E === dimEtat) { garderDimEx(); majScoreDim(); }
+  }
+  function majScoreDim() {
+    const E = dimEtat, z = $("dim-score"); if (!z || !E.exo) return;
+    const L = circuitsDim(E), justes = L.reduce((a, x) => a + DI.CHAMPS.filter((ch) => E.verif[x.cle] && E.verif[x.cle][ch.k] && E.verif[x.cle][ch.k].ok).length, 0);
+    if (!E.fin) { const nf2 = L.filter((x) => finiDim(x.cle)).length; z.innerHTML = `${justes} résultat${justes > 1 ? "s" : ""} juste${justes > 1 ? "s" : ""} sur ${L.length * DI.CHAMPS.length} · ${nf2} circuit${nf2 > 1 ? "s" : ""} fini${nf2 > 1 ? "s" : ""} sur ${L.length}`; return; }
+    const ENV = { envoye: "Ta note est partie chez le professeur ✓", file: "Ta note partira chez le professeur dès que le site répondra.", deconnecte: `Connecte-toi au site (<a href="../index.html">Mon espace</a>) pour que ta note arrive au professeur.`,
+      expire: "Ta connexion au site a expiré : reconnecte-toi pour que ta note parte.", erreur: "Le site ne répond pas : ta note n'est pas partie.", "en cours": "Envoi de ta note…" };
+    z.innerHTML = `<b>Terminé : ${nf(E.note)}/20</b> (${E.pts} résultat${E.pts > 1 ? "s" : ""} juste${E.pts > 1 ? "s" : ""} du premier coup sur ${E.tot}). ${ENV[E.envoi] || ""}`;
+  }
+  function voirDim(i, k) { const E = dimEtat; if (!E.exo || E.fin) return true; const c = i < 0 ? "a" : E.dim.departs[i] && E.dim.departs[i].id; return !!(E.vu[c] || (E.verif[c] && E.verif[c][k] && E.verif[c][k].ok)); }
+  function recapDim() {
+    const L = circuitsDim(dimEtat).filter((x) => x.r && x.r.S != null);
+    if (!L.length) return "";
+    return `<div class="nomen-defil"><table class="nomen"><thead><tr><th>Circuit</th><th>Ib</th><th>Protection</th><th>K</th><th>Câble (cuivre)</th><th>Iz</th><th>ΔU</th></tr></thead><tbody>${L.map((x) => { const r = x.r;
+      return `<tr><td>${esc(x.nom)}</td><td class="n">${nf(r.Ib, 1)} A</td><td class="n">${nf(r.In)} A${r.prot === "fus" ? " gG" : ""}</td><td class="n">${nf(r.K, 2)}</td><td class="n">${esc(DI.conducteurs(x.c, r))} mm² · ${nf(x.c.L, 0)} m</td><td class="n">${nf(r.Iz, 1)} A</td><td class="n">${nf(r.dUp, 2)} %${r.amont ? ` (${nf(r.total, 2)} % en tout)` : ""}</td></tr>`; }).join("")}</tbody></table></div>`;
+  }
+  function etapesDim(x, ouvert) {
+    const L = x.r ? DI.etapes(x.c, x.r, x.arrivee ? dimEtat.res.bilan : null) : [];
+    return L.length ? `<details class="dim-pas" data-pas="${esc(x.cle)}"${ouvert ? " open" : ""}><summary>Le calcul pas à pas</summary><ol class="dim-et">${L.map((s) => `<li${s.ok === true ? ' class="ok"' : s.ok === false ? ' class="ko"' : ""}><b>${esc(s.t)}</b>${esc(s.f)}</li>`).join("")}</ol></details>` : "";
+  }
+  function resultatDim(x, ouvert) {
+    const r = x.r;
+    if (!r) return `<p class="discret">Ajoute des départs : le câble d'arrivée se calcule avec le bilan de leurs puissances.</p>`;
+    if (r.S == null) return `<p class="dim-err">${esc(r.erreurs[0] || "Calcul impossible.")}</p>${etapesDim(x, ouvert)}`;
+    return `<p class="dim-res"><b>Ib</b> ${nf(r.Ib, 1)} A · <b>In</b> ${nf(r.In)} A${r.prot === "fus" ? " gG" : ""} · <b>K</b> ${nf(r.K, 2)} · <b>I'z</b> ${nf(r.Izp, 1)} A · <b>S</b> ${nf(r.S)} mm² <span class="discret">(${esc(DI.conducteurs(x.c, r))})</span> · <b>ΔU</b> ${nf(r.dUp, 2)} %${r.amont ? ` <span class="discret">(${nf(r.total, 2)} % avec l'arrivée)</span>` : ""} <span class="ok">✓ ≤ ${nf(r.lim)} %</span></p>${etapesDim(x, ouvert)}`;
+  }
+  function rendreDim() {
+    const E = dimEtat, exo = !!E.exo, C = $("d-dim-c"); E.res = DI.calculer(E.dim);
+    const opt = (o, v) => Object.keys(o).map((k) => `<option value="${esc(k)}"${String(k) === String(v) ? " selected" : ""}>${esc(o[k])}</option>`).join("");
+    const optL = (L, v, f) => L.map((x) => `<option value="${x}"${String(x) === String(v) ? " selected" : ""}>${esc(f ? f(x) : x)}</option>`).join("");
+    const poses = {}; for (const p of DI.POSES) poses[p.id] = p.texte;
+    const champs = (c, arr) => `<div class="dim-g">
+        ${arr ? `<label>Simultanéité ks<input type="number" inputmode="decimal" data-k="ks" min="0.1" max="1" step="0.05" value="${c.ks}"></label>` : `<label>Récepteur<select data-k="recepteur">${opt(DI.RECEPTEURS, c.recepteur)}</select></label>
+        <label>Alimentation<select data-k="phases">${opt({ 3: "Triphasé 400 V", 1: "Monophasé 230 V" }, c.phases)}</select></label>
+        <label>Puissance (kW)<input type="number" inputmode="decimal" data-k="P" min="0" step="0.1" value="${c.P}"></label>
+        ${c.recepteur === "chauffage" ? "" : `<label>cos φ<input type="number" inputmode="decimal" data-k="cos" min="0.1" max="1" step="0.01" value="${c.cos}"></label>`}
+        ${c.recepteur === "moteur" ? `<label>Rendement η<input type="number" inputmode="decimal" data-k="eta" min="0.1" max="1" step="0.01" value="${c.eta}"></label>` : ""}`}
+        <label>Protection<select data-k="prot">${opt(DI.PROTS, c.prot)}</select></label>
+        <label>Longueur du câble (m)<input type="number" inputmode="decimal" data-k="L" min="0" step="1" value="${c.L}"></label>
+        <label class="dim-pose">Façon de poser<span class="dim-pose-l"><select data-k="pose">${opt(poses, c.pose)}</select><span class="dim-ico">${DI.iconePose(c.pose)}</span></span></label>
+        <label>Isolant<select data-k="isolant">${opt({ PR: "PR", PVC: "PVC" }, c.isolant)}</select></label>
+        <label>Câbles côte à côte<select data-k="voisins">${optL(DI.VOISINS, c.voisins)}</select></label>
+        <label>Température de l'air<select data-k="temp">${optL(DI.TEMPS, c.temp, (t) => t + " °C")}</select></label></div>`;
+    const donnees = (c, arr) => `<p class="dim-donnees"><span class="dim-ico">${DI.iconePose(c.pose)}</span>${arr ? `Tous les départs ci-dessous (bilan de Boucherot), simultanéité ks = ${nf(c.ks, 2)}`
+        : `${NOMS_REC[c.recepteur]} ${c.phases === 3 ? "triphasé 400\u00a0V" : "monophasé 230\u00a0V"} · ${nf(c.P, 2)}\u00a0kW${c.recepteur === "moteur" ? ` (puissance utile) · η = ${nf(c.eta, 2)}` : ""}${c.recepteur === "chauffage" ? "" : ` · cos φ = ${nf(c.cos, 2)}`}`}
+        · ${c.prot === "fus" ? "fusibles gG" : "disjoncteur"} · câble de ${nf(c.L, 0)}\u00a0m · ${esc(DI.POSE[c.pose].texte.toLowerCase())} · isolant ${c.isolant} · ${c.voisins} câble${c.voisins > 1 ? "s" : ""} côte à côte · ${c.temp}\u00a0°C</p>`;
+    const reponses = (k) => {
+      const rep = E.rep[k] || {}, V = E.verif[k] || {}, fige = !!(E.vu[k] || E.fin);
+      return `<div class="dim-rep">${DI.CHAMPS.map((ch) => { const v = V[ch.k], ok = v && v.ok;
+        return `<label>${esc(ch.nom)}${ch.unite ? ` (${ch.unite})` : ""}<input inputmode="decimal" autocomplete="off" data-r="${ch.k}" value="${esc(rep[ch.k] || "")}"${v && v.ok !== null ? ` class="${ok ? "ok" : "ko"}"` : ""}${fige || ok ? " readonly" : ""}></label>`; }).join("")}</div>
+        <ul class="dim-aides">${DI.CHAMPS.filter((ch) => !fige && V[ch.k] && V[ch.k].ok === false && V[ch.k].aide).map((ch) => `<li><b>${esc(ch.nom)}</b> : ${esc(V[ch.k].aide)}</li>`).join("")}</ul>`;
+    };
+    const carte = (x) => {
+      const k = x.cle, fait = exo && finiDim(k);
+      const tete = exo || x.arrivee ? `<b>${esc(x.nom)}</b>${exo ? `<span class="dim-etat">${fait ? (justeDim(k) ? "Juste ✓" : "Corrigé") : ""}</span>` : ""}`
+        : `<input class="dim-nom" data-k="nom" maxlength="40" value="${esc(x.c.nom)}" aria-label="Nom du départ"><button class="btn sec dim-x" type="button" data-x="${esc(k)}" aria-label="Supprimer ce départ">×</button>`;
+      const bas = !exo ? `<div class="dim-r" id="dim-r-${esc(k)}">${resultatDim(x, E.ouverts[k])}</div>`
+        : reponses(k) + (E.vu[k] || E.fin || justeDim(k) ? `<div class="dim-r">${resultatDim(x, !justeDim(k))}</div>` : `<div class="dim-voir"><button class="btn-lien" type="button" data-voir="${esc(k)}">Voir le calcul</button></div>`);
+      return `<section class="dim-c${fait ? " juste" : ""}" data-c="${esc(k)}"><div class="dim-t">${tete}</div>${exo ? donnees(x.c, x.arrivee) : champs(x.c, x.arrivee)}${bas}</section>`;
+    };
+    const nbM = exo ? 0 : DI.departsDuSchema(schema).length;
+    C.innerHTML = `${exo ? `<p class="discret">Les données sont fixées. Pour chaque circuit, calcule <b>Ib</b>, le calibre <b>In</b>, le coefficient <b>K</b>, le courant <b>I'z</b>, la section <b>S</b> et la chute de tension <b>ΔU</b> (en %), puis appuie sur <b>Vérifier</b>. Chaque résultat compte à ta <b>première réponse</b>. « Voir le calcul » montre la méthode, mais ce que tu n'as pas encore trouvé ne compte plus.</p>`
+        : `<p class="discret">Pour chaque départ du tableau : le courant d'emploi, la protection, la section du câble et la chute de tension (méthode de la NF C 15-100, câbles en cuivre). Ce calcul est gardé avec ton schéma.</p>`}
+      <div class="dim-regle"><span><b>Ib</b>le courant que demande le récepteur</span><i>≤</i><span><b>In</b>le calibre de la protection</span><i>≤</i><span><b>Iz</b>le courant que le câble supporte sans trop chauffer</span></div>
+      <details class="dim-tables"><summary>Les tableaux de la norme : poses, K1, K2, K3, sections, calibres, chute de tension</summary>${DI.tableaux()}</details>
+      ${exo ? `<p class="dim-donnees"><b>Alimentation</b> : ${esc(DI.ORIGINES[E.dim.origine])} ; 400 V entre phases, 230 V entre phase et neutre.</p>`
+        : `<label class="dim-or">Alimentation du tableau<select id="dim-origine">${opt(DI.ORIGINES, E.dim.origine)}</select></label>
+      <label class="dim-case"><input type="checkbox" id="dim-arr"${E.dim.arrivee ? " checked" : ""}> Câble d'arrivée (du compteur ou du transformateur jusqu'au tableau)</label>`}
+      ${circuitsDim(E).map(carte).join("")}
+      ${exo ? `<div class="dim-barre"><button class="btn" type="button" id="dim-verifier"${E.fin ? " hidden" : ""}>Vérifier</button><span id="dim-score" aria-live="polite"></span><button class="btn sec" type="button" id="dim-recommencer">Recommencer</button></div>`
+        : `<div class="rang dim-actions"><button class="btn" type="button" id="dim-ajout">Ajouter un départ</button>${nbM ? `<button class="btn sec" type="button" id="dim-moteurs">Prendre les moteurs du schéma (${nbM})</button>` : ""}${E.dim.departs.length || E.dim.arrivee ? `<button class="btn sec" type="button" id="dim-vider">Tout effacer</button>` : `<button class="btn sec" type="button" id="dim-exemple">Charger un exemple</button>`}</div>`}
+      <h3>Schéma unifilaire</h3><div class="dim-uni" id="dim-uni"></div>
+      <div class="rang"><button class="btn sec" type="button" id="dim-imprimer">Imprimer</button><button class="btn sec" type="button" id="dim-svg">Image SVG</button></div>
+      <div id="dim-recap"></div>
+      ${exo ? "" : `<details class="dim-prof"><summary>Professeur : donner ce calcul en exercice</summary>
+        <p class="discret">Les élèves reçoivent les données de ces départs, pas les résultats : ils calculent, l'atelier vérifie, et leur note t'arrive dans le suivi (page « Atelier schémas » de ton espace).</p>
+        <label for="dim-pt">Titre de l'exercice</label><input id="dim-pt" maxlength="80" value="${esc(schema.titre && schema.titre !== "Mon schéma" ? schema.titre : "")}" placeholder="Par exemple : le tableau de l'atelier">
+        <div class="rang" style="margin-top:8px"><button class="btn" type="button" id="dim-lien">Créer le lien pour les élèves</button></div>
+        <div id="dim-lien-z" hidden><input id="dim-lien-v" readonly aria-label="Lien de l'exercice"><div class="rang" style="margin-top:6px"><button class="btn sec" type="button" id="dim-copier">Copier le lien</button><a class="btn sec" id="dim-essayer" target="_blank" rel="noopener">L'essayer comme un élève</a></div></div></details>`}
+      <p class="discret dim-limites">Pas dans cet outil (à vérifier à part) : le pouvoir de coupure et la longueur maximale protégée (courts-circuits), les câbles enterrés, l'aluminium, un neutre chargé par des harmoniques.</p>`;
+    majUniDim(); majScoreDim();
+    brancherDim();
+  }
+  function majUniDim() {
+    const E = dimEtat, u = $("dim-uni"); if (!u) return;
+    u.innerHTML = DI.unifilaire(E.dim, E.res, voirDim);
+    const z = $("dim-recap"); if (z) z.innerHTML = !E.exo || E.fin ? (recapDim() ? `<h3>Récapitulatif</h3>${recapDim()}` : "") : "";
+  }
+  function majDim() {   // page libre : un nombre a changé → les résultats, le schéma unifilaire
+    const E = dimEtat; E.res = DI.calculer(E.dim);
+    for (const x of circuitsDim(E)) { const z = $("dim-r-" + x.cle); if (z) z.innerHTML = resultatDim(x, E.ouverts[x.cle]); }
+    majUniDim();
+  }
+  function changerDim(k, t, fin) {
+    const E = dimEtat; if (!E || E.exo || !t.dataset || !t.dataset.k) return;
+    const f = t.dataset.k, estA = k === "a", cible = estA ? E.dim.arrivee : E.dim.departs.find((d) => d.id === k); if (!cible) return;
+    let v = t.value;
+    if (t.type === "number") { const n = DI.lireNombre(v); if (n == null || Number.isNaN(n)) { if (fin) t.value = cible[f]; return; } v = n; }
+    const nv = estA ? DI.arrivee(Object.assign({}, cible, { [f]: v })) : DI.depart(Object.assign({}, cible, { [f]: v }));
+    if (fin && t.type === "number" && Number(t.value) !== nv[f]) t.value = nv[f];
+    if (JSON.stringify(nv) === JSON.stringify(cible)) return;   // la fin d'une saisie déjà prise en compte : rien à refaire (un clic en cours n'est pas perdu)
+    if (estA) E.dim.arrivee = nv; else E.dim.departs[E.dim.departs.indexOf(cible)] = nv;
+    garderDimLibre();
+    if (f === "recepteur" || f === "phases") { const y = $("d-dim-c").scrollTop; rendreDim(); $("d-dim-c").scrollTop = y; return; }
+    if (f === "pose") { const ic = t.parentNode.querySelector(".dim-ico"); if (ic) ic.innerHTML = DI.iconePose(nv.pose); }
+    majDim();
+  }
+  function deuxTemps(b, texte, faire) {   // un bouton qui demande « Sûr ? » avant d'agir
+    if (!b.dataset.sur) { const t0 = b.textContent; b.dataset.sur = "1"; b.textContent = texte; setTimeout(() => { if (b.isConnected && b.dataset.sur) { delete b.dataset.sur; b.textContent = t0; } }, 4000); return; }
+    faire();
+  }
+  function rerendreDim() { const C = $("d-dim-c"), y = C.scrollTop; rendreDim(); C.scrollTop = y; }
+  function brancherDim() {
+    const E = dimEtat, C = $("d-dim-c"), on = (id, f) => { const b = $(id); if (b) b.onclick = f; };
+    if (!C.dataset.branche) {
+      C.dataset.branche = "1";
+      C.addEventListener("input", (ev) => { const s = ev.target.closest("[data-c]"); if (!dimEtat || !s) return;
+        if (dimEtat.exo && ev.target.dataset.r) { const k = s.dataset.c; (dimEtat.rep[k] = dimEtat.rep[k] || {})[ev.target.dataset.r] = ev.target.value.slice(0, 20); garderDimEx(); return; }
+        if (ev.target.type === "number" || ev.target.dataset.k === "nom") changerDim(s.dataset.c, ev.target, false); });
+      C.addEventListener("change", (ev) => { const s = ev.target.closest("[data-c]"); if (dimEtat && s && !dimEtat.exo) changerDim(s.dataset.c, ev.target, true); });
+      C.addEventListener("toggle", (ev) => { const d = ev.target; if (dimEtat && d.dataset && d.dataset.pas) dimEtat.ouverts[d.dataset.pas] = d.open; }, true);
+      C.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && ev.target.dataset && ev.target.dataset.r && $("dim-verifier") && !$("dim-verifier").hidden) { ev.preventDefault(); $("dim-verifier").click(); } });
+    }
+    if (!E.ouverts) E.ouverts = {};
+    on("dim-imprimer", () => {
+      $("sc-impression").innerHTML = `<h1>${esc(E.exo ? "Calcul des câbles : " + E.exo.titre : (schema.titre || "Schéma") + " : calcul des câbles")}</h1>${DI.unifilaire(E.dim, E.res, voirDim)}${!E.exo || E.fin ? recapDim() : ""}`;
+      fermerDialogues(); setTimeout(() => { window.print(); }, 80);
+    });
+    on("dim-svg", () => telecharger(new Blob([DI.unifilaire(E.dim, E.res, voirDim)], { type: "image/svg+xml" }), (E.exo ? "cables-" + E.exo.id : nomFichier() + "-unifilaire") + ".svg"));
+    if (E.exo) {
+      on("dim-verifier", () => {
+        verifierDim(false); garderDimEx(); finirDim(); rerendreDim();
+        if (E.fin) toast(`Terminé : ${nf(E.note)}/20.`);
+        else { const ko = C.querySelector(".dim-rep input.ko"); if (ko) ko.focus(); }
+      });
+      on("dim-recommencer", function () { deuxTemps(this, "Sûr ? Tout s'efface", () => {
+        Object.assign(E, { rep: {}, premier: {}, vu: {}, verif: {}, fin: 0, note: undefined, pts: undefined, tot: undefined, debut: Date.now() }); garderDimEx(); rendreDim(); C.scrollTop = 0; }); });
+      for (const b of C.querySelectorAll("[data-voir]")) b.onclick = () => deuxTemps(b, "Sûr ? Ce que tu n'as pas encore trouvé ne comptera plus", () => {
+        E.vu[b.dataset.voir] = true; verifierDim(true); garderDimEx(); finirDim(); rerendreDim(); });
+      return;
+    }
+    const so = $("dim-origine"); if (so) so.onchange = () => { E.dim.origine = so.value === "prive" ? "prive" : "public"; garderDimLibre(); majDim(); };
+    const ca = $("dim-arr"); if (ca) ca.onchange = () => { E.dim.arrivee = ca.checked ? DI.arrivee({ L: 30, pose: "perfore", ks: 1 }) : null; garderDimLibre(); rerendreDim(); };
+    on("dim-ajout", () => { let n = 1; while (E.dim.departs.some((d) => d.id === "d" + n)) n++; E.dim.departs.push(DI.depart({ id: "d" + n, nom: "Départ " + (E.dim.departs.length + 1) })); garderDimLibre(); rerendreDim(); const L = C.querySelectorAll(".dim-nom"); if (L.length) { L[L.length - 1].focus(); L[L.length - 1].select(); } });
+    on("dim-moteurs", () => {
+      const L = DI.departsDuSchema(schema).filter((d) => !E.dim.departs.some((x) => x.ref && x.ref === d.ref));
+      if (!L.length) { toast("Les moteurs du schéma sont déjà dans la liste."); return; }
+      for (const d of L) { let n = 1; while (E.dim.departs.some((x) => x.id === "d" + n)) n++; d.id = "d" + n; E.dim.departs.push(d); }
+      garderDimLibre(); rerendreDim(); toast(`${L.length} moteur${L.length > 1 ? "s" : ""} ajouté${L.length > 1 ? "s" : ""} : règle leur câble.`);
+    });
+    on("dim-exemple", () => { E.dim = DI.valider(DI.EXEMPLE); garderDimLibre(); rerendreDim(); });
+    on("dim-vider", function () { deuxTemps(this, "Sûr ? Tout s'efface", () => { E.dim = DI.nouveau(); garderDimLibre(); rendreDim(); }); });
+    for (const b of C.querySelectorAll("[data-x]")) b.onclick = () => deuxTemps(b, "Sûr ?", () => { E.dim.departs = E.dim.departs.filter((d) => d.id !== b.dataset.x); garderDimLibre(); rerendreDim(); });
+    on("dim-lien", async () => {
+      if (!E.dim.departs.length) { toast("Ajoute d'abord des départs."); return; }
+      if (circuitsDim(E).some((x) => !x.r || x.r.S == null)) { toast("Un circuit n'a pas de solution : corrige-le avant de le donner."); return; }
+      const titre = ($("dim-pt").value || "").trim().slice(0, 80) || "Calcul des câbles";
+      const url = location.origin + location.pathname + "#cables=" + (await encoderCode({ t: titre, d: E.dim }, true));
+      $("dim-lien-v").value = url; $("dim-essayer").href = url; $("dim-lien-z").hidden = false; $("dim-lien-v").select();
+    });
+    on("dim-copier", async () => { try { await navigator.clipboard.writeText($("dim-lien-v").value); toast("Lien copié : colle-le dans Pronote, l'ENT ou un message."); } catch (e) { $("dim-lien-v").select(); toast("Copie le lien sélectionné."); } });
+  }
   function telecharger(blob, nom) {
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nom; document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
@@ -2445,6 +2699,7 @@
     if (f === "preparer") { prepC = null; ouvrirPreparation(); return; }
     if (f === "completer") { ouvrirPrepC(); return; }
     if (f === "nomenclature") { ouvrirNomenclature(); return; }
+    if (f === "cables") { ouvrirDim(); return; }
     if (f === "nouveau") { if (sim) arreterSim(); quitterDoc(); chargerSchema(M.nouveau()); fermerDialogues(); if (history.replaceState) history.replaceState(null, "", location.pathname); return; }
     if (f === "json") { telecharger(new Blob([JSON.stringify(schema, null, 1)], { type: "application/json" }), nomFichier() + ".json"); toast("Fichier exporté."); return; }
     if (f === "copie") { const nom = ($("f-nom").value || schema.titre || "Mon schéma").trim().slice(0, 80); const L = lire(CLE.copies) || []; L.unshift({ id: Date.now(), nom, t: Date.now(), schema: M.cloner(schema) }); garder(CLE.copies, L.slice(0, 30)); toast("Copie enregistrée."); ouvrirFichier(); return; }
@@ -2580,6 +2835,7 @@
       <div class="sym-g">${SYMBOLES_AIDE.map(([t, p, nom, ref, o]) => `<figure>${SY.icone(t, p, o)}<figcaption>${esc(nom)}<small>${esc(ref)}</small></figcaption></figure>`).join("")}</div>
       <h3 style="margin-top:14px">Les repères</h3>
       <p class="discret"><b>Repérage</b> (barre d'outils) : comme sur un vrai folio, des colonnes numérotées en haut de la feuille, un numéro sur chaque fil (les fils reliés entre eux ont le même numéro ; L, N, +24, 0V, PE et L1, L2, L3 gardent leur nom) et, sous chaque bobine, ses contacts avec la colonne où ils sont (« 13-14 NO /4 » : le contact 13-14 est dans la colonne 4). Près de chaque contact, « /2 » : sa bobine est dans la colonne 2. <b>Fichier → Nomenclature et bornier</b> : la liste des appareils et le bornier X1, à copier, télécharger ou imprimer.</p>
+      <p class="discret"><b>Fichier → Calcul des câbles</b> : pour chaque départ du tableau (les moteurs du schéma, du chauffage, de l'éclairage…), le courant d'emploi Ib, le calibre de la protection, le coefficient K, la section du câble et la chute de tension, pas à pas, avec les tableaux de la norme et le schéma unifilaire. Trois exercices sont dans <b>Défis</b> ; le professeur peut donner son propre calcul en exercice (un lien).</p>
       <p class="discret">Une bobine et ses contacts portent le <b>même repère</b> (KM1) : c'est comme ça que la simulation sait quels contacts bougent quand KM1 est alimenté. Les numéros des bornes suivent les règles : 13-14 et 43-44 pour les contacts à fermeture, 21-22 et 31-32 pour les contacts à ouverture, 95-96 et 97-98 pour le relais thermique, 55-56 et 67-68 pour les contacts temporisés, A1-A2 pour les bobines.</p>`;
     ouvrirDialogue("d-aide");
     garder(CLE.aide, 1);
@@ -2675,6 +2931,8 @@
   new ResizeObserver(() => appliquerVue()).observe(vueEl);
   function depart() {
     const h = location.hash.replace(/^#/, ""), m = /^(defi|exemple|depannage|lecture)=([\w-]+)$/.exec(h), mp = /^panne=([\w-]+)$/.exec(h), mc = /^complet=([\w-]+)$/.exec(h);
+    const mk = /^cables(?:=([\w-]+))?$/.exec(h);
+    if (mk) { departSans(); setTimeout(() => ouvrirDimLien(mk[1]), 60); return; }
     if (mp) { ouvrirCodeProf(mp[1], true).then((ok) => { if (!ok) departSans(); }); return; }
     if (mc) { ouvrirCodeCplt(mc[1], true).then((ok) => { if (!ok) departSans(); }); return; }
     if (h === "ouvrir" && ouvrirRecu()) return;
@@ -2694,7 +2952,7 @@
     let s = null; const sv = lire(CLE.libre); if (sv) { try { s = M.valider(sv); } catch (e) { s = null; } }
     doc = { type: "libre" }; chargerSchema(s || M.nouveau());
   }
-  window.addEventListener("hashchange", () => { const mp = /^#panne=([\w-]+)$/.exec(location.hash); if (mp) { if (!depProf || depProf.code !== mp[1]) ouvrirCodeProf(mp[1]); return; } const mc = /^#complet=([\w-]+)$/.exec(location.hash); if (mc) { if (!cpltProf || cpltProf.code !== mc[1]) ouvrirCodeCplt(mc[1]); return; } const m = /^#(defi|exemple|depannage|lecture)=([\w-]+)$/.exec(location.hash); if (m) { if (m[1] === "defi") ouvrirDefi(m[2]); else if (m[1] === "depannage") ouvrirDepannage(m[2]); else if (m[1] === "lecture") { if (doc.type !== "lecture" || doc.lecture !== m[2]) ouvrirLecture(m[2]); } else ouvrirExemple(m[2]); } });
+  window.addEventListener("hashchange", () => { const mk = /^#cables(?:=([\w-]+))?$/.exec(location.hash); if (mk) { ouvrirDimLien(mk[1]); return; } const mp = /^#panne=([\w-]+)$/.exec(location.hash); if (mp) { if (!depProf || depProf.code !== mp[1]) ouvrirCodeProf(mp[1]); return; } const mc = /^#complet=([\w-]+)$/.exec(location.hash); if (mc) { if (!cpltProf || cpltProf.code !== mc[1]) ouvrirCodeCplt(mc[1]); return; } const m = /^#(defi|exemple|depannage|lecture)=([\w-]+)$/.exec(location.hash); if (m) { if (m[1] === "defi") ouvrirDefi(m[2]); else if (m[1] === "depannage") ouvrirDepannage(m[2]); else if (m[1] === "lecture") { if (doc.type !== "lecture" || doc.lecture !== m[2]) ouvrirLecture(m[2]); } else ouvrirExemple(m[2]); } });
   window.addEventListener("beforeunload", () => { if (!sim) sauver(); });
   if (session) setTimeout(envoyerDefis, 2500);   // défis réussis avant de se connecter, ou hors ligne : ils partent maintenant
   depart();
@@ -2708,6 +2966,8 @@
     ouvrirDepannage, ouvrirCodeProf, ouvrirLecture, lecture: () => (lecEtat ? JSON.parse(JSON.stringify(lecEtat)) : null), preparation: () => (prep ? JSON.parse(JSON.stringify(prep)) : null), lienPreparation: () => (prep && prep.panne ? lienPrep() : null),
     preparationC: () => (prepC ? { corrige: !!prepC.corrige, depart: !!prepC.depart, titre: prepC.titre, essai: essaiPrepC() && { etapes: essaiC.etapes.length, commandes: essaiC.commandes, observes: essaiC.observes, okC: essaiC.okC, okD: essaiC.okD } } : null),
     lienCompleter: () => (prepC && prepC.corrige && prepC.depart ? lienPrepC() : null), ouvrirCodeCplt, complet: () => (cpltProf ? cpltEtat(cpltProf.id) : null), depannage: () => (depEtat ? JSON.parse(JSON.stringify(depEtat)) : null), sondes: () => JSON.parse(JSON.stringify(sondes)), outilV: choisirOutil,
+    ouvrirCables: (id) => ouvrirDim(id ? exoDim(id) : null), ouvrirCablesLien: ouvrirDimLien,
+    cables: () => (dimEtat ? JSON.parse(JSON.stringify({ exo: dimEtat.exo && dimEtat.exo.id, dim: dimEtat.dim, rep: dimEtat.rep, premier: dimEtat.premier, vu: dimEtat.vu, fin: dimEtat.fin, note: dimEtat.note, pts: dimEtat.pts, tot: dimEtat.tot, envoi: dimEtat.envoi })) : null),
     programmer: (ref) => ouvrirProgramme(schema.pieces.find((q) => q.type === "automate" && (!ref || q.ref === ref)))
   };
 })();

@@ -566,6 +566,74 @@ table.raccourcis td:first-child{white-space:nowrap;width:1%}
 .nomen td:first-child{font-weight:700;white-space:nowrap}
 .nomen td.n{font-family:var(--f-mono);white-space:nowrap}
 .nomen-defil{overflow-x:auto}
+/* calcul des câbles (dimensionnement.js) */
+dialog.sc-d.sc-dim{width:min(1100px,97vw)}
+dialog.sc-d.sc-dim[open]{display:flex;flex-direction:column}
+dialog.sc-d.sc-dim .d-corps{flex:1 1 auto;min-height:0;overflow:auto}
+@media (max-width:620px){dialog.sc-d.sc-dim{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;border-radius:0;margin:0;border:0}dialog.sc-d.sc-dim .d-tete{padding:8px 12px}dialog.sc-d.sc-dim .d-tete h2{font-size:1.1rem}dialog.sc-d.sc-dim .d-corps{padding:10px 12px 16px}}
+.dim-regle{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin:10px 0 12px}
+.dim-regle span{flex:1 1 150px;border:1px solid var(--rule);border-radius:8px;padding:6px 10px;background:var(--paper-2);font-size:.84rem;color:var(--ink-2);line-height:1.3}
+.dim-regle b{display:block;font-family:var(--f-mono);font-size:1.15rem;color:var(--ink)}
+.dim-regle i{align-self:center;font-style:normal;font-weight:700;font-size:1.4rem;color:var(--accent)}
+.dim-tables{margin:0 0 10px;border:1px solid var(--rule);border-radius:8px;padding:6px 10px;background:var(--paper-2)}
+.dim-tables summary{cursor:pointer;font-weight:600}
+.dim-tables h4{margin:12px 0 4px;font-size:.95rem}
+.dim-tab{border-collapse:collapse;font-size:.8rem;margin:4px 0 6px;background:var(--paper)}
+.dim-tab th,.dim-tab td{border:1px solid var(--rule);padding:3px 6px;text-align:center;white-space:nowrap}
+.dim-tab th{background:var(--paper-2);font-weight:600}
+.dim-tab td:first-child{text-align:left;white-space:normal;min-width:180px}
+.dim-tab.dim-t3 td:first-child,.dim-tab.dim-t4 td:first-child{min-width:0}
+.dim-tab.dim-t4 thead td{font-family:var(--f-mono);font-size:.72rem;color:var(--accent);font-weight:700}
+.dim-tab td.dim-ic{padding:2px 6px;line-height:0;color:var(--ink)}
+.dim-l{color:var(--ink-3);font-size:.75rem}
+.dim-memo{margin:4px 0 6px;padding-left:1.2em;font-size:.86rem;line-height:1.45}
+.dim-or{margin:6px 0 4px;font-size:.88rem}
+.dim-or select{margin-top:4px;max-width:560px}
+.dim-case{display:flex;align-items:center;gap:8px;font-weight:500;font-size:.9rem;margin:8px 0 4px;cursor:pointer}
+.dim-case input{width:20px;height:20px;min-height:0;flex:none;margin:0}
+.dim-c{border:1px solid var(--rule);border-radius:10px;padding:10px 12px;margin:10px 0;background:var(--paper)}
+.dim-c.juste{border-color:var(--good);box-shadow:0 0 0 2px var(--good-soft)}
+.dim-t{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.dim-t .dim-nom{flex:1;font-weight:700;min-height:38px;padding:.3rem .6rem}
+.dim-t b{flex:1;font-family:var(--f-disp);font-size:1.08rem;text-transform:uppercase;letter-spacing:.02em}
+.dim-t .dim-x{min-height:38px;padding:0 12px}
+.dim-etat{font-weight:700;color:var(--good);font-size:.9rem}
+.dim-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px}
+.dim-g label{margin:0;font-size:.78rem;font-weight:600;color:var(--ink-2)}
+.dim-g select,.dim-g input,.dim-rep input{display:block;margin-top:3px;min-height:38px;padding:.3rem .5rem;font-size:.92rem}
+.dim-g .dim-pose{grid-column:span 3}
+.dim-pose-l{display:flex;align-items:center;gap:6px}
+.dim-pose-l select{flex:1;min-width:0}
+.dim-ico{display:inline-flex;flex:none;color:var(--ink);vertical-align:middle}
+.dim-ico svg{width:64px;height:44px}
+.dim-donnees{margin:0 0 8px;font-size:.88rem;color:var(--ink-2);line-height:1.45}
+.dim-donnees .dim-ico{float:right;margin:0 0 4px 8px;border:1px solid var(--rule-2);border-radius:6px;padding:2px;background:var(--paper-2)}
+.dim-res{margin:10px 0 4px;font-size:.9rem;line-height:1.55}
+.dim-res .ok,.dim-et .ok b{color:var(--good)}
+.dim-err{color:var(--bad);font-weight:600;margin:10px 0 4px}
+.dim-pas summary{cursor:pointer;color:var(--accent);font-size:.88rem}
+.dim-et{margin:6px 0 0;padding-left:1.4em;font-size:.86rem;line-height:1.45}
+.dim-et li{margin:5px 0}
+.dim-et li b{display:block}
+.dim-et li.ko{color:var(--bad)}
+.dim-rep{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+@media (max-width:720px){.dim-rep{grid-template-columns:repeat(3,minmax(0,1fr))}.dim-g .dim-pose{grid-column:1/-1}}
+.dim-rep label{margin:0;font-size:.8rem;font-weight:600;color:var(--ink-2)}
+.dim-rep input{font-family:var(--f-mono)}
+.dim-rep input.ok{border-color:var(--good);background:var(--good-soft)}
+.dim-rep input.ko{border-color:var(--bad);background:var(--bad-soft)}
+.dim-aides{margin:6px 0 0;padding-left:1.2em;font-size:.84rem;color:var(--bad);line-height:1.4}
+.dim-aides:empty{display:none}
+.dim-aides li{margin:3px 0}
+.dim-voir{margin-top:4px}
+.dim-barre{position:sticky;bottom:-18px;z-index:2;background:var(--paper);border-top:1px solid var(--rule);padding:10px 0 12px;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.dim-barre #dim-score{flex:1 1 220px;font-size:.88rem}
+.dim-actions{margin:8px 0 4px}
+.dim-uni{background:#fff;border:1px solid var(--rule);border-radius:8px;overflow-x:auto;padding:6px;margin-bottom:8px}
+.dim-uni svg{display:block;height:auto;margin:0 auto}
+.dim-prof{margin-top:14px;border:1px dashed var(--rule);border-radius:8px;padding:6px 10px}
+.dim-prof summary{cursor:pointer;font-weight:600}
+.dim-limites{margin-top:12px}
 /* impression : seulement le schéma, avec son cartouche */
 #sc-impression{display:none}
 @media print{
@@ -642,6 +710,7 @@ table.raccourcis td:first-child{white-space:nowrap;width:1%}
 <dialog class="sc-d" id="d-defis"><div class="d-tete"><h2>Défis</h2><button class="d-x" type="button" data-fermer aria-label="Fermer">×</button></div><div class="d-corps" id="d-defis-c"></div></dialog>
 <dialog class="sc-d sc-prog" id="d-prog"><div class="d-tete"><h2 id="d-prog-t">Programmer l'automate</h2><button class="d-x" type="button" data-fermer aria-label="Fermer">×</button></div><div class="d-corps" id="d-prog-c"></div></dialog>
 <dialog class="sc-d" id="d-nomen"><div class="d-tete"><h2>Nomenclature et bornier</h2><button class="d-x" type="button" data-fermer aria-label="Fermer">×</button></div><div class="d-corps" id="d-nomen-c"></div></dialog>
+<dialog class="sc-d sc-dim" id="d-dim"><div class="d-tete"><h2 id="d-dim-t">Calcul des câbles</h2><button class="d-x" type="button" data-fermer aria-label="Fermer">×</button></div><div class="d-corps" id="d-dim-c"></div></dialog>
 <dialog class="sc-d" id="d-aide"><div class="d-tete"><h2>Comment ça marche</h2><button class="d-x" type="button" data-fermer aria-label="Fermer">×</button></div><div class="d-corps" id="d-aide-c"></div></dialog>
 <div id="sc-impression"></div>
 <input type="file" id="sc-import" accept=".json,application/json" hidden>
@@ -654,6 +723,7 @@ table.raccourcis td:first-child{white-space:nowrap;width:1%}
 <script src="schemas/exemples.js"></script>
 <script src="schemas/programme.js"></script>
 <script src="schemas/chrono.js"></script>
+<script src="schemas/dimensionnement.js"></script>
 <script src="schemas/editeur.js"></script>
 <script src="../assets/appli.js" onerror="void 0"></script>
 </body>

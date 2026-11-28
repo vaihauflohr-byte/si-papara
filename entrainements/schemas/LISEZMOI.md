@@ -243,6 +243,26 @@ puis on appuie sur **Simuler**. On peut aussi câbler un **automate programmable
    de bobine, contacts utilisés, rôle dans une partie opérative ; colonnes où il apparaît) et le **bornier X1** des
    appareils du terrain (moteurs, capteurs, fins de course, électrovannes) : borne, numéro de fil, côté armoire, côté
    terrain. « Copier » (pour un tableur), « Télécharger (CSV) », « Imprimer ».
+17. **Calcul des câbles** (Fichier, `dimensionnement.js`) : pour chaque départ du tableau (récepteur, triphasé ou
+   monophasé, puissance, cos φ, rendement, protection, longueur, façon de poser avec un petit dessin, isolant, câbles
+   côte à côte, température de l'air) : **Ib**, le calibre **In**, **K = K1 × K2 × K3**, **I'z**, la **section** (tableau
+   des courants admissibles, cuivre), la **chute de tension** (la section monte tant qu'elle dépasse la limite), le PE
+   et le câble (« 4G1,5 »), avec **le calcul pas à pas** ; un **câble d'arrivée** facultatif (bilan de Boucherot, ks ;
+   sa chute s'ajoute à celle des départs) ; « Prendre les moteurs du schéma » ; les **tableaux de la norme** (poses et
+   lettres, K1, K2, K3, courants admissibles, calibres, k3 des fusibles gG, chute de tension) ; le **schéma unifilaire**
+   (SVG : imprimer, télécharger) et un récapitulatif. Le calcul est gardé avec le schéma (`schema.dim`, relu par
+   `valider`), donc aussi dans le `.json` et sur le compte. **Exercices** (fenêtre « Défis », « Calcul des câbles ») :
+   trois installations toutes faites (`EXERCICES` : l'atelier du lycée ; la station de pompage, 4 câbles à 40 °C et des
+   fusibles gG ; le bâtiment et son poste privé, avec un câble d'arrivée) ; les données sont fixées, l'élève remplit Ib,
+   In, K, I'z, S, ΔU pour chaque circuit et « Vérifier » (ou Entrée) : ✓ ou ✗ avec une aide (la formule ; « 1,5 mm²
+   suffit pour l'échauffement, mais la chute de tension est trop grande »…) ; chaque résultat compte à sa **première
+   réponse** ; « Voir le calcul » (en deux temps) montre la méthode, mais ce qui n'est pas trouvé ne compte plus ; à la
+   fin : note = 20 × justes du premier coup / nombre de cases (arrondie au demi-point), envoyée une fois au suivi
+   (module `schemas-dim-<id>`, colonne « Câbles » de la page « Atelier schémas » du professeur). Le professeur donne
+   son propre calcul en exercice : « Professeur : donner ce calcul en exercice » (titre, puis le lien `#cables=z…` :
+   les données seulement ; module `schemas-dim-p<empreinte>`). `#cables` ouvre le calcul, `#cables=pompage` un exercice.
+   Pas dans l'outil : pouvoir de coupure et longueur maximale protégée, câbles enterrés (lettre D), aluminium, neutre
+   chargé (Kn).
 
 Raccourcis : `V` choisir, `F` fil, `H` feuille, `R` tourner, `Suppr` supprimer, `Ctrl+Z` / `Ctrl+Y` annuler /
 rétablir, `Ctrl+D` dupliquer, `Ctrl+C` / `Ctrl+V`, flèches pour déplacer d'un carreau, molette ou `+` `−` `0` pour
@@ -423,6 +443,7 @@ rouleaux, magasin, cellule, bacs, volet), pas des symboles.
 | `moteur.js` | le **moteur de simulation**, séparé de l'interface (marche dans Node) ; `scenario()` rejoue les essais des défis |
 | `exemples.js` | les exemples et les défis, construits sur la grille (puissance à gauche, commande à droite) |
 | `folio.js` | le **repérage du folio** et la **nomenclature** (sans accès à la page, testé en Node) : `analyser(schéma)` (colonnes, noms des équipotentielles, étiquettes des fils, renvois, nomenclature, bornier X1), `svg(schéma, analyse)` (le dessin par-dessus la feuille), `tableaux(analyse, séparateur)` (texte pour « Copier » et le CSV), `CSS` (pour les images exportées) |
+| `dimensionnement.js` | le **calcul des câbles**, sans la page (marche dans Node) : tableaux (poses, K2, K3, courants admissibles, calibres), `calculer(dim)` (arrivée et départs : Ib, In, K, I'z, section, chute de tension), `etapes` (le calcul pas à pas), `verifierChamp` (les réponses de l'élève, avec une aide), `unifilaire` (SVG), `tableaux` (HTML), `EXERCICES`, lecture sûre (`valider`) |
 | `chrono.js` | le **chronogramme** : les lignes d'après le schéma (`construire`), l'enregistrement des changements (`echantillon`, 10 min gardées), le tracé SVG, l'image PNG |
 | `editeur.js` | l'**éditeur** : dessin de la feuille, souris et doigt, clavier, historique, sauvegarde, panneau, simulation à l'écran, défis, fichiers, aide |
 
@@ -670,6 +691,8 @@ Dans la page, `window.SchemasAtelier` donne accès au schéma et à la simulatio
 | `schemas:copies` | « Mes schémas » (30 copies au plus ; une copie est faite automatiquement avant d'ouvrir un exemple ou un fichier) |
 | `schemas:dernier` | ce qui était ouvert (schéma libre ou défi), pour y revenir |
 | `schemas:folio` | le repérage du folio est affiché (`true`) ou non |
+| `schemas:dimex:<nom>:<exercice>` | un exercice de câbles : réponses, premières réponses, calculs vus, fin, note, envoi |
+| `schemas:dims:<nom>` | les exercices de câbles terminés et leur note (cartes de la fenêtre « Défis ») |
 
 `<nom>` : le nom de la session du site (`sip_session`), sinon `local`.
 
@@ -729,6 +752,15 @@ Gardés hors du dépôt (`/tmp/schemas-tests/` pendant le développement) :
 - `e2e_compte.py` (Playwright, PC et téléphone, mode démo) : la section, garder, garder encore (même ligne), envoyer
   (le mot), un deuxième, rouvrir, supprimer, base pas à jour, pas connecté ; le professeur : la carte « Schémas envoyés »
   (1 nouveau, le mot), Ouvrir (onglet, schéma, bulle, brouillon gardé, adresse sans `#ouvrir`), « Rouvrir » ;
+- `t_dim.js` (Node, dans `/tmp/dim`) : les trois exercices calculés à la main (Ib, In, K, I'z, sections, chutes de
+  tension, Boucherot, cumul arrivée + départ, poste privé), désignation des câbles et PE, cas limites (plus de 630 A,
+  aucune section), lecture sûre, les moteurs du schéma, la vérification des réponses et ses aides, les étapes,
+  l'unifilaire (masqué ou non), `SchemasModele.valider` qui garde le calcul ;
+- `e2e_cables.py` (Playwright, PC et téléphone, mode démo) : page libre (moteurs du schéma, résultats, pas à pas resté
+  ouvert, éclairage qui passe à 2,5 mm², unifilaire, récapitulatif, gardé avec le schéma, câble d'arrivée, lien du
+  professeur, supprimer en deux temps, rechargé) ; exercice de Teva connectée (cases, aides, score, reprise après
+  rechargement, Entrée, note 15,5/20 envoyée une fois, carte « Note », « Voir le calcul » en deux temps) ; page du
+  professeur (colonne « Câbles », détail) ; le lien du professeur au téléphone (plein écran, 3 cases par ligne, 20/20) ;
 - `t_cplt.js` (Node, dans `/tmp/cplt`) : l'essai du démarrage direct (commandes, observés, 13 étapes, exige), départ
   sans auto-maintien (échoue à « S2 relâché »), inversion sans verrouillage, étoile-triangle (étapes « 3 s plus
   tard » : étoile puis triangle), automate et partie opérative, repère changé ;

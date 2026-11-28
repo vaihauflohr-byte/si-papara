@@ -377,6 +377,8 @@
   const entier = (v, min, max, d) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : d; };
   // le programme d'un automate est vérifié par automate.js (chargé avant l'éditeur, ou par require dans Node)
   function automateJs() { if (typeof module === "object" && module.exports) { try { return require("./automate.js"); } catch (e) { return null; } } return g.SchemasAutomate || null; }
+  // le calcul des câbles (Fichier → Calcul des câbles) est vérifié par dimensionnement.js
+  function dimJs() { if (typeof module === "object" && module.exports) { try { return require("./dimensionnement.js"); } catch (e) { return null; } } return g.SchemasDim || null; }
   const libreOk = (pc, id) => { const T = TYPES[pc.type]; return !!(T && T.libre && T.libre(id)); };
   const texte = (v, max) => String(v == null ? "" : v).replace(/[\u0000-\u001f<>]/g, "").slice(0, max);
   function valider(o) {
@@ -403,6 +405,7 @@
       fids.add(id);
       s.fils.push({ id, pts });
     }
+    if (o.dim && typeof o.dim === "object") { const D = dimJs(), d = D ? D.valider(o.dim) : null; if (d && (d.departs.length || d.arrivee)) s.dim = d; }
     return s;
   }
   function bornesDe(s) { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
